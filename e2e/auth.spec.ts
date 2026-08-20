@@ -32,7 +32,7 @@ test.describe("auth", () => {
 
   test("signs in and lands on the home placeholder", async ({ page }) => {
     await signIn(page);
-    await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
     await expect(page.getByText("Ada Lovelace")).toBeVisible();
   });
 
@@ -43,7 +43,7 @@ test.describe("auth", () => {
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByLabel("Remember me").click();
     await page.getByRole("button", { name: "Sign In" }).click();
-    await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 
     const remembered = (await context.cookies()).find((cookie) => cookie.name === "pb_refresh");
     expect(remembered?.expires ?? -1).toBeGreaterThan(Date.now() / 1000 + 60 * 60 * 24);
@@ -54,7 +54,7 @@ test.describe("auth", () => {
     await page.getByLabel("Company Email").fill(EMAIL);
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: "Sign In" }).click();
-    await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 
     const session = (await context.cookies()).find((cookie) => cookie.name === "pb_refresh");
     expect(session?.expires ?? -1).toBeLessThan(0);
@@ -62,14 +62,16 @@ test.describe("auth", () => {
 
   test("signs out and returns to login", async ({ page }) => {
     await signIn(page);
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: /Account menu for Ada Lovelace/ }).click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
     await expect(page.getByRole("heading", { name: "Sign in to your account" })).toBeVisible();
     await expect(page).toHaveURL(/\/login/);
   });
 
   test("changes password from the authenticated header", async ({ page }) => {
     await signIn(page);
-    await page.getByRole("button", { name: "Change password" }).click();
+    await page.getByRole("button", { name: /Account menu for Ada Lovelace/ }).click();
+    await page.getByRole("menuitem", { name: "Change password" }).click();
     await page.getByLabel("Current Password").fill(PASSWORD);
     await page.getByLabel("New Password", { exact: true }).fill("new-horse-battery");
     await page.getByLabel("Confirm New Password").fill("new-horse-battery");
