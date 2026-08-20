@@ -1,11 +1,12 @@
 import { API_VERSION_PREFIX, BFF_AUTH_PREFIX } from "@/config/constants";
 import { reportError } from "@/integrations/error-reporting/report";
-import { parseEnvelope } from "@/shared/api/envelope";
+import { parseEnvelope, parseListMeta, type ListResponse } from "@/shared/api/envelope";
 import { ApiError, getErrorMessage, isApiError } from "@/shared/api/errors";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export type RequestParams = Record<string, string | number | boolean | null | undefined>;
+export type RequestParamValue = string | number | boolean | null | undefined | readonly string[];
+export type RequestParams = Record<string, RequestParamValue>;
 
 export type RequestConfig = {
   params?: RequestParams;
@@ -43,6 +44,15 @@ function buildUrl(path: string, basePrefix: string, params?: RequestParams): str
   if (params) {
     for (const [key, value] of Object.entries(params)) {
       if (value === undefined || value === null || value === "") {
+        continue;
+      }
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item === undefined || item === null || item === "") {
+            continue;
+          }
+          url.searchParams.append(key, String(item));
+        }
         continue;
       }
       url.searchParams.set(key, String(value));
@@ -186,10 +196,100 @@ async function request<T>(path: string, config: InternalConfig, hasRetried = fal
   return (envelope.data ?? null) as T;
 }
 
+async function requestList<T>(
+  path: string,
+  config: InternalConfig,
+  hasRetried = false,
+): Promise<ListResponse<T>> {
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const url = buildUrl(path, config.basePrefix, config.params);
+  const headers = new Headers(config.headers);
+
+  headers.set("Accept", "application/json");
+  if (!headers.has("x-request-id")) {
+    headers.set("x-request-id", crypto.randomUUID());
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: config.method,
+      headers,
+      credentials: "include",
+      signal: mergeSignals(timeoutMs, config.signal),
+    });
+  } catch (error) {
+    const apiError = new ApiError("NETWORK_ERROR", getErrorMessage("NETWORK_ERROR"), 0, error);
+    reportError(apiError, { path, method: config.method });
+    throw apiError;
+  }
+
+  if (response.status === 401 && isBrowser() && !hasRetried && !config.skipRefresh) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      return requestList<T>(path, config, true);
+    }
+    if (
+      config.basePrefix === API_VERSION_PREFIX &&
+      !window.location.pathname.startsWith("/login")
+    ) {
+      // The shared client is not a React component, so router navigation is unavailable.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard fallback after failed refresh
+      window.location.assign("/login");
+    }
+  }
+
+  const rawText = await response.text();
+  let payload: unknown = null;
+  if (rawText) {
+    try {
+      payload = JSON.parse(rawText) as unknown;
+    } catch (error) {
+      const apiError = new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), response.status);
+      reportError(error, { path, method: config.method, http_status: response.status });
+      throw apiError;
+    }
+  }
+
+  if (payload === null) {
+    if (!response.ok) {
+      throw new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), response.status);
+    }
+    return { data: [] as T, meta: parseListMeta(undefined, 0) };
+  }
+
+  const envelope = parseEnvelope(payload);
+  if (!response.ok || !envelope.success || envelope.error) {
+    const code = envelope.error?.code ?? "UNKNOWN";
+    const apiError = new ApiError(
+      code,
+      getErrorMessage(code),
+      response.status,
+      envelope.error?.details,
+    );
+    if (shouldReport(apiError)) {
+      reportError(apiError, {
+        path,
+        method: config.method,
+        http_status: response.status,
+        error_code: code,
+      });
+    }
+    throw apiError;
+  }
+
+  const data = (envelope.data ?? []) as T;
+  const itemCount = Array.isArray(data) ? data.length : 0;
+  return { data, meta: parseListMeta(envelope.meta, itemCount) };
+}
+
 function createClient(basePrefix: string, skipRefresh = false) {
   return {
     get<T>(path: string, config: RequestConfig = {}): Promise<T> {
       return request<T>(path, { ...config, method: "GET", basePrefix, skipRefresh });
+    },
+    getList<T>(path: string, config: RequestConfig = {}): Promise<ListResponse<T>> {
+      return requestList<T>(path, { ...config, method: "GET", basePrefix, skipRefresh });
     },
     post<T>(path: string, body?: unknown, config: RequestConfig = {}): Promise<T> {
       return request<T>(path, { ...config, method: "POST", body, basePrefix, skipRefresh });
@@ -208,6 +308,8 @@ function createClient(basePrefix: string, skipRefresh = false) {
 
 export const apiClient = createClient(API_VERSION_PREFIX);
 export const bffClient = createClient(BFF_AUTH_PREFIX, true);
+
+export { type ListResponse } from "@/shared/api/envelope";
 
 export function shouldRetryQuery(failureCount: number, error: Error): boolean {
   if (isApiError(error) && error.status >= 400 && error.status < 500) {

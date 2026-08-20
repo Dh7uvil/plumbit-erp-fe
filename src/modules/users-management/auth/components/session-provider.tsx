@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { authKeys } from "@/modules/users-management/auth/queries";
 import type { SessionUser } from "@/shared/auth/session-schema";
+import { SessionProvider as SessionPermissionsProvider } from "@/shared/providers/session-provider";
 
 export function SessionProvider({
   children,
@@ -21,5 +22,9 @@ export function SessionProvider({
     }
   }, [initialMe, queryClient]);
 
-  return children;
+  return (
+    <SessionPermissionsProvider value={{ permissions: initialMe?.permissions ?? [] }}>
+      {children}
+    </SessionPermissionsProvider>
+  );
 }

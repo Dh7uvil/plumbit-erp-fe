@@ -9,6 +9,24 @@ export const PaginationMetaSchema = z.object({
 
 export type PaginationMeta = z.infer<typeof PaginationMetaSchema>;
 
+export type ListResponse<T> = {
+  data: T;
+  meta: PaginationMeta;
+};
+
+export function parseListMeta(meta: unknown, itemCount: number): PaginationMeta {
+  const parsed = PaginationMetaSchema.safeParse(meta);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  return {
+    page: 1,
+    page_size: itemCount,
+    total: itemCount,
+    total_pages: itemCount > 0 ? 1 : 0,
+  };
+}
+
 export const ApiErrorBodySchema = z.object({
   code: z.string(),
   message: z.string().optional(),
