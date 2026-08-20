@@ -25,4 +25,11 @@ npm run start        # Production server
 npm run typecheck    # TypeScript
 npm run lint         # ESLint
 npm run format       # Prettier
+npm run test:e2e     # Playwright auth flows (starts a mock API)
+```
+
+First-time e2e setup:
+
+```bash
+npx playwright install chromium
 ```
