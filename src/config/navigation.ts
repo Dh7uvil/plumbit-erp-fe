@@ -1,6 +1,9 @@
 import {
+  BookOpen,
   ClipboardList,
+  FileText,
   LayoutDashboard,
+  ListOrdered,
   Lock,
   Percent,
   Settings,
@@ -10,6 +13,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
+import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
+import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
+import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
@@ -50,6 +57,25 @@ export const navigation: NavigationGroup[] = [
         href: "/exchange-rates",
         permission: exchangeRatePermissions.read,
         icon: Percent,
+      },
+      { label: "Taxes", href: "/taxes", permission: taxPermissions.read, icon: Percent },
+      {
+        label: "Payment terms",
+        href: "/payment-terms",
+        permission: paymentTermPermissions.read,
+        icon: ListOrdered,
+      },
+      {
+        label: "Terms templates",
+        href: "/terms-templates",
+        permission: termsTemplatePermissions.read,
+        icon: FileText,
+      },
+      {
+        label: "Document sequences",
+        href: "/document-sequences",
+        permission: documentSequencePermissions.read,
+        icon: BookOpen,
       },
     ],
   },
