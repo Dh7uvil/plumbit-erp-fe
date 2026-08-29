@@ -11,6 +11,7 @@ import {
   Ruler,
   Settings,
   Shield,
+  Tags,
   UserCog,
   Wallet,
   type LucideIcon,
@@ -23,6 +24,7 @@ import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templat
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
 import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
+import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
@@ -95,6 +97,12 @@ export const navigation: NavigationGroup[] = [
         href: "/products",
         permission: productPermissions.read,
         icon: Package,
+      },
+      {
+        label: "Price lists",
+        href: "/price-lists",
+        permission: priceListPermissions.read,
+        icon: Tags,
       },
     ],
   },
