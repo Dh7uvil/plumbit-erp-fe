@@ -12,6 +12,7 @@ import {
   Ruler,
   Settings,
   Shield,
+  ShoppingCart,
   Tags,
   UserCog,
   Users,
@@ -28,6 +29,7 @@ import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
+import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
 import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
@@ -127,6 +129,17 @@ export const navigation: NavigationGroup[] = [
         href: "/contacts",
         permission: contactPermissions.read,
         icon: Contact,
+      },
+    ],
+  },
+  {
+    label: "ERP",
+    items: [
+      {
+        label: "Quotations",
+        href: "/quotations",
+        permission: quotationPermissions.read,
+        icon: ShoppingCart,
       },
     ],
   },

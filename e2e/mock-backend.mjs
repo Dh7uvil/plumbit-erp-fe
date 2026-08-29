@@ -6,6 +6,7 @@ const USER_ID = "22222222-2222-4222-8222-222222222222";
 const SUPERADMIN_ROLE_ID = "33333333-3333-4333-8333-333333333333";
 const EMPLOYEE_ROLE_ID = "66666666-6666-4666-8666-666666666666";
 const CURRENCY_ID = "44444444-4444-4444-8444-444444444444";
+const CUSTOMER_ID = "55555555-5555-4555-8555-555555555555";
 const EMAIL = "ada@plumbit.com";
 const PASSWORD = "correct-horse";
 const ORGANIZATION_NAME = process.env.NEXT_PUBLIC_ORGANIZATION_NAME ?? "Plumbit";
@@ -19,7 +20,6 @@ const EMPTY_LIST_PATHS = new Set([
   "/api/v1/branches",
   "/api/v1/categories",
   "/api/v1/contacts",
-  "/api/v1/customers",
   "/api/v1/departments",
   "/api/v1/document-sequences",
   "/api/v1/exchange-rates",
@@ -36,6 +36,8 @@ const EMPTY_LIST_PATHS = new Set([
 let currentPassword = PASSWORD;
 let accessToken = "access-token-1";
 let refreshToken = "refresh-token-1";
+let quotations = new Map();
+let quoteSeq = 0;
 let tenantLogoUrl = null;
 let tenantState = {
   name: ORGANIZATION_NAME,
@@ -111,6 +113,11 @@ function drain(req) {
   });
 }
 
+function resetErpState() {
+  quotations = new Map();
+  quoteSeq = 0;
+}
+
 function currency() {
   return {
     id: CURRENCY_ID,
@@ -123,6 +130,110 @@ function currency() {
     is_active: true,
     created_at: NOW,
     updated_at: NOW,
+  };
+}
+
+function customer() {
+  return {
+    id: CUSTOMER_ID,
+    tenant_id: TENANT_ID,
+    name: "Acme Trading",
+    code: "ACME",
+    company_type: "CUSTOMER",
+    trn: null,
+    tax_treatment: "UNREGISTERED",
+    currency_id: CURRENCY_ID,
+    default_price_list_id: null,
+    payment_terms_id: null,
+    credit_limit: null,
+    salesperson_id: null,
+    billing_address: null,
+    shipping_address: null,
+    extra_addresses: [],
+    notes: null,
+    is_active: true,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}
+
+function moneyProduct(quantity, rate) {
+  const qty = Number(quantity);
+  const unitRate = Number(rate);
+  if (!Number.isFinite(qty) || !Number.isFinite(unitRate)) {
+    return "0.00";
+  }
+  return (qty * unitRate).toFixed(2);
+}
+
+function buildLines(inputLines) {
+  return (inputLines ?? []).map((line, index) => {
+    const quantity = line.quantity ?? "1";
+    const rate = line.rate ?? "0";
+    return {
+      id: crypto.randomUUID(),
+      line_number: index + 1,
+      product_id: line.product_id ?? null,
+      description: line.description ?? "",
+      quantity: String(quantity),
+      unit_id: line.unit_id ?? null,
+      rate: String(rate),
+      discount_type: line.discount_type ?? null,
+      discount_value: line.discount_value ?? null,
+      discount_amount: "0",
+      tax_id: line.tax_id ?? null,
+      tax_rate: "0",
+      tax_amount: "0",
+      amount: moneyProduct(quantity, rate),
+    };
+  });
+}
+
+function buildQuotation(body, existing = null) {
+  quoteSeq += existing ? 0 : 1;
+  const id = existing?.id ?? crypto.randomUUID();
+  const lines = buildLines(body.lines ?? existing?.lines ?? []);
+  const subtotal = lines.reduce((sum, line) => sum + Number(line.amount), 0).toFixed(2);
+  const now = new Date().toISOString();
+  return {
+    id,
+    tenant_id: TENANT_ID,
+    quote_number: existing?.quote_number ?? `QUO-${String(quoteSeq).padStart(4, "0")}`,
+    status: existing?.status ?? "DRAFT",
+    quote_date: body.quote_date ?? existing?.quote_date ?? "2026-08-27",
+    valid_until: body.valid_until ?? existing?.valid_until ?? null,
+    branch_id: body.branch_id ?? existing?.branch_id ?? null,
+    customer_id: body.customer_id ?? existing?.customer_id ?? CUSTOMER_ID,
+    contact_id: body.contact_id ?? existing?.contact_id ?? null,
+    customer_trn: existing?.customer_trn ?? null,
+    tax_treatment: existing?.tax_treatment ?? "UNREGISTERED",
+    place_of_supply: body.place_of_supply ?? existing?.place_of_supply ?? "DUBAI",
+    currency_id: body.currency_id ?? existing?.currency_id ?? CURRENCY_ID,
+    base_currency_id: existing?.base_currency_id ?? CURRENCY_ID,
+    exchange_rate: existing?.exchange_rate ?? "1",
+    price_list_id: body.price_list_id ?? existing?.price_list_id ?? null,
+    payment_terms_id: body.payment_terms_id ?? existing?.payment_terms_id ?? null,
+    salesperson_id: body.salesperson_id ?? existing?.salesperson_id ?? null,
+    notes: body.notes ?? existing?.notes ?? null,
+    terms_and_conditions: body.terms_and_conditions ?? existing?.terms_and_conditions ?? null,
+    bill_to_snapshot: existing?.bill_to_snapshot ?? null,
+    ship_to_snapshot: existing?.ship_to_snapshot ?? null,
+    discount_type: body.discount_type ?? existing?.discount_type ?? null,
+    discount_value: body.discount_value ?? existing?.discount_value ?? null,
+    discount_amount: "0",
+    shipping_amount: body.shipping_amount ?? existing?.shipping_amount ?? "0",
+    adjustment_amount: body.adjustment_amount ?? existing?.adjustment_amount ?? "0",
+    subtotal,
+    tax_amount: "0",
+    grand_total: subtotal,
+    foreign_amount: subtotal,
+    base_amount: subtotal,
+    converted_at: null,
+    converted_document_type: null,
+    converted_document_id: null,
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
   };
 }
 
@@ -221,6 +332,12 @@ function me() {
       "crm.contact.create",
       "crm.contact.update",
       "crm.contact.delete",
+      "erp.quotation.read",
+      "erp.quotation.create",
+      "erp.quotation.update",
+      "erp.quotation.delete",
+      "erp.quotation.approve",
+      "erp.quotation.send",
       "identity.attachment.read",
       "identity.branch.read",
       "identity.department.read",
@@ -269,6 +386,7 @@ const server = http.createServer(async (req, res) => {
         fail(res, 401, "AUTH_INVALID_CREDENTIALS", "Invalid credentials");
         return;
       }
+      resetErpState();
       ok(res, tokenPair());
       return;
     }
@@ -405,6 +523,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/v1/customers") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [customer()]);
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/v1/currencies") {
       if (unauthorized(req, res)) {
         return;
@@ -428,6 +554,120 @@ const server = http.createServer(async (req, res) => {
         created_at: NOW,
         updated_at: NOW,
       });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/quotations/compose-defaults") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const customerId = url.searchParams.get("customer_id");
+      if (customerId !== CUSTOMER_ID) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const seeded = customer();
+      ok(res, {
+        customer_id: seeded.id,
+        customer_name: seeded.name,
+        customer_trn: seeded.trn,
+        tax_treatment: seeded.tax_treatment,
+        currency_id: seeded.currency_id,
+        price_list_id: seeded.default_price_list_id,
+        payment_terms_id: seeded.payment_terms_id,
+        salesperson_id: seeded.salesperson_id,
+        contact_id: null,
+        place_of_supply: "DUBAI",
+        bill_to_snapshot: null,
+        ship_to_snapshot: null,
+        terms_and_conditions: null,
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/quotations") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [...quotations.values()]);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/quotations") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const quotation = buildQuotation(body);
+      quotations.set(quotation.id, quotation);
+      ok(res, quotation, 201);
+      return;
+    }
+
+    const quotationAction = url.pathname.match(
+      /^\/api\/v1\/quotations\/([0-9a-f-]{36})\/(submit|approve|reject|reopen|send|accept|decline|cancel|clone)$/i,
+    );
+    if (req.method === "POST" && quotationAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const quotation = quotations.get(quotationAction[1]);
+      if (!quotation) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const action = quotationAction[2];
+      if (action === "submit") {
+        quotation.status = "PENDING_APPROVAL";
+      } else if (action === "approve") {
+        quotation.status = "APPROVED";
+      } else if (action === "reject") {
+        quotation.status = "REJECTED";
+      } else if (action === "reopen") {
+        quotation.status = "DRAFT";
+      } else if (action === "send") {
+        quotation.status = "SENT";
+      } else if (action === "accept") {
+        quotation.status = "ACCEPTED";
+      } else if (action === "decline") {
+        quotation.status = "DECLINED";
+      } else if (action === "cancel") {
+        quotation.status = "CANCELLED";
+      } else if (action === "clone") {
+        const cloned = buildQuotation({
+          ...quotation,
+          lines: quotation.lines,
+          customer_id: quotation.customer_id,
+        });
+        cloned.status = "DRAFT";
+        quotations.set(cloned.id, cloned);
+        ok(res, cloned, 201);
+        return;
+      }
+      quotation.updated_at = new Date().toISOString();
+      quotations.set(quotation.id, quotation);
+      ok(res, quotation);
+      return;
+    }
+
+    const quotationDetail = url.pathname.match(/^\/api\/v1\/quotations\/([0-9a-f-]{36})$/i);
+    if (quotationDetail && (req.method === "GET" || req.method === "PATCH")) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = quotations.get(quotationDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      const body = await readBody(req);
+      const quotation = buildQuotation(body, existing);
+      quotations.set(quotation.id, quotation);
+      ok(res, quotation);
       return;
     }
 
