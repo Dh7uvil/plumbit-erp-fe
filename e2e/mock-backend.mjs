@@ -23,6 +23,7 @@ const EMPTY_LIST_PATHS = new Set([
   "/api/v1/payment-terms",
   "/api/v1/taxes",
   "/api/v1/terms-templates",
+  "/api/v1/units",
   "/api/v1/users",
 ]);
 
@@ -186,6 +187,10 @@ function me() {
       "erp.document_sequence.create",
       "erp.document_sequence.update",
       "erp.document_sequence.delete",
+      "inventory.unit.read",
+      "inventory.unit.create",
+      "inventory.unit.update",
+      "inventory.unit.delete",
       "identity.attachment.read",
       "identity.branch.read",
       "identity.department.read",
