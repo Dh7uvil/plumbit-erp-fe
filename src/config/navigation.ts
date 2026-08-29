@@ -1,6 +1,7 @@
 import {
   BookOpen,
   ClipboardList,
+  Contact,
   FileText,
   FolderTree,
   LayoutDashboard,
@@ -19,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
@@ -119,6 +121,12 @@ export const navigation: NavigationGroup[] = [
         href: "/customers",
         permission: customerPermissions.read,
         icon: Users,
+      },
+      {
+        label: "Contacts",
+        href: "/contacts",
+        permission: contactPermissions.read,
+        icon: Contact,
       },
     ],
   },

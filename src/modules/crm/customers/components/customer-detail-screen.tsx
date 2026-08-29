@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
 import { CustomerForm } from "@/modules/crm/customers/components/customer-form";
 import { useAddCustomerAddress, useDeleteCustomerAddress } from "@/modules/crm/customers/mutations";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
@@ -257,6 +258,7 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
           </DataTable>
         </CardContent>
       </Card>
+      <ContactsPanel customerId={customer.id} />
       <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />
       <Dialog
         open={addressOpen}
