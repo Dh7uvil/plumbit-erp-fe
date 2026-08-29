@@ -28,6 +28,7 @@ const EMPTY_LIST_PATHS = new Set([
   "/api/v1/terms-templates",
   "/api/v1/units",
   "/api/v1/users",
+  "/api/v1/warehouses",
 ]);
 
 let currentPassword = PASSWORD;
@@ -206,6 +207,10 @@ function me() {
       "inventory.price_list.create",
       "inventory.price_list.update",
       "inventory.price_list.delete",
+      "inventory.warehouse.read",
+      "inventory.warehouse.create",
+      "inventory.warehouse.update",
+      "inventory.warehouse.delete",
       "identity.attachment.read",
       "identity.branch.read",
       "identity.department.read",

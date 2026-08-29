@@ -14,6 +14,7 @@ import {
   Tags,
   UserCog,
   Wallet,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ import { categoryPermissions } from "@/modules/inventory-management/categories/p
 import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
+import { warehousePermissions } from "@/modules/inventory-management/warehouses/permissions";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
 import { auditLogPermissions } from "@/modules/users-management/audit-logs/permissions";
 import { permissionCatalogPermissions } from "@/modules/users-management/permissions/permissions";
@@ -103,6 +105,12 @@ export const navigation: NavigationGroup[] = [
         href: "/price-lists",
         permission: priceListPermissions.read,
         icon: Tags,
+      },
+      {
+        label: "Warehouses",
+        href: "/warehouses",
+        permission: warehousePermissions.read,
+        icon: Warehouse,
       },
     ],
   },
