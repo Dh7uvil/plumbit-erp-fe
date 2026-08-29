@@ -120,7 +120,7 @@ async function request<T>(path: string, config: InternalConfig, hasRetried = fal
   if (!headers.has("x-request-id")) {
     headers.set("x-request-id", crypto.randomUUID());
   }
-  if (config.body !== undefined) {
+  if (config.body !== undefined && !(config.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -129,7 +129,12 @@ async function request<T>(path: string, config: InternalConfig, hasRetried = fal
     response = await fetch(url, {
       method: config.method,
       headers,
-      body: config.body === undefined ? undefined : JSON.stringify(config.body),
+      body:
+        config.body === undefined
+          ? undefined
+          : config.body instanceof FormData
+            ? config.body
+            : JSON.stringify(config.body),
       credentials: "include",
       signal: mergeSignals(timeoutMs, config.signal),
     });
@@ -292,6 +297,9 @@ function createClient(basePrefix: string, skipRefresh = false) {
       return requestList<T>(path, { ...config, method: "GET", basePrefix, skipRefresh });
     },
     post<T>(path: string, body?: unknown, config: RequestConfig = {}): Promise<T> {
+      return request<T>(path, { ...config, method: "POST", body, basePrefix, skipRefresh });
+    },
+    postForm<T>(path: string, body: FormData, config: RequestConfig = {}): Promise<T> {
       return request<T>(path, { ...config, method: "POST", body, basePrefix, skipRefresh });
     },
     put<T>(path: string, body?: unknown, config: RequestConfig = {}): Promise<T> {

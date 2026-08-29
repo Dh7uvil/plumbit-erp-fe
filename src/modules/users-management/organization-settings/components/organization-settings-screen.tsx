@@ -21,18 +21,18 @@ export function OrganizationSettingsScreen() {
       <Tabs defaultValue="company">
         <TabsList>
           <TabsTrigger value="company">Company</TabsTrigger>
-          <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="branches">Branches</TabsTrigger>
+          <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="warehouses">Warehouses</TabsTrigger>
         </TabsList>
         <TabsContent value="company" className="mt-4">
           <CompanySettingsForm />
         </TabsContent>
-        <TabsContent value="departments" className="mt-4">
-          <DepartmentsPanel />
-        </TabsContent>
         <TabsContent value="branches" className="mt-4">
           <BranchesPanel />
+        </TabsContent>
+        <TabsContent value="departments" className="mt-4">
+          <DepartmentsPanel />
         </TabsContent>
         <TabsContent value="warehouses" className="mt-4">
           <Card>

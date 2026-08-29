@@ -12,6 +12,8 @@ import {
   ForgotPasswordFormSchema,
   type ForgotPasswordFormValues,
 } from "@/modules/users-management/auth/schemas";
+import { useAuthBrandSelection } from "@/modules/users-management/auth/components/auth-brand";
+import { TenantOrgOption } from "@/modules/users-management/tenants/components/tenant-org-option";
 import { findOrganizationTenantId } from "@/modules/users-management/tenants/organization";
 import { useTenants } from "@/modules/users-management/tenants/queries";
 import { Button } from "@/shared/components/ui/button";
@@ -32,10 +34,13 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { getErrorMessage, isApiError } from "@/shared/api/errors";
+import { useIsClient } from "@/shared/hooks/use-is-client";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 
 export function ForgotPasswordForm() {
   const tenantsQuery = useTenants();
+  const isClient = useIsClient();
+  const { setSelectedTenantId } = useAuthBrandSelection();
   const forgotPassword = useForgotPassword();
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -56,8 +61,9 @@ export function ForgotPasswordForm() {
     const tenantId = findOrganizationTenantId(tenants);
     if (tenantId) {
       form.setValue("tenant_id", tenantId, { shouldValidate: true });
+      setSelectedTenantId(tenantId);
     }
-  }, [form, tenantsQuery.data]);
+  }, [form, setSelectedTenantId, tenantsQuery.data]);
 
   async function onSubmit(values: ForgotPasswordFormValues) {
     setFormError(null);
@@ -81,6 +87,7 @@ export function ForgotPasswordForm() {
   }
 
   const tenants = tenantsQuery.data ?? [];
+  const tenantsLoading = !isClient || tenantsQuery.isLoading;
   const pending = forgotPassword.isPending || form.formState.isSubmitting;
 
   return (
@@ -125,9 +132,12 @@ export function ForgotPasswordForm() {
                 <FormItem>
                   <FormLabel>Organization</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setSelectedTenantId(value);
+                    }}
                     value={field.value}
-                    disabled={tenantsQuery.isLoading}
+                    disabled={tenantsLoading}
                   >
                     <FormControl>
                       <SelectTrigger aria-label="Organization">
@@ -137,7 +147,7 @@ export function ForgotPasswordForm() {
                     <SelectContent>
                       {tenants.map((tenant) => (
                         <SelectItem key={tenant.tenant_id} value={tenant.tenant_id}>
-                          {tenant.name}
+                          <TenantOrgOption name={tenant.name} logoUrl={tenant.logo_url} />
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -34,6 +34,20 @@ export function formatDate(value: string | null | undefined): string {
   return date.toLocaleDateString();
 }
 
+export function formatMoney(value: string | null | undefined, currencyCode: string): string {
+  if (value == null || value === "") {
+    return "—";
+  }
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currencyCode || "AED",
+    }).format(Number(value));
+  } catch {
+    return currencyCode ? `${currencyCode} ${value}` : value;
+  }
+}
+
 export function titleCase(value: string): string {
   if (!value) {
     return value;

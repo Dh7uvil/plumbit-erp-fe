@@ -74,5 +74,27 @@ export type UnwrappedResponse<T> = {
 };
 
 export function parseEnvelope(payload: unknown): Envelope {
-  return EnvelopeSchema.parse(payload);
+  const parsed = EnvelopeSchema.safeParse(payload);
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  const fastApi = FastApiValidationSchema.safeParse(payload);
+  if (fastApi.success) {
+    return {
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: fastApi.data.detail,
+      },
+    };
+  }
+
+  return {
+    success: false,
+    error: {
+      code: "INTERNAL_ERROR",
+    },
+  };
 }

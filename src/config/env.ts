@@ -22,6 +22,7 @@ const serverSchema = z.object({
     .positive()
     .default(60 * 60 * 24 * 30),
   API_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
+  LOGO_IMAGE_HOSTS: z.string().optional().default(""),
 });
 
 const parsed = serverSchema.safeParse(process.env);

@@ -16,6 +16,7 @@ export const BranchSchema = z.object({
   status: BranchStatusSchema,
   phone: z.string().nullable(),
   timezone: z.string().nullable(),
+  default_currency_id: z.string().uuid().nullable().optional(),
   address: AddressPayloadSchema.nullable().default(null),
   employee_count: z.number().int().nonnegative().default(0),
   created_at: z.string(),
@@ -31,6 +32,7 @@ export const BranchCreateRequestSchema = z.object({
   status: BranchStatusSchema.optional(),
   phone: z.string().max(50).nullable().optional(),
   timezone: z.string().max(100).nullable().optional(),
+  default_currency_id: z.string().uuid().nullable().optional(),
   address: AddressPayloadSchema.nullable().optional(),
 });
 export type BranchCreateRequest = z.infer<typeof BranchCreateRequestSchema>;
@@ -41,6 +43,7 @@ export const BranchUpdateRequestSchema = z.object({
   status: BranchStatusSchema.nullable().optional(),
   phone: z.string().max(50).nullable().optional(),
   timezone: z.string().max(100).nullable().optional(),
+  default_currency_id: z.string().uuid().nullable().optional(),
   address: AddressPayloadSchema.nullable().optional(),
 });
 export type BranchUpdateRequest = z.infer<typeof BranchUpdateRequestSchema>;
@@ -51,6 +54,7 @@ export const BranchFormSchema = z.object({
   status: BranchStatusSchema,
   phone: z.string().max(50),
   timezone: z.string().max(100),
+  default_currency_id: z.string(),
   address: AddressFormSchema,
 });
 export type BranchFormValues = z.infer<typeof BranchFormSchema>;

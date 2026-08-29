@@ -2,24 +2,30 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { useForm, type Control, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
 
+import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { CompanyLogoCard } from "@/modules/users-management/organization-settings/components/company-logo-card";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
 import { useUpdateCurrentTenant } from "@/modules/users-management/tenants/mutations";
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import {
   CompanySettingsFormSchema,
-  type AddressPayload,
+  EMPTY_ADDRESS_FORM,
+  emptyToNull,
+  toAddressPayload,
+  type AddressFormValues,
   type CompanySettingsFormValues,
   type TenantCurrent,
   type TenantCurrentUpdate,
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTableError } from "@/shared/components/data-table/states";
+import { TimezoneSelect } from "@/shared/components/form/timezone-select";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import {
   Form,
   FormControl,
@@ -28,20 +34,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { useIsClient } from "@/shared/hooks/use-is-client";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useCan } from "@/shared/providers/session-provider";
-
-const EMPTY_ADDRESS = {
-  address_line_1: "",
-  address_line_2: "",
-  city: "",
-  state: "",
-  country: "",
-  country_code: "",
-  postal_code: "",
-};
 
 const EMPTY_FORM: CompanySettingsFormValues = {
   name: "",
@@ -50,17 +48,22 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   contact_email: "",
   phone: "",
   founded: "",
-  headquarters: EMPTY_ADDRESS,
+  headquarters: EMPTY_ADDRESS_FORM,
   default_currency: "",
+  default_currency_id: OPTIONAL_SELECT_NONE,
+  quotation_requires_approval: true,
   timezone: "",
   fiscal_year_start: "",
 };
 
-type CompanyTextFieldPath = Exclude<FieldPath<CompanySettingsFormValues>, "headquarters">;
+type CompanyTextFieldPath = Exclude<
+  FieldPath<CompanySettingsFormValues>,
+  "headquarters" | "quotation_requires_approval"
+>;
 
-function emptyToNull(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+function toCurrencyCode(code: string | null | undefined): string | null {
+  const normalized = (code ?? "").trim().toUpperCase();
+  return normalized.length === 3 ? normalized : null;
 }
 
 function toFormValues(tenant: TenantCurrent): CompanySettingsFormValues {
@@ -81,37 +84,106 @@ function toFormValues(tenant: TenantCurrent): CompanySettingsFormValues {
       postal_code: tenant.headquarters?.postal_code ?? "",
     },
     default_currency: tenant.default_currency ?? "",
-    timezone: tenant.timezone,
+    default_currency_id: tenant.default_currency_id ?? OPTIONAL_SELECT_NONE,
+    quotation_requires_approval: tenant.quotation_requires_approval,
+    timezone: tenant.timezone ?? "",
     fiscal_year_start: tenant.fiscal_year_start ?? "",
   };
 }
 
-function toAddressPayload(address: CompanySettingsFormValues["headquarters"]): AddressPayload | null {
-  const payload: AddressPayload = {
-    address_line_1: emptyToNull(address.address_line_1),
-    address_line_2: emptyToNull(address.address_line_2),
-    city: emptyToNull(address.city),
-    state: emptyToNull(address.state),
-    country: emptyToNull(address.country),
-    country_code: emptyToNull(address.country_code),
-    postal_code: emptyToNull(address.postal_code),
-  };
-  return Object.values(payload).some(Boolean) ? payload : null;
+function sameText(left: string, right: string): boolean {
+  return left.trim() === right.trim();
 }
 
-function toUpdatePayload(values: CompanySettingsFormValues): TenantCurrentUpdate {
+function isSameAddress(left: AddressFormValues, right: AddressFormValues): boolean {
+  return (
+    sameText(left.address_line_1, right.address_line_1) &&
+    sameText(left.address_line_2, right.address_line_2) &&
+    sameText(left.city, right.city) &&
+    sameText(left.state, right.state) &&
+    sameText(left.country, right.country) &&
+    sameText(left.country_code, right.country_code) &&
+    sameText(left.postal_code, right.postal_code)
+  );
+}
+
+function isSameCompany(left: CompanySettingsFormValues, right: CompanySettingsFormValues): boolean {
+  return (
+    sameText(left.name, right.name) &&
+    sameText(left.industry, right.industry) &&
+    sameText(left.website, right.website) &&
+    sameText(left.contact_email, right.contact_email) &&
+    sameText(left.phone, right.phone) &&
+    sameText(left.founded, right.founded) &&
+    isSameAddress(left.headquarters, right.headquarters)
+  );
+}
+
+function toCompanyPayload(values: CompanySettingsFormValues): TenantCurrentUpdate {
   return {
     name: values.name.trim(),
-    timezone: values.timezone.trim(),
     industry: emptyToNull(values.industry),
     website: emptyToNull(values.website),
     contact_email: emptyToNull(values.contact_email),
     phone: emptyToNull(values.phone),
     founded: emptyToNull(values.founded),
-    fiscal_year_start: emptyToNull(values.fiscal_year_start),
-    default_currency: emptyToNull(values.default_currency.toUpperCase()),
     headquarters: toAddressPayload(values.headquarters),
   };
+}
+
+function toRegionalPayload(values: CompanySettingsFormValues): TenantCurrentUpdate {
+  const selectedId = values.default_currency_id;
+  const currencyId = !selectedId || selectedId === OPTIONAL_SELECT_NONE ? null : selectedId;
+  const timezone = emptyToNull(values.timezone);
+  return {
+    ...(timezone ? { timezone } : {}),
+    fiscal_year_start: emptyToNull(values.fiscal_year_start),
+    default_currency: toCurrencyCode(values.default_currency),
+    default_currency_id: currencyId,
+    quotation_requires_approval: values.quotation_requires_approval,
+  };
+}
+
+function EditSaveActions({
+  pending,
+  onCancel,
+  onSave,
+}: {
+  pending: boolean;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Button type="button" size="sm" variant="outline" disabled={pending} onClick={onCancel}>
+        Cancel
+      </Button>
+      <Button type="button" size="sm" disabled={pending} onClick={onSave}>
+        {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+        Save
+      </Button>
+    </div>
+  );
+}
+
+function SettingsFieldItem({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <FormItem className={className}>
+      <FormLabel className="text-muted-foreground text-xs font-medium">{label}</FormLabel>
+      <div className="relative">
+        {children}
+        <FormMessage className="absolute top-full right-0 mt-0.5 max-w-full text-right text-xs leading-3" />
+      </div>
+    </FormItem>
+  );
 }
 
 function TextField({
@@ -133,13 +205,11 @@ function TextField({
       control={control}
       name={name}
       render={({ field }) => (
-        <FormItem className={className}>
-          <FormLabel className="text-muted-foreground text-xs font-medium">{label}</FormLabel>
+        <SettingsFieldItem label={label} className={className}>
           <FormControl>
             <Input disabled={disabled} {...inputProps} {...field} />
           </FormControl>
-          <FormMessage />
-        </FormItem>
+        </SettingsFieldItem>
       )}
     />
   );
@@ -150,19 +220,40 @@ export function CompanySettingsForm() {
   const canUpdate = can(organizationSettingsPermissions.update);
   const tenantQuery = useCurrentTenant();
   const updateTenant = useUpdateCurrentTenant();
+  const isClient = useIsClient();
   const [formError, setFormError] = useState<string | null>(null);
+  const [isEditingCompany, setIsEditingCompany] = useState(false);
+  const [isEditingRegional, setIsEditingRegional] = useState(false);
+  const isEditingRef = useRef(false);
   const tenant = tenantQuery.data;
+  isEditingRef.current = isEditingCompany || isEditingRegional;
 
   const form = useForm<CompanySettingsFormValues>({
     resolver: zodResolver(CompanySettingsFormSchema),
     defaultValues: EMPTY_FORM,
-    values: tenant ? toFormValues(tenant) : undefined,
   });
 
-  async function onSubmit(values: CompanySettingsFormValues) {
+  useEffect(() => {
+    if (!tenant || isEditingRef.current) {
+      return;
+    }
+    form.reset(toFormValues(tenant));
+  }, [form, tenant]);
+
+  async function submitUpdate(payload: TenantCurrentUpdate) {
     setFormError(null);
     try {
-      await updateTenant.mutateAsync(toUpdatePayload(values));
+      await updateTenant.mutateAsync(payload);
+      const saved = form.getValues();
+      if (payload.default_currency_id !== undefined) {
+        saved.default_currency_id = payload.default_currency_id ?? OPTIONAL_SELECT_NONE;
+      }
+      if (payload.default_currency !== undefined) {
+        saved.default_currency = payload.default_currency ?? "";
+      }
+      form.reset(saved);
+      setIsEditingCompany(false);
+      setIsEditingRegional(false);
       toast.success("Company settings saved");
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {
@@ -172,11 +263,69 @@ export function CompanySettingsForm() {
     }
   }
 
-  if (tenantQuery.isLoading) {
+  function cancelCompany() {
+    setFormError(null);
+    if (tenant) {
+      const current = form.getValues();
+      const original = toFormValues(tenant);
+      form.reset({
+        ...current,
+        name: original.name,
+        industry: original.industry,
+        website: original.website,
+        contact_email: original.contact_email,
+        phone: original.phone,
+        founded: original.founded,
+        headquarters: original.headquarters,
+      });
+    }
+    setIsEditingCompany(false);
+  }
+
+  function cancelRegional() {
+    setFormError(null);
+    if (tenant) {
+      const current = form.getValues();
+      const original = toFormValues(tenant);
+      form.reset({
+        ...current,
+        default_currency: original.default_currency,
+        default_currency_id: original.default_currency_id,
+        quotation_requires_approval: original.quotation_requires_approval,
+        timezone: original.timezone,
+        fiscal_year_start: original.fiscal_year_start,
+      });
+    }
+    setIsEditingRegional(false);
+  }
+
+  function saveCompany() {
+    const values = form.getValues();
+    if (tenant && isSameCompany(values, toFormValues(tenant))) {
+      setIsEditingCompany(false);
+      setFormError(null);
+      return;
+    }
+    if (!values.name.trim()) {
+      form.setError("name", { type: "manual", message: "Enter a company name" });
+      return;
+    }
+    void submitUpdate(toCompanyPayload(values));
+  }
+
+  function saveRegional() {
+    void submitUpdate(toRegionalPayload(form.getValues()));
+  }
+
+  if (!isClient || tenantQuery.isLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Skeleton className="h-96 lg:col-span-2" />
-        <Skeleton className="h-48" />
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-36" />
+          <Skeleton className="h-48" />
+        </div>
+        <Skeleton className="h-64 lg:col-span-2" />
       </div>
     );
   }
@@ -199,102 +348,125 @@ export function CompanySettingsForm() {
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+        }}
         className="grid grid-cols-1 gap-4 lg:grid-cols-3"
       >
-        <div className="space-y-4 lg:col-span-2">
-          {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Company Information</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <TextField control={form.control} name="name" label="Company Name" disabled={!canUpdate} />
-              <TextField control={form.control} name="industry" label="Industry" disabled={!canUpdate} />
-              <TextField control={form.control} name="website" label="Website" disabled={!canUpdate} />
-              <TextField
-                control={form.control}
-                name="contact_email"
-                label="Contact Email"
-                type="email"
-                disabled={!canUpdate}
-              />
-              <TextField control={form.control} name="phone" label="Phone" disabled={!canUpdate} />
-              <TextField control={form.control} name="founded" label="Founded" disabled={!canUpdate} />
-              <TextField
-                control={form.control}
-                name="headquarters.address_line_1"
-                label="Address line 1"
-                disabled={!canUpdate}
-              />
-              <TextField
-                control={form.control}
-                name="headquarters.address_line_2"
-                label="Address line 2"
-                disabled={!canUpdate}
-              />
-              <TextField control={form.control} name="headquarters.city" label="City" disabled={!canUpdate} />
-              <TextField control={form.control} name="headquarters.state" label="State" disabled={!canUpdate} />
-              <TextField
-                control={form.control}
-                name="headquarters.country"
-                label="Country"
-                disabled={!canUpdate}
-              />
-              <TextField
-                control={form.control}
-                name="headquarters.country_code"
-                label="Country code"
-                disabled={!canUpdate}
-              />
-              <TextField
-                control={form.control}
-                name="headquarters.postal_code"
-                label="Postal code"
-                className="sm:col-span-2"
-                disabled={!canUpdate}
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Regional Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <TextField
-                control={form.control}
-                name="default_currency"
-                label="Default Currency"
-                maxLength={3}
-                placeholder="USD"
-                disabled={!canUpdate}
-              />
-              <TextField
-                control={form.control}
-                name="timezone"
-                label="Timezone"
-                placeholder="America/Los_Angeles"
-                disabled={!canUpdate}
-              />
-              <TextField
-                control={form.control}
-                name="fiscal_year_start"
-                label="Fiscal year start"
-                className="sm:col-span-2"
-                disabled={!canUpdate}
-              />
-            </CardContent>
+        {formError ? <p className="text-destructive col-span-full text-sm">{formError}</p> : null}
+        <Card className="lg:col-span-2">
+          <CardHeader className="items-center">
+            <CardTitle className="text-base">Company Information</CardTitle>
             {canUpdate ? (
-              <CardFooter className="justify-end">
-                <Button type="submit" disabled={updateTenant.isPending}>
-                  {updateTenant.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-                  Save Settings
-                </Button>
-              </CardFooter>
+              <CardAction className="self-center">
+                {isEditingCompany ? (
+                  <EditSaveActions
+                    pending={updateTenant.isPending}
+                    onCancel={cancelCompany}
+                    onSave={saveCompany}
+                  />
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setFormError(null);
+                      setIsEditingCompany(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </CardAction>
             ) : null}
-          </Card>
-        </div>
-        <div className="space-y-4">
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <TextField
+              control={form.control}
+              name="name"
+              label="Company Name"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="industry"
+              label="Industry"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="website"
+              label="Website"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="contact_email"
+              label="Contact Email"
+              type="email"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="phone"
+              label="Phone"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="founded"
+              label="Founded"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="headquarters.address_line_1"
+              label="Address line 1"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="headquarters.address_line_2"
+              label="Address line 2"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="headquarters.city"
+              label="City"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="headquarters.state"
+              label="State"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="headquarters.country"
+              label="Country"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="headquarters.country_code"
+              label="Country code"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+            <TextField
+              control={form.control}
+              name="headquarters.postal_code"
+              label="Postal code"
+              className="sm:col-span-2"
+              disabled={!canUpdate || !isEditingCompany}
+            />
+          </CardContent>
+        </Card>
+        <div className="flex flex-col gap-4">
+          <CompanyLogoCard />
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Organization Overview</CardTitle>
@@ -312,6 +484,82 @@ export function CompanySettingsForm() {
             </CardContent>
           </Card>
         </div>
+        <Card className="lg:col-span-2">
+          <CardHeader className="items-center">
+            <CardTitle className="text-base">Regional Settings</CardTitle>
+            {canUpdate ? (
+              <CardAction className="self-center">
+                {isEditingRegional ? (
+                  <EditSaveActions
+                    pending={updateTenant.isPending}
+                    onCancel={cancelRegional}
+                    onSave={saveRegional}
+                  />
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setFormError(null);
+                      setIsEditingRegional(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </CardAction>
+            ) : null}
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <TextField
+              control={form.control}
+              name="default_currency"
+              label="Default Currency"
+              maxLength={3}
+              placeholder="AED"
+              disabled={!canUpdate || !isEditingRegional}
+            />
+            <FormField
+              control={form.control}
+              name="timezone"
+              render={({ field }) => (
+                <SettingsFieldItem label="Timezone">
+                  <TimezoneSelect
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={!canUpdate || !isEditingRegional}
+                  />
+                </SettingsFieldItem>
+              )}
+            />
+            <TextField
+              control={form.control}
+              name="fiscal_year_start"
+              label="Fiscal year start"
+              className="sm:col-span-2"
+              disabled={!canUpdate || !isEditingRegional}
+            />
+            <FormField
+              control={form.control}
+              name="quotation_requires_approval"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 space-y-0 sm:col-span-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Quotations require approval before sending
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
       </form>
     </Form>
   );

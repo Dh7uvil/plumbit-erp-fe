@@ -3,14 +3,33 @@ import http from "node:http";
 const PORT = Number(process.env.MOCK_API_PORT ?? 4010);
 const TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
+const SUPERADMIN_ROLE_ID = "33333333-3333-4333-8333-333333333333";
+const EMPLOYEE_ROLE_ID = "66666666-6666-4666-8666-666666666666";
 const EMAIL = "ada@plumbit.com";
 const PASSWORD = "correct-horse";
 const ORGANIZATION_NAME = process.env.NEXT_PUBLIC_ORGANIZATION_NAME ?? "Plumbit";
 const RESET_TOKEN = "valid-reset-token";
+const NOW = "2026-01-01T00:00:00.000Z";
+const LOGO_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+const EMPTY_LIST_PATHS = new Set([
+  "/api/v1/attachments",
+  "/api/v1/branches",
+  "/api/v1/departments",
+  "/api/v1/users",
+]);
 
 let currentPassword = PASSWORD;
 let accessToken = "access-token-1";
 let refreshToken = "refresh-token-1";
+let tenantLogoUrl = null;
+let tenantState = {
+  name: ORGANIZATION_NAME,
+  timezone: "Asia/Dubai",
+  default_currency: "AED",
+  quotation_requires_approval: true,
+};
 
 function json(res, status, body) {
   res.writeHead(status, { "content-type": "application/json" });
@@ -19,6 +38,19 @@ function json(res, status, body) {
 
 function ok(res, data, status = 200) {
   json(res, status, { success: true, data });
+}
+
+function listOk(res, data) {
+  json(res, 200, {
+    success: true,
+    data,
+    meta: {
+      page: 1,
+      page_size: 100,
+      total: data.length,
+      total_pages: data.length > 0 ? 1 : 0,
+    },
+  });
 }
 
 function fail(res, status, code, message) {
@@ -49,8 +81,48 @@ function bearer(req) {
   return header.startsWith("Bearer ") ? header.slice(7) : null;
 }
 
+function unauthorized(req, res) {
+  if (bearer(req) !== accessToken) {
+    fail(res, 401, "AUTH_TOKEN_EXPIRED", "Expired");
+    return true;
+  }
+  return false;
+}
+
+function drain(req) {
+  return new Promise((resolve, reject) => {
+    req.on("data", () => {});
+    req.on("end", resolve);
+    req.on("error", reject);
+  });
+}
+
+function currentTenant() {
+  return {
+    id: TENANT_ID,
+    name: tenantState.name,
+    code: "PLUMBIT",
+    timezone: tenantState.timezone,
+    status: "ACTIVE",
+    industry: null,
+    website: null,
+    contact_email: null,
+    phone: null,
+    founded: null,
+    fiscal_year_start: null,
+    default_currency: tenantState.default_currency,
+    quotation_requires_approval: tenantState.quotation_requires_approval,
+    headquarters: null,
+    logo_url: tenantLogoUrl,
+    users_count: 1,
+    departments_count: 0,
+    branches_count: 0,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}
+
 function me() {
-  const now = "2026-01-01T00:00:00.000Z";
   return {
     id: USER_ID,
     tenant_id: TENANT_ID,
@@ -58,14 +130,26 @@ function me() {
     email: EMAIL,
     phone: null,
     status: "ACTIVE",
-    last_login_at: now,
+    last_login_at: NOW,
     employee_id: null,
-    created_at: now,
-    updated_at: now,
+    created_at: NOW,
+    updated_at: NOW,
     roles: [
-      { id: "33333333-3333-4333-8333-333333333333", name: "Employee", is_system_role: false },
+      { id: SUPERADMIN_ROLE_ID, name: "Superadmin", is_system_role: true },
+      { id: EMPLOYEE_ROLE_ID, name: "Employee", is_system_role: false },
     ],
-    permissions: ["users.auth.change_password"],
+    permissions: [
+      "users.auth.change_password",
+      "identity.attachment.read",
+      "identity.branch.read",
+      "identity.department.read",
+      "identity.organization.read",
+      "identity.organization.update",
+      "identity.permission.read",
+      "identity.role.read",
+      "identity.role.update",
+      "identity.user.read",
+    ],
   };
 }
 
@@ -90,7 +174,7 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (req.method === "GET" && url.pathname === "/api/v1/tenants") {
-      ok(res, [{ tenant_id: TENANT_ID, name: ORGANIZATION_NAME }]);
+      ok(res, [{ tenant_id: TENANT_ID, name: ORGANIZATION_NAME, logo_url: tenantLogoUrl }]);
       return;
     }
 
@@ -124,8 +208,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && url.pathname === "/api/v1/auth/me") {
-      if (bearer(req) !== accessToken) {
-        fail(res, 401, "AUTH_TOKEN_EXPIRED", "Expired");
+      if (unauthorized(req, res)) {
         return;
       }
       ok(res, me());
@@ -133,8 +216,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/api/v1/auth/change-password") {
-      if (bearer(req) !== accessToken) {
-        fail(res, 401, "AUTH_TOKEN_EXPIRED", "Expired");
+      if (unauthorized(req, res)) {
         return;
       }
       const body = await readBody(req);
@@ -158,6 +240,148 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       ok(res, null);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/tenants/current") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, currentTenant());
+      return;
+    }
+
+    if (req.method === "PATCH" && url.pathname === "/api/v1/tenants/current") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      tenantState = {
+        ...tenantState,
+        ...(body.name ? { name: body.name } : {}),
+        ...(body.timezone ? { timezone: body.timezone } : {}),
+        ...(body.default_currency !== undefined
+          ? { default_currency: body.default_currency }
+          : {}),
+        ...(body.quotation_requires_approval !== undefined
+          ? { quotation_requires_approval: body.quotation_requires_approval }
+          : {}),
+      };
+      ok(res, currentTenant());
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/tenants/current/logo") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      await drain(req);
+      tenantLogoUrl = LOGO_DATA_URL;
+      ok(res, currentTenant());
+      return;
+    }
+
+    if (req.method === "DELETE" && url.pathname === "/api/v1/tenants/current/logo") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      if (!tenantLogoUrl) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      tenantLogoUrl = null;
+      ok(res, currentTenant());
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/roles") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [
+        {
+          id: SUPERADMIN_ROLE_ID,
+          tenant_id: TENANT_ID,
+          name: "Superadmin",
+          description: "System role",
+          is_system_role: true,
+          user_count: 1,
+          created_at: NOW,
+          updated_at: NOW,
+        },
+        {
+          id: EMPLOYEE_ROLE_ID,
+          tenant_id: TENANT_ID,
+          name: "Employee",
+          description: null,
+          is_system_role: false,
+          user_count: 1,
+          created_at: NOW,
+          updated_at: NOW,
+        },
+      ]);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/permissions/matrix") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, {
+        modules: [
+          {
+            module: "identity",
+            resources: [
+              {
+                resource: "role",
+                actions: [
+                  {
+                    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                    action: "update",
+                    code: "identity.role.update",
+                    granted: true,
+                  },
+                ],
+              },
+              {
+                resource: "user",
+                actions: [
+                  {
+                    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                    action: "read",
+                    code: "identity.user.read",
+                    granted: true,
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            module: "inventory",
+            resources: [
+              {
+                resource: "product",
+                actions: [
+                  {
+                    id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                    action: "read",
+                    code: "inventory.product.read",
+                    granted: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      return;
+    }
+
+    if (req.method === "GET" && EMPTY_LIST_PATHS.has(url.pathname)) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, []);
       return;
     }
 

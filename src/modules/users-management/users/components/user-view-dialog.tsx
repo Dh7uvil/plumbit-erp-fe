@@ -2,6 +2,7 @@
 
 import { Edit2 } from "lucide-react";
 
+import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { UserStatusBadge } from "@/modules/users-management/users/components/user-status-badge";
 import { userPermissions } from "@/modules/users-management/users/permissions";
 import { useUser } from "@/modules/users-management/users/queries";
@@ -46,7 +47,7 @@ export function UserViewDialog({
 
   return (
     <Dialog open={Boolean(userId)} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{user?.name ?? "User details"}</DialogTitle>
           <DialogDescription className="sr-only">User account and employee details</DialogDescription>
@@ -97,6 +98,9 @@ export function UserViewDialog({
               <InfoRow label="Joined" value={formatDate(user.employee?.joining_date)} />
               <InfoRow label="Last login" value={formatDateTime(user.last_login_at)} />
             </div>
+            {user.employee ? (
+              <EntityAttachmentsPanel entityType="EMPLOYEE" entityId={user.employee.id} />
+            ) : null}
             {can(userPermissions.update) ? (
               <DialogFooter>
                 <Button type="button" variant="outline" size="sm" onClick={() => onEdit(user.id)}>

@@ -14,24 +14,20 @@ import {
   useResetRolePermissions,
   useSetRolePermissions,
 } from "@/modules/users-management/roles/mutations";
-import { rolePermissions } from "@/modules/users-management/roles/permissions";
+import {
+  isResettableSystemRole,
+  rolePermissions,
+} from "@/modules/users-management/roles/permissions";
 import { useAllRoles } from "@/modules/users-management/roles/queries";
-import type { Role } from "@/modules/users-management/roles/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { PageHeader } from "@/shared/components/layout/page-header";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/shared/components/ui/alert-dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
+import { Label } from "@/shared/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -51,9 +47,7 @@ import {
 import { titleCase } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-function isSystemAdminRole(role: Pick<Role, "name" | "is_system_role"> | undefined) {
-  return role?.is_system_role === true && role.name.toLowerCase() === "admin";
-}
+const ALL = "all";
 
 export function PermissionsScreen() {
   const can = useCan();
@@ -67,10 +61,12 @@ export function PermissionsScreen() {
   const resetPermissions = useResetRolePermissions();
   const [draft, setDraft] = useState<{ roleId: string; ids: string[] } | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [moduleFilter, setModuleFilter] = useState(ALL);
+  const [resourceFilter, setResourceFilter] = useState(ALL);
 
   const canSave = can(rolePermissions.assignPermissions) || can(rolePermissions.update);
   const selectedRole = rolesQuery.data?.find((role) => role.id === selectedRoleId) ?? null;
-  const canResetAdmin = canSave && isSystemAdminRole(selectedRole ?? undefined);
+  const canResetSuperadmin = canSave && isResettableSystemRole(selectedRole ?? undefined);
   const pending = savePermissions.isPending || resetPermissions.isPending;
 
   const selectedIds = useMemo(() => {
@@ -86,6 +82,31 @@ export function PermissionsScreen() {
   const table = useMemo(
     () => (matrixQuery.data ? permissionMatrixTable(matrixQuery.data) : { actions: [], rows: [] }),
     [matrixQuery.data],
+  );
+
+  const modules = useMemo(
+    () => [...new Set(table.rows.map((row) => row.module))].sort(),
+    [table.rows],
+  );
+
+  const resources = useMemo(() => {
+    const source =
+      moduleFilter === ALL ? table.rows : table.rows.filter((row) => row.module === moduleFilter);
+    return [...new Set(source.map((row) => row.resource))].sort();
+  }, [table.rows, moduleFilter]);
+
+  const filteredRows = useMemo(
+    () =>
+      table.rows.filter((row) => {
+        if (moduleFilter !== ALL && row.module !== moduleFilter) {
+          return false;
+        }
+        if (resourceFilter !== ALL && row.resource !== resourceFilter) {
+          return false;
+        }
+        return true;
+      }),
+    [table.rows, moduleFilter, resourceFilter],
   );
 
   function toggle(id: string, checked: boolean) {
@@ -104,6 +125,16 @@ export function PermissionsScreen() {
   function selectRole(id: string) {
     setDraft(null);
     router.replace(`/permissions?role_id=${id}`);
+  }
+
+  function selectModule(value: string) {
+    setModuleFilter(value);
+    const nextResources = new Set(
+      table.rows.filter((row) => value === ALL || row.module === value).map((row) => row.resource),
+    );
+    if (resourceFilter !== ALL && !nextResources.has(resourceFilter)) {
+      setResourceFilter(ALL);
+    }
   }
 
   async function onSave() {
@@ -130,7 +161,7 @@ export function PermissionsScreen() {
       await resetPermissions.mutateAsync(selectedRoleId);
       setDraft(null);
       setResetOpen(false);
-      toast.success("Admin permissions reset");
+      toast.success("Superadmin permissions reset");
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -146,7 +177,7 @@ export function PermissionsScreen() {
         actions={
           canSave ? (
             <div className="flex gap-2">
-              {canResetAdmin ? (
+              {canResetSuperadmin ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -157,7 +188,12 @@ export function PermissionsScreen() {
                   Reset to Default
                 </Button>
               ) : null}
-              <Button type="button" size="sm" onClick={onSave} disabled={!selectedRoleId || pending}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={onSave}
+                disabled={!selectedRoleId || pending}
+              >
                 {savePermissions.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
                 Save Permissions
               </Button>
@@ -165,25 +201,73 @@ export function PermissionsScreen() {
           ) : undefined
         }
       />
-      <div className="flex items-center gap-3">
-        <label className="text-muted-foreground text-sm font-medium">Role</label>
-        <Select
-          value={selectedRoleId ?? undefined}
-          onValueChange={selectRole}
-          disabled={rolesQuery.isLoading || roles.length === 0}
-        >
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Select a role" />
-          </SelectTrigger>
-          <SelectContent>
-            {roles.map((role) => (
-              <SelectItem key={role.id} value={role.id}>
-                {role.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <DataTableToolbar className="items-start">
+        <div className="flex w-56 flex-col items-start gap-1.5">
+          <Label htmlFor="permissions-filter-role" className="text-muted-foreground">
+            Role
+          </Label>
+          <Select
+            value={selectedRoleId ?? ""}
+            onValueChange={selectRole}
+            disabled={rolesQuery.isLoading || roles.length === 0}
+          >
+            <SelectTrigger id="permissions-filter-role" className="w-full" aria-label="Role">
+              <SelectValue placeholder="Select a role" />
+            </SelectTrigger>
+            <SelectContent>
+              {roles.map((role) => (
+                <SelectItem key={role.id} value={role.id}>
+                  {role.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex w-56 flex-col items-start gap-1.5">
+          <Label htmlFor="permissions-filter-module" className="text-muted-foreground">
+            Module
+          </Label>
+          <Select
+            value={moduleFilter}
+            onValueChange={selectModule}
+            disabled={matrixQuery.isLoading || modules.length === 0}
+          >
+            <SelectTrigger id="permissions-filter-module" className="w-full" aria-label="Module">
+              <SelectValue placeholder="All modules" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All modules</SelectItem>
+              {modules.map((module) => (
+                <SelectItem key={module} value={module}>
+                  {module}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex w-56 flex-col items-start gap-1.5">
+          <Label htmlFor="permissions-filter-resource" className="text-muted-foreground">
+            Resource
+          </Label>
+          <Select
+            value={resourceFilter}
+            onValueChange={setResourceFilter}
+            disabled={matrixQuery.isLoading || resources.length === 0}
+          >
+            <SelectTrigger id="permissions-filter-resource" className="w-full" aria-label="Resource">
+              <SelectValue placeholder="All resources" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All resources</SelectItem>
+              {resources.map((resource) => (
+                <SelectItem key={resource} value={resource}>
+                  {resource}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </DataTableToolbar>
       {rolesQuery.isError || matrixQuery.isError ? (
         <DataTableError
           message={getErrorMessage(rolesQuery.error ?? matrixQuery.error)}
@@ -200,7 +284,13 @@ export function PermissionsScreen() {
       {!matrixQuery.isLoading && table.rows.length === 0 && roles.length > 0 ? (
         <DataTableEmpty title="No permissions" message="The permission catalog is empty." />
       ) : null}
-      {!matrixQuery.isLoading && table.rows.length > 0 && selectedRoleId ? (
+      {!matrixQuery.isLoading && table.rows.length > 0 && filteredRows.length === 0 ? (
+        <DataTableEmpty
+          title="No permissions match these filters"
+          message="Try a different module or resource."
+        />
+      ) : null}
+      {!matrixQuery.isLoading && filteredRows.length > 0 && selectedRoleId ? (
         <DataTable>
           <TableHeader>
             <TableRow>
@@ -214,7 +304,7 @@ export function PermissionsScreen() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {table.rows.map((row) => (
+            {filteredRows.map((row) => (
               <TableRow key={`${row.module}-${row.resource}`}>
                 <TableCell className="font-medium">{row.module}</TableCell>
                 <TableCell>{row.resource}</TableCell>
@@ -244,7 +334,7 @@ export function PermissionsScreen() {
               <TableRow>
                 <TableCell colSpan={2 + table.actions.length} className="text-right">
                   <div className="flex justify-end gap-2">
-                    {canResetAdmin ? (
+                    {canResetSuperadmin ? (
                       <Button
                         type="button"
                         variant="outline"
@@ -268,28 +358,16 @@ export function PermissionsScreen() {
           ) : null}
         </DataTable>
       ) : null}
-      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset Admin permissions</AlertDialogTitle>
-            <AlertDialogDescription>
-              Restore the system Admin role to the full seeded permission catalog? Unsaved changes
-              on this screen will be discarded.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={resetPermissions.isPending}>Cancel</AlertDialogCancel>
-            <Button
-              type="button"
-              disabled={resetPermissions.isPending}
-              onClick={() => void onReset()}
-            >
-              {resetPermissions.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-              Reset to Default
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={resetOpen}
+        title="Reset Superadmin permissions"
+        description="Restore the system Superadmin role to the full seeded permission catalog? Unsaved matrix edits will be discarded."
+        confirmLabel="Reset to Default"
+        variant="default"
+        pending={resetPermissions.isPending}
+        onOpenChange={setResetOpen}
+        onConfirm={() => void onReset()}
+      />
     </div>
   );
 }

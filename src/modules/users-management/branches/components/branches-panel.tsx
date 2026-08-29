@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Loader2, MapPin, Phone, Plus, Trash2, Users } from "lucide-react";
+import { Edit2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -11,20 +11,21 @@ import { branchPermissions } from "@/modules/users-management/branches/permissio
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import type { Branch } from "@/modules/users-management/branches/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/shared/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useCan } from "@/shared/providers/session-provider";
+
+const HEADERS = ["Code", "Name", "Location", "Phone", "Employees", "Status", "Actions"] as const;
 
 function locationLabel(branch: Branch): string {
   const city = branch.address?.city?.trim();
@@ -45,11 +46,6 @@ export function BranchesPanel() {
   const [deleting, setDeleting] = useState<Branch | null>(null);
 
   const branches = branchesQuery.data ?? [];
-
-  function openCreate() {
-    setEditing(null);
-    setFormOpen(true);
-  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -75,45 +71,72 @@ export function BranchesPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      {can(branchPermissions.create) ? (
-        <div className="flex justify-end">
-          <Button type="button" size="sm" onClick={openCreate}>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {can(branchPermissions.create) ? (
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
             <Plus className="size-3.5" />
             New Branch
           </Button>
-        </div>
-      ) : null}
-      {branchesQuery.isLoading ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-32 w-full" />
-          ))}
-        </div>
-      ) : null}
-      {branchesQuery.isError ? (
-        <DataTableError
-          message={getErrorMessage(branchesQuery.error)}
-          onRetry={() => branchesQuery.refetch()}
-        />
-      ) : null}
-      {!branchesQuery.isLoading && !branchesQuery.isError && branches.length === 0 ? (
-        <DataTableEmpty title="No branches" message="Create a branch to get started." />
-      ) : null}
-      {!branchesQuery.isLoading && !branchesQuery.isError ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {branches.map((branch) => (
-            <Card key={branch.id} className="hover:border-primary/30 transition-colors">
-              <CardContent className="p-4">
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold">{branch.name}</p>
-                  <div className="flex items-center gap-1.5">
-                    <BranchStatusBadge status={branch.status} />
+        ) : null}
+      </div>
+      <DataTable>
+        <TableHeader>
+          <TableRow>
+            {HEADERS.map((header) => (
+              <TableHead key={header}>{header}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {branchesQuery.isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell colSpan={HEADERS.length}>
+                  <Skeleton className="h-6 w-full" />
+                </TableCell>
+              </TableRow>
+            ))
+          ) : branchesQuery.isError ? (
+            <TableRow>
+              <TableCell colSpan={HEADERS.length}>
+                <DataTableError
+                  message={getErrorMessage(branchesQuery.error)}
+                  onRetry={() => branchesQuery.refetch()}
+                />
+              </TableCell>
+            </TableRow>
+          ) : branches.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={HEADERS.length}>
+                <DataTableEmpty title="No branches" message="Create a branch to get started." />
+              </TableCell>
+            </TableRow>
+          ) : (
+            branches.map((branch) => (
+              <TableRow key={branch.id}>
+                <TableCell className="font-mono text-sm">{branch.code}</TableCell>
+                <TableCell className="font-medium">{branch.name}</TableCell>
+                <TableCell>{locationLabel(branch)}</TableCell>
+                <TableCell>{branch.phone || "—"}</TableCell>
+                <TableCell>{branch.employee_count}</TableCell>
+                <TableCell>
+                  <BranchStatusBadge status={branch.status} />
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-0.5">
                     {can(branchPermissions.update) ? (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-8"
+                        className="size-7"
                         aria-label={`Edit ${branch.name}`}
                         onClick={() => {
                           setEditing(branch);
@@ -128,7 +151,7 @@ export function BranchesPanel() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="text-destructive size-8"
+                        className="text-destructive size-7"
                         aria-label={`Delete ${branch.name}`}
                         onClick={() => setDeleting(branch)}
                       >
@@ -136,23 +159,12 @@ export function BranchesPanel() {
                       </Button>
                     ) : null}
                   </div>
-                </div>
-                <div className="text-muted-foreground space-y-1 text-xs">
-                  <p className="flex items-center gap-1">
-                    <MapPin className="size-2.5" /> {locationLabel(branch)}
-                  </p>
-                  <p className="flex items-center gap-1">
-                    <Phone className="size-2.5" /> {branch.phone ?? "—"}
-                  </p>
-                  <p className="flex items-center gap-1">
-                    <Users className="size-2.5" /> {branch.employee_count} employees
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : null}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </DataTable>
       <BranchFormDialog
         open={formOpen}
         branch={editing}
@@ -163,28 +175,15 @@ export function BranchesPanel() {
           }
         }}
       />
-      <AlertDialog open={Boolean(deleting)} onOpenChange={(open) => !open && setDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete branch</AlertDialogTitle>
-            <AlertDialogDescription>
-              Delete {deleting ? `"${deleting.name}"` : "this branch"}? This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteBranch.isPending}>Cancel</AlertDialogCancel>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={deleteBranch.isPending}
-              onClick={() => void confirmDelete()}
-            >
-              {deleteBranch.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-              Delete
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={Boolean(deleting)}
+        title="Delete branch"
+        description={`Delete ${deleting ? `"${deleting.name}"` : "this branch"}? This cannot be undone.`}
+        confirmLabel="Delete"
+        pending={deleteBranch.isPending}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }
