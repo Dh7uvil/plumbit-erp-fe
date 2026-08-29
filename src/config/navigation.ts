@@ -2,6 +2,7 @@ import {
   BookOpen,
   ClipboardList,
   FileText,
+  FolderTree,
   LayoutDashboard,
   ListOrdered,
   Lock,
@@ -20,6 +21,7 @@ import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
+import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
 import { auditLogPermissions } from "@/modules/users-management/audit-logs/permissions";
@@ -80,6 +82,12 @@ export const navigation: NavigationGroup[] = [
         icon: BookOpen,
       },
       { label: "Units", href: "/units", permission: unitPermissions.read, icon: Ruler },
+      {
+        label: "Categories",
+        href: "/categories",
+        permission: categoryPermissions.read,
+        icon: FolderTree,
+      },
     ],
   },
   {
