@@ -6,6 +6,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCreateBranch, useUpdateBranch } from "@/modules/users-management/branches/mutations";
 import {
   BranchFormSchema,
@@ -13,8 +15,14 @@ import {
   type BranchCreateRequest,
   type BranchFormValues,
 } from "@/modules/users-management/branches/schemas";
-import type { AddressFormValues, AddressPayload } from "@/modules/users-management/tenants/schemas";
+import {
+  addressToFormValues,
+  emptyToNull,
+  toAddressPayload,
+} from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AddressFields } from "@/shared/components/form/address-fields";
+import { TimezoneSelect } from "@/shared/components/form/timezone-select";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -41,24 +49,6 @@ import {
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 
-function emptyToNull(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-
-function toAddressPayload(address: AddressFormValues): AddressPayload | null {
-  const payload: AddressPayload = {
-    address_line_1: emptyToNull(address.address_line_1),
-    address_line_2: emptyToNull(address.address_line_2),
-    city: emptyToNull(address.city),
-    state: emptyToNull(address.state),
-    country: emptyToNull(address.country),
-    country_code: emptyToNull(address.country_code),
-    postal_code: emptyToNull(address.postal_code),
-  };
-  return Object.values(payload).some(Boolean) ? payload : null;
-}
-
 function toFormValues(branch: Branch | null): BranchFormValues {
   return {
     name: branch?.name ?? "",
@@ -66,15 +56,8 @@ function toFormValues(branch: Branch | null): BranchFormValues {
     status: branch?.status ?? "ACTIVE",
     phone: branch?.phone ?? "",
     timezone: branch?.timezone ?? "",
-    address: {
-      address_line_1: branch?.address?.address_line_1 ?? "",
-      address_line_2: branch?.address?.address_line_2 ?? "",
-      city: branch?.address?.city ?? "",
-      state: branch?.address?.state ?? "",
-      country: branch?.address?.country ?? "",
-      country_code: branch?.address?.country_code ?? "",
-      postal_code: branch?.address?.postal_code ?? "",
-    },
+    default_currency_id: branch?.default_currency_id ?? OPTIONAL_SELECT_NONE,
+    address: addressToFormValues(branch?.address),
   };
 }
 
@@ -85,6 +68,8 @@ function toRequest(values: BranchFormValues): BranchCreateRequest {
     status: values.status,
     phone: emptyToNull(values.phone),
     timezone: emptyToNull(values.timezone),
+    default_currency_id:
+      values.default_currency_id === OPTIONAL_SELECT_NONE ? null : values.default_currency_id,
     address: toAddressPayload(values.address),
   };
 }
@@ -139,7 +124,7 @@ export function BranchFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Branch" : "New Branch"}</DialogTitle>
         </DialogHeader>
@@ -213,104 +198,16 @@ export function BranchFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Timezone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="America/Los_Angeles" {...field} />
-                    </FormControl>
+                    <TimezoneSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      allowEmpty
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="address.address_line_1"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Address line 1</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Street address" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address.address_line_2"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Address line 2</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Suite, floor" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address.city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                      <Input placeholder="City" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address.country"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Country</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Country" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address.state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>State</FormLabel>
-                    <FormControl>
-                      <Input placeholder="State" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address.postal_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Postal code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Postal code" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address.country_code"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Country code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="US" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <AddressFields control={form.control} name="address" />
             </div>
             <DialogFooter>
               <Button
@@ -328,6 +225,7 @@ export function BranchFormDialog({
             </DialogFooter>
           </form>
         </Form>
+        {branch ? <EntityAttachmentsPanel entityType="BRANCH" entityId={branch.id} /> : null}
       </DialogContent>
     </Dialog>
   );

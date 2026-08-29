@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { APP_NAME } from "@/config/constants";
 import { findActiveNav, visibleNavigation } from "@/config/navigation";
@@ -54,7 +54,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                   }))
                 }
                 className={cn(
-                  "flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-semibold tracking-widest uppercase transition-colors",
+                  "flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-[10px] font-semibold tracking-widest uppercase transition-colors",
                   hasActive
                     ? "text-primary/70"
                     : "text-muted-foreground/50 hover:text-muted-foreground",
@@ -107,11 +107,13 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
 
 function SidebarChrome({
   collapsed,
+  brand,
   onToggle,
   onClose,
   onNavigate,
 }: {
   collapsed: boolean;
+  brand?: ReactNode;
   onToggle?: () => void;
   onClose?: () => void;
   onNavigate?: () => void;
@@ -120,36 +122,47 @@ function SidebarChrome({
     <div className="flex min-h-screen flex-1 flex-col">
       <div
         className={cn(
-          "border-sidebar-border flex h-12 shrink-0 items-center gap-2.5 border-b px-3",
-          collapsed && "justify-center",
+          "border-sidebar-border relative flex h-12 shrink-0 items-center border-b",
+          collapsed ? "justify-center px-1" : "gap-2.5 px-3",
         )}
       >
-        <div className="bg-primary flex size-7 shrink-0 items-center justify-center rounded-lg">
-          <Zap size={14} className="text-white" />
-        </div>
-        {!collapsed ? (
-          <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-            {APP_NAME}
-          </span>
-        ) : null}
+        {brand ?? (
+          <>
+            <div
+              className={cn(
+                "bg-primary flex shrink-0 items-center justify-center overflow-hidden rounded-lg",
+                collapsed ? "size-8" : "size-7",
+              )}
+            >
+              <Zap size={collapsed ? 16 : 14} className="text-white" />
+            </div>
+            {!collapsed ? (
+              <span className="text-foreground truncate text-sm font-semibold tracking-tight">
+                {APP_NAME}
+              </span>
+            ) : null}
+          </>
+        )}
         {onToggle ? (
           <button
             type="button"
             onClick={onToggle}
             className={cn(
-              "text-muted-foreground hover:bg-muted rounded p-1 transition-colors",
-              collapsed ? "ml-0" : "ml-auto",
+              "text-muted-foreground hover:bg-muted cursor-pointer rounded p-1 transition-colors",
+              collapsed
+                ? "bg-sidebar hover:text-foreground absolute top-1/2 -right-2.5 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border shadow-xs"
+                : "ml-auto",
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={14} />}
           </button>
         ) : null}
         {onClose && !onToggle ? (
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:bg-muted ml-auto rounded p-1"
+            className="text-muted-foreground hover:bg-muted ml-auto cursor-pointer rounded p-1"
             aria-label="Close menu"
           >
             <X size={14} />
@@ -182,21 +195,23 @@ export function AppSidebar({
   onToggle,
   mobileOpen,
   onMobileOpenChange,
+  brand,
 }: {
   collapsed: boolean;
   onToggle: () => void;
   mobileOpen: boolean;
   onMobileOpenChange: (open: boolean) => void;
+  brand?: (collapsed: boolean) => ReactNode;
 }) {
   return (
     <>
       <aside
         className={cn(
-          "bg-sidebar border-sidebar-border hidden min-h-screen shrink-0 flex-col self-stretch border-r transition-all duration-200 md:flex",
+          "bg-sidebar border-sidebar-border relative z-10 hidden min-h-screen shrink-0 flex-col self-stretch overflow-visible border-r transition-all duration-200 md:flex",
           collapsed ? "w-14" : "w-56",
         )}
       >
-        <SidebarChrome collapsed={collapsed} onToggle={onToggle} />
+        <SidebarChrome collapsed={collapsed} onToggle={onToggle} brand={brand?.(collapsed)} />
       </aside>
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
         <SheetContent side="left" className="bg-sidebar w-64 p-0 sm:max-w-64">
@@ -205,6 +220,7 @@ export function AppSidebar({
             collapsed={false}
             onClose={() => onMobileOpenChange(false)}
             onNavigate={() => onMobileOpenChange(false)}
+            brand={brand?.(false)}
           />
         </SheetContent>
       </Sheet>

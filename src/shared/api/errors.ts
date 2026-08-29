@@ -69,6 +69,10 @@ function fieldNameFromLoc(loc: unknown): string | null {
   return parts.join(".") || null;
 }
 
+function sanitizeValidationMessage(message: string): string {
+  return message.replace(/^Value error,\s*/i, "").trim();
+}
+
 export function getValidationFieldErrors(error: unknown): Record<string, string> {
   if (!isApiError(error) || error.code !== "VALIDATION_ERROR" || error.details == null) {
     return {};
@@ -82,8 +86,8 @@ export function getValidationFieldErrors(error: unknown): Record<string, string>
       if (!item || typeof item !== "object") {
         continue;
       }
-      const record = item as { loc?: unknown; msg?: unknown; message?: unknown };
-      const name = fieldNameFromLoc(record.loc);
+      const record = item as { loc?: unknown; path?: unknown; msg?: unknown; message?: unknown };
+      const name = fieldNameFromLoc(record.loc) ?? fieldNameFromLoc(record.path);
       const message =
         typeof record.msg === "string"
           ? record.msg
@@ -91,7 +95,7 @@ export function getValidationFieldErrors(error: unknown): Record<string, string>
             ? record.message
             : null;
       if (name && message) {
-        fields[name] = message;
+        fields[name] = sanitizeValidationMessage(message);
       }
     }
     return fields;
@@ -100,7 +104,7 @@ export function getValidationFieldErrors(error: unknown): Record<string, string>
   if (typeof details === "object") {
     for (const [key, value] of Object.entries(details)) {
       if (typeof value === "string") {
-        fields[key] = value;
+        fields[key] = sanitizeValidationMessage(value);
       }
     }
   }

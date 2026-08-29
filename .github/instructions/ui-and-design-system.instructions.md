@@ -26,6 +26,10 @@ Primitives are generic and domain-free. Anything that names a domain concept —
 Do not fork a primitive to change one thing. Extend it through props or variants so every screen
 inherits the fix. Do not wrap a primitive in a near-identical component that only adds a class.
 
+Clickable controls in `src/shared/components/` must include `cursor-pointer` (keep
+`disabled:cursor-not-allowed` / `disabled:pointer-events-none` where they already exist). Do not
+sprinkle `cursor-pointer` on feature `Button`s — inherit it from the primitive.
+
 ## Using shadcn/ui
 
 Primitives are generated into the repository and owned by us, so they may be edited — but edit them

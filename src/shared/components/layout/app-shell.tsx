@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 
 import { AppHeader } from "@/modules/users-management/auth/components/app-header";
+import { TenantSidebarBrand } from "@/modules/users-management/tenants/components/tenant-sidebar-brand";
 import { AppSidebar } from "@/shared/components/layout/app-sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -16,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         onToggle={() => setCollapsed((value) => !value)}
         mobileOpen={mobileOpen}
         onMobileOpenChange={setMobileOpen}
+        brand={(isCollapsed) => <TenantSidebarBrand collapsed={isCollapsed} />}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader onMobileMenuOpen={() => setMobileOpen(true)} />

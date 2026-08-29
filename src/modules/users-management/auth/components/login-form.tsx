@@ -10,6 +10,8 @@ import { useForm } from "react-hook-form";
 import { COMPANY_EMAIL_PLACEHOLDER } from "@/config/constants";
 import { useLogin } from "@/modules/users-management/auth/mutations";
 import { LoginFormSchema, type LoginFormValues } from "@/modules/users-management/auth/schemas";
+import { useAuthBrandSelection } from "@/modules/users-management/auth/components/auth-brand";
+import { TenantOrgOption } from "@/modules/users-management/tenants/components/tenant-org-option";
 import { findOrganizationTenantId } from "@/modules/users-management/tenants/organization";
 import { useTenants } from "@/modules/users-management/tenants/queries";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
@@ -32,6 +34,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { getErrorMessage, isApiError } from "@/shared/api/errors";
+import { useIsClient } from "@/shared/hooks/use-is-client";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { resolvePostLoginPath } from "@/shared/lib/redirect";
 
@@ -39,6 +42,8 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tenantsQuery = useTenants();
+  const isClient = useIsClient();
+  const { setSelectedTenantId } = useAuthBrandSelection();
   const login = useLogin();
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -61,8 +66,9 @@ export function LoginForm() {
     const tenantId = findOrganizationTenantId(tenants);
     if (tenantId) {
       form.setValue("tenant_id", tenantId, { shouldValidate: true });
+      setSelectedTenantId(tenantId);
     }
-  }, [form, tenantsQuery.data]);
+  }, [form, setSelectedTenantId, tenantsQuery.data]);
 
   async function onSubmit(values: LoginFormValues) {
     setFormError(null);
@@ -82,6 +88,7 @@ export function LoginForm() {
   }
 
   const tenants = tenantsQuery.data ?? [];
+  const tenantsLoading = !isClient || tenantsQuery.isLoading;
   const pending = login.isPending || form.formState.isSubmitting;
 
   return (
@@ -106,15 +113,18 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Organization</FormLabel>
                 <Select
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setSelectedTenantId(value);
+                  }}
                   value={field.value}
-                  disabled={tenantsQuery.isLoading}
+                  disabled={tenantsLoading}
                 >
                   <FormControl>
                     <SelectTrigger aria-label="Organization">
                       <SelectValue
                         placeholder={
-                          tenantsQuery.isLoading
+                          tenantsLoading
                             ? "Loading organizations…"
                             : tenantsQuery.isError
                               ? "Unable to load organizations"
@@ -126,7 +136,7 @@ export function LoginForm() {
                   <SelectContent>
                     {tenants.map((tenant) => (
                       <SelectItem key={tenant.tenant_id} value={tenant.tenant_id}>
-                        {tenant.name}
+                        <TenantOrgOption name={tenant.name} logoUrl={tenant.logo_url} />
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -141,7 +151,7 @@ export function LoginForm() {
               Organizations could not be loaded.{" "}
               <button
                 type="button"
-                className="text-primary underline-offset-4 hover:underline"
+                className="text-primary cursor-pointer underline-offset-4 hover:underline"
                 onClick={() => tenantsQuery.refetch()}
               >
                 Try again
@@ -199,7 +209,7 @@ export function LoginForm() {
                   </FormControl>
                   <button
                     type="button"
-                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-1"
+                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded-sm p-1"
                     onClick={() => setShowPassword((value) => !value)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
