@@ -5,6 +5,7 @@ const TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
 const SUPERADMIN_ROLE_ID = "33333333-3333-4333-8333-333333333333";
 const EMPLOYEE_ROLE_ID = "66666666-6666-4666-8666-666666666666";
+const CURRENCY_ID = "44444444-4444-4444-8444-444444444444";
 const EMAIL = "ada@plumbit.com";
 const PASSWORD = "correct-horse";
 const ORGANIZATION_NAME = process.env.NEXT_PUBLIC_ORGANIZATION_NAME ?? "Plumbit";
@@ -17,6 +18,7 @@ const EMPTY_LIST_PATHS = new Set([
   "/api/v1/attachments",
   "/api/v1/branches",
   "/api/v1/departments",
+  "/api/v1/exchange-rates",
   "/api/v1/users",
 ]);
 
@@ -28,6 +30,7 @@ let tenantState = {
   name: ORGANIZATION_NAME,
   timezone: "Asia/Dubai",
   default_currency: "AED",
+  default_currency_id: CURRENCY_ID,
   quotation_requires_approval: true,
 };
 
@@ -97,6 +100,21 @@ function drain(req) {
   });
 }
 
+function currency() {
+  return {
+    id: CURRENCY_ID,
+    tenant_id: TENANT_ID,
+    code: "AED",
+    name: "UAE Dirham",
+    symbol: "AED",
+    decimal_places: 2,
+    is_base: true,
+    is_active: true,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}
+
 function currentTenant() {
   return {
     id: TENANT_ID,
@@ -111,6 +129,7 @@ function currentTenant() {
     founded: null,
     fiscal_year_start: null,
     default_currency: tenantState.default_currency,
+    default_currency_id: tenantState.default_currency_id,
     quotation_requires_approval: tenantState.quotation_requires_approval,
     headquarters: null,
     logo_url: tenantLogoUrl,
@@ -140,6 +159,13 @@ function me() {
     ],
     permissions: [
       "users.auth.change_password",
+      "erp.currency.read",
+      "erp.currency.create",
+      "erp.currency.update",
+      "erp.currency.delete",
+      "erp.exchange_rate.read",
+      "erp.exchange_rate.create",
+      "erp.exchange_rate.update",
       "identity.attachment.read",
       "identity.branch.read",
       "identity.department.read",
@@ -260,8 +286,9 @@ const server = http.createServer(async (req, res) => {
         ...tenantState,
         ...(body.name ? { name: body.name } : {}),
         ...(body.timezone ? { timezone: body.timezone } : {}),
-        ...(body.default_currency !== undefined
-          ? { default_currency: body.default_currency }
+        ...(body.default_currency !== undefined ? { default_currency: body.default_currency } : {}),
+        ...(body.default_currency_id !== undefined
+          ? { default_currency_id: body.default_currency_id }
           : {}),
         ...(body.quotation_requires_approval !== undefined
           ? { quotation_requires_approval: body.quotation_requires_approval }
@@ -320,6 +347,32 @@ const server = http.createServer(async (req, res) => {
           updated_at: NOW,
         },
       ]);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/currencies") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [currency()]);
+      return;
+    }
+
+    if (req.method === "PUT" && url.pathname === "/api/v1/exchange-rates") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      ok(res, {
+        id: crypto.randomUUID(),
+        tenant_id: TENANT_ID,
+        from_currency_id: body.currency_id ?? CURRENCY_ID,
+        to_currency_id: CURRENCY_ID,
+        effective_date: body.effective_date ?? NOW.slice(0, 10),
+        rate: body.rate_to_base ?? "1",
+        created_at: NOW,
+        updated_at: NOW,
+      });
       return;
     }
 
