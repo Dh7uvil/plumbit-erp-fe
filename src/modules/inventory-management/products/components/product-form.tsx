@@ -1,0 +1,393 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
+import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
+import { useAllCategories } from "@/modules/inventory-management/categories/queries";
+import {
+  useCreateProduct,
+  useUpdateProduct,
+} from "@/modules/inventory-management/products/mutations";
+import {
+  ITEM_TYPE_LABELS,
+  ITEM_TYPES,
+  ProductFormSchema,
+  type Product,
+  type ProductCreateRequest,
+  type ProductFormValues,
+  type ProductUpdateRequest,
+} from "@/modules/inventory-management/products/schemas";
+import { useAllUnits } from "@/modules/inventory-management/units/queries";
+import { emptyToNull } from "@/modules/users-management/tenants/schemas";
+import { getErrorMessage } from "@/shared/api/errors";
+import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/shared/components/ui/form";
+import { Input } from "@/shared/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+import { Textarea } from "@/shared/components/ui/textarea";
+import { applyFieldErrors } from "@/shared/lib/form-errors";
+
+function optionalUuid(value: string): string | null {
+  return !value || value === OPTIONAL_SELECT_NONE ? null : value;
+}
+
+function toFormValues(product: Product | null): ProductFormValues {
+  return {
+    sku: product?.sku ?? "",
+    name: product?.name ?? "",
+    item_type: product?.item_type ?? "PRODUCT",
+    sales_description: product?.sales_description ?? "",
+    unit_id: product?.unit_id ?? OPTIONAL_SELECT_NONE,
+    category_id: product?.category_id ?? OPTIONAL_SELECT_NONE,
+    selling_rate: product?.selling_rate ?? "0",
+    tax_id: product?.tax_id ?? OPTIONAL_SELECT_NONE,
+    hs_code: product?.hs_code ?? "",
+    track_inventory: product?.track_inventory ?? false,
+    is_active: product?.is_active ?? true,
+  };
+}
+
+function toCreateRequest(values: ProductFormValues): ProductCreateRequest {
+  return {
+    sku: values.sku.trim(),
+    name: values.name.trim(),
+    item_type: values.item_type,
+    sales_description: emptyToNull(values.sales_description),
+    unit_id: optionalUuid(values.unit_id),
+    category_id: optionalUuid(values.category_id),
+    selling_rate: values.selling_rate.trim() || "0",
+    tax_id: optionalUuid(values.tax_id),
+    hs_code: emptyToNull(values.hs_code),
+    track_inventory: values.track_inventory,
+  };
+}
+
+function toUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
+  return {
+    item_type: values.item_type,
+    name: values.name.trim(),
+    sales_description: emptyToNull(values.sales_description),
+    unit_id: optionalUuid(values.unit_id),
+    category_id: optionalUuid(values.category_id),
+    selling_rate: values.selling_rate.trim() || "0",
+    tax_id: optionalUuid(values.tax_id),
+    hs_code: emptyToNull(values.hs_code),
+    track_inventory: values.track_inventory,
+    is_active: values.is_active,
+  };
+}
+
+export function ProductForm({
+  product,
+  disabled = false,
+  onSuccess,
+  showCancel = false,
+  onCancel,
+}: {
+  product: Product | null;
+  disabled?: boolean;
+  onSuccess?: () => void;
+  showCancel?: boolean;
+  onCancel?: () => void;
+}) {
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const unitsQuery = useAllUnits();
+  const categoriesQuery = useAllCategories();
+  const taxesQuery = useAllTaxes();
+  const [formError, setFormError] = useState<string | null>(null);
+  const isEdit = Boolean(product);
+
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(ProductFormSchema),
+    values: toFormValues(product),
+  });
+
+  async function onSubmit(values: ProductFormValues) {
+    setFormError(null);
+    try {
+      if (product) {
+        await updateProduct.mutateAsync({ id: product.id, values: toUpdateRequest(values) });
+        toast.success("Product updated");
+      } else {
+        await createProduct.mutateAsync(toCreateRequest(values));
+        toast.success("Product created");
+      }
+      onSuccess?.();
+    } catch (error) {
+      if (applyFieldErrors(error, form.setError)) {
+        return;
+      }
+      setFormError(getErrorMessage(error));
+    }
+  }
+
+  const pending = createProduct.isPending || updateProduct.isPending;
+  const units = unitsQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+  const taxes = taxesQuery.data ?? [];
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
+        {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="sku"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SKU</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="SKU-001"
+                    maxLength={80}
+                    disabled={isEdit || disabled}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="item_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {ITEM_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {ITEM_TYPE_LABELS[type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Product name"
+                    maxLength={200}
+                    disabled={disabled}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="sales_description"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Sales description</FormLabel>
+                <FormControl>
+                  <Textarea disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="unit_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Unit</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled || unitsQuery.isLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
+                    {units.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.id}>
+                        {unit.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="category_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled || categoriesQuery.isLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="selling_rate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Selling rate</FormLabel>
+                <FormControl>
+                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="tax_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tax</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled || taxesQuery.isLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
+                    {taxes.map((tax) => (
+                      <SelectItem key={tax.id} value={tax.id}>
+                        {tax.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="hs_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>HS code</FormLabel>
+                <FormControl>
+                  <Input maxLength={20} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <FormField
+              control={form.control}
+              name="track_inventory"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={disabled}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel>Track inventory</FormLabel>
+                </FormItem>
+              )}
+            />
+            {isEdit ? (
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        disabled={disabled}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                    </FormControl>
+                    <FormLabel>Active</FormLabel>
+                  </FormItem>
+                )}
+              />
+            ) : null}
+          </div>
+        </div>
+        {!disabled ? (
+          <div className="flex justify-end gap-2">
+            {showCancel ? (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+                Cancel
+              </Button>
+            ) : null}
+            <Button type="submit" disabled={pending}>
+              {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+              {isEdit ? "Save Changes" : "Create Product"}
+            </Button>
+          </div>
+        ) : null}
+      </form>
+    </Form>
+  );
+}
