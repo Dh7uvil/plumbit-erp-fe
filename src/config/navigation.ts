@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ListOrdered,
   Lock,
+  Package,
   Percent,
   Ruler,
   Settings,
@@ -22,6 +23,7 @@ import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templat
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
 import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
+import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
 import { auditLogPermissions } from "@/modules/users-management/audit-logs/permissions";
@@ -87,6 +89,12 @@ export const navigation: NavigationGroup[] = [
         href: "/categories",
         permission: categoryPermissions.read,
         icon: FolderTree,
+      },
+      {
+        label: "Products",
+        href: "/products",
+        permission: productPermissions.read,
+        icon: Package,
       },
     ],
   },
