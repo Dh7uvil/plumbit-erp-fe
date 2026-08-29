@@ -2,12 +2,16 @@ import {
   ClipboardList,
   LayoutDashboard,
   Lock,
+  Percent,
   Settings,
   Shield,
   UserCog,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
+import { currencyPermissions } from "@/modules/erp/currencies/permissions";
+import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
 import { auditLogPermissions } from "@/modules/users-management/audit-logs/permissions";
 import { permissionCatalogPermissions } from "@/modules/users-management/permissions/permissions";
@@ -31,6 +35,23 @@ export const navigation: NavigationGroup[] = [
   {
     label: "Overview",
     items: [{ label: "Dashboard", href: "/", permission: null, icon: LayoutDashboard }],
+  },
+  {
+    label: "Masters",
+    items: [
+      {
+        label: "Currencies",
+        href: "/currencies",
+        permission: currencyPermissions.read,
+        icon: Wallet,
+      },
+      {
+        label: "Exchange rates",
+        href: "/exchange-rates",
+        permission: exchangeRatePermissions.read,
+        icon: Percent,
+      },
+    ],
   },
   {
     label: "Administration",

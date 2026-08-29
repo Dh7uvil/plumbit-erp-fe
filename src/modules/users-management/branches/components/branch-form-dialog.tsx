@@ -7,6 +7,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { currencyPermissions } from "@/modules/erp/currencies/permissions";
+import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCreateBranch, useUpdateBranch } from "@/modules/users-management/branches/mutations";
 import {
@@ -22,6 +24,7 @@ import {
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { AddressFields } from "@/shared/components/form/address-fields";
+import { SearchableSelect } from "@/shared/components/form/searchable-select";
 import { TimezoneSelect } from "@/shared/components/form/timezone-select";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -48,6 +51,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useCan } from "@/shared/providers/session-provider";
 
 function toFormValues(branch: Branch | null): BranchFormValues {
   return {
@@ -83,10 +87,13 @@ export function BranchFormDialog({
   branch: Branch | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const can = useCan();
   const createBranch = useCreateBranch();
   const updateBranch = useUpdateBranch();
+  const currenciesQuery = useAllCurrencies(open && can(currencyPermissions.read));
   const [formError, setFormError] = useState<string | null>(null);
   const isEdit = Boolean(branch);
+  const currencies = currenciesQuery.data ?? [];
 
   const form = useForm<BranchFormValues>({
     resolver: zodResolver(BranchFormSchema),
@@ -198,15 +205,37 @@ export function BranchFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Timezone</FormLabel>
-                    <TimezoneSelect
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      allowEmpty
-                    />
+                    <TimezoneSelect value={field.value} onValueChange={field.onChange} allowEmpty />
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {can(currencyPermissions.read) ? (
+                <FormField
+                  control={form.control}
+                  name="default_currency_id"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Default currency</FormLabel>
+                      <SearchableSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={currenciesQuery.isLoading}
+                        placeholder="Optional"
+                        searchPlaceholder="Search currency…"
+                        options={[
+                          { value: OPTIONAL_SELECT_NONE, label: "None" },
+                          ...currencies.map((currency) => ({
+                            value: currency.id,
+                            label: `${currency.code} — ${currency.name}`,
+                          })),
+                        ]}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
               <AddressFields control={form.control} name="address" />
             </div>
             <DialogFooter>

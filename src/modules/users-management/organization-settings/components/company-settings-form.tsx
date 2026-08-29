@@ -2,11 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { useForm, type Control, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { currencyPermissions } from "@/modules/erp/currencies/permissions";
+import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import type { Currency } from "@/modules/erp/currencies/schemas";
 import { CompanyLogoCard } from "@/modules/users-management/organization-settings/components/company-logo-card";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
 import { useUpdateCurrentTenant } from "@/modules/users-management/tenants/mutations";
@@ -23,6 +26,7 @@ import {
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTableError } from "@/shared/components/data-table/states";
+import { SearchableSelect } from "@/shared/components/form/searchable-select";
 import { TimezoneSelect } from "@/shared/components/form/timezone-select";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -56,6 +60,8 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   fiscal_year_start: "",
 };
 
+const EMPTY_CURRENCIES: Currency[] = [];
+
 type CompanyTextFieldPath = Exclude<
   FieldPath<CompanySettingsFormValues>,
   "headquarters" | "quotation_requires_approval"
@@ -66,7 +72,23 @@ function toCurrencyCode(code: string | null | undefined): string | null {
   return normalized.length === 3 ? normalized : null;
 }
 
-function toFormValues(tenant: TenantCurrent): CompanySettingsFormValues {
+function resolveDefaultCurrencyId(tenant: TenantCurrent, currencies: Currency[]): string {
+  if (tenant.default_currency_id) {
+    return tenant.default_currency_id;
+  }
+  const code = toCurrencyCode(tenant.default_currency);
+  if (!code) {
+    return OPTIONAL_SELECT_NONE;
+  }
+  return (
+    currencies.find((currency) => currency.code.toUpperCase() === code)?.id ?? OPTIONAL_SELECT_NONE
+  );
+}
+
+function toFormValues(
+  tenant: TenantCurrent,
+  currencies: Currency[] = [],
+): CompanySettingsFormValues {
   return {
     name: tenant.name,
     industry: tenant.industry ?? "",
@@ -84,11 +106,43 @@ function toFormValues(tenant: TenantCurrent): CompanySettingsFormValues {
       postal_code: tenant.headquarters?.postal_code ?? "",
     },
     default_currency: tenant.default_currency ?? "",
-    default_currency_id: tenant.default_currency_id ?? OPTIONAL_SELECT_NONE,
+    default_currency_id: resolveDefaultCurrencyId(tenant, currencies),
     quotation_requires_approval: tenant.quotation_requires_approval,
     timezone: tenant.timezone ?? "",
     fiscal_year_start: tenant.fiscal_year_start ?? "",
   };
+}
+
+function currencySelectValue(
+  selectedId: string | undefined,
+  currencyCode: string,
+  currencies: Currency[],
+): string {
+  if (selectedId && selectedId !== OPTIONAL_SELECT_NONE) {
+    return selectedId;
+  }
+  const code = toCurrencyCode(currencyCode);
+  if (!code) {
+    return OPTIONAL_SELECT_NONE;
+  }
+  return (
+    currencies.find((currency) => currency.code.toUpperCase() === code)?.id ?? OPTIONAL_SELECT_NONE
+  );
+}
+
+function currencySelectLabel(
+  selectValue: string,
+  currencies: Currency[],
+  fallbackCode: string,
+): string {
+  if (selectValue === OPTIONAL_SELECT_NONE) {
+    return "None";
+  }
+  const selected = currencies.find((currency) => currency.id === selectValue);
+  if (selected) {
+    return `${selected.code} — ${selected.name}`;
+  }
+  return fallbackCode.trim() || "Current currency";
 }
 
 function sameText(left: string, right: string): boolean {
@@ -131,14 +185,17 @@ function toCompanyPayload(values: CompanySettingsFormValues): TenantCurrentUpdat
   };
 }
 
-function toRegionalPayload(values: CompanySettingsFormValues): TenantCurrentUpdate {
+function toRegionalPayload(
+  values: CompanySettingsFormValues,
+  currencyCode: string | null,
+): TenantCurrentUpdate {
   const selectedId = values.default_currency_id;
   const currencyId = !selectedId || selectedId === OPTIONAL_SELECT_NONE ? null : selectedId;
   const timezone = emptyToNull(values.timezone);
   return {
     ...(timezone ? { timezone } : {}),
     fiscal_year_start: emptyToNull(values.fiscal_year_start),
-    default_currency: toCurrencyCode(values.default_currency),
+    default_currency: toCurrencyCode(currencyCode ?? values.default_currency),
     default_currency_id: currencyId,
     quotation_requires_approval: values.quotation_requires_approval,
   };
@@ -218,15 +275,18 @@ function TextField({
 export function CompanySettingsForm() {
   const can = useCan();
   const canUpdate = can(organizationSettingsPermissions.update);
+  const canReadCurrencies = can(currencyPermissions.read);
   const tenantQuery = useCurrentTenant();
+  const currenciesQuery = useAllCurrencies(canReadCurrencies);
   const updateTenant = useUpdateCurrentTenant();
   const isClient = useIsClient();
   const [formError, setFormError] = useState<string | null>(null);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isEditingRegional, setIsEditingRegional] = useState(false);
-  const isEditingRef = useRef(false);
+  const [currencyDraft, setCurrencyDraft] = useState(OPTIONAL_SELECT_NONE);
   const tenant = tenantQuery.data;
-  isEditingRef.current = isEditingCompany || isEditingRegional;
+  const currencies = currenciesQuery.data ?? EMPTY_CURRENCIES;
+  const isEditing = isEditingCompany || isEditingRegional;
 
   const form = useForm<CompanySettingsFormValues>({
     resolver: zodResolver(CompanySettingsFormSchema),
@@ -234,11 +294,11 @@ export function CompanySettingsForm() {
   });
 
   useEffect(() => {
-    if (!tenant || isEditingRef.current) {
+    if (!tenant || isEditing) {
       return;
     }
-    form.reset(toFormValues(tenant));
-  }, [form, tenant]);
+    form.reset(toFormValues(tenant, currencies));
+  }, [currencies, form, isEditing, tenant]);
 
   async function submitUpdate(payload: TenantCurrentUpdate) {
     setFormError(null);
@@ -252,6 +312,7 @@ export function CompanySettingsForm() {
         saved.default_currency = payload.default_currency ?? "";
       }
       form.reset(saved);
+      setCurrencyDraft(saved.default_currency_id);
       setIsEditingCompany(false);
       setIsEditingRegional(false);
       toast.success("Company settings saved");
@@ -267,7 +328,7 @@ export function CompanySettingsForm() {
     setFormError(null);
     if (tenant) {
       const current = form.getValues();
-      const original = toFormValues(tenant);
+      const original = toFormValues(tenant, currencies);
       form.reset({
         ...current,
         name: original.name,
@@ -286,7 +347,7 @@ export function CompanySettingsForm() {
     setFormError(null);
     if (tenant) {
       const current = form.getValues();
-      const original = toFormValues(tenant);
+      const original = toFormValues(tenant, currencies);
       form.reset({
         ...current,
         default_currency: original.default_currency,
@@ -295,13 +356,14 @@ export function CompanySettingsForm() {
         timezone: original.timezone,
         fiscal_year_start: original.fiscal_year_start,
       });
+      setCurrencyDraft(original.default_currency_id);
     }
     setIsEditingRegional(false);
   }
 
   function saveCompany() {
     const values = form.getValues();
-    if (tenant && isSameCompany(values, toFormValues(tenant))) {
+    if (tenant && isSameCompany(values, toFormValues(tenant, currencies))) {
       setIsEditingCompany(false);
       setFormError(null);
       return;
@@ -314,7 +376,15 @@ export function CompanySettingsForm() {
   }
 
   function saveRegional() {
-    void submitUpdate(toRegionalPayload(form.getValues()));
+    const selected = currencies.find((currency) => currency.id === currencyDraft);
+    const values = {
+      ...form.getValues(),
+      default_currency_id: currencyDraft,
+      default_currency: selected?.code ?? "",
+    };
+    form.setValue("default_currency_id", values.default_currency_id);
+    form.setValue("default_currency", values.default_currency);
+    void submitUpdate(toRegionalPayload(values, selected?.code ?? null));
   }
 
   if (!isClient || tenantQuery.isLoading) {
@@ -502,6 +572,13 @@ export function CompanySettingsForm() {
                     variant="outline"
                     onClick={() => {
                       setFormError(null);
+                      setCurrencyDraft(
+                        currencySelectValue(
+                          form.getValues("default_currency_id"),
+                          form.getValues("default_currency"),
+                          currencies,
+                        ),
+                      );
                       setIsEditingRegional(true);
                     }}
                   >
@@ -512,14 +589,62 @@ export function CompanySettingsForm() {
             ) : null}
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <TextField
-              control={form.control}
-              name="default_currency"
-              label="Default Currency"
-              maxLength={3}
-              placeholder="AED"
-              disabled={!canUpdate || !isEditingRegional}
-            />
+            {canReadCurrencies && !currenciesQuery.isError ? (
+              <FormField
+                control={form.control}
+                name="default_currency_id"
+                render={({ field }) => {
+                  const selectValue = currencySelectValue(
+                    isEditingRegional ? currencyDraft : field.value,
+                    form.getValues("default_currency"),
+                    currencies,
+                  );
+                  const missingCurrent =
+                    selectValue !== OPTIONAL_SELECT_NONE &&
+                    !currencies.some((currency) => currency.id === selectValue);
+                  const selectLabel = currencySelectLabel(
+                    selectValue,
+                    currencies,
+                    form.getValues("default_currency"),
+                  );
+                  return (
+                    <SettingsFieldItem label="Default Currency">
+                      <SearchableSelect
+                        value={selectValue}
+                        onValueChange={(id) => {
+                          setCurrencyDraft(id);
+                          field.onChange(id);
+                          const selected = currencies.find((currency) => currency.id === id);
+                          form.setValue("default_currency", selected?.code ?? "", {
+                            shouldDirty: true,
+                          });
+                        }}
+                        disabled={!canUpdate || !isEditingRegional || currenciesQuery.isLoading}
+                        placeholder={selectLabel}
+                        searchPlaceholder="Search currency…"
+                        options={[
+                          { value: OPTIONAL_SELECT_NONE, label: "None" },
+                          ...(missingCurrent ? [{ value: selectValue, label: selectLabel }] : []),
+                          ...currencies.map((currency) => ({
+                            value: currency.id,
+                            label: `${currency.code} — ${currency.name}`,
+                          })),
+                        ]}
+                      />
+                    </SettingsFieldItem>
+                  );
+                }}
+              />
+            ) : (
+              <TextField
+                control={form.control}
+                name="default_currency"
+                label="Default Currency"
+                maxLength={3}
+                placeholder="AED"
+                disabled={!canUpdate || !isEditingRegional}
+              />
+            )}
             <FormField
               control={form.control}
               name="timezone"
