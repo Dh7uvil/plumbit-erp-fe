@@ -1,0 +1,36 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+
+import { customersApi } from "@/modules/crm/customers/api";
+import type { CustomerListParams } from "@/modules/crm/customers/schemas";
+
+export const customerKeys = {
+  all: ["customers"] as const,
+  list: (params: CustomerListParams) => [...customerKeys.all, "list", params] as const,
+  allItems: () => [...customerKeys.all, "all"] as const,
+  detail: (id: string) => [...customerKeys.all, "detail", id] as const,
+};
+
+export function useCustomers(params: CustomerListParams) {
+  return useQuery({
+    queryKey: customerKeys.list(params),
+    queryFn: () => customersApi.list(params),
+  });
+}
+
+export function useAllCustomers(enabled = true) {
+  return useQuery({
+    queryKey: customerKeys.allItems(),
+    queryFn: customersApi.listAll,
+    enabled,
+  });
+}
+
+export function useCustomer(id: string | null) {
+  return useQuery({
+    queryKey: customerKeys.detail(id ?? ""),
+    queryFn: () => customersApi.get(id!),
+    enabled: Boolean(id),
+  });
+}

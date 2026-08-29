@@ -13,11 +13,13 @@ import {
   Shield,
   Tags,
   UserCog,
+  Users,
   Wallet,
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
 
+import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
@@ -111,6 +113,12 @@ export const navigation: NavigationGroup[] = [
         href: "/warehouses",
         permission: warehousePermissions.read,
         icon: Warehouse,
+      },
+      {
+        label: "Customers",
+        href: "/customers",
+        permission: customerPermissions.read,
+        icon: Users,
       },
     ],
   },
