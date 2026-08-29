@@ -17,6 +17,7 @@ const LOGO_DATA_URL =
 const EMPTY_LIST_PATHS = new Set([
   "/api/v1/attachments",
   "/api/v1/branches",
+  "/api/v1/categories",
   "/api/v1/departments",
   "/api/v1/document-sequences",
   "/api/v1/exchange-rates",
@@ -191,6 +192,10 @@ function me() {
       "inventory.unit.create",
       "inventory.unit.update",
       "inventory.unit.delete",
+      "inventory.category.read",
+      "inventory.category.create",
+      "inventory.category.update",
+      "inventory.category.delete",
       "identity.attachment.read",
       "identity.branch.read",
       "identity.department.read",
