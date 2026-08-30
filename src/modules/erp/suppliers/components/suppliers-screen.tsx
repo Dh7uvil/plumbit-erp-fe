@@ -5,20 +5,17 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { CustomerFormDialog } from "@/modules/crm/customers/components/customer-form-dialog";
-import { useDeleteCustomer } from "@/modules/crm/customers/mutations";
-import { customerPermissions } from "@/modules/crm/customers/permissions";
-import { useCustomers } from "@/modules/crm/customers/queries";
+import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
+import { useDeleteSupplier } from "@/modules/erp/suppliers/mutations";
+import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
+import { useSuppliers } from "@/modules/erp/suppliers/queries";
 import {
   COMPANY_TYPE_LABELS,
-  CUSTOMER_COMPANY_TYPE_LABELS,
-  CUSTOMER_COMPANY_TYPES,
   TAX_TREATMENT_LABELS,
   TAX_TREATMENTS,
-  type Customer,
-  type CustomerCompanyType,
+  type Supplier,
   type TaxTreatment,
-} from "@/modules/crm/customers/schemas";
+} from "@/modules/erp/suppliers/schemas";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -61,35 +58,38 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
-function parseCompanyType(value: string | undefined): CustomerCompanyType | undefined {
-  return CUSTOMER_COMPANY_TYPES.includes(value as CustomerCompanyType)
-    ? (value as CustomerCompanyType)
-    : undefined;
-}
-
 function parseTaxTreatment(value: string | undefined): TaxTreatment | undefined {
   return TAX_TREATMENTS.includes(value as TaxTreatment) ? (value as TaxTreatment) : undefined;
 }
 
-export function CustomersScreen() {
+function deleteDescription(supplier: Supplier | null): string {
+  if (!supplier) {
+    return "Delete this supplier? This cannot be undone.";
+  }
+  if (supplier.company_type === "BOTH") {
+    return `Delete "${supplier.name}"? This party will disappear from both Customers and Suppliers. This cannot be undone.`;
+  }
+  return `Delete "${supplier.name}"? This cannot be undone.`;
+}
+
+export function SuppliersScreen() {
   const can = useCan();
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
-  const customersQuery = useCustomers({
+  const suppliersQuery = useSuppliers({
     page,
     page_size,
     search,
     tax_treatment: parseTaxTreatment(filters.tax_treatment),
     currency_id: filters.currency_id,
-    company_type: parseCompanyType(filters.company_type),
     is_active: parseBoolFilter(filters.is_active),
   });
   const currenciesQuery = useAllCurrencies();
-  const deleteCustomer = useDeleteCustomer();
+  const deleteSupplier = useDeleteSupplier();
   const [formOpen, setFormOpen] = useState(false);
-  const [deleting, setDeleting] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState<Supplier | null>(null);
 
-  const rows = customersQuery.data?.data ?? [];
-  const meta = customersQuery.data?.meta;
+  const rows = suppliersQuery.data?.data ?? [];
+  const meta = suppliersQuery.data?.meta;
   const currencies = currenciesQuery.data ?? [];
 
   async function confirmDelete() {
@@ -97,8 +97,8 @@ export function CustomersScreen() {
       return;
     }
     try {
-      await deleteCustomer.mutateAsync(deleting.id);
-      toast.success("Customer deleted");
+      await deleteSupplier.mutateAsync(deleting.id);
+      toast.success("Supplier deleted");
       setDeleting(null);
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -108,10 +108,10 @@ export function CustomersScreen() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="Customers"
-        subtitle="Quote-ready customer master"
+        title="Suppliers"
+        subtitle="Purchase-side supplier master"
         actions={
-          can(customerPermissions.create) ? (
+          can(supplierPermissions.create) ? (
             <Button
               type="button"
               size="sm"
@@ -120,7 +120,7 @@ export function CustomersScreen() {
               }}
             >
               <Plus className="size-3.5" />
-              New Customer
+              New Supplier
             </Button>
           ) : undefined
         }
@@ -129,26 +129,8 @@ export function CustomersScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search customers…"
+          placeholder="Search suppliers…"
         />
-        <Select
-          value={filters.company_type ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { company_type: value === ALL ? null : value } })
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All types</SelectItem>
-            {CUSTOMER_COMPANY_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {CUSTOMER_COMPANY_TYPE_LABELS[type]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <Select
           value={filters.tax_treatment ?? ALL}
           onValueChange={(value) =>
@@ -210,7 +192,7 @@ export function CustomersScreen() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {customersQuery.isLoading ? (
+          {suppliersQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell colSpan={HEADERS.length}>
@@ -218,59 +200,59 @@ export function CustomersScreen() {
                 </TableCell>
               </TableRow>
             ))
-          ) : customersQuery.isError ? (
+          ) : suppliersQuery.isError ? (
             <TableRow>
               <TableCell colSpan={HEADERS.length}>
                 <DataTableError
-                  message={getErrorMessage(customersQuery.error)}
-                  onRetry={() => customersQuery.refetch()}
+                  message={getErrorMessage(suppliersQuery.error)}
+                  onRetry={() => suppliersQuery.refetch()}
                 />
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={HEADERS.length}>
-                <DataTableEmpty title="No customers" message="Create a customer to get started." />
+                <DataTableEmpty title="No suppliers" message="Create a supplier to get started." />
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((customer) => (
-              <TableRow key={customer.id}>
+            rows.map((supplier) => (
+              <TableRow key={supplier.id}>
                 <TableCell className="font-mono text-sm">
-                  <Link href={`/customers/${customer.id}`} className="hover:underline">
-                    {customer.code}
+                  <Link href={`/suppliers/${supplier.id}`} className="hover:underline">
+                    {supplier.code}
                   </Link>
                 </TableCell>
-                <TableCell className="font-medium">{customer.name}</TableCell>
-                <TableCell>{COMPANY_TYPE_LABELS[customer.company_type]}</TableCell>
-                <TableCell>{TAX_TREATMENT_LABELS[customer.tax_treatment]}</TableCell>
+                <TableCell className="font-medium">{supplier.name}</TableCell>
+                <TableCell>{COMPANY_TYPE_LABELS[supplier.company_type]}</TableCell>
+                <TableCell>{TAX_TREATMENT_LABELS[supplier.tax_treatment]}</TableCell>
                 <TableCell>
-                  <ActiveBadge active={customer.is_active} />
+                  <ActiveBadge active={supplier.is_active} />
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-0.5">
-                    {can(customerPermissions.update) ? (
+                    {can(supplierPermissions.update) ? (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="size-7"
-                        aria-label={`Edit ${customer.name}`}
+                        aria-label={`Edit ${supplier.name}`}
                         asChild
                       >
-                        <Link href={`/customers/${customer.id}`}>
+                        <Link href={`/suppliers/${supplier.id}`}>
                           <Edit2 className="size-3.5" />
                         </Link>
                       </Button>
                     ) : null}
-                    {can(customerPermissions.delete) ? (
+                    {can(supplierPermissions.delete) ? (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="text-destructive size-7"
-                        aria-label={`Delete ${customer.name}`}
-                        onClick={() => setDeleting(customer)}
+                        aria-label={`Delete ${supplier.name}`}
+                        onClick={() => setDeleting(supplier)}
                       >
                         <Trash2 className="size-3.5" />
                       </Button>
@@ -282,17 +264,13 @@ export function CustomersScreen() {
           )}
         </TableBody>
       </DataTable>
-      <CustomerFormDialog open={formOpen} customer={null} onOpenChange={setFormOpen} />
+      <SupplierFormDialog open={formOpen} supplier={null} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}
-        title="Delete customer"
-        description={
-          deleting?.company_type === "BOTH"
-            ? `Delete "${deleting.name}"? This party will disappear from both Customers and Suppliers. This cannot be undone.`
-            : `Delete ${deleting ? `"${deleting.name}"` : "this customer"}? This cannot be undone.`
-        }
+        title="Delete supplier"
+        description={deleteDescription(deleting)}
         confirmLabel="Delete"
-        pending={deleteCustomer.isPending}
+        pending={deleteSupplier.isPending}
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />

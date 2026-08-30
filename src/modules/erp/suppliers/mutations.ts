@@ -2,30 +2,30 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { customersApi } from "@/modules/crm/customers/api";
 import { customerKeys } from "@/modules/crm/customers/queries";
+import { suppliersApi } from "@/modules/erp/suppliers/api";
 import { supplierKeys } from "@/modules/erp/suppliers/queries";
 
 async function invalidatePartyCaches(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
-  await queryClient.invalidateQueries({ queryKey: customerKeys.all });
   await queryClient.invalidateQueries({ queryKey: supplierKeys.all });
+  await queryClient.invalidateQueries({ queryKey: customerKeys.all });
   if (id) {
-    await queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) });
     await queryClient.invalidateQueries({ queryKey: supplierKeys.detail(id) });
+    await queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) });
   }
 }
 
-export function useCreateCustomer() {
+export function useCreateSupplier() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: customersApi.create,
+    mutationFn: suppliersApi.create,
     onSuccess: async () => {
       await invalidatePartyCaches(queryClient);
     },
   });
 }
 
-export function useUpdateCustomer() {
+export function useUpdateSupplier() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -33,25 +33,25 @@ export function useUpdateCustomer() {
       values,
     }: {
       id: string;
-      values: Parameters<typeof customersApi.update>[1];
-    }) => customersApi.update(id, values),
+      values: Parameters<typeof suppliersApi.update>[1];
+    }) => suppliersApi.update(id, values),
     onSuccess: async (_data, { id }) => {
       await invalidatePartyCaches(queryClient, id);
     },
   });
 }
 
-export function useDeleteCustomer() {
+export function useDeleteSupplier() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: customersApi.delete,
+    mutationFn: suppliersApi.delete,
     onSuccess: async () => {
       await invalidatePartyCaches(queryClient);
     },
   });
 }
 
-export function useAddCustomerAddress() {
+export function useAddSupplierAddress() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -59,19 +59,19 @@ export function useAddCustomerAddress() {
       values,
     }: {
       id: string;
-      values: Parameters<typeof customersApi.addAddress>[1];
-    }) => customersApi.addAddress(id, values),
+      values: Parameters<typeof suppliersApi.addAddress>[1];
+    }) => suppliersApi.addAddress(id, values),
     onSuccess: async (_data, { id }) => {
       await invalidatePartyCaches(queryClient, id);
     },
   });
 }
 
-export function useDeleteCustomerAddress() {
+export function useDeleteSupplierAddress() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, extraId }: { id: string; extraId: string }) =>
-      customersApi.deleteAddress(id, extraId),
+      suppliersApi.deleteAddress(id, extraId),
     onSuccess: async (_data, { id }) => {
       await invalidatePartyCaches(queryClient, id);
     },

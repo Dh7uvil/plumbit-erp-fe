@@ -12,8 +12,7 @@ import {
   type Contact,
   type ContactFormValues,
 } from "@/modules/crm/contacts/schemas";
-import { customerPermissions } from "@/modules/crm/customers/permissions";
-import { useAllCustomers } from "@/modules/crm/customers/queries";
+import { useCompanyOptions } from "@/modules/crm/contacts/use-company-options";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -43,7 +42,6 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { useCan } from "@/shared/providers/session-provider";
 
 function toFormValues(contact: Contact | null, defaultCustomerId?: string): ContactFormValues {
   return {
@@ -71,8 +69,7 @@ export function ContactFormDialog({
 }) {
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
-  const can = useCan();
-  const customersQuery = useAllCustomers(!lockCustomer && can(customerPermissions.read));
+  const companiesQuery = useCompanyOptions(!lockCustomer);
   const [formError, setFormError] = useState<string | null>(null);
   const isEdit = Boolean(contact);
   const customerLocked = lockCustomer || isEdit;
@@ -82,7 +79,7 @@ export function ContactFormDialog({
     values: toFormValues(contact, defaultCustomerId),
   });
 
-  const customers = customersQuery.data ?? [];
+  const companies = companiesQuery.companies;
 
   function handleOpenChange(next: boolean) {
     if (!next) {
@@ -143,12 +140,12 @@ export function ContactFormDialog({
                   name="customer_id"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
-                      <FormLabel>Customer</FormLabel>
+                      <FormLabel>Company</FormLabel>
                       {customerLocked ? (
                         <FormControl>
                           <Input
                             value={
-                              customers.find((customer) => customer.id === field.value)?.name ?? "—"
+                              companies.find((company) => company.id === field.value)?.name ?? "—"
                             }
                             disabled
                           />
@@ -157,17 +154,17 @@ export function ContactFormDialog({
                         <Select
                           value={field.value || undefined}
                           onValueChange={field.onChange}
-                          disabled={customersQuery.isLoading}
+                          disabled={companiesQuery.isLoading}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a customer" />
+                              <SelectValue placeholder="Select a company" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {customers.map((customer) => (
-                              <SelectItem key={customer.id} value={customer.id}>
-                                {customer.name}
+                            {companies.map((company) => (
+                              <SelectItem key={company.id} value={company.id}>
+                                {company.name}
                               </SelectItem>
                             ))}
                           </SelectContent>

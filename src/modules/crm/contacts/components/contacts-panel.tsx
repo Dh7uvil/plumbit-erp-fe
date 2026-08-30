@@ -110,7 +110,7 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={HEADERS.length}>
-                  <DataTableEmpty title="No contacts" message="Add a contact for this customer." />
+                  <DataTableEmpty title="No contacts" message="Add a contact for this company." />
                 </TableCell>
               </TableRow>
             ) : (

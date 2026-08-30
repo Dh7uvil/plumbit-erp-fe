@@ -7,17 +7,17 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
-import { useCreateCustomer, useUpdateCustomer } from "@/modules/crm/customers/mutations";
+import { useCreateSupplier, useUpdateSupplier } from "@/modules/erp/suppliers/mutations";
 import {
-  CUSTOMER_COMPANY_TYPE_LABELS,
-  CUSTOMER_COMPANY_TYPES,
-  CustomerFormSchema,
+  SUPPLIER_COMPANY_TYPE_LABELS,
+  SUPPLIER_COMPANY_TYPES,
+  SupplierFormSchema,
   TAX_TREATMENT_LABELS,
   TAX_TREATMENTS,
-  type Customer,
-  type CustomerCompanyType,
-  type CustomerFormValues,
-} from "@/modules/crm/customers/schemas";
+  type Supplier,
+  type SupplierCompanyType,
+  type SupplierFormValues,
+} from "@/modules/erp/suppliers/schemas";
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { useAllPriceLists } from "@/modules/inventory-management/price-lists/queries";
@@ -51,42 +51,39 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useCan } from "@/shared/providers/session-provider";
 
-function toCustomerCompanyType(type: Customer["company_type"] | undefined): CustomerCompanyType {
-  if (type === "BOTH" || type === "OTHER") {
-    return type;
-  }
-  return "CUSTOMER";
+function toSupplierCompanyType(type: Supplier["company_type"] | undefined): SupplierCompanyType {
+  return type === "BOTH" ? "BOTH" : "SUPPLIER";
 }
 
-function toFormValues(customer: Customer | null, defaultCurrencyId: string): CustomerFormValues {
+function toFormValues(supplier: Supplier | null, defaultCurrencyId: string): SupplierFormValues {
   return {
-    name: customer?.name ?? "",
-    code: customer?.code ?? "",
-    company_type: toCustomerCompanyType(customer?.company_type),
-    trn: customer?.trn ?? "",
-    tax_treatment: customer?.tax_treatment ?? "UNREGISTERED",
-    currency_id: customer?.currency_id ?? defaultCurrencyId,
-    default_price_list_id: customer?.default_price_list_id ?? OPTIONAL_SELECT_NONE,
-    payment_terms_id: customer?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
-    credit_limit: customer?.credit_limit ?? "",
-    salesperson_id: customer?.salesperson_id ?? OPTIONAL_SELECT_NONE,
-    billing_address: customer ? addressToFormValues(customer.billing_address) : EMPTY_ADDRESS_FORM,
-    shipping_address: customer
-      ? addressToFormValues(customer.shipping_address)
+    name: supplier?.name ?? "",
+    code: supplier?.code ?? "",
+    company_type: toSupplierCompanyType(supplier?.company_type),
+    trn: supplier?.trn ?? "",
+    tax_treatment: supplier?.tax_treatment ?? "UNREGISTERED",
+    currency_id: supplier?.currency_id ?? defaultCurrencyId,
+    default_price_list_id: supplier?.default_price_list_id ?? OPTIONAL_SELECT_NONE,
+    payment_terms_id: supplier?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
+    credit_limit: supplier?.credit_limit ?? "",
+    salesperson_id: supplier?.salesperson_id ?? OPTIONAL_SELECT_NONE,
+    billing_address: supplier ? addressToFormValues(supplier.billing_address) : EMPTY_ADDRESS_FORM,
+    shipping_address: supplier
+      ? addressToFormValues(supplier.shipping_address)
       : EMPTY_ADDRESS_FORM,
-    notes: customer?.notes ?? "",
-    is_active: customer?.is_active ?? true,
+    notes: supplier?.notes ?? "",
+    is_active: supplier?.is_active ?? true,
   };
 }
 
-export function CustomerForm({
-  customer,
+export function SupplierForm({
+  supplier,
   disabled = false,
   onSuccess,
   showCancel = false,
   onCancel,
 }: {
-  customer: Customer | null;
+  supplier: Supplier | null;
   disabled?: boolean;
   onSuccess?: () => void;
   showCancel?: boolean;
@@ -94,14 +91,14 @@ export function CustomerForm({
 }) {
   const can = useCan();
   const canReadUsers = can(userPermissions.read);
-  const createCustomer = useCreateCustomer();
-  const updateCustomer = useUpdateCustomer();
+  const createSupplier = useCreateSupplier();
+  const updateSupplier = useUpdateSupplier();
   const currenciesQuery = useAllCurrencies();
   const priceListsQuery = useAllPriceLists();
   const paymentTermsQuery = useAllPaymentTerms();
   const usersQuery = useAllUsers(canReadUsers);
   const [formError, setFormError] = useState<string | null>(null);
-  const isEdit = Boolean(customer);
+  const isEdit = Boolean(supplier);
 
   const currencies = currenciesQuery.data ?? [];
   const priceLists = priceListsQuery.data ?? [];
@@ -112,20 +109,20 @@ export function CustomerForm({
     currencies[0]?.id ??
     OPTIONAL_SELECT_NONE;
 
-  const form = useForm<CustomerFormValues>({
-    resolver: zodResolver(CustomerFormSchema),
-    values: toFormValues(customer, defaultCurrencyId),
+  const form = useForm<SupplierFormValues>({
+    resolver: zodResolver(SupplierFormSchema),
+    values: toFormValues(supplier, defaultCurrencyId),
   });
 
-  async function onSubmit(values: CustomerFormValues) {
+  async function onSubmit(values: SupplierFormValues) {
     setFormError(null);
     try {
-      if (customer) {
-        await updateCustomer.mutateAsync({ id: customer.id, values });
-        toast.success("Customer updated");
+      if (supplier) {
+        await updateSupplier.mutateAsync({ id: supplier.id, values });
+        toast.success("Supplier updated");
       } else {
-        await createCustomer.mutateAsync(values);
-        toast.success("Customer created");
+        await createSupplier.mutateAsync(values);
+        toast.success("Supplier created");
       }
       onSuccess?.();
     } catch (error) {
@@ -136,7 +133,7 @@ export function CustomerForm({
     }
   }
 
-  const pending = createCustomer.isPending || updateCustomer.isPending;
+  const pending = createSupplier.isPending || updateSupplier.isPending;
 
   return (
     <Form {...form}>
@@ -151,7 +148,7 @@ export function CustomerForm({
                 <FormLabel>Code</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="CUST-001"
+                    placeholder="SUP-001"
                     maxLength={50}
                     disabled={isEdit || disabled}
                     {...field}
@@ -169,7 +166,7 @@ export function CustomerForm({
                 <FormLabel>Name</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Customer name"
+                    placeholder="Supplier name"
                     maxLength={200}
                     disabled={disabled}
                     {...field}
@@ -185,20 +182,16 @@ export function CustomerForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Type</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={isEdit || disabled}
-                >
+                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {CUSTOMER_COMPANY_TYPES.map((type) => (
+                    {SUPPLIER_COMPANY_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {CUSTOMER_COMPANY_TYPE_LABELS[type]}
+                        {SUPPLIER_COMPANY_TYPE_LABELS[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -420,7 +413,7 @@ export function CustomerForm({
             ) : null}
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-              {isEdit ? "Save Changes" : "Create Customer"}
+              {isEdit ? "Save Changes" : "Create Supplier"}
             </Button>
           </div>
         ) : null}

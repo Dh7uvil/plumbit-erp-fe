@@ -8,16 +8,16 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
-import { CustomerForm } from "@/modules/crm/customers/components/customer-form";
-import { useAddCustomerAddress, useDeleteCustomerAddress } from "@/modules/crm/customers/mutations";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
-import { useCustomer } from "@/modules/crm/customers/queries";
+import { SupplierForm } from "@/modules/erp/suppliers/components/supplier-form";
+import { useAddSupplierAddress, useDeleteSupplierAddress } from "@/modules/erp/suppliers/mutations";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
+import { useSupplier } from "@/modules/erp/suppliers/queries";
 import {
   ExtraAddressFormSchema,
-  type CustomerExtraAddress,
   type ExtraAddressFormValues,
-} from "@/modules/crm/customers/schemas";
+  type SupplierExtraAddress,
+} from "@/modules/erp/suppliers/schemas";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import {
   EMPTY_ADDRESS_FORM,
@@ -79,18 +79,18 @@ function formatAddress(address: AddressPayload | null | undefined): string {
   return parts.length ? parts.join(", ") : "—";
 }
 
-export function CustomerDetailScreen({ customerId }: { customerId: string }) {
+export function SupplierDetailScreen({ supplierId }: { supplierId: string }) {
   const can = useCan();
-  const canUpdate = can(customerPermissions.update);
-  const customerQuery = useCustomer(customerId);
-  const addAddress = useAddCustomerAddress();
-  const deleteAddress = useDeleteCustomerAddress();
+  const canUpdate = can(supplierPermissions.update);
+  const supplierQuery = useSupplier(supplierId);
+  const addAddress = useAddSupplierAddress();
+  const deleteAddress = useDeleteSupplierAddress();
   const [addressOpen, setAddressOpen] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
-  const [deletingAddress, setDeletingAddress] = useState<CustomerExtraAddress | null>(null);
+  const [deletingAddress, setDeletingAddress] = useState<SupplierExtraAddress | null>(null);
 
-  const customer = customerQuery.data;
-  const extraAddresses = customer?.extra_addresses ?? [];
+  const supplier = supplierQuery.data;
+  const extraAddresses = supplier?.extra_addresses ?? [];
 
   const addressForm = useForm<ExtraAddressFormValues>({
     resolver: zodResolver(ExtraAddressFormSchema),
@@ -103,13 +103,13 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
   });
 
   async function onAddAddress(values: ExtraAddressFormValues) {
-    if (!customer) {
+    if (!supplier) {
       return;
     }
     setAddressError(null);
     try {
       await addAddress.mutateAsync({
-        id: customer.id,
+        id: supplier.id,
         values: {
           label: emptyToNull(values.label),
           address: toAddressPayload(values.address) ?? {},
@@ -128,11 +128,11 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
   }
 
   async function confirmDeleteAddress() {
-    if (!customer || !deletingAddress) {
+    if (!supplier || !deletingAddress) {
       return;
     }
     try {
-      await deleteAddress.mutateAsync({ id: customer.id, extraId: deletingAddress.id });
+      await deleteAddress.mutateAsync({ id: supplier.id, extraId: deletingAddress.id });
       toast.success("Address deleted");
       setDeletingAddress(null);
     } catch (error) {
@@ -140,7 +140,7 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
     }
   }
 
-  if (customerQuery.isLoading) {
+  if (supplierQuery.isLoading) {
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-48" />
@@ -149,17 +149,17 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
     );
   }
 
-  if (customerQuery.isError || !customer) {
+  if (supplierQuery.isError || !supplier) {
     return (
       <div className="flex flex-col gap-3">
         <DataTableError
           message={
-            customerQuery.error ? getErrorMessage(customerQuery.error) : "Customer not found"
+            supplierQuery.error ? getErrorMessage(supplierQuery.error) : "Supplier not found"
           }
-          onRetry={() => customerQuery.refetch()}
+          onRetry={() => supplierQuery.refetch()}
         />
         <Button type="button" variant="outline" asChild>
-          <Link href="/customers">Back to customers</Link>
+          <Link href="/suppliers">Back to suppliers</Link>
         </Button>
       </div>
     );
@@ -168,27 +168,27 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title={customer.name}
-        subtitle={customer.code}
+        title={supplier.name}
+        subtitle={supplier.code}
         actions={
           <div className="flex gap-2">
-            {customer.company_type === "BOTH" && can(supplierPermissions.read) ? (
+            {supplier.company_type === "BOTH" && can(customerPermissions.read) ? (
               <Button type="button" variant="outline" size="sm" asChild>
-                <Link href={`/suppliers/${customer.id}`}>View as supplier</Link>
+                <Link href={`/customers/${supplier.id}`}>View as customer</Link>
               </Button>
             ) : null}
             <Button type="button" variant="outline" size="sm" asChild>
-              <Link href="/customers">Back</Link>
+              <Link href="/suppliers">Back</Link>
             </Button>
           </div>
         }
       />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{canUpdate ? "Edit customer" : "Customer"}</CardTitle>
+          <CardTitle className="text-base">{canUpdate ? "Edit supplier" : "Supplier"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <CustomerForm customer={customer} disabled={!canUpdate} />
+          <SupplierForm supplier={supplier} disabled={!canUpdate} />
         </CardContent>
       </Card>
       <Card>
@@ -266,8 +266,8 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
           </DataTable>
         </CardContent>
       </Card>
-      <ContactsPanel customerId={customer.id} />
-      <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />
+      <ContactsPanel customerId={supplier.id} />
+      <EntityAttachmentsPanel entityType="CUSTOMER" entityId={supplier.id} />
       <Dialog
         open={addressOpen}
         onOpenChange={(open) => {
