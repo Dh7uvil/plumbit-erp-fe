@@ -13,7 +13,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
   return (
     <PermissionGate permission={supplierPermissions.read}>
       {parsed.success ? (
-        <SupplierDetailScreen supplierId={parsed.data} />
+        <SupplierDetailScreen supplierId={parsed.data} mode="view" />
       ) : (
         <p className="text-muted-foreground text-sm">Supplier not found.</p>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,8 +10,15 @@ import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useContacts } from "@/modules/crm/contacts/queries";
 import type { Contact } from "@/modules/crm/contacts/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -26,22 +33,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Name", "Email", "Phone", "Primary", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Name", "Email", "Phone", "Primary", "Status"] as const;
 
 export function ContactsPanel({ customerId }: { customerId: string }) {
-  const can = useCan();
-  const canRead = can(contactPermissions.read);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(contactPermissions);
   const [page, setPage] = useState(1);
   const contactsQuery = useContacts({ customer_id: customerId, page }, canRead);
   const deleteContact = useDeleteContact();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Contact | null>(null);
   const [deleting, setDeleting] = useState<Contact | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = contactsQuery.data?.data ?? [];
   const meta = contactsQuery.data?.meta;
+
+  function openCreate() {
+    setFormOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -64,15 +74,8 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-base">Contacts</CardTitle>
-        {can(contactPermissions.create) ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
+        {canCreate ? (
+          <Button type="button" size="sm" onClick={openCreate}>
             <Plus className="size-3.5" />
             New Contact
           </Button>
@@ -84,7 +87,7 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
         >
           <TableHeader>
             <TableRow>
-              {HEADERS.map((header) => (
+              {headers.map((header) => (
                 <TableHead key={header}>{header}</TableHead>
               ))}
             </TableRow>
@@ -93,14 +96,14 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
             {contactsQuery.isLoading ? (
               Array.from({ length: 3 }).map((_, index) => (
                 <TableRow key={index}>
-                  <TableCell colSpan={HEADERS.length}>
+                  <TableCell colSpan={headers.length}>
                     <Skeleton className="h-6 w-full" />
                   </TableCell>
                 </TableRow>
               ))
             ) : contactsQuery.isError ? (
               <TableRow>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <DataTableError
                     message={getErrorMessage(contactsQuery.error)}
                     onRetry={() => contactsQuery.refetch()}
@@ -109,15 +112,24 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={HEADERS.length}>
-                  <DataTableEmpty title="No contacts" message="Add a contact for this company." />
+                <TableCell colSpan={headers.length}>
+                  <DataTableEmpty
+                    title="No contacts"
+                    message={emptyListMessage(canCreate, "Add a contact for this company.")}
+                  />
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((contact) => (
                 <TableRow key={contact.id}>
-                  <TableCell className="font-medium">{contact.name}</TableCell>
-                  <TableCell>{contact.email || "—"}</TableCell>
+                  <TableCell className="font-medium">
+                    <RecordLink href={`/contacts/${contact.id}`}>{contact.name}</RecordLink>
+                  </TableCell>
+                  <TableCell>
+                    <RecordLink href={`/contacts/${contact.id}`}>
+                      {contact.email || "—"}
+                    </RecordLink>
+                  </TableCell>
                   <TableCell>{contact.phone || "—"}</TableCell>
                   <TableCell>
                     {contact.is_primary ? <Badge variant="info">Primary</Badge> : "—"}
@@ -125,37 +137,16 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
                   <TableCell>
                     <ActiveBadge active={contact.is_active} />
                   </TableCell>
-                  <TableCell>
-                    <div className="flex gap-0.5">
-                      {can(contactPermissions.update) ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-7"
-                          aria-label={`Edit ${contact.name}`}
-                          onClick={() => {
-                            setEditing(contact);
-                            setFormOpen(true);
-                          }}
-                        >
-                          <Edit2 className="size-3.5" />
-                        </Button>
-                      ) : null}
-                      {can(contactPermissions.delete) ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive size-7"
-                          aria-label={`Delete ${contact.name}`}
-                          onClick={() => setDeleting(contact)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </TableCell>
+                  {showActions ? (
+                    <TableCell>
+                      <DataTableRowActions
+                        entityName={contact.name}
+                        viewHref={canRead ? `/contacts/${contact.id}` : undefined}
+                        editHref={canUpdate ? `/contacts/${contact.id}/edit` : undefined}
+                        onDelete={canDelete ? () => setDeleting(contact) : undefined}
+                      />
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))
             )}
@@ -164,15 +155,9 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
       </CardContent>
       <ContactFormDialog
         open={formOpen}
-        contact={editing}
         defaultCustomerId={customerId}
         lockCustomer
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditing(null);
-          }
-        }}
+        onOpenChange={setFormOpen}
       />
       <ConfirmActionDialog
         open={Boolean(deleting)}

@@ -1,7 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,22 +17,24 @@ import {
   type Product,
 } from "@/modules/inventory-management/products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -44,9 +45,8 @@ import {
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatMoney } from "@/shared/lib/format";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["SKU", "Name", "Type", "Rate", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["SKU", "Name", "Type", "Rate", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -64,7 +64,7 @@ function parseItemType(value: string | undefined): ItemType | undefined {
 }
 
 export function ProductsScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(productPermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const productsQuery = useProducts({
     page,
@@ -85,6 +85,8 @@ export function ProductsScreen() {
   const categories = categoriesQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
   const displayCurrency = currencies.find((currency) => currency.is_base) ?? currencies[0];
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -100,12 +102,12 @@ export function ProductsScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Products"
         subtitle="Sellable goods and services"
         actions={
-          can(productPermissions.create) ? (
+          canCreate ? (
             <Button
               type="button"
               size="sm"
@@ -125,62 +127,48 @@ export function ProductsScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search products…"
         />
-        <Select
+        <FilterSelect
+          className="w-36"
+          placeholder="Type"
           value={filters.item_type ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { item_type: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All types</SelectItem>
-            {ITEM_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {ITEM_TYPE_LABELS[type]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All types" },
+            ...ITEM_TYPES.map((type) => ({ value: type, label: ITEM_TYPE_LABELS[type] })),
+          ]}
+        />
+        <FilterSelect
+          className="w-44"
+          placeholder="Category"
           value={filters.category_id ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { category_id: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All categories</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All categories" },
+            ...categories.map((category) => ({ value: category.id, label: category.name })),
+          ]}
+        />
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -189,14 +177,14 @@ export function ProductsScreen() {
           {productsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : productsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(productsQuery.error)}
                   onRetry={() => productsQuery.refetch()}
@@ -205,18 +193,21 @@ export function ProductsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
-                <DataTableEmpty title="No products" message="Create a product to get started." />
+              <TableCell colSpan={headers.length}>
+                <DataTableEmpty
+                  title="No products"
+                  message={emptyListMessage(canCreate, "Create a product to get started.")}
+                />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((product) => (
               <TableRow key={product.id}>
-                <TableCell className="font-mono text-sm">{product.sku}</TableCell>
+                <TableCell className="font-mono text-sm">
+                  <RecordLink href={`/products/${product.id}`}>{product.sku}</RecordLink>
+                </TableCell>
                 <TableCell className="font-medium">
-                  <Link href={`/products/${product.id}`} className="hover:underline">
-                    {product.name}
-                  </Link>
+                  <RecordLink href={`/products/${product.id}`}>{product.name}</RecordLink>
                 </TableCell>
                 <TableCell>{ITEM_TYPE_LABELS[product.item_type]}</TableCell>
                 <TableCell>
@@ -225,36 +216,16 @@ export function ProductsScreen() {
                 <TableCell>
                   <ActiveBadge active={product.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(productPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${product.name}`}
-                        asChild
-                      >
-                        <Link href={`/products/${product.id}`}>
-                          <Edit2 className="size-3.5" />
-                        </Link>
-                      </Button>
-                    ) : null}
-                    {can(productPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${product.name}`}
-                        onClick={() => setDeleting(product)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={product.name}
+                      viewHref={canRead ? `/products/${product.id}` : undefined}
+                      editHref={canUpdate ? `/products/${product.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(product) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -270,6 +241,6 @@ export function ProductsScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

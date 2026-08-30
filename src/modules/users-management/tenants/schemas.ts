@@ -59,6 +59,18 @@ export function addressToFormValues(address: AddressPayload | null | undefined):
   };
 }
 
+export function addressesMatch(a: AddressFormValues, b: AddressFormValues): boolean {
+  return (
+    a.address_line_1 === b.address_line_1 &&
+    a.address_line_2 === b.address_line_2 &&
+    a.city === b.city &&
+    a.state === b.state &&
+    a.country === b.country &&
+    a.country_code === b.country_code &&
+    a.postal_code === b.postal_code
+  );
+}
+
 export function toAddressPayload(address: AddressFormValues): AddressPayload | null {
   const payload: AddressPayload = {
     address_line_1: emptyToNull(address.address_line_1),

@@ -26,6 +26,7 @@ import {
   type UserUpdateFormValues,
 } from "@/modules/users-management/users/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
@@ -118,6 +119,8 @@ export function UserFormDialog({
 }) {
   const isEdit = Boolean(userId);
   const can = useCan();
+  const { canCreate, canUpdate } = useCrudPermissions(userPermissions);
+  const canSubmit = isEdit ? canUpdate : canCreate;
   const rolesQuery = useAllRoles();
   const detailQuery = useUser(userId);
   const createUser = useCreateUser();
@@ -174,6 +177,9 @@ export function UserFormDialog({
   }
 
   async function onCreate(values: UserCreateFormValues) {
+    if (!canSubmit) {
+      return;
+    }
     setFormError(null);
     try {
       await createUser.mutateAsync({
@@ -196,7 +202,7 @@ export function UserFormDialog({
   }
 
   async function onUpdate(values: UserUpdateFormValues) {
-    if (!userId) {
+    if (!userId || !canSubmit) {
       return;
     }
     setFormError(null);
@@ -229,7 +235,7 @@ export function UserFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit User" : "New User"}</DialogTitle>
         </DialogHeader>
@@ -325,10 +331,12 @@ export function UserFormDialog({
                 <Button type="button" variant="outline" onClick={close} disabled={pending}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={pending || (isEdit && detailQuery.isLoading)}>
-                  {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-                  Save Changes
-                </Button>
+                {canSubmit ? (
+                  <Button type="submit" disabled={pending || (isEdit && detailQuery.isLoading)}>
+                    {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Save Changes
+                  </Button>
+                ) : null}
               </DialogFooter>
             </form>
           </Form>
@@ -408,7 +416,7 @@ export function UserFormDialog({
                   control={createForm.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
+                    <FormItem className="col-span-full">
                       <FormLabel>Password</FormLabel>
                       <FormControl>
                         <Input
@@ -442,10 +450,12 @@ export function UserFormDialog({
                 <Button type="button" variant="outline" onClick={close} disabled={pending}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={pending}>
-                  {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-                  Create User
-                </Button>
+                {canSubmit ? (
+                  <Button type="submit" disabled={pending}>
+                    {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Create User
+                  </Button>
+                ) : null}
               </DialogFooter>
             </form>
           </Form>

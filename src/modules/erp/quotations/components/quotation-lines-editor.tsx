@@ -1,18 +1,27 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useFieldArray } from "react-hook-form";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { TaxFormDialog } from "@/modules/erp/accounting/taxes/components/tax-form-dialog";
+import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
 import type {
   QuotationFormValues,
   QuotationLineFormValues,
 } from "@/modules/erp/quotations/schemas";
 import { DISCOUNT_TYPE_LABELS, DISCOUNT_TYPES } from "@/modules/erp/quotations/schemas";
+import { ProductFormDialog } from "@/modules/inventory-management/products/components/product-form-dialog";
+import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
+import type { Product } from "@/modules/inventory-management/products/schemas";
+import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
+import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
@@ -30,6 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
+import { useCan } from "@/shared/providers/session-provider";
 
 const LINE_HEADERS = [
   "Product",
@@ -63,6 +73,7 @@ export function QuotationLinesEditor({
   form: UseFormReturn<QuotationFormValues>;
   disabled: boolean;
 }) {
+  const can = useCan();
   const productsQuery = useAllProducts();
   const unitsQuery = useAllUnits();
   const taxesQuery = useAllTaxes();
@@ -70,19 +81,30 @@ export function QuotationLinesEditor({
     control: form.control,
     name: "lines",
   });
+  const [lineCreate, setLineCreate] = useState<{
+    type: "product" | "unit" | "tax";
+    index: number;
+  } | null>(null);
   const products = productsQuery.data ?? [];
   const units = unitsQuery.data ?? [];
   const taxes = taxesQuery.data ?? [];
+
+  function applyProductValues(
+    index: number,
+    product: Pick<Product, "name" | "sales_description" | "selling_rate" | "unit_id" | "tax_id">,
+  ) {
+    form.setValue(`lines.${index}.description`, product.sales_description?.trim() || product.name);
+    form.setValue(`lines.${index}.rate`, product.selling_rate ?? "");
+    form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
+    form.setValue(`lines.${index}.tax_id`, product.tax_id ?? OPTIONAL_SELECT_NONE);
+  }
 
   function applyProduct(index: number, productId: string) {
     const product = products.find((item) => item.id === productId);
     if (!product) {
       return;
     }
-    form.setValue(`lines.${index}.description`, product.sales_description?.trim() || product.name);
-    form.setValue(`lines.${index}.rate`, product.selling_rate ?? "");
-    form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
-    form.setValue(`lines.${index}.tax_id`, product.tax_id ?? OPTIONAL_SELECT_NONE);
+    applyProductValues(index, product);
   }
 
   return (
@@ -112,7 +134,8 @@ export function QuotationLinesEditor({
                       name={`lines.${index}.product_id`}
                       render={({ field: productField }) => (
                         <FormItem>
-                          <Select
+                          <MasterSelect
+                            compact
                             value={productField.value}
                             onValueChange={(value) => {
                               productField.onChange(value);
@@ -121,21 +144,22 @@ export function QuotationLinesEditor({
                               }
                             }}
                             disabled={disabled || productsQuery.isLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Custom line" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value={OPTIONAL_SELECT_NONE}>Custom line</SelectItem>
-                              {products.map((product) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.sku} — {product.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder="Custom line"
+                            searchPlaceholder="Search product…"
+                            createLabel="Create product"
+                            onCreate={
+                              can(productPermissions.create)
+                                ? () => setLineCreate({ type: "product", index })
+                                : undefined
+                            }
+                            options={[
+                              { value: OPTIONAL_SELECT_NONE, label: "Custom line" },
+                              ...products.map((product) => ({
+                                value: product.id,
+                                label: `${product.sku} — ${product.name}`,
+                              })),
+                            ]}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -185,25 +209,27 @@ export function QuotationLinesEditor({
                       name={`lines.${index}.unit_id`}
                       render={({ field: unitField }) => (
                         <FormItem>
-                          <Select
+                          <MasterSelect
+                            compact
                             value={unitField.value}
                             onValueChange={unitField.onChange}
                             disabled={disabled || unitsQuery.isLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="None" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                              {units.map((unit) => (
-                                <SelectItem key={unit.id} value={unit.id}>
-                                  {unit.code}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder="None"
+                            searchPlaceholder="Search unit…"
+                            createLabel="Create unit"
+                            onCreate={
+                              can(unitPermissions.create)
+                                ? () => setLineCreate({ type: "unit", index })
+                                : undefined
+                            }
+                            options={[
+                              { value: OPTIONAL_SELECT_NONE, label: "None" },
+                              ...units.map((unit) => ({
+                                value: unit.id,
+                                label: unit.code,
+                              })),
+                            ]}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -284,25 +310,27 @@ export function QuotationLinesEditor({
                       name={`lines.${index}.tax_id`}
                       render={({ field: taxField }) => (
                         <FormItem>
-                          <Select
+                          <MasterSelect
+                            compact
                             value={taxField.value}
                             onValueChange={taxField.onChange}
                             disabled={disabled || taxesQuery.isLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="None" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                              {taxes.map((tax) => (
-                                <SelectItem key={tax.id} value={tax.id}>
-                                  {tax.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder="None"
+                            searchPlaceholder="Search tax…"
+                            createLabel="Create tax"
+                            onCreate={
+                              can(taxPermissions.create)
+                                ? () => setLineCreate({ type: "tax", index })
+                                : undefined
+                            }
+                            options={[
+                              { value: OPTIONAL_SELECT_NONE, label: "None" },
+                              ...taxes.map((tax) => ({
+                                value: tax.id,
+                                label: tax.name,
+                              })),
+                            ]}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -339,6 +367,54 @@ export function QuotationLinesEditor({
           Add line
         </Button>
       )}
+      <ProductFormDialog
+        open={lineCreate?.type === "product"}
+        product={null}
+        nested
+        onCreated={(entity) => {
+          if (lineCreate?.type !== "product") {
+            return;
+          }
+          form.setValue(`lines.${lineCreate.index}.product_id`, entity.id);
+          applyProductValues(lineCreate.index, entity);
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLineCreate(null);
+          }
+        }}
+      />
+      <UnitFormDialog
+        open={lineCreate?.type === "unit"}
+        nested
+        onCreated={(entity) => {
+          if (lineCreate?.type !== "unit") {
+            return;
+          }
+          form.setValue(`lines.${lineCreate.index}.unit_id`, entity.id);
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLineCreate(null);
+          }
+        }}
+      />
+      <TaxFormDialog
+        open={lineCreate?.type === "tax"}
+        tax={null}
+        nested
+        onCreated={(entity) => {
+          if (lineCreate?.type !== "tax") {
+            return;
+          }
+          form.setValue(`lines.${lineCreate.index}.tax_id`, entity.id);
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLineCreate(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,22 +10,24 @@ import { unitPermissions } from "@/modules/inventory-management/units/permission
 import { useUnits } from "@/modules/inventory-management/units/queries";
 import type { Unit } from "@/modules/inventory-management/units/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -35,9 +37,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Code", "Name", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Code", "Name", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -51,7 +52,7 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
 }
 
 export function UnitsScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(unitPermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const unitsQuery = useUnits({
     page,
@@ -61,8 +62,9 @@ export function UnitsScreen() {
   });
   const deleteUnit = useDeleteUnit();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Unit | null>(null);
   const [deleting, setDeleting] = useState<Unit | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = unitsQuery.data?.data ?? [];
   const meta = unitsQuery.data?.meta;
@@ -81,20 +83,13 @@ export function UnitsScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Units"
         subtitle="Units of measure for products and services"
         actions={
-          can(unitPermissions.create) ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
+          canCreate ? (
+            <Button type="button" size="sm" onClick={() => setFormOpen(true)}>
               <Plus className="size-3.5" />
               New Unit
             </Button>
@@ -107,26 +102,24 @@ export function UnitsScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search units…"
         />
-        <Select
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -135,14 +128,14 @@ export function UnitsScreen() {
           {unitsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : unitsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(unitsQuery.error)}
                   onRetry={() => unitsQuery.refetch()}
@@ -151,64 +144,41 @@ export function UnitsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
-                <DataTableEmpty title="No units" message="Create a unit to get started." />
+              <TableCell colSpan={headers.length}>
+                <DataTableEmpty
+                  title="No units"
+                  message={emptyListMessage(canCreate, "Create a unit to get started.")}
+                />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((unit) => (
               <TableRow key={unit.id}>
-                <TableCell className="font-mono text-sm">{unit.code}</TableCell>
-                <TableCell className="font-medium">{unit.name}</TableCell>
+                <TableCell className="font-mono text-sm">
+                  <RecordLink href={`/units/${unit.id}`}>{unit.code}</RecordLink>
+                </TableCell>
+                <TableCell className="font-medium">
+                  <RecordLink href={`/units/${unit.id}`}>{unit.name}</RecordLink>
+                </TableCell>
                 <TableCell>
                   <ActiveBadge active={unit.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(unitPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${unit.name}`}
-                        onClick={() => {
-                          setEditing(unit);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(unitPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${unit.name}`}
-                        onClick={() => setDeleting(unit)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={unit.name}
+                      viewHref={canRead ? `/units/${unit.id}` : undefined}
+                      editHref={canUpdate ? `/units/${unit.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(unit) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
         </TableBody>
       </DataTable>
-      <UnitFormDialog
-        open={formOpen}
-        unit={editing}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditing(null);
-          }
-        }}
-      />
+      <UnitFormDialog open={formOpen} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title="Delete unit"
@@ -218,6 +188,6 @@ export function UnitsScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

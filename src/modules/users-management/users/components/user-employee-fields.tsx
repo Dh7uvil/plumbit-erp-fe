@@ -1,15 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 
+import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
+import { DepartmentFormDialog } from "@/modules/users-management/departments/components/department-form-dialog";
 import { departmentPermissions } from "@/modules/users-management/departments/permissions";
 import { useAllDepartments } from "@/modules/users-management/departments/queries";
 import {
   EMPLOYEE_SELECT_NONE,
   type EmployeeFormFields,
 } from "@/modules/users-management/users/schemas";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import {
   FormControl,
   FormField,
@@ -18,13 +22,6 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function UserEmployeeFields() {
@@ -34,6 +31,7 @@ export function UserEmployeeFields() {
   const canReadDepartments = can(departmentPermissions.read);
   const branchesQuery = useAllBranches(canReadBranches);
   const departmentsQuery = useAllDepartments({}, canReadDepartments);
+  const [creating, setCreating] = useState<"branch" | "department" | null>(null);
   const branchId = watch("branch_id");
   const branches = branchesQuery.data ?? [];
   const departments = (departmentsQuery.data ?? []).filter((department) =>
@@ -42,8 +40,7 @@ export function UserEmployeeFields() {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium">Employee</p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <FormField
           control={control}
           name="employee_code"
@@ -83,78 +80,104 @@ export function UserEmployeeFields() {
             </FormItem>
           )}
         />
-        {canReadBranches ? (
-          <FormField
-            control={control}
-            name="branch_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Branch</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    setValue("department_id", EMPLOYEE_SELECT_NONE);
-                  }}
-                  disabled={branchesQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a branch" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={EMPLOYEE_SELECT_NONE}>None</SelectItem>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch.id} value={branch.id}>
-                        {branch.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        ) : null}
-        {canReadDepartments ? (
-          <FormField
-            control={control}
-            name="department_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={departmentsQuery.isLoading || branchId === EMPLOYEE_SELECT_NONE}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          branchId === EMPLOYEE_SELECT_NONE
-                            ? "Select a branch first"
-                            : "Select a department"
-                        }
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={EMPLOYEE_SELECT_NONE}>None</SelectItem>
-                    {departments.map((department) => (
-                      <SelectItem key={department.id} value={department.id}>
-                        {department.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {canReadBranches || canReadDepartments ? (
+          <div
+            className={
+              canReadBranches && canReadDepartments
+                ? "col-span-full grid grid-cols-1 gap-3 sm:grid-cols-2"
+                : "col-span-full"
+            }
+          >
+            {canReadBranches ? (
+              <FormField
+                control={control}
+                name="branch_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Branch</FormLabel>
+                    <MasterSelect
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setValue("department_id", EMPLOYEE_SELECT_NONE);
+                      }}
+                      disabled={branchesQuery.isLoading}
+                      placeholder="Select a branch"
+                      searchPlaceholder="Search branch…"
+                      createLabel="Create branch"
+                      onCreate={
+                        can(branchPermissions.create) ? () => setCreating("branch") : undefined
+                      }
+                      options={[
+                        { value: EMPLOYEE_SELECT_NONE, label: "None" },
+                        ...branches.map((branch) => ({
+                          value: branch.id,
+                          label: branch.name,
+                        })),
+                      ]}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
+            {canReadDepartments ? (
+              <FormField
+                control={control}
+                name="department_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <MasterSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={departmentsQuery.isLoading || branchId === EMPLOYEE_SELECT_NONE}
+                      placeholder={
+                        branchId === EMPLOYEE_SELECT_NONE
+                          ? "Select a branch first"
+                          : "Select a department"
+                      }
+                      searchPlaceholder="Search department…"
+                      createLabel="Create department"
+                      onCreate={
+                        can(departmentPermissions.create) && branchId !== EMPLOYEE_SELECT_NONE
+                          ? () => setCreating("department")
+                          : undefined
+                      }
+                      options={[
+                        { value: EMPLOYEE_SELECT_NONE, label: "None" },
+                        ...departments.map((department) => ({
+                          value: department.id,
+                          label: department.name,
+                        })),
+                      ]}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
+      <BranchFormDialog
+        open={creating === "branch"}
+        branch={null}
+        nested
+        onCreated={(entity) => {
+          setValue("branch_id", entity.id);
+          setValue("department_id", EMPLOYEE_SELECT_NONE);
+        }}
+        onOpenChange={(open) => setCreating(open ? "branch" : null)}
+      />
+      <DepartmentFormDialog
+        open={creating === "department"}
+        department={null}
+        nested
+        defaultBranchId={branchId === EMPLOYEE_SELECT_NONE ? undefined : branchId}
+        onCreated={(entity) => setValue("department_id", entity.id)}
+        onOpenChange={(open) => setCreating(open ? "department" : null)}
+      />
     </div>
   );
 }

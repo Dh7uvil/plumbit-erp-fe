@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen items-stretch">
+    <div className="flex h-svh overflow-hidden">
       <AppSidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed((value) => !value)}
@@ -19,9 +19,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         onMobileOpenChange={setMobileOpen}
         brand={(isCollapsed) => <TenantSidebarBrand collapsed={isCollapsed} />}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <AppHeader onMobileMenuOpen={() => setMobileOpen(true)} />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col overflow-auto p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

@@ -26,7 +26,6 @@ function optionalUuid(value: string): string | null {
 function toCreatePayload(values: CustomerFormValues): CustomerCreateRequest {
   return {
     name: values.name.trim(),
-    code: values.code.trim(),
     company_type: values.company_type,
     trn: emptyToNull(values.trn),
     tax_treatment: values.tax_treatment,

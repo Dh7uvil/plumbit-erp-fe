@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -12,17 +12,17 @@ import { departmentPermissions } from "@/modules/users-management/departments/pe
 import { useAllDepartments } from "@/modules/users-management/departments/queries";
 import type { Department } from "@/modules/users-management/departments/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -33,11 +33,11 @@ import {
 } from "@/shared/components/ui/table";
 import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Code", "Name", "Branch", "Manager", "Employees", "Actions"] as const;
+const COLUMN_HEADERS = ["Code", "Name", "Branch", "Manager", "Employees"] as const;
 
 export function DepartmentsPanel() {
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(departmentPermissions);
   const can = useCan();
-  const canRead = can(departmentPermissions.read);
   const canReadBranches = can(branchPermissions.read);
   const [branchId, setBranchId] = useState<"all" | string>("all");
   const departmentsQuery = useAllDepartments(
@@ -47,11 +47,32 @@ export function DepartmentsPanel() {
   const branchesQuery = useAllBranches(canRead && canReadBranches);
   const deleteDepartment = useDeleteDepartment();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Department | null>(null);
+  const [selected, setSelected] = useState<Department | null>(null);
+  const [forceReadOnly, setForceReadOnly] = useState(false);
   const [deleting, setDeleting] = useState<Department | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const departments = departmentsQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
+
+  function openCreate() {
+    setSelected(null);
+    setForceReadOnly(false);
+    setFormOpen(true);
+  }
+
+  function openView(department: Department) {
+    setSelected(department);
+    setForceReadOnly(true);
+    setFormOpen(true);
+  }
+
+  function openEdit(department: Department) {
+    setSelected(department);
+    setForceReadOnly(false);
+    setFormOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -79,29 +100,20 @@ export function DepartmentsPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
         {canReadBranches ? (
-          <Select value={branchId} onValueChange={(value) => setBranchId(value as typeof branchId)}>
-            <SelectTrigger className="w-52" aria-label="Branch">
-              <SelectValue placeholder="All branches" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All branches</SelectItem>
-              {branches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FilterSelect
+            className="w-52"
+            placeholder="All branches"
+            aria-label="Branch"
+            value={branchId}
+            onValueChange={(value) => setBranchId(value as typeof branchId)}
+            options={[
+              { value: "all", label: "All branches" },
+              ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+            ]}
+          />
         ) : null}
-        {can(departmentPermissions.create) ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
+        {canCreate ? (
+          <Button type="button" size="sm" onClick={openCreate}>
             <Plus className="size-3.5" />
             New Department
           </Button>
@@ -110,7 +122,7 @@ export function DepartmentsPanel() {
       <DataTable>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -119,14 +131,14 @@ export function DepartmentsPanel() {
           {departmentsQuery.isLoading ? (
             Array.from({ length: 3 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : departmentsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(departmentsQuery.error)}
                   onRetry={() => departmentsQuery.refetch()}
@@ -135,10 +147,10 @@ export function DepartmentsPanel() {
             </TableRow>
           ) : departments.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No departments"
-                  message="Create a department to get started."
+                  message={emptyListMessage(canCreate, "Create a department to get started.")}
                 />
               </TableCell>
             </TableRow>
@@ -150,37 +162,16 @@ export function DepartmentsPanel() {
                 <TableCell>{department.branch?.name ?? "—"}</TableCell>
                 <TableCell>{department.manager?.name ?? "—"}</TableCell>
                 <TableCell>{department.employee_count}</TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(departmentPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${department.name}`}
-                        onClick={() => {
-                          setEditing(department);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(departmentPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${department.name}`}
-                        onClick={() => setDeleting(department)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={department.name}
+                      onView={canRead ? () => openView(department) : undefined}
+                      onEdit={canUpdate ? () => openEdit(department) : undefined}
+                      onDelete={canDelete ? () => setDeleting(department) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -188,11 +179,13 @@ export function DepartmentsPanel() {
       </DataTable>
       <DepartmentFormDialog
         open={formOpen}
-        department={editing}
+        department={selected}
+        forceReadOnly={forceReadOnly}
         onOpenChange={(open) => {
           setFormOpen(open);
           if (!open) {
-            setEditing(null);
+            setSelected(null);
+            setForceReadOnly(false);
           }
         }}
       />

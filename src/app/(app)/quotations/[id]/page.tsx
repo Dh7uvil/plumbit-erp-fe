@@ -13,7 +13,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
   return (
     <PermissionGate permission={quotationPermissions.read}>
       {parsed.success ? (
-        <QuotationDetailScreen quotationId={parsed.data} />
+        <QuotationDetailScreen quotationId={parsed.data} mode="view" />
       ) : (
         <p className="text-muted-foreground text-sm">Quotation not found.</p>
       )}

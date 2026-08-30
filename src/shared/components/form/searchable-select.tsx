@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, ChevronDownIcon, Search } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { FormControl } from "@/shared/components/ui/form";
@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import { Input } from "@/shared/components/ui/input";
@@ -16,6 +17,11 @@ import { cn } from "@/shared/lib/cn";
 export type SearchableSelectOption = {
   value: string;
   label: string;
+};
+
+export type SearchableSelectCreateAction = {
+  label: string;
+  onSelect: () => void;
 };
 
 export function SearchableSelect({
@@ -27,6 +33,10 @@ export function SearchableSelect({
   searchPlaceholder = "Search…",
   emptyText = "No matches.",
   className,
+  createActions,
+  asFormControl = true,
+  id,
+  "aria-label": ariaLabel,
 }: {
   options: SearchableSelectOption[];
   value: string;
@@ -36,6 +46,10 @@ export function SearchableSelect({
   searchPlaceholder?: string;
   emptyText?: string;
   className?: string;
+  createActions?: SearchableSelectCreateAction[];
+  asFormControl?: boolean;
+  id?: string;
+  "aria-label"?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -62,6 +76,24 @@ export function SearchableSelect({
     );
   }, [options, query]);
 
+  const trigger = (
+    <button
+      type="button"
+      disabled={disabled}
+      id={id}
+      aria-label={ariaLabel}
+      data-slot="select-trigger"
+      data-placeholder={selected ? undefined : ""}
+      className={cn(
+        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 bg-input-background flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+    >
+      <span className="min-w-0 flex-1 truncate text-left">{selected?.label ?? placeholder}</span>
+      <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+    </button>
+  );
+
   return (
     <DropdownMenu
       modal={false}
@@ -74,23 +106,7 @@ export function SearchableSelect({
       }}
     >
       <DropdownMenuTrigger asChild>
-        <FormControl>
-          <button
-            type="button"
-            disabled={disabled}
-            data-slot="select-trigger"
-            data-placeholder={selected ? undefined : ""}
-            className={cn(
-              "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 bg-input-background flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-              className,
-            )}
-          >
-            <span className="min-w-0 flex-1 truncate text-left">
-              {selected?.label ?? placeholder}
-            </span>
-            <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
-          </button>
-        </FormControl>
+        {asFormControl ? <FormControl>{trigger}</FormControl> : trigger}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
@@ -143,6 +159,25 @@ export function SearchableSelect({
             ))
           )}
         </div>
+        {createActions && createActions.length > 0 ? (
+          <>
+            <DropdownMenuSeparator />
+            <div className="p-1">
+              {createActions.map((action) => (
+                <DropdownMenuItem
+                  key={action.label}
+                  onSelect={() => {
+                    setOpen(false);
+                    action.onSelect();
+                  }}
+                >
+                  <Plus className="size-4" />
+                  {action.label}
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

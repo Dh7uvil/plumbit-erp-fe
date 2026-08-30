@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -11,7 +11,13 @@ import { branchPermissions } from "@/modules/users-management/branches/permissio
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import type { Branch } from "@/modules/users-management/branches/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Button } from "@/shared/components/ui/button";
@@ -23,9 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Code", "Name", "Location", "Phone", "Employees", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Code", "Name", "Location", "Phone", "Employees", "Status"] as const;
 
 function locationLabel(branch: Branch): string {
   const city = branch.address?.city?.trim();
@@ -37,15 +42,35 @@ function locationLabel(branch: Branch): string {
 }
 
 export function BranchesPanel() {
-  const can = useCan();
-  const canRead = can(branchPermissions.read);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(branchPermissions);
   const branchesQuery = useAllBranches(canRead);
   const deleteBranch = useDeleteBranch();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Branch | null>(null);
+  const [selected, setSelected] = useState<Branch | null>(null);
+  const [forceReadOnly, setForceReadOnly] = useState(false);
   const [deleting, setDeleting] = useState<Branch | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const branches = branchesQuery.data ?? [];
+
+  function openCreate() {
+    setSelected(null);
+    setForceReadOnly(false);
+    setFormOpen(true);
+  }
+
+  function openView(branch: Branch) {
+    setSelected(branch);
+    setForceReadOnly(true);
+    setFormOpen(true);
+  }
+
+  function openEdit(branch: Branch) {
+    setSelected(branch);
+    setForceReadOnly(false);
+    setFormOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -72,15 +97,8 @@ export function BranchesPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        {can(branchPermissions.create) ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
+        {canCreate ? (
+          <Button type="button" size="sm" onClick={openCreate}>
             <Plus className="size-3.5" />
             New Branch
           </Button>
@@ -89,7 +107,7 @@ export function BranchesPanel() {
       <DataTable>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -98,14 +116,14 @@ export function BranchesPanel() {
           {branchesQuery.isLoading ? (
             Array.from({ length: 3 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : branchesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(branchesQuery.error)}
                   onRetry={() => branchesQuery.refetch()}
@@ -114,8 +132,11 @@ export function BranchesPanel() {
             </TableRow>
           ) : branches.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
-                <DataTableEmpty title="No branches" message="Create a branch to get started." />
+              <TableCell colSpan={headers.length}>
+                <DataTableEmpty
+                  title="No branches"
+                  message={emptyListMessage(canCreate, "Create a branch to get started.")}
+                />
               </TableCell>
             </TableRow>
           ) : (
@@ -129,37 +150,16 @@ export function BranchesPanel() {
                 <TableCell>
                   <BranchStatusBadge status={branch.status} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(branchPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${branch.name}`}
-                        onClick={() => {
-                          setEditing(branch);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(branchPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${branch.name}`}
-                        onClick={() => setDeleting(branch)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={branch.name}
+                      onView={canRead ? () => openView(branch) : undefined}
+                      onEdit={canUpdate ? () => openEdit(branch) : undefined}
+                      onDelete={canDelete ? () => setDeleting(branch) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -167,11 +167,13 @@ export function BranchesPanel() {
       </DataTable>
       <BranchFormDialog
         open={formOpen}
-        branch={editing}
+        branch={selected}
+        forceReadOnly={forceReadOnly}
         onOpenChange={(open) => {
           setFormOpen(open);
           if (!open) {
-            setEditing(null);
+            setSelected(null);
+            setForceReadOnly(false);
           }
         }}
       />

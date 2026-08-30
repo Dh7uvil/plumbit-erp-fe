@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Loader2, Plus, Shield, Trash2 } from "lucide-react";
+import { Loader2, Plus, Shield } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -11,8 +11,15 @@ import { rolePermissions } from "@/modules/users-management/roles/permissions";
 import { useAllRoles } from "@/modules/users-management/roles/queries";
 import type { Role } from "@/modules/users-management/roles/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import {
   AlertDialog,
@@ -36,20 +43,38 @@ import {
 import { formatDate } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const TABLE_HEADERS = ["Role", "Description", "Type", "Users", "Created", "Actions"] as const;
+const COLUMN_HEADERS = ["Role", "Description", "Type", "Users", "Created"] as const;
 
 export function RolesScreen() {
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(rolePermissions);
   const can = useCan();
+  const canAssign = can(rolePermissions.assignPermissions);
   const rolesQuery = useAllRoles();
   const deleteRole = useDeleteRole();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Role | null>(null);
+  const [selected, setSelected] = useState<Role | null>(null);
+  const [forceReadOnly, setForceReadOnly] = useState(false);
   const [deleting, setDeleting] = useState<Role | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete, true);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const roles = rolesQuery.data ?? [];
 
   function openCreate() {
-    setEditing(null);
+    setSelected(null);
+    setForceReadOnly(false);
+    setFormOpen(true);
+  }
+
+  function openView(role: Role) {
+    setSelected(role);
+    setForceReadOnly(true);
+    setFormOpen(true);
+  }
+
+  function openEdit(role: Role) {
+    setSelected(role);
+    setForceReadOnly(false);
     setFormOpen(true);
   }
 
@@ -67,12 +92,12 @@ export function RolesScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Roles"
         subtitle="Define access roles for your organisation"
         actions={
-          can(rolePermissions.create) ? (
+          canCreate ? (
             <Button type="button" size="sm" onClick={openCreate}>
               <Plus className="size-3.5" />
               New Role
@@ -83,7 +108,7 @@ export function RolesScreen() {
       <DataTable>
         <TableHeader>
           <TableRow>
-            {TABLE_HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -92,14 +117,14 @@ export function RolesScreen() {
           {rolesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={TABLE_HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : rolesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={TABLE_HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(rolesQuery.error)}
                   onRetry={() => rolesQuery.refetch()}
@@ -108,7 +133,7 @@ export function RolesScreen() {
             </TableRow>
           ) : roles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={TABLE_HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty title="No roles" message="No roles are available yet." />
               </TableCell>
             </TableRow>
@@ -139,46 +164,25 @@ export function RolesScreen() {
                 <TableCell className="text-muted-foreground text-xs">
                   {formatDate(role.created_at)}
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(rolePermissions.assignPermissions) || can(rolePermissions.update) ? (
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/permissions?role_id=${role.id}`}>Edit Permissions</Link>
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/permissions?role_id=${role.id}`}>View Permissions</Link>
-                      </Button>
-                    )}
-                    {can(rolePermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${role.name}`}
-                        onClick={() => {
-                          setEditing(role);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(rolePermissions.delete) && !role.is_system_role ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${role.name}`}
-                        onClick={() => setDeleting(role)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={role.name}
+                      onView={canRead ? () => openView(role) : undefined}
+                      onEdit={canUpdate ? () => openEdit(role) : undefined}
+                      onDelete={
+                        canDelete && !role.is_system_role ? () => setDeleting(role) : undefined
+                      }
+                      extra={
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/permissions?role_id=${role.id}`}>
+                            {canAssign || canUpdate ? "Edit Permissions" : "View Permissions"}
+                          </Link>
+                        </Button>
+                      }
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -186,11 +190,13 @@ export function RolesScreen() {
       </DataTable>
       <RoleFormDialog
         open={formOpen}
-        role={editing}
+        role={selected}
+        forceReadOnly={forceReadOnly}
         onOpenChange={(open) => {
           setFormOpen(open);
           if (!open) {
-            setEditing(null);
+            setSelected(null);
+            setForceReadOnly(false);
           }
         }}
       />
@@ -216,6 +222,6 @@ export function RolesScreen() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </ListPage>
   );
 }

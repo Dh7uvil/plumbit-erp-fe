@@ -116,8 +116,24 @@ not the role, so a re-bundled role does not require a UI change.
 
 Gate consistently at three levels: the navigation entry, the route segment, and the individual
 action. A route the user cannot open should render a clear "no access" state rather than an empty
-screen, and an action they cannot perform should be absent or disabled with a reason — not present
-and failing on click.
+screen, and an action they cannot perform should be absent — not present and failing on click.
+
+Create, read, update and delete are independent UX affordances. Having `*.create` does not unlock
+Edit or Save on an existing record.
+
+Use `useCrudPermissions` (`src/shared/auth/use-crud-permissions.ts`) for standard CRUD. Keep `can()`
+for extra actions (approve, deactivate, clone, upload). Hide the control when the permission is
+missing. View-only forms disable fields and omit Save.
+
+- **Create:** New / nested `MasterSelect` + only if `*.create`.
+- **Update:** Edit / enabled form / Save only if `*.update`.
+- **View:** ERP/CRM masters use `/{resource}/{id}` (form `disabled`) and `/{resource}/{id}/edit`
+  when `*.update`. List Eye / first two columns go to view; pencil goes to edit. Create stays in
+  the form dialog (and nested `MasterSelect`). Exchange rates stay dialog-based (no GET `/{id}`).
+  Administration lists may still use view/edit dialogs.
+- **Delete:** show Delete (with confirmation) only if `*.delete`.
+- Empty states must not invite create without `*.create`.
+- Omit the Actions column when no row actions remain.
 
 ## 5. Module ownership
 

@@ -44,6 +44,53 @@ export const ContactFormSchema = z.object({
 });
 export type ContactFormValues = z.infer<typeof ContactFormSchema>;
 
+export const InitialContactFormFieldsSchema = z.object({
+  initial_contact_name: z.string().max(200),
+  initial_contact_email: z.string().max(255),
+  initial_contact_phone: z.string().max(50),
+});
+
+export function refineInitialContact(
+  values: z.infer<typeof InitialContactFormFieldsSchema>,
+  ctx: z.RefinementCtx,
+) {
+  const name = values.initial_contact_name.trim();
+  const hasDetails = Boolean(
+    values.initial_contact_email.trim() || values.initial_contact_phone.trim(),
+  );
+  if (hasDetails && !name) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["initial_contact_name"],
+      message: "Enter a name",
+    });
+  }
+}
+
+export type CreatedParty = {
+  id: string;
+  contact_id?: string;
+};
+
+export function toInitialContactRequest(
+  customerId: string,
+  values: z.infer<typeof InitialContactFormFieldsSchema>,
+): ContactCreateRequest | null {
+  const name = values.initial_contact_name.trim();
+  if (!name) {
+    return null;
+  }
+  const email = values.initial_contact_email.trim();
+  const phone = values.initial_contact_phone.trim();
+  return {
+    customer_id: customerId,
+    name,
+    email: email ? email : null,
+    phone: phone ? phone : null,
+    is_primary: true,
+  };
+}
+
 export type ContactListParams = {
   page?: number;
   page_size?: number;

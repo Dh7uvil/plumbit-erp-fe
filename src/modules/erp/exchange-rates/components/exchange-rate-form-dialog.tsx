@@ -1,13 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
+import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useUpsertExchangeRate } from "@/modules/erp/exchange-rates/mutations";
+import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
 import {
   ExchangeRateFormSchema,
   type ExchangeRate,
@@ -15,14 +17,14 @@ import {
   type ExchangeRateUpsertRequest,
 } from "@/modules/erp/exchange-rates/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
-import { Button } from "@/shared/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/dialog";
+  formDialogTitle,
+  resolveFormDialogMode,
+  useCrudPermissions,
+} from "@/shared/auth/use-crud-permissions";
+import { FormDialogFooter } from "@/shared/components/form/form-dialog-footer";
+import { MasterSelect } from "@/shared/components/form/master-select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -32,14 +34,8 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useCan } from "@/shared/providers/session-provider";
 
 function toFormValues(rate: ExchangeRate | null): ExchangeRateFormValues {
   return {
@@ -62,15 +58,26 @@ export function ExchangeRateFormDialog({
   open,
   rate,
   onOpenChange,
+  forceReadOnly = false,
 }: {
   open: boolean;
   rate: ExchangeRate | null;
   onOpenChange: (open: boolean) => void;
+  forceReadOnly?: boolean;
 }) {
+  const can = useCan();
+  const { canCreate, canUpdate } = useCrudPermissions(exchangeRatePermissions);
   const upsertExchangeRate = useUpsertExchangeRate();
   const currenciesQuery = useAllCurrencies(open);
   const [formError, setFormError] = useState<string | null>(null);
-  const isEdit = Boolean(rate);
+  const [creatingCurrency, setCreatingCurrency] = useState(false);
+  const hasRecord = Boolean(rate);
+  const { mode, readOnly, canSubmit } = resolveFormDialogMode({
+    hasRecord,
+    canCreate,
+    canUpdate,
+    forceReadOnly,
+  });
   const currencies = currenciesQuery.data ?? [];
 
   const form = useForm<ExchangeRateFormValues>({
@@ -86,10 +93,13 @@ export function ExchangeRateFormDialog({
   }
 
   async function onSubmit(values: ExchangeRateFormValues) {
+    if (!canSubmit) {
+      return;
+    }
     setFormError(null);
     try {
       await upsertExchangeRate.mutateAsync(toUpsertRequest(values));
-      toast.success(isEdit ? "Exchange rate updated" : "Exchange rate saved");
+      toast.success(hasRecord ? "Exchange rate updated" : "Exchange rate saved");
       handleOpenChange(false);
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {
@@ -105,81 +115,84 @@ export function ExchangeRateFormDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Exchange Rate" : "New Exchange Rate"}</DialogTitle>
+          <DialogTitle>{formDialogTitle("Exchange Rate", mode)}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
+          <form
+            onSubmit={canSubmit ? form.handleSubmit(onSubmit) : (event) => event.preventDefault()}
+            className="flex flex-col gap-3"
+          >
             {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-            <FormField
-              control={form.control}
-              name="currency_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Currency</FormLabel>
-                  <Select
-                    value={field.value || undefined}
-                    onValueChange={field.onChange}
-                    disabled={currenciesQuery.isLoading}
-                  >
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="currency_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <MasterSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={currenciesQuery.isLoading || readOnly}
+                      placeholder="Select a currency"
+                      searchPlaceholder="Search currency…"
+                      createLabel="Create currency"
+                      onCreate={
+                        can(currencyPermissions.create) && !readOnly
+                          ? () => setCreatingCurrency(true)
+                          : undefined
+                      }
+                      options={currencies.map((currency) => ({
+                        value: currency.id,
+                        label: `${currency.code} · ${currency.name}`,
+                      }))}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="rate_to_base"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rate to base</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a currency" />
-                      </SelectTrigger>
+                      <Input placeholder="1" disabled={readOnly} {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {currencies.map((currency) => (
-                        <SelectItem key={currency.id} value={currency.id}>
-                          {currency.code} · {currency.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="effective_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Effective date</FormLabel>
+                    <FormControl>
+                      <Input type="date" disabled={readOnly} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormDialogFooter
+              pending={pending}
+              canSubmit={canSubmit}
+              submitLabel={hasRecord ? "Save Changes" : "Save Exchange Rate"}
+              onClose={() => handleOpenChange(false)}
             />
-            <FormField
-              control={form.control}
-              name="rate_to_base"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rate to base</FormLabel>
-                  <FormControl>
-                    <Input placeholder="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="effective_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Effective date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-                disabled={pending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-                {isEdit ? "Save Changes" : "Save Exchange Rate"}
-              </Button>
-            </DialogFooter>
           </form>
         </Form>
+        <CurrencyFormDialog
+          open={creatingCurrency}
+          currency={null}
+          nested
+          onCreated={(entity) => form.setValue("currency_id", entity.id)}
+          onOpenChange={setCreatingCurrency}
+        />
       </DialogContent>
     </Dialog>
   );

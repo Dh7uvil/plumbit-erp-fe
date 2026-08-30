@@ -8,10 +8,20 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { ContactFormDialog } from "@/modules/crm/contacts/components/contact-form-dialog";
+import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useAllContacts } from "@/modules/crm/contacts/queries";
+import { CustomerFormDialog } from "@/modules/crm/customers/components/customer-form-dialog";
+import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
+import { PaymentTermFormDialog } from "@/modules/erp/accounting/payment-terms/components/payment-term-form-dialog";
+import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
+import { TermsTemplateFormDialog } from "@/modules/erp/accounting/terms-templates/components/terms-template-form-dialog";
+import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
 import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/queries";
+import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
+import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import {
   emptyQuotationLine,
@@ -38,11 +48,16 @@ import {
   type QuotationUpdateRequest,
 } from "@/modules/erp/quotations/schemas";
 import { useAllPriceLists } from "@/modules/inventory-management/price-lists/queries";
+import { PriceListFormDialog } from "@/modules/inventory-management/price-lists/components/price-list-form-dialog";
+import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
+import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
+import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { userPermissions } from "@/modules/users-management/users/permissions";
 import { useAllUsers } from "@/modules/users-management/users/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import {
   Form,
@@ -197,9 +212,11 @@ function toUpdateRequest(values: QuotationFormValues): QuotationUpdateRequest {
 export function QuotationForm({
   quotation,
   disabled = false,
+  onSuccess,
 }: {
   quotation: Quotation | null;
   disabled?: boolean;
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const can = useCan();
@@ -214,6 +231,16 @@ export function QuotationForm({
   const termsTemplatesQuery = useAllTermsTemplates(!quotation);
   const usersQuery = useAllUsers(can(userPermissions.read));
   const [formError, setFormError] = useState<string | null>(null);
+  const [creating, setCreating] = useState<
+    | "customer"
+    | "contact"
+    | "branch"
+    | "currency"
+    | "priceList"
+    | "paymentTerms"
+    | "termsTemplate"
+    | null
+  >(null);
   const dirtyCompose = useRef(new Set<ComposeField>());
   const isEdit = Boolean(quotation);
 
@@ -300,6 +327,7 @@ export function QuotationForm({
       if (quotation) {
         await updateQuotation.mutateAsync({ id: quotation.id, values: toUpdateRequest(values) });
         toast.success("Quotation saved");
+        onSuccess?.();
       } else {
         const created = await createQuotation.mutateAsync(toCreateRequest(values));
         toast.success("Quotation created");
@@ -329,25 +357,24 @@ export function QuotationForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Customer</FormLabel>
-                <Select
+                <MasterSelect
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={disabled || isEdit || customersQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger aria-label="Customer">
-                      <SelectValue placeholder="Select a customer" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>Select a customer</SelectItem>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select a customer"
+                  searchPlaceholder="Search customer…"
+                  createLabel="Create customer"
+                  onCreate={
+                    can(customerPermissions.create) ? () => setCreating("customer") : undefined
+                  }
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "Select a customer" },
+                    ...customers.map((customer) => ({
+                      value: customer.id,
+                      label: customer.name,
+                    })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -358,28 +385,29 @@ export function QuotationForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Contact</FormLabel>
-                <Select
+                <MasterSelect
                   value={field.value}
                   onValueChange={(value) => {
                     markComposeDirty("contact_id");
                     field.onChange(value);
                   }}
                   disabled={disabled || contactsQuery.isLoading || !selectedCustomerId}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {contacts.map((contact) => (
-                      <SelectItem key={contact.id} value={contact.id}>
-                        {contact.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="None"
+                  searchPlaceholder="Search contact…"
+                  createLabel="Create contact"
+                  onCreate={
+                    can(contactPermissions.create) && selectedCustomerId
+                      ? () => setCreating("contact")
+                      : undefined
+                  }
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...contacts.map((contact) => ({
+                      value: contact.id,
+                      label: contact.name,
+                    })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -390,25 +418,22 @@ export function QuotationForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Branch</FormLabel>
-                <Select
+                <MasterSelect
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={disabled || branchesQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch.id} value={branch.id}>
-                        {branch.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="None"
+                  searchPlaceholder="Search branch…"
+                  createLabel="Create branch"
+                  onCreate={can(branchPermissions.create) ? () => setCreating("branch") : undefined}
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...branches.map((branch) => ({
+                      value: branch.id,
+                      label: branch.name,
+                    })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -445,28 +470,27 @@ export function QuotationForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Currency</FormLabel>
-                <Select
+                <MasterSelect
                   value={field.value}
                   onValueChange={(value) => {
                     markComposeDirty("currency_id");
                     field.onChange(value);
                   }}
                   disabled={disabled || currenciesQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a currency" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {currencies.map((currency) => (
-                      <SelectItem key={currency.id} value={currency.id}>
-                        {currency.code} — {currency.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select a currency"
+                  searchPlaceholder="Search currency…"
+                  createLabel="Create currency"
+                  onCreate={
+                    can(currencyPermissions.create) ? () => setCreating("currency") : undefined
+                  }
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...currencies.map((currency) => ({
+                      value: currency.id,
+                      label: `${currency.code} — ${currency.name}`,
+                    })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -477,28 +501,27 @@ export function QuotationForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Price list</FormLabel>
-                <Select
+                <MasterSelect
                   value={field.value}
                   onValueChange={(value) => {
                     markComposeDirty("price_list_id");
                     field.onChange(value);
                   }}
                   disabled={disabled || priceListsQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {priceLists.map((list) => (
-                      <SelectItem key={list.id} value={list.id}>
-                        {list.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="None"
+                  searchPlaceholder="Search price list…"
+                  createLabel="Create price list"
+                  onCreate={
+                    can(priceListPermissions.create) ? () => setCreating("priceList") : undefined
+                  }
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...priceLists.map((list) => ({
+                      value: list.id,
+                      label: list.name,
+                    })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -509,28 +532,29 @@ export function QuotationForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Payment terms</FormLabel>
-                <Select
+                <MasterSelect
                   value={field.value}
                   onValueChange={(value) => {
                     markComposeDirty("payment_terms_id");
                     field.onChange(value);
                   }}
                   disabled={disabled || paymentTermsQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {paymentTerms.map((term) => (
-                      <SelectItem key={term.id} value={term.id}>
-                        {term.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="None"
+                  searchPlaceholder="Search payment terms…"
+                  createLabel="Create payment terms"
+                  onCreate={
+                    can(paymentTermPermissions.create)
+                      ? () => setCreating("paymentTerms")
+                      : undefined
+                  }
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...paymentTerms.map((term) => ({
+                      value: term.id,
+                      label: term.name,
+                    })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -667,55 +691,62 @@ export function QuotationForm({
             <FormLabel>Customer TRN</FormLabel>
             <Input value={customerTrn || "—"} disabled />
           </FormItem>
-          <FormItem>
-            <FormLabel>Tax treatment</FormLabel>
-            <Input
-              value={
-                taxTreatment && taxTreatment in TAX_TREATMENT_LABELS
-                  ? TAX_TREATMENT_LABELS[taxTreatment as keyof typeof TAX_TREATMENT_LABELS]
-                  : taxTreatment || "—"
-              }
-              disabled
-            />
-          </FormItem>
-          {!isEdit ? (
-            <FormField
-              control={form.control}
-              name="terms_template_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Terms template</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={disabled || termsTemplatesQuery.isLoading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="None" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                      {templates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          ) : null}
+          <div
+            className={
+              isEdit ? "col-span-full" : "col-span-full grid grid-cols-1 gap-3 sm:grid-cols-2"
+            }
+          >
+            <FormItem>
+              <FormLabel>Tax treatment</FormLabel>
+              <Input
+                value={
+                  taxTreatment && taxTreatment in TAX_TREATMENT_LABELS
+                    ? TAX_TREATMENT_LABELS[taxTreatment as keyof typeof TAX_TREATMENT_LABELS]
+                    : taxTreatment || "—"
+                }
+                disabled
+              />
+            </FormItem>
+            {!isEdit ? (
+              <FormField
+                control={form.control}
+                name="terms_template_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Terms template</FormLabel>
+                    <MasterSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={disabled || termsTemplatesQuery.isLoading}
+                      placeholder="None"
+                      searchPlaceholder="Search template…"
+                      createLabel="Create terms template"
+                      onCreate={
+                        can(termsTemplatePermissions.create)
+                          ? () => setCreating("termsTemplate")
+                          : undefined
+                      }
+                      options={[
+                        { value: OPTIONAL_SELECT_NONE, label: "None" },
+                        ...templates.map((template) => ({
+                          value: template.id,
+                          label: template.name,
+                        })),
+                      ]}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
           <QuotationLinesEditor form={form} disabled={disabled} />
         </div>
         {quotation ? <QuotationTotalsPanel quotation={quotation} /> : null}
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3">
           <FormField
             control={form.control}
             name="notes"
@@ -783,6 +814,74 @@ export function QuotationForm({
           </div>
         ) : null}
       </form>
+      <CustomerFormDialog
+        open={creating === "customer"}
+        customer={null}
+        nested
+        onCreated={(entity) => {
+          form.setValue("customer_id", entity.id);
+          if (entity.contact_id) {
+            markComposeDirty("contact_id");
+            form.setValue("contact_id", entity.contact_id);
+          }
+        }}
+        onOpenChange={(open) => setCreating(open ? "customer" : null)}
+      />
+      <ContactFormDialog
+        open={creating === "contact"}
+        contact={null}
+        defaultCustomerId={selectedCustomerId ?? undefined}
+        lockCustomer
+        nested
+        onCreated={(entity) => {
+          markComposeDirty("contact_id");
+          form.setValue("contact_id", entity.id);
+        }}
+        onOpenChange={(open) => setCreating(open ? "contact" : null)}
+      />
+      <BranchFormDialog
+        open={creating === "branch"}
+        branch={null}
+        nested
+        onCreated={(entity) => form.setValue("branch_id", entity.id)}
+        onOpenChange={(open) => setCreating(open ? "branch" : null)}
+      />
+      <CurrencyFormDialog
+        open={creating === "currency"}
+        currency={null}
+        nested
+        onCreated={(entity) => {
+          markComposeDirty("currency_id");
+          form.setValue("currency_id", entity.id);
+        }}
+        onOpenChange={(open) => setCreating(open ? "currency" : null)}
+      />
+      <PriceListFormDialog
+        open={creating === "priceList"}
+        nested
+        onCreated={(entity) => {
+          markComposeDirty("price_list_id");
+          form.setValue("price_list_id", entity.id);
+        }}
+        onOpenChange={(open) => setCreating(open ? "priceList" : null)}
+      />
+      <PaymentTermFormDialog
+        open={creating === "paymentTerms"}
+        term={null}
+        nested
+        onCreated={(entity) => {
+          markComposeDirty("payment_terms_id");
+          form.setValue("payment_terms_id", entity.id);
+        }}
+        onOpenChange={(open) => setCreating(open ? "paymentTerms" : null)}
+      />
+      <TermsTemplateFormDialog
+        open={creating === "termsTemplate"}
+        template={null}
+        nested
+        onCreated={(entity) => form.setValue("terms_template_id", entity.id)}
+        onOpenChange={(open) => setCreating(open ? "termsTemplate" : null)}
+      />
     </Form>
   );
 }

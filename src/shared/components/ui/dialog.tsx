@@ -22,12 +22,51 @@ function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.C
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
+const PORTALED_UI_SELECTOR = [
+  "[data-slot='dropdown-menu-content']",
+  "[data-slot='select-content']",
+  "[data-radix-popper-content-wrapper]",
+].join(",");
+
+function outsideEventTarget(event: {
+  target: EventTarget | null;
+  detail?: unknown;
+}): EventTarget | null {
+  if (event.detail && typeof event.detail === "object" && "originalEvent" in event.detail) {
+    const original = (event.detail as { originalEvent?: Event }).originalEvent;
+    if (original?.target) {
+      return original.target;
+    }
+  }
+  return event.target;
+}
+
+function shouldIgnoreOutsideDismiss(
+  event: { target: EventTarget | null; detail?: unknown },
+  overlay: HTMLElement | null,
+): boolean {
+  const target = outsideEventTarget(event);
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  if (target.closest(PORTALED_UI_SELECTOR)) {
+    return true;
+  }
+  const nestedSurface = target.closest("[data-nested]");
+  if (!nestedSurface) {
+    return false;
+  }
+  return target.closest("[data-slot='dialog-overlay']") !== overlay;
+}
+
 function DialogOverlay({
   className,
+  ref,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
+      ref={ref}
       data-slot="dialog-overlay"
       className={cn(
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
@@ -41,17 +80,50 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
+  nested = false,
+  onEscapeKeyDown,
+  onPointerDownOutside,
+  onFocusOutside,
+  onInteractOutside,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  nested?: boolean;
+}) {
+  const overlayRef = React.useRef<HTMLDivElement>(null);
+
+  function composeOutsideDismiss<
+    T extends { preventDefault: () => void; target: EventTarget | null },
+  >(event: T, caller?: (event: T) => void) {
+    if (shouldIgnoreOutsideDismiss(event, overlayRef.current)) {
+      event.preventDefault();
+    }
+    caller?.(event);
+  }
+
   return (
     <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
+      <DialogOverlay
+        ref={overlayRef}
+        className={nested ? "z-[60]" : undefined}
+        data-nested={nested ? true : undefined}
+      />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        data-nested={nested ? true : undefined}
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+          nested && "z-[60]",
           className,
         )}
+        onEscapeKeyDown={(event) => {
+          if (nested) {
+            event.stopPropagation();
+          }
+          onEscapeKeyDown?.(event);
+        }}
+        onPointerDownOutside={(event) => composeOutsideDismiss(event, onPointerDownOutside)}
+        onFocusOutside={(event) => composeOutsideDismiss(event, onFocusOutside)}
+        onInteractOutside={(event) => composeOutsideDismiss(event, onInteractOutside)}
         {...props}
       >
         {children}
