@@ -1,7 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -15,22 +14,24 @@ import {
   type PriceList,
 } from "@/modules/inventory-management/price-lists/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -40,9 +41,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Name", "Type", "Currency", "Percent", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Name", "Type", "Currency", "Percent", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -56,7 +56,7 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
 }
 
 export function PriceListsScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(priceListPermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const priceListsQuery = usePriceLists({
     page,
@@ -78,6 +78,8 @@ export function PriceListsScreen() {
     }
     return map;
   }, [currenciesQuery.data]);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -93,12 +95,12 @@ export function PriceListsScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Price lists"
         subtitle="Customer and item rate charts"
         actions={
-          can(priceListPermissions.create) ? (
+          canCreate ? (
             <Button type="button" size="sm" onClick={() => setFormOpen(true)}>
               <Plus className="size-3.5" />
               New Price List
@@ -112,26 +114,24 @@ export function PriceListsScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search price lists…"
         />
-        <Select
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -140,14 +140,14 @@ export function PriceListsScreen() {
           {priceListsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : priceListsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(priceListsQuery.error)}
                   onRetry={() => priceListsQuery.refetch()}
@@ -156,10 +156,10 @@ export function PriceListsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No price lists"
-                  message="Create a price list to get started."
+                  message={emptyListMessage(canCreate, "Create a price list to get started.")}
                 />
               </TableCell>
             </TableRow>
@@ -167,46 +167,28 @@ export function PriceListsScreen() {
             rows.map((priceList) => (
               <TableRow key={priceList.id}>
                 <TableCell className="font-medium">
-                  <Link href={`/price-lists/${priceList.id}`} className="hover:underline">
-                    {priceList.name}
-                  </Link>
+                  <RecordLink href={`/price-lists/${priceList.id}`}>{priceList.name}</RecordLink>
                 </TableCell>
-                <TableCell>{PRICE_LIST_TYPE_LABELS[priceList.list_type]}</TableCell>
+                <TableCell>
+                  <RecordLink href={`/price-lists/${priceList.id}`}>
+                    {PRICE_LIST_TYPE_LABELS[priceList.list_type]}
+                  </RecordLink>
+                </TableCell>
                 <TableCell>{currencyLabelById.get(priceList.currency_id) ?? "—"}</TableCell>
                 <TableCell>{priceList.percent ?? "—"}</TableCell>
                 <TableCell>
                   <ActiveBadge active={priceList.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(priceListPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${priceList.name}`}
-                        asChild
-                      >
-                        <Link href={`/price-lists/${priceList.id}`}>
-                          <Edit2 className="size-3.5" />
-                        </Link>
-                      </Button>
-                    ) : null}
-                    {can(priceListPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${priceList.name}`}
-                        onClick={() => setDeleting(priceList)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={priceList.name}
+                      viewHref={canRead ? `/price-lists/${priceList.id}` : undefined}
+                      editHref={canUpdate ? `/price-lists/${priceList.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(priceList) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -222,6 +204,6 @@ export function PriceListsScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

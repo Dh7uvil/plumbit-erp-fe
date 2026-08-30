@@ -13,7 +13,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   return (
     <PermissionGate permission={customerPermissions.read}>
       {parsed.success ? (
-        <CustomerDetailScreen customerId={parsed.data} />
+        <CustomerDetailScreen customerId={parsed.data} mode="view" />
       ) : (
         <p className="text-muted-foreground text-sm">Customer not found.</p>
       )}

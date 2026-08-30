@@ -23,8 +23,16 @@ export function useContacts(params: ContactListParams, enabled = true) {
 export function useAllContacts(enabled = true) {
   return useQuery({
     queryKey: contactKeys.allItems(),
-    queryFn: contactsApi.listAll,
+    queryFn: () => contactsApi.listAll(),
     enabled,
+  });
+}
+
+export function usePartyContacts(customerId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: [...contactKeys.all, "party", customerId] as const,
+    queryFn: () => contactsApi.listAll({ customer_id: customerId! }),
+    enabled: Boolean(customerId) && enabled,
   });
 }
 

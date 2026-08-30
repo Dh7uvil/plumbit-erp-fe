@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,22 +10,24 @@ import { documentSequencePermissions } from "@/modules/erp/accounting/document-s
 import { useDocumentSequences } from "@/modules/erp/accounting/document-sequences/queries";
 import type { DocumentSequence } from "@/modules/erp/accounting/document-sequences/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -35,9 +37,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Type", "Series", "Year", "Prefix", "Next", "Padding", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Type", "Series", "Year", "Prefix", "Next", "Padding", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -51,7 +52,9 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
 }
 
 export function DocumentSequencesScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(
+    documentSequencePermissions,
+  );
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const documentSequencesQuery = useDocumentSequences({
     page,
@@ -61,11 +64,16 @@ export function DocumentSequencesScreen() {
   });
   const deleteDocumentSequence = useDeleteDocumentSequence();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<DocumentSequence | null>(null);
   const [deleting, setDeleting] = useState<DocumentSequence | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = documentSequencesQuery.data?.data ?? [];
   const meta = documentSequencesQuery.data?.meta;
+
+  function openCreate() {
+    setFormOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -81,20 +89,13 @@ export function DocumentSequencesScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Document sequences"
         subtitle="Locked counters for document numbers"
         actions={
-          can(documentSequencePermissions.create) ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
+          canCreate ? (
+            <Button type="button" size="sm" onClick={openCreate}>
               <Plus className="size-3.5" />
               New Document Sequence
             </Button>
@@ -107,26 +108,24 @@ export function DocumentSequencesScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search document sequences…"
         />
-        <Select
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -135,14 +134,14 @@ export function DocumentSequencesScreen() {
           {documentSequencesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : documentSequencesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(documentSequencesQuery.error)}
                   onRetry={() => documentSequencesQuery.refetch()}
@@ -151,18 +150,29 @@ export function DocumentSequencesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No document sequences"
-                  message="Create a document sequence to get started."
+                  message={emptyListMessage(
+                    canCreate,
+                    "Create a document sequence to get started.",
+                  )}
                 />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((sequence) => (
               <TableRow key={sequence.id}>
-                <TableCell>{sequence.document_type}</TableCell>
-                <TableCell className="font-medium">{sequence.series}</TableCell>
+                <TableCell>
+                  <RecordLink href={`/document-sequences/${sequence.id}`}>
+                    {sequence.document_type}
+                  </RecordLink>
+                </TableCell>
+                <TableCell className="font-medium">
+                  <RecordLink href={`/document-sequences/${sequence.id}`}>
+                    {sequence.series}
+                  </RecordLink>
+                </TableCell>
                 <TableCell>{sequence.fiscal_year}</TableCell>
                 <TableCell className="font-mono text-sm">{sequence.prefix}</TableCell>
                 <TableCell>{sequence.next_number}</TableCell>
@@ -170,52 +180,22 @@ export function DocumentSequencesScreen() {
                 <TableCell>
                   <ActiveBadge active={sequence.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(documentSequencePermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${sequence.series} ${sequence.fiscal_year}`}
-                        onClick={() => {
-                          setEditing(sequence);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(documentSequencePermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${sequence.series} ${sequence.fiscal_year}`}
-                        onClick={() => setDeleting(sequence)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={`${sequence.series} ${sequence.fiscal_year}`}
+                      viewHref={canRead ? `/document-sequences/${sequence.id}` : undefined}
+                      editHref={canUpdate ? `/document-sequences/${sequence.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(sequence) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
         </TableBody>
       </DataTable>
-      <DocumentSequenceFormDialog
-        open={formOpen}
-        sequence={editing}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditing(null);
-          }
-        }}
-      />
+      <DocumentSequenceFormDialog open={formOpen} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title="Delete document sequence"
@@ -225,6 +205,6 @@ export function DocumentSequencesScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

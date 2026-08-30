@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -11,23 +11,25 @@ import { useContacts } from "@/modules/crm/contacts/queries";
 import type { Contact } from "@/modules/crm/contacts/schemas";
 import { useCompanyOptions } from "@/modules/crm/contacts/use-company-options";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -37,9 +39,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Name", "Company", "Email", "Phone", "Primary", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Name", "Company", "Email", "Phone", "Primary", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -53,7 +54,7 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
 }
 
 export function ContactsScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(contactPermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const contactsQuery = useContacts({
     page,
@@ -66,8 +67,9 @@ export function ContactsScreen() {
   const companiesQuery = useCompanyOptions();
   const deleteContact = useDeleteContact();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Contact | null>(null);
   const [deleting, setDeleting] = useState<Contact | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = contactsQuery.data?.data ?? [];
   const meta = contactsQuery.data?.meta;
@@ -79,6 +81,10 @@ export function ContactsScreen() {
     return map;
   }, [companiesQuery.companies]);
   const companies = companiesQuery.companies;
+
+  function openCreate() {
+    setFormOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -94,20 +100,13 @@ export function ContactsScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Contacts"
         subtitle="People belonging to a customer or supplier"
         actions={
-          can(contactPermissions.create) ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
+          canCreate ? (
+            <Button type="button" size="sm" onClick={openCreate}>
               <Plus className="size-3.5" />
               New Contact
             </Button>
@@ -120,59 +119,49 @@ export function ContactsScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search contacts…"
         />
-        <Select
+        <FilterSelect
+          className="w-48"
+          placeholder="Company"
           value={filters.customer_id ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { customer_id: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Company" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All companies</SelectItem>
-            {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All companies" },
+            ...companies.map((company) => ({ value: company.id, label: company.name })),
+          ]}
+        />
+        <FilterSelect
+          className="w-36"
+          placeholder="Primary"
           value={filters.is_primary ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_primary: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Primary" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All</SelectItem>
-            <SelectItem value="true">Primary</SelectItem>
-            <SelectItem value="false">Other</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All" },
+            { value: "true", label: "Primary" },
+            { value: "false", label: "Other" },
+          ]}
+        />
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -181,14 +170,14 @@ export function ContactsScreen() {
           {contactsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : contactsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(contactsQuery.error)}
                   onRetry={() => contactsQuery.refetch()}
@@ -197,18 +186,27 @@ export function ContactsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No contacts"
-                  message="Create a contact for a customer or supplier to get started."
+                  message={emptyListMessage(
+                    canCreate,
+                    "Create a contact for a customer or supplier to get started.",
+                  )}
                 />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((contact) => (
               <TableRow key={contact.id}>
-                <TableCell className="font-medium">{contact.name}</TableCell>
-                <TableCell>{companyNameById.get(contact.customer_id) ?? "—"}</TableCell>
+                <TableCell className="font-medium">
+                  <RecordLink href={`/contacts/${contact.id}`}>{contact.name}</RecordLink>
+                </TableCell>
+                <TableCell>
+                  <RecordLink href={`/contacts/${contact.id}`}>
+                    {companyNameById.get(contact.customer_id) ?? "—"}
+                  </RecordLink>
+                </TableCell>
                 <TableCell>{contact.email || "—"}</TableCell>
                 <TableCell>{contact.phone || "—"}</TableCell>
                 <TableCell>
@@ -217,52 +215,22 @@ export function ContactsScreen() {
                 <TableCell>
                   <ActiveBadge active={contact.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(contactPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${contact.name}`}
-                        onClick={() => {
-                          setEditing(contact);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(contactPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${contact.name}`}
-                        onClick={() => setDeleting(contact)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={contact.name}
+                      viewHref={canRead ? `/contacts/${contact.id}` : undefined}
+                      editHref={canUpdate ? `/contacts/${contact.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(contact) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
         </TableBody>
       </DataTable>
-      <ContactFormDialog
-        open={formOpen}
-        contact={editing}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditing(null);
-          }
-        }}
-      />
+      <ContactFormDialog open={formOpen} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title="Delete contact"
@@ -272,6 +240,6 @@ export function ContactsScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

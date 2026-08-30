@@ -1,7 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,22 +20,24 @@ import {
 } from "@/modules/crm/customers/schemas";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -46,9 +47,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -72,7 +72,7 @@ function parseTaxTreatment(value: string | undefined): TaxTreatment | undefined 
 }
 
 export function CustomersScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(customerPermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const customersQuery = useCustomers({
     page,
@@ -91,6 +91,8 @@ export function CustomersScreen() {
   const rows = customersQuery.data?.data ?? [];
   const meta = customersQuery.data?.meta;
   const currencies = currenciesQuery.data ?? [];
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -106,12 +108,12 @@ export function CustomersScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Customers"
         subtitle="Quote-ready customer master"
         actions={
-          can(customerPermissions.create) ? (
+          canCreate ? (
             <Button
               type="button"
               size="sm"
@@ -131,80 +133,66 @@ export function CustomersScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search customers…"
         />
-        <Select
+        <FilterSelect
+          className="w-48"
+          placeholder="Type"
           value={filters.company_type ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { company_type: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All types</SelectItem>
-            {CUSTOMER_COMPANY_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {CUSTOMER_COMPANY_TYPE_LABELS[type]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All types" },
+            ...CUSTOMER_COMPANY_TYPES.map((type) => ({
+              value: type,
+              label: CUSTOMER_COMPANY_TYPE_LABELS[type],
+            })),
+          ]}
+        />
+        <FilterSelect
+          className="w-44"
+          placeholder="Tax treatment"
           value={filters.tax_treatment ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { tax_treatment: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Tax treatment" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All treatments</SelectItem>
-            {TAX_TREATMENTS.map((treatment) => (
-              <SelectItem key={treatment} value={treatment}>
-                {TAX_TREATMENT_LABELS[treatment]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All treatments" },
+            ...TAX_TREATMENTS.map((treatment) => ({
+              value: treatment,
+              label: TAX_TREATMENT_LABELS[treatment],
+            })),
+          ]}
+        />
+        <FilterSelect
+          className="w-40"
+          placeholder="Currency"
           value={filters.currency_id ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { currency_id: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Currency" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All currencies</SelectItem>
-            {currencies.map((currency) => (
-              <SelectItem key={currency.id} value={currency.id}>
-                {currency.code}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All currencies" },
+            ...currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+          ]}
+        />
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -213,14 +201,14 @@ export function CustomersScreen() {
           {customersQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : customersQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(customersQuery.error)}
                   onRetry={() => customersQuery.refetch()}
@@ -229,54 +217,37 @@ export function CustomersScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
-                <DataTableEmpty title="No customers" message="Create a customer to get started." />
+              <TableCell colSpan={headers.length}>
+                <DataTableEmpty
+                  title="No customers"
+                  message={emptyListMessage(canCreate, "Create a customer to get started.")}
+                />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-mono text-sm">
-                  <Link href={`/customers/${customer.id}`} className="hover:underline">
-                    {customer.code}
-                  </Link>
+                  <RecordLink href={`/customers/${customer.id}`}>{customer.code}</RecordLink>
                 </TableCell>
-                <TableCell className="font-medium">{customer.name}</TableCell>
+                <TableCell className="font-medium">
+                  <RecordLink href={`/customers/${customer.id}`}>{customer.name}</RecordLink>
+                </TableCell>
                 <TableCell>{COMPANY_TYPE_LABELS[customer.company_type]}</TableCell>
                 <TableCell>{TAX_TREATMENT_LABELS[customer.tax_treatment]}</TableCell>
                 <TableCell>
                   <ActiveBadge active={customer.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(customerPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${customer.name}`}
-                        asChild
-                      >
-                        <Link href={`/customers/${customer.id}`}>
-                          <Edit2 className="size-3.5" />
-                        </Link>
-                      </Button>
-                    ) : null}
-                    {can(customerPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${customer.name}`}
-                        onClick={() => setDeleting(customer)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={customer.name}
+                      viewHref={canRead ? `/customers/${customer.id}` : undefined}
+                      editHref={canUpdate ? `/customers/${customer.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(customer) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -296,6 +267,6 @@ export function CustomersScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

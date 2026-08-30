@@ -21,20 +21,15 @@ import {
 import { useAllRoles } from "@/modules/users-management/roles/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -170,7 +165,7 @@ export function PermissionsScreen() {
   const roles = rolesQuery.data ?? [];
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Permissions"
         subtitle="Assign catalog permissions to a role"
@@ -206,66 +201,52 @@ export function PermissionsScreen() {
           <Label htmlFor="permissions-filter-role" className="text-muted-foreground">
             Role
           </Label>
-          <Select
+          <FilterSelect
+            id="permissions-filter-role"
+            className="w-full"
+            placeholder="Select a role"
+            aria-label="Role"
             value={selectedRoleId ?? ""}
             onValueChange={selectRole}
             disabled={rolesQuery.isLoading || roles.length === 0}
-          >
-            <SelectTrigger id="permissions-filter-role" className="w-full" aria-label="Role">
-              <SelectValue placeholder="Select a role" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((role) => (
-                <SelectItem key={role.id} value={role.id}>
-                  {role.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={roles.map((role) => ({ value: role.id, label: role.name }))}
+          />
         </div>
         <div className="flex w-56 flex-col items-start gap-1.5">
           <Label htmlFor="permissions-filter-module" className="text-muted-foreground">
             Module
           </Label>
-          <Select
+          <FilterSelect
+            id="permissions-filter-module"
+            className="w-full"
+            placeholder="All modules"
+            aria-label="Module"
             value={moduleFilter}
             onValueChange={selectModule}
             disabled={matrixQuery.isLoading || modules.length === 0}
-          >
-            <SelectTrigger id="permissions-filter-module" className="w-full" aria-label="Module">
-              <SelectValue placeholder="All modules" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All modules</SelectItem>
-              {modules.map((module) => (
-                <SelectItem key={module} value={module}>
-                  {module}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={[
+              { value: ALL, label: "All modules" },
+              ...modules.map((module) => ({ value: module, label: module })),
+            ]}
+          />
         </div>
         <div className="flex w-56 flex-col items-start gap-1.5">
           <Label htmlFor="permissions-filter-resource" className="text-muted-foreground">
             Resource
           </Label>
-          <Select
+          <FilterSelect
+            id="permissions-filter-resource"
+            className="w-full"
+            placeholder="All resources"
+            aria-label="Resource"
             value={resourceFilter}
             onValueChange={setResourceFilter}
             disabled={matrixQuery.isLoading || resources.length === 0}
-          >
-            <SelectTrigger id="permissions-filter-resource" className="w-full" aria-label="Resource">
-              <SelectValue placeholder="All resources" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All resources</SelectItem>
-              {resources.map((resource) => (
-                <SelectItem key={resource} value={resource}>
-                  {resource}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={[
+              { value: ALL, label: "All resources" },
+              ...resources.map((resource) => ({ value: resource, label: resource })),
+            ]}
+          />
         </div>
       </DataTableToolbar>
       {rolesQuery.isError || matrixQuery.isError ? (
@@ -368,6 +349,6 @@ export function PermissionsScreen() {
         onOpenChange={setResetOpen}
         onConfirm={() => void onReset()}
       />
-    </div>
+    </ListPage>
   );
 }

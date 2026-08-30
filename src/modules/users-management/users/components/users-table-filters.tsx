@@ -14,6 +14,7 @@ import type {
   UserListParams,
   UserStatus,
 } from "@/modules/users-management/users/schemas";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -27,13 +28,6 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all" as const;
@@ -249,31 +243,30 @@ export function UsersTableFilters({
             className="pl-8"
           />
         </div>
-        <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="INVITED">Invited</SelectItem>
-            <SelectItem value="DISABLED">Disabled</SelectItem>
-          </SelectContent>
-        </Select>
+        <FilterSelect
+          className="w-40"
+          placeholder="Status"
+          value={status}
+          onValueChange={(value) => setStatus(value as typeof status)}
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "ACTIVE", label: "Active" },
+            { value: "INVITED", label: "Invited" },
+            { value: "DISABLED", label: "Disabled" },
+          ]}
+        />
         {canReadRoles ? (
-          <Select value={roleId} onValueChange={setRoleId} disabled={rolesQuery.isLoading}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All roles</SelectItem>
-              {roles.map((role) => (
-                <SelectItem key={role.id} value={role.id}>
-                  {role.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FilterSelect
+            className="w-48"
+            placeholder="Role"
+            value={roleId}
+            onValueChange={setRoleId}
+            disabled={rolesQuery.isLoading}
+            options={[
+              { value: ALL, label: "All roles" },
+              ...roles.map((role) => ({ value: role.id, label: role.name })),
+            ]}
+          />
         ) : null}
         <Button type="button" variant="outline" size="sm" onClick={openMoreFilters}>
           <ListFilter className="size-3.5" />
@@ -302,7 +295,10 @@ export function UsersTableFilters({
             {canReadBranches ? (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="user-filter-branch">Branch</Label>
-                <Select
+                <FilterSelect
+                  id="user-filter-branch"
+                  className="w-full"
+                  placeholder="Branch"
                   value={draftExtra.branchId}
                   onValueChange={(value) =>
                     setDraftExtra((current) => ({
@@ -312,80 +308,64 @@ export function UsersTableFilters({
                     }))
                   }
                   disabled={branchesQuery.isLoading}
-                >
-                  <SelectTrigger id="user-filter-branch" className="w-full">
-                    <SelectValue placeholder="Branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>All branches</SelectItem>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch.id} value={branch.id}>
-                        {branch.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: ALL, label: "All branches" },
+                    ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+                  ]}
+                />
               </div>
             ) : null}
             {canReadDepartments ? (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="user-filter-department">Department</Label>
-                <Select
+                <FilterSelect
+                  id="user-filter-department"
+                  className="w-full"
+                  placeholder="Department"
                   value={draftExtra.departmentId}
                   onValueChange={(value) => updateDraft("departmentId", value)}
                   disabled={departmentsQuery.isLoading}
-                >
-                  <SelectTrigger id="user-filter-department" className="w-full">
-                    <SelectValue placeholder="Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>All departments</SelectItem>
-                    {departmentOptions.map((department) => (
-                      <SelectItem key={department.id} value={department.id}>
-                        {department.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: ALL, label: "All departments" },
+                    ...departmentOptions.map((department) => ({
+                      value: department.id,
+                      label: department.name,
+                    })),
+                  ]}
+                />
               </div>
             ) : null}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="user-filter-employee-status">Employee status</Label>
-              <Select
+              <FilterSelect
+                id="user-filter-employee-status"
+                className="w-full"
+                placeholder="Employee status"
                 value={draftExtra.employeeStatus}
                 onValueChange={(value) =>
                   updateDraft("employeeStatus", value as ExtraFilters["employeeStatus"])
                 }
-              >
-                <SelectTrigger id="user-filter-employee-status" className="w-full">
-                  <SelectValue placeholder="Employee status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>All employee statuses</SelectItem>
-                  <SelectItem value="ACTIVE">Active employee</SelectItem>
-                  <SelectItem value="INACTIVE">Inactive employee</SelectItem>
-                </SelectContent>
-              </Select>
+                options={[
+                  { value: ALL, label: "All employee statuses" },
+                  { value: "ACTIVE", label: "Active employee" },
+                  { value: "INACTIVE", label: "Inactive employee" },
+                ]}
+              />
             </div>
             {canReadDepartments && managers.length > 0 ? (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="user-filter-manager">Manager</Label>
-                <Select
+                <FilterSelect
+                  id="user-filter-manager"
+                  className="w-full"
+                  placeholder="Manager"
                   value={draftExtra.managerId}
                   onValueChange={(value) => updateDraft("managerId", value)}
-                >
-                  <SelectTrigger id="user-filter-manager" className="w-full">
-                    <SelectValue placeholder="Manager" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>All managers</SelectItem>
-                    {managers.map((manager) => (
-                      <SelectItem key={manager.id} value={manager.id}>
-                        {manager.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: ALL, label: "All managers" },
+                    ...managers.map((manager) => ({ value: manager.id, label: manager.name })),
+                  ]}
+                />
               </div>
             ) : null}
             <div className="flex flex-col gap-1.5">

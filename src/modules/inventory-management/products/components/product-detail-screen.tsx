@@ -1,24 +1,36 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { ProductForm } from "@/modules/inventory-management/products/components/product-form";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useProduct } from "@/modules/inventory-management/products/queries";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableError } from "@/shared/components/data-table/states";
-import { PageHeader } from "@/shared/components/layout/page-header";
+import {
+  RecordPageHeader,
+  type RecordPageMode,
+} from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { useCan } from "@/shared/providers/session-provider";
 
-export function ProductDetailScreen({ productId }: { productId: string }) {
-  const can = useCan();
-  const canUpdate = can(productPermissions.update);
+export function ProductDetailScreen({
+  productId,
+  mode,
+}: {
+  productId: string;
+  mode: RecordPageMode;
+}) {
+  const router = useRouter();
+  const { canUpdate } = useCrudPermissions(productPermissions);
   const productQuery = useProduct(productId);
   const product = productQuery.data;
+  const isEdit = mode === "edit";
+  const viewHref = `/products/${productId}`;
 
   if (productQuery.isLoading) {
     return (
@@ -45,24 +57,28 @@ export function ProductDetailScreen({ productId }: { productId: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
+      <RecordPageHeader
         title={product.name}
-        subtitle={product.sku}
-        actions={
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link href="/products">Back</Link>
-          </Button>
-        }
+        code={product.sku}
+        listHref="/products"
+        viewHref={viewHref}
+        editHref={`${viewHref}/edit`}
+        canUpdate={canUpdate}
+        mode={mode}
       />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{canUpdate ? "Edit product" : "Product"}</CardTitle>
+          <CardTitle className="text-base">{isEdit ? "Edit product" : "Product"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ProductForm product={product} disabled={!canUpdate} />
+          <ProductForm
+            product={product}
+            disabled={!isEdit}
+            onSuccess={() => router.push(viewHref)}
+          />
         </CardContent>
       </Card>
-      <EntityAttachmentsPanel entityType="PRODUCT" entityId={product.id} />
+      {isEdit ? null : <EntityAttachmentsPanel entityType="PRODUCT" entityId={product.id} />}
     </div>
   );
 }

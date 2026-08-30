@@ -13,7 +13,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   return (
     <PermissionGate permission={productPermissions.read}>
       {parsed.success ? (
-        <ProductDetailScreen productId={parsed.data} />
+        <ProductDetailScreen productId={parsed.data} mode="view" />
       ) : (
         <p className="text-muted-foreground text-sm">Product not found.</p>
       )}

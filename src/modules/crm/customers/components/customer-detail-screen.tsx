@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,11 +27,17 @@ import {
   type AddressPayload,
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { AddressFields } from "@/shared/components/form/address-fields";
-import { PageHeader } from "@/shared/components/layout/page-header";
+import { RecordCode } from "@/shared/components/form/record-code";
+import {
+  RecordPageHeader,
+  type RecordPageMode,
+} from "@/shared/components/layout/record-page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -62,7 +69,7 @@ import {
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useCan } from "@/shared/providers/session-provider";
 
-const ADDRESS_HEADERS = ["Label", "Address", "Defaults", "Actions"] as const;
+const ADDRESS_COLUMNS = ["Label", "Address", "Defaults"] as const;
 
 function formatAddress(address: AddressPayload | null | undefined): string {
   if (!address) {
@@ -79,9 +86,16 @@ function formatAddress(address: AddressPayload | null | undefined): string {
   return parts.length ? parts.join(", ") : "—";
 }
 
-export function CustomerDetailScreen({ customerId }: { customerId: string }) {
+export function CustomerDetailScreen({
+  customerId,
+  mode,
+}: {
+  customerId: string;
+  mode: RecordPageMode;
+}) {
   const can = useCan();
-  const canUpdate = can(customerPermissions.update);
+  const router = useRouter();
+  const { canUpdate } = useCrudPermissions(customerPermissions);
   const customerQuery = useCustomer(customerId);
   const addAddress = useAddCustomerAddress();
   const deleteAddress = useDeleteCustomerAddress();
@@ -91,6 +105,9 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
 
   const customer = customerQuery.data;
   const extraAddresses = customer?.extra_addresses ?? [];
+  const addressHeaders = tableHeaders(ADDRESS_COLUMNS, canUpdate);
+  const isEdit = mode === "edit";
+  const viewHref = `/customers/${customerId}`;
 
   const addressForm = useForm<ExtraAddressFormValues>({
     resolver: zodResolver(ExtraAddressFormSchema),
@@ -167,107 +184,123 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
+      <RecordPageHeader
         title={customer.name}
-        subtitle={customer.code}
-        actions={
-          <div className="flex gap-2">
-            {customer.company_type === "BOTH" && can(supplierPermissions.read) ? (
-              <Button type="button" variant="outline" size="sm" asChild>
-                <Link href={`/suppliers/${customer.id}`}>View as supplier</Link>
-              </Button>
-            ) : null}
+        code={customer.code}
+        listHref="/customers"
+        viewHref={viewHref}
+        editHref={`${viewHref}/edit`}
+        canUpdate={canUpdate}
+        mode={mode}
+        extraActions={
+          customer.company_type === "BOTH" && can(supplierPermissions.read) ? (
             <Button type="button" variant="outline" size="sm" asChild>
-              <Link href="/customers">Back</Link>
+              <Link href={`/suppliers/${customer.id}`}>View as supplier</Link>
             </Button>
-          </div>
+          ) : null
         }
       />
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{canUpdate ? "Edit customer" : "Customer"}</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <CardTitle className="text-base">{isEdit ? "Edit customer" : "Customer"}</CardTitle>
+          <RecordCode entity="Customer" code={customer.code} />
         </CardHeader>
         <CardContent>
-          <CustomerForm customer={customer} disabled={!canUpdate} />
+          <CustomerForm
+            customer={customer}
+            disabled={!isEdit}
+            onSuccess={() => router.push(viewHref)}
+          />
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle className="text-base">Extra addresses</CardTitle>
-          {canUpdate ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                addressForm.reset({
-                  label: "",
-                  address: EMPTY_ADDRESS_FORM,
-                  is_default_billing: false,
-                  is_default_shipping: false,
-                });
-                setAddressError(null);
-                setAddressOpen(true);
-              }}
-            >
-              <Plus className="size-3.5" />
-              Add address
-            </Button>
-          ) : null}
-        </CardHeader>
-        <CardContent>
-          <DataTable>
-            <TableHeader>
-              <TableRow>
-                {ADDRESS_HEADERS.map((header) => (
-                  <TableHead key={header}>{header}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {extraAddresses.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={ADDRESS_HEADERS.length}>
-                    <DataTableEmpty
-                      title="No extra addresses"
-                      message="Add another billing or shipping address."
-                    />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                extraAddresses.map((extra) => (
-                  <TableRow key={extra.id}>
-                    <TableCell className="font-medium">{extra.label || "—"}</TableCell>
-                    <TableCell>{formatAddress(extra.address)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {extra.is_default_billing ? <Badge variant="info">Billing</Badge> : null}
-                        {extra.is_default_shipping ? <Badge variant="info">Shipping</Badge> : null}
-                        {!extra.is_default_billing && !extra.is_default_shipping ? "—" : null}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {canUpdate ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive size-7"
-                          aria-label="Delete address"
-                          onClick={() => setDeletingAddress(extra)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      ) : null}
-                    </TableCell>
+      {isEdit ? null : (
+        <>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-2">
+              <CardTitle className="text-base">Extra addresses</CardTitle>
+              {canUpdate ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    addressForm.reset({
+                      label: "",
+                      address: EMPTY_ADDRESS_FORM,
+                      is_default_billing: false,
+                      is_default_shipping: false,
+                    });
+                    setAddressError(null);
+                    setAddressOpen(true);
+                  }}
+                >
+                  <Plus className="size-3.5" />
+                  Add address
+                </Button>
+              ) : null}
+            </CardHeader>
+            <CardContent>
+              <DataTable>
+                <TableHeader>
+                  <TableRow>
+                    {addressHeaders.map((header) => (
+                      <TableHead key={header}>{header}</TableHead>
+                    ))}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </DataTable>
-        </CardContent>
-      </Card>
-      <ContactsPanel customerId={customer.id} />
-      <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />
+                </TableHeader>
+                <TableBody>
+                  {extraAddresses.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={addressHeaders.length}>
+                        <DataTableEmpty
+                          title="No extra addresses"
+                          message={emptyListMessage(
+                            canUpdate,
+                            "Add another billing or shipping address.",
+                          )}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    extraAddresses.map((extra) => (
+                      <TableRow key={extra.id}>
+                        <TableCell className="font-medium">{extra.label || "—"}</TableCell>
+                        <TableCell>{formatAddress(extra.address)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {extra.is_default_billing ? (
+                              <Badge variant="info">Billing</Badge>
+                            ) : null}
+                            {extra.is_default_shipping ? (
+                              <Badge variant="info">Shipping</Badge>
+                            ) : null}
+                            {!extra.is_default_billing && !extra.is_default_shipping ? "—" : null}
+                          </div>
+                        </TableCell>
+                        {canUpdate ? (
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive size-7"
+                              aria-label="Delete address"
+                              onClick={() => setDeletingAddress(extra)}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </TableCell>
+                        ) : null}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </DataTable>
+            </CardContent>
+          </Card>
+          <ContactsPanel customerId={customer.id} />
+          <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />
+        </>
+      )}
       <Dialog
         open={addressOpen}
         onOpenChange={(open) => {
@@ -277,19 +310,19 @@ export function CustomerDetailScreen({ customerId }: { customerId: string }) {
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Add address</DialogTitle>
           </DialogHeader>
           <Form {...addressForm}>
             <form onSubmit={addressForm.handleSubmit(onAddAddress)} className="flex flex-col gap-3">
               {addressError ? <p className="text-destructive text-sm">{addressError}</p> : null}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-3">
                 <FormField
                   control={addressForm.control}
                   name="label"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
+                    <FormItem>
                       <FormLabel>Label</FormLabel>
                       <FormControl>
                         <Input placeholder="Warehouse, site…" maxLength={100} {...field} />

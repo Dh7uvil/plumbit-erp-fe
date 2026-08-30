@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -24,10 +25,15 @@ import {
 } from "@/modules/inventory-management/price-lists/schemas";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { PageHeader } from "@/shared/components/layout/page-header";
+import {
+  RecordPageHeader,
+  type RecordPageMode,
+} from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Checkbox } from "@/shared/components/ui/checkbox";
@@ -57,14 +63,21 @@ import {
 } from "@/shared/components/ui/table";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { formatMoney } from "@/shared/lib/format";
-import { useCan } from "@/shared/providers/session-provider";
 
-const ITEM_HEADERS = ["Product", "Rate", "Actions"] as const;
+const ITEM_COLUMNS = ["Product", "Rate"] as const;
 
-export function PriceListDetailScreen({ priceListId }: { priceListId: string }) {
-  const can = useCan();
-  const canUpdate = can(priceListPermissions.update);
+export function PriceListDetailScreen({
+  priceListId,
+  mode,
+}: {
+  priceListId: string;
+  mode: RecordPageMode;
+}) {
+  const router = useRouter();
+  const { canUpdate } = useCrudPermissions(priceListPermissions);
   const priceListQuery = usePriceList(priceListId);
+  const isEdit = mode === "edit";
+  const viewHref = `/price-lists/${priceListId}`;
   const currenciesQuery = useAllCurrencies();
   const productsQuery = useAllProducts();
   const updatePriceList = useUpdatePriceList();
@@ -98,6 +111,7 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
   });
 
   const items = priceList?.items ?? [];
+  const itemHeaders = tableHeaders(ITEM_COLUMNS, isEdit);
   const assignedProductIds = new Set(items.map((item) => item.product_id));
   const availableProducts = products.filter((product) => !assignedProductIds.has(product.id));
 
@@ -120,6 +134,7 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
         },
       });
       toast.success("Price list updated");
+      router.push(viewHref);
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {
         return;
@@ -187,20 +202,18 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
+      <RecordPageHeader
         title={priceList.name}
         subtitle={PRICE_LIST_TYPE_LABELS[priceList.list_type]}
-        actions={
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link href="/price-lists">Back</Link>
-          </Button>
-        }
+        listHref="/price-lists"
+        viewHref={viewHref}
+        editHref={`${viewHref}/edit`}
+        canUpdate={canUpdate}
+        mode={mode}
       />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            {canUpdate ? "Edit price list" : "Price list"}
-          </CardTitle>
+          <CardTitle className="text-base">{isEdit ? "Edit price list" : "Price list"}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -211,23 +224,17 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
+                    <FormItem
+                      className={priceList.list_type !== "PERCENT" ? "sm:col-span-2" : undefined}
+                    >
                       <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input maxLength={150} disabled={!canUpdate} {...field} />
+                        <Input maxLength={150} disabled={!isEdit} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormItem>
-                  <FormLabel>Currency</FormLabel>
-                  <Input value={currency ? `${currency.code} — ${currency.name}` : "—"} disabled />
-                </FormItem>
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Input value={PRICE_LIST_TYPE_LABELS[priceList.list_type]} disabled />
-                </FormItem>
                 {priceList.list_type === "PERCENT" ? (
                   <FormField
                     control={form.control}
@@ -236,22 +243,30 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
                       <FormItem>
                         <FormLabel>Percent</FormLabel>
                         <FormControl>
-                          <Input inputMode="decimal" disabled={!canUpdate} {...field} />
+                          <Input inputMode="decimal" disabled={!isEdit} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 ) : null}
+                <FormItem>
+                  <FormLabel>Currency</FormLabel>
+                  <Input value={currency ? `${currency.code} — ${currency.name}` : "—"} disabled />
+                </FormItem>
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Input value={PRICE_LIST_TYPE_LABELS[priceList.list_type]} disabled />
+                </FormItem>
                 <FormField
                   control={form.control}
                   name="is_active"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-2 space-y-0 sm:col-span-2">
+                    <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
-                          disabled={!canUpdate}
+                          disabled={!isEdit}
                           onCheckedChange={(checked) => field.onChange(checked === true)}
                         />
                       </FormControl>
@@ -260,7 +275,7 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
                   )}
                 />
               </div>
-              {canUpdate ? (
+              {isEdit ? (
                 <div className="flex justify-end">
                   <Button type="submit" disabled={updatePriceList.isPending}>
                     {updatePriceList.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -277,7 +292,7 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
           <CardTitle className="text-base">Items</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {canUpdate ? (
+          {isEdit ? (
             <div className="flex flex-col gap-2">
               {itemError ? <p className="text-destructive text-sm">{itemError}</p> : null}
               <div className="flex flex-wrap items-end gap-2">
@@ -324,7 +339,7 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
           <DataTable>
             <TableHeader>
               <TableRow>
-                {ITEM_HEADERS.map((header) => (
+                {itemHeaders.map((header) => (
                   <TableHead key={header}>{header}</TableHead>
                 ))}
               </TableRow>
@@ -332,8 +347,11 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={ITEM_HEADERS.length}>
-                    <DataTableEmpty title="No items" message="Add a product rate to this list." />
+                  <TableCell colSpan={itemHeaders.length}>
+                    <DataTableEmpty
+                      title="No items"
+                      message={emptyListMessage(isEdit, "Add a product rate to this list.")}
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -343,8 +361,8 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
                       {productNameById.get(item.product_id) ?? "—"}
                     </TableCell>
                     <TableCell>{currency ? formatMoney(item.rate, currency.code) : "—"}</TableCell>
-                    <TableCell>
-                      {canUpdate ? (
+                    {isEdit ? (
+                      <TableCell>
                         <Button
                           type="button"
                           variant="ghost"
@@ -355,8 +373,8 @@ export function PriceListDetailScreen({ priceListId }: { priceListId: string }) 
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
-                      ) : null}
-                    </TableCell>
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 ))
               )}

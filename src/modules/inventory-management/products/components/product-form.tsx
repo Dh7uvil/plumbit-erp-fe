@@ -7,7 +7,11 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { TaxFormDialog } from "@/modules/erp/accounting/taxes/components/tax-form-dialog";
+import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
+import { CategoryFormDialog } from "@/modules/inventory-management/categories/components/category-form-dialog";
+import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
 import { useAllCategories } from "@/modules/inventory-management/categories/queries";
 import {
   useCreateProduct,
@@ -23,8 +27,11 @@ import {
   type ProductUpdateRequest,
 } from "@/modules/inventory-management/products/schemas";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
+import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
+import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
@@ -45,6 +52,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useCan } from "@/shared/providers/session-provider";
 
 function optionalUuid(value: string): string | null {
   return !value || value === OPTIONAL_SELECT_NONE ? null : value;
@@ -105,16 +113,18 @@ export function ProductForm({
 }: {
   product: Product | null;
   disabled?: boolean;
-  onSuccess?: () => void;
+  onSuccess?: (entity: Product) => void;
   showCancel?: boolean;
   onCancel?: () => void;
 }) {
+  const can = useCan();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const unitsQuery = useAllUnits();
   const categoriesQuery = useAllCategories();
   const taxesQuery = useAllTaxes();
   const [formError, setFormError] = useState<string | null>(null);
+  const [creating, setCreating] = useState<"unit" | "category" | "tax" | null>(null);
   const isEdit = Boolean(product);
 
   const form = useForm<ProductFormValues>({
@@ -128,11 +138,12 @@ export function ProductForm({
       if (product) {
         await updateProduct.mutateAsync({ id: product.id, values: toUpdateRequest(values) });
         toast.success("Product updated");
+        onSuccess?.(product);
       } else {
-        await createProduct.mutateAsync(toCreateRequest(values));
+        const created = await createProduct.mutateAsync(toCreateRequest(values));
         toast.success("Product created");
+        onSuccess?.(created);
       }
-      onSuccess?.();
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {
         return;
@@ -148,9 +159,9 @@ export function ProductForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <FormField
             control={form.control}
             name="sku"
@@ -197,7 +208,7 @@ export function ProductForm({
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem className="sm:col-span-2">
+              <FormItem>
                 <FormLabel>Name</FormLabel>
                 <FormControl>
                   <Input
@@ -215,7 +226,7 @@ export function ProductForm({
             control={form.control}
             name="sales_description"
             render={({ field }) => (
-              <FormItem className="sm:col-span-2">
+              <FormItem className="col-span-full">
                 <FormLabel>Sales description</FormLabel>
                 <FormControl>
                   <Textarea disabled={disabled} {...field} />
@@ -230,25 +241,22 @@ export function ProductForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Unit</FormLabel>
-                <Select
+                <MasterSelect
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={disabled || unitsQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {units.map((unit) => (
-                      <SelectItem key={unit.id} value={unit.id}>
-                        {unit.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="None"
+                  searchPlaceholder="Search unit…"
+                  createLabel="Create unit"
+                  onCreate={can(unitPermissions.create) ? () => setCreating("unit") : undefined}
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...units.map((unit) => ({
+                      value: unit.id,
+                      label: unit.name,
+                    })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -259,25 +267,24 @@ export function ProductForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select
+                <MasterSelect
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={disabled || categoriesQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="None"
+                  searchPlaceholder="Search category…"
+                  createLabel="Create category"
+                  onCreate={
+                    can(categoryPermissions.create) ? () => setCreating("category") : undefined
+                  }
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...categories.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -295,49 +302,48 @@ export function ProductForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="tax_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tax</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={disabled || taxesQuery.isLoading}
-                >
+          <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="tax_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tax</FormLabel>
+                  <MasterSelect
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={disabled || taxesQuery.isLoading}
+                    placeholder="None"
+                    searchPlaceholder="Search tax…"
+                    createLabel="Create tax"
+                    onCreate={can(taxPermissions.create) ? () => setCreating("tax") : undefined}
+                    options={[
+                      { value: OPTIONAL_SELECT_NONE, label: "None" },
+                      ...taxes.map((tax) => ({
+                        value: tax.id,
+                        label: tax.name,
+                      })),
+                    ]}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="hs_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>HS code</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
+                    <Input maxLength={20} disabled={disabled} {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {taxes.map((tax) => (
-                      <SelectItem key={tax.id} value={tax.id}>
-                        {tax.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="hs_code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>HS code</FormLabel>
-                <FormControl>
-                  <Input maxLength={20} disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex flex-col gap-2 sm:col-span-2">
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="col-span-full flex flex-col gap-2">
             <FormField
               control={form.control}
               name="track_inventory"
@@ -374,20 +380,42 @@ export function ProductForm({
             ) : null}
           </div>
         </div>
-        {!disabled ? (
+        {showCancel || !disabled ? (
           <div className="flex justify-end gap-2">
             {showCancel ? (
               <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
-                Cancel
+                {disabled ? "Close" : "Cancel"}
               </Button>
             ) : null}
-            <Button type="submit" disabled={pending}>
-              {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-              {isEdit ? "Save Changes" : "Create Product"}
-            </Button>
+            {!disabled ? (
+              <Button type="submit" disabled={pending}>
+                {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+                {isEdit ? "Save Changes" : "Create Product"}
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </form>
+      <UnitFormDialog
+        open={creating === "unit"}
+        nested
+        onCreated={(entity) => form.setValue("unit_id", entity.id)}
+        onOpenChange={(open) => setCreating(open ? "unit" : null)}
+      />
+      <CategoryFormDialog
+        open={creating === "category"}
+        category={null}
+        nested
+        onCreated={(entity) => form.setValue("category_id", entity.id)}
+        onOpenChange={(open) => setCreating(open ? "category" : null)}
+      />
+      <TaxFormDialog
+        open={creating === "tax"}
+        tax={null}
+        nested
+        onCreated={(entity) => form.setValue("tax_id", entity.id)}
+        onOpenChange={(open) => setCreating(open ? "tax" : null)}
+      />
     </Form>
   );
 }

@@ -119,7 +119,7 @@ function SidebarChrome({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="flex min-h-screen flex-1 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <div
         className={cn(
           "border-sidebar-border relative flex h-12 shrink-0 items-center border-b",
@@ -207,7 +207,7 @@ export function AppSidebar({
     <>
       <aside
         className={cn(
-          "bg-sidebar border-sidebar-border relative z-10 hidden min-h-screen shrink-0 flex-col self-stretch overflow-visible border-r transition-all duration-200 md:flex",
+          "bg-sidebar border-sidebar-border relative z-10 hidden h-full shrink-0 flex-col self-stretch overflow-visible border-r transition-all duration-200 md:flex",
           collapsed ? "w-14" : "w-56",
         )}
       >

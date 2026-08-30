@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, Edit2, Eye, UserCheck, UserPlus } from "lucide-react";
+import { Ban, UserCheck, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,9 +18,16 @@ import { userPermissions } from "@/modules/users-management/users/permissions";
 import { useUsers } from "@/modules/users-management/users/queries";
 import type { User } from "@/modules/users-management/users/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
@@ -36,7 +43,7 @@ import {
 import { formatDate, initials } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const TABLE_HEADERS = [
+const COLUMN_HEADERS = [
   "User",
   "Email",
   "Department",
@@ -44,11 +51,11 @@ const TABLE_HEADERS = [
   "Role",
   "Status",
   "Joining date",
-  "Actions",
 ] as const;
 
 export function UsersScreen() {
   const can = useCan();
+  const { canCreate, canRead, canUpdate } = useCrudPermissions(userPermissions);
   const activateUser = useActivateUser();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<UserListFilterParams>({});
@@ -81,6 +88,8 @@ export function UsersScreen() {
 
   const rows = usersQuery.data?.data ?? [];
   const meta = usersQuery.data?.meta;
+  const showActions = hasRowActions(canRead);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onActivate(user: User) {
     try {
@@ -92,12 +101,12 @@ export function UsersScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Users"
         subtitle="Manage users and role assignment"
         actions={
-          can(userPermissions.create) ? (
+          canCreate ? (
             <Button type="button" size="sm" onClick={openCreate}>
               <UserPlus className="size-3.5" />
               New User
@@ -109,7 +118,7 @@ export function UsersScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {TABLE_HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -118,14 +127,14 @@ export function UsersScreen() {
           {usersQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={TABLE_HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : usersQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={TABLE_HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(usersQuery.error)}
                   onRetry={() => usersQuery.refetch()}
@@ -134,7 +143,7 @@ export function UsersScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={TABLE_HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No users found"
                   message="Try a different search or filter."
@@ -174,57 +183,46 @@ export function UsersScreen() {
                 <TableCell className="text-muted-foreground text-xs">
                   {formatDate(user.employee?.joining_date)}
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      aria-label={`View ${user.name}`}
-                      onClick={() => setViewingId(user.id)}
-                    >
-                      <Eye className="size-3.5" />
-                    </Button>
-                    {can(userPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${user.name}`}
-                        onClick={() => openEdit(user.id)}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(userPermissions.update) && user.status === "DISABLED" ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Activate ${user.name}`}
-                        disabled={activateUser.isPending && activateUser.variables === user.id}
-                        onClick={() => void onActivate(user)}
-                      >
-                        <UserCheck className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(userPermissions.deactivate) && user.status !== "DISABLED" ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Deactivate ${user.name}`}
-                        onClick={() => setDeactivating(user)}
-                      >
-                        <Ban className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={user.name}
+                      onView={canRead ? () => setViewingId(user.id) : undefined}
+                      onEdit={canUpdate ? () => openEdit(user.id) : undefined}
+                      extra={
+                        <>
+                          {canUpdate && user.status === "DISABLED" ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              aria-label={`Activate ${user.name}`}
+                              disabled={
+                                activateUser.isPending && activateUser.variables === user.id
+                              }
+                              onClick={() => void onActivate(user)}
+                            >
+                              <UserCheck className="size-3.5" />
+                            </Button>
+                          ) : null}
+                          {can(userPermissions.deactivate) && user.status !== "DISABLED" ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive size-7"
+                              aria-label={`Deactivate ${user.name}`}
+                              onClick={() => setDeactivating(user)}
+                            >
+                              <Ban className="size-3.5" />
+                            </Button>
+                          ) : null}
+                        </>
+                      }
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -257,6 +255,6 @@ export function UsersScreen() {
           }
         }}
       />
-    </div>
+    </ListPage>
   );
 }

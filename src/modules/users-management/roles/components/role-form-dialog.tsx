@@ -1,26 +1,25 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useCreateRole, useUpdateRole } from "@/modules/users-management/roles/mutations";
+import { rolePermissions } from "@/modules/users-management/roles/permissions";
 import {
   RoleFormSchema,
   type Role,
   type RoleFormValues,
 } from "@/modules/users-management/roles/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
-import { Button } from "@/shared/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/dialog";
+  formDialogTitle,
+  resolveFormDialogMode,
+  useCrudPermissions,
+} from "@/shared/auth/use-crud-permissions";
+import { FormDialogFooter } from "@/shared/components/form/form-dialog-footer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -37,14 +36,24 @@ export function RoleFormDialog({
   open,
   role,
   onOpenChange,
+  forceReadOnly = false,
 }: {
   open: boolean;
   role: Role | null;
   onOpenChange: (open: boolean) => void;
+  forceReadOnly?: boolean;
 }) {
+  const { canCreate, canUpdate } = useCrudPermissions(rolePermissions);
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const [formError, setFormError] = useState<string | null>(null);
+  const hasRecord = Boolean(role);
+  const { mode, readOnly, canSubmit } = resolveFormDialogMode({
+    hasRecord,
+    canCreate,
+    canUpdate,
+    forceReadOnly,
+  });
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(RoleFormSchema),
@@ -62,6 +71,9 @@ export function RoleFormDialog({
   }
 
   async function onSubmit(values: RoleFormValues) {
+    if (!canSubmit) {
+      return;
+    }
     setFormError(null);
     const payload = {
       name: values.name,
@@ -90,10 +102,13 @@ export function RoleFormDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{role ? "Edit Role" : "New Role"}</DialogTitle>
+          <DialogTitle>{formDialogTitle("Role", mode)}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
+          <form
+            onSubmit={canSubmit ? form.handleSubmit(onSubmit) : (event) => event.preventDefault()}
+            className="flex flex-col gap-3"
+          >
             {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
             <FormField
               control={form.control}
@@ -102,7 +117,7 @@ export function RoleFormDialog({
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Role name" {...field} />
+                    <Input placeholder="Role name" disabled={readOnly} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,26 +130,18 @@ export function RoleFormDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="What this role can do" {...field} />
+                    <Textarea placeholder="What this role can do" disabled={readOnly} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-                disabled={pending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-                {role ? "Save Changes" : "Create Role"}
-              </Button>
-            </DialogFooter>
+            <FormDialogFooter
+              pending={pending}
+              canSubmit={canSubmit}
+              submitLabel={hasRecord ? "Save Changes" : "Create Role"}
+              onClose={() => handleOpenChange(false)}
+            />
           </form>
         </Form>
       </DialogContent>

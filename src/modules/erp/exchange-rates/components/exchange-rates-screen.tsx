@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
@@ -9,9 +9,16 @@ import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permission
 import { useExchangeRates } from "@/modules/erp/exchange-rates/queries";
 import type { ExchangeRate } from "@/modules/erp/exchange-rates/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -24,12 +31,11 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["From currency", "Rate to base", "Effective date", "Actions"] as const;
+const COLUMN_HEADERS = ["From currency", "Rate to base", "Effective date"] as const;
 
 export function ExchangeRatesScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate } = useCrudPermissions(exchangeRatePermissions);
   const { filters, setParams } = useTableParams();
   const effectiveDate = filters.effective_date;
   const exchangeRatesQuery = useExchangeRates({
@@ -37,7 +43,10 @@ export function ExchangeRatesScreen() {
   });
   const currenciesQuery = useAllCurrencies();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<ExchangeRate | null>(null);
+  const [selected, setSelected] = useState<ExchangeRate | null>(null);
+  const [forceReadOnly, setForceReadOnly] = useState(false);
+  const showActions = hasRowActions(canRead, canUpdate);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = exchangeRatesQuery.data?.data ?? [];
   const currenciesById = useMemo(() => {
@@ -53,21 +62,32 @@ export function ExchangeRatesScreen() {
     return currency ? `${currency.code} · ${currency.name}` : id;
   }
 
+  function openCreate() {
+    setSelected(null);
+    setForceReadOnly(false);
+    setFormOpen(true);
+  }
+
+  function openView(rate: ExchangeRate) {
+    setSelected(rate);
+    setForceReadOnly(true);
+    setFormOpen(true);
+  }
+
+  function openEdit(rate: ExchangeRate) {
+    setSelected(rate);
+    setForceReadOnly(false);
+    setFormOpen(true);
+  }
+
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Exchange rates"
         subtitle="Org-level daily user-entered rates versus the base currency"
         actions={
-          can(exchangeRatePermissions.create) ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
+          canCreate ? (
+            <Button type="button" size="sm" onClick={openCreate}>
               <Plus className="size-3.5" />
               New Exchange Rate
             </Button>
@@ -88,7 +108,7 @@ export function ExchangeRatesScreen() {
       <DataTable>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -97,14 +117,14 @@ export function ExchangeRatesScreen() {
           {exchangeRatesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : exchangeRatesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(exchangeRatesQuery.error)}
                   onRetry={() => exchangeRatesQuery.refetch()}
@@ -113,10 +133,10 @@ export function ExchangeRatesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No exchange rates"
-                  message="Save an exchange rate to get started."
+                  message={emptyListMessage(canCreate, "Save an exchange rate to get started.")}
                 />
               </TableCell>
             </TableRow>
@@ -124,29 +144,41 @@ export function ExchangeRatesScreen() {
             rows.map((rate) => (
               <TableRow key={rate.id}>
                 <TableCell className="font-medium">
-                  {currencyLabel(rate.from_currency_id)}
+                  {canRead ? (
+                    <button
+                      type="button"
+                      className="cursor-pointer hover:underline"
+                      onClick={() => openView(rate)}
+                    >
+                      {currencyLabel(rate.from_currency_id)}
+                    </button>
+                  ) : (
+                    currencyLabel(rate.from_currency_id)
+                  )}
                 </TableCell>
-                <TableCell>{rate.rate}</TableCell>
-                <TableCell>{rate.effective_date}</TableCell>
                 <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(exchangeRatePermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit rate for ${currencyLabel(rate.from_currency_id)}`}
-                        onClick={() => {
-                          setEditing(rate);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
+                  {canRead ? (
+                    <button
+                      type="button"
+                      className="cursor-pointer hover:underline"
+                      onClick={() => openView(rate)}
+                    >
+                      {rate.rate}
+                    </button>
+                  ) : (
+                    rate.rate
+                  )}
                 </TableCell>
+                <TableCell>{rate.effective_date}</TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={currencyLabel(rate.from_currency_id)}
+                      onView={canRead ? () => openView(rate) : undefined}
+                      onEdit={canUpdate ? () => openEdit(rate) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -154,14 +186,16 @@ export function ExchangeRatesScreen() {
       </DataTable>
       <ExchangeRateFormDialog
         open={formOpen}
-        rate={editing}
+        rate={selected}
+        forceReadOnly={forceReadOnly}
         onOpenChange={(open) => {
           setFormOpen(open);
           if (!open) {
-            setEditing(null);
+            setSelected(null);
+            setForceReadOnly(false);
           }
         }}
       />
-    </div>
+    </ListPage>
   );
 }

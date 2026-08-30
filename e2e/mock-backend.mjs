@@ -9,6 +9,9 @@ const CURRENCY_ID = "44444444-4444-4444-8444-444444444444";
 const CUSTOMER_ID = "55555555-5555-4555-8555-555555555555";
 const EMAIL = "ada@plumbit.com";
 const PASSWORD = "correct-horse";
+const LIMITED_EMAIL = "reader@plumbit.com";
+const LIMITED_USER_ID = "77777777-7777-4777-8777-777777777777";
+const LIMITED_PASSWORD = "correct-horse";
 const ORGANIZATION_NAME = process.env.NEXT_PUBLIC_ORGANIZATION_NAME ?? "Plumbit";
 const RESET_TOKEN = "valid-reset-token";
 const NOW = "2026-01-01T00:00:00.000Z";
@@ -35,6 +38,7 @@ const EMPTY_LIST_PATHS = new Set([
 ]);
 
 let currentPassword = PASSWORD;
+let currentSessionKind = "superadmin";
 let accessToken = "access-token-1";
 let refreshToken = "refresh-token-1";
 let quotations = new Map();
@@ -265,6 +269,22 @@ function currentTenant() {
 }
 
 function me() {
+  if (currentSessionKind === "limited") {
+    return {
+      id: LIMITED_USER_ID,
+      tenant_id: TENANT_ID,
+      name: "Riley Reader",
+      email: LIMITED_EMAIL,
+      phone: null,
+      status: "ACTIVE",
+      last_login_at: NOW,
+      employee_id: null,
+      created_at: NOW,
+      updated_at: NOW,
+      roles: [{ id: EMPLOYEE_ROLE_ID, name: "Employee", is_system_role: false }],
+      permissions: ["users.auth.change_password", "inventory.unit.read"],
+    };
+  }
   return {
     id: USER_ID,
     tenant_id: TENANT_ID,
@@ -383,14 +403,17 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/v1/auth/login") {
       const body = await readBody(req);
-      if (
-        body.tenant_id !== TENANT_ID ||
-        body.email !== EMAIL ||
-        body.password !== currentPassword
-      ) {
+      const isAda =
+        body.tenant_id === TENANT_ID && body.email === EMAIL && body.password === currentPassword;
+      const isReader =
+        body.tenant_id === TENANT_ID &&
+        body.email === LIMITED_EMAIL &&
+        body.password === LIMITED_PASSWORD;
+      if (!isAda && !isReader) {
         fail(res, 401, "AUTH_INVALID_CREDENTIALS", "Invalid credentials");
         return;
       }
+      currentSessionKind = isReader ? "limited" : "superadmin";
       resetErpState();
       ok(res, tokenPair());
       return;

@@ -85,6 +85,9 @@ Read the relevant file before working in that area — each one is the authority
 - Never cache tenant-scoped, user-scoped or financial data on the server, and never hold request
   data in a module-level variable.
 - Gate navigation, routes and actions on permissions, understanding that the backend enforces them.
+  **Create, read, update and delete are independent** — having `*.create` does not show Edit/Save on
+  an existing record. Use `useCrudPermissions(slicePermissions)` for standard CRUD (or `can()` for
+  extra actions). Hide missing affordances; provide a view path (read-only dialog or detail page).
 - Never do float arithmetic on money; display the backend's totals, always with their currency.
 - Treat timestamps as UTC and render them in the user's timezone.
 - Drive available actions from the backend document, never from a hardcoded status table.
@@ -108,7 +111,9 @@ Read the relevant file before working in that area — each one is the authority
 3. Read the backend endpoint's OpenAPI schema before writing types by hand.
 4. Identify existing slice APIs, hooks and Zod schemas to reuse.
 5. Identify existing shared components, formatters and form patterns to reuse.
-6. Identify the permissions the feature needs.
+6. Identify the permissions the feature needs. Gate create/view/update/delete independently via
+   `useCrudPermissions(slicePermissions)` (or `can()` for extra actions). Hide missing affordances
+   and provide a view path — do not treat create as update.
 7. Decide what renders on the server and what must be a client component.
 8. Decide what belongs in the URL versus component state.
 9. Implement the smallest clean solution.
@@ -121,7 +126,13 @@ Read the relevant file before working in that area — each one is the authority
 
 Check the existing slice, the backend endpoint and its envelope, the permissions involved, the
 shared table and form patterns, what belongs in the URL, and which parts must be client
-components — then compose it from shared primitives.
+components — then compose it from shared primitives. Gate New / View / Edit / Delete independently
+with `useCrudPermissions(slicePermissions)`. For form layout, address blocks, initial contact, and
+master-table create, follow the **Forms** subsection in
+[ui-and-design-system](.github/instructions/ui-and-design-system.instructions.md). CRUD permission
+rules live in
+[frontend-domain-boundaries](.github/instructions/frontend-domain-boundaries.instructions.md)
+section 4.
 
 ## Before wiring a request
 

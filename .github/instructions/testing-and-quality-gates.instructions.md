@@ -37,7 +37,10 @@ Playwright covers the flows whose failure would stop the business, and little el
 e2e/
 ├── auth.spec.ts               login, logout, session expiry redirect
 ├── tenant-switch.spec.ts      switching tenant swaps the data and clears the previous tenant's
-├── permissions.spec.ts        a gated route and a gated action are unavailable to a limited user
+├── permissions.spec.ts        a gated route and a gated action are unavailable to a limited user.
+                               Sidebar omits modules without `*.read` and drops empty groups.
+                               Cover a missing create/update/delete affordance when a limited test
+                               user exists; do not invent that user to land a helper change.
 ├── leads.spec.ts              list, filter, paginate, create, edit
 ├── quotation-approval.spec.ts create → submit → approve, with the state reflected
 └── invoice-posting.spec.ts    post an invoice, then confirm it is no longer editable
@@ -64,7 +67,7 @@ Write a unit test when logic has branches that types cannot check and a bug woul
 ```text
 Money and quantity formatting, including zero, negative and multi-currency
 Search-param parsing and serialisation, including malformed input
-Permission helpers, including inherited and missing permissions
+Permission helpers, including inherited, missing, and optional CRUD keys (create/update/delete)
 Error-code to message mapping, including the unknown-code fallback
 Date and timezone conversion at boundaries
 Zod schemas for a payload shape that has surprised us before

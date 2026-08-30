@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { QuotationForm } from "@/modules/erp/quotations/components/quotation-form";
 import { QuotationStatusBadge } from "@/modules/erp/quotations/components/quotation-status-badge";
@@ -10,21 +12,38 @@ import { useQuotation } from "@/modules/erp/quotations/queries";
 import { quotationDisplayNumber } from "@/modules/erp/quotations/schemas";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableError } from "@/shared/components/data-table/states";
-import { PageHeader } from "@/shared/components/layout/page-header";
+import {
+  RecordPageHeader,
+  type RecordPageMode,
+} from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { formatDateTime } from "@/shared/lib/format";
-import { useCan } from "@/shared/providers/session-provider";
 
-export function QuotationDetailScreen({ quotationId }: { quotationId: string }) {
-  const can = useCan();
+export function QuotationDetailScreen({
+  quotationId,
+  mode,
+}: {
+  quotationId: string;
+  mode: RecordPageMode;
+}) {
+  const router = useRouter();
+  const { canUpdate } = useCrudPermissions(quotationPermissions);
   const quotationQuery = useQuotation(quotationId);
   const quotation = quotationQuery.data;
-  const canUpdate = can(quotationPermissions.update);
   const isDraft = quotation?.status === "DRAFT";
-  const editable = Boolean(quotation) && isDraft && canUpdate;
+  const isEdit = mode === "edit";
+  const viewHref = `/quotations/${quotationId}`;
+  const canEditDraft = Boolean(isDraft && canUpdate);
+
+  useEffect(() => {
+    if (isEdit && quotation && quotation.status !== "DRAFT") {
+      router.replace(viewHref);
+    }
+  }, [isEdit, quotation, router, viewHref]);
 
   if (quotationQuery.isLoading) {
     return (
@@ -55,17 +74,21 @@ export function QuotationDetailScreen({ quotationId }: { quotationId: string }) 
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
+      <RecordPageHeader
         title={number ?? "Quotation"}
         subtitle={number ? undefined : "Number not assigned yet"}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <QuotationStatusBadge status={quotation.status} />
-            <QuotationWorkflowButtons quotation={quotation} />
-            <Button type="button" variant="outline" size="sm" asChild>
-              <Link href="/quotations">Back</Link>
-            </Button>
-          </div>
+        listHref="/quotations"
+        viewHref={viewHref}
+        editHref={canEditDraft ? `${viewHref}/edit` : undefined}
+        canUpdate={canEditDraft}
+        mode={mode}
+        extraActions={
+          isEdit ? null : (
+            <>
+              <QuotationStatusBadge status={quotation.status} />
+              <QuotationWorkflowButtons quotation={quotation} />
+            </>
+          )
         }
       />
       {quotation.status === "CONVERTED" ? (
@@ -77,13 +100,17 @@ export function QuotationDetailScreen({ quotationId }: { quotationId: string }) 
       ) : null}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{editable ? "Edit quotation" : "Quotation"}</CardTitle>
+          <CardTitle className="text-base">{isEdit ? "Edit quotation" : "Quotation"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <QuotationForm quotation={quotation} disabled={!editable} />
+          <QuotationForm
+            quotation={quotation}
+            disabled={!isEdit}
+            onSuccess={() => router.push(viewHref)}
+          />
         </CardContent>
       </Card>
-      <EntityAttachmentsPanel entityType="QUOTATION" entityId={quotation.id} />
+      {isEdit ? null : <EntityAttachmentsPanel entityType="QUOTATION" entityId={quotation.id} />}
     </div>
   );
 }

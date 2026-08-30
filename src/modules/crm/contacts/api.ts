@@ -29,8 +29,8 @@ export const contactsApi = {
     });
     return { data: ContactListSchema.parse(result.data), meta: result.meta };
   },
-  listAll: (): Promise<Contact[]> =>
-    fetchAllPages((page, pageSize) => contactsApi.list({ page, page_size: pageSize })),
+  listAll: (params: ContactListParams = {}): Promise<Contact[]> =>
+    fetchAllPages((page, pageSize) => contactsApi.list({ ...params, page, page_size: pageSize })),
   get: async (id: string): Promise<Contact> =>
     ContactSchema.parse(await apiClient.get(`/contacts/${id}`)),
   create: async (values: ContactCreateRequest): Promise<Contact> =>

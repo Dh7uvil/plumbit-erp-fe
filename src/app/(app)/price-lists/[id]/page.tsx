@@ -13,7 +13,7 @@ export default async function PriceListDetailPage({ params }: { params: Promise<
   return (
     <PermissionGate permission={priceListPermissions.read}>
       {parsed.success ? (
-        <PriceListDetailScreen priceListId={parsed.data} />
+        <PriceListDetailScreen priceListId={parsed.data} mode="view" />
       ) : (
         <p className="text-muted-foreground text-sm">Price list not found.</p>
       )}

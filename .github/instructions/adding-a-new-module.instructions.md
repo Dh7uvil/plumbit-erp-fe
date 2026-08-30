@@ -18,7 +18,9 @@ backend does. When in doubt about where a rule lives, it lives in the backend.
    existing module.
 3. Read the backend endpoint's OpenAPI schema before writing types by hand.
 4. Identify existing slice APIs, query hooks, Zod schemas and shared components and reuse them.
-5. Identify the permissions the feature needs, so the navigation entry and actions can be gated.
+5. Identify the permissions the feature needs — read, create, update, delete, and extras — and
+   wire all three levels (nav, route, actions). Gate create/view/update/delete independently via
+   `useCrudPermissions(slicePermissions)`.
 6. Decide what renders on the server and what must be a client component.
 7. Decide what belongs in the URL (page, filters, sort, selected tab) versus component state.
 8. Avoid duplicate functionality and unnecessary dependencies.
@@ -79,7 +81,7 @@ plumbit-erp-fe/
 │   │
 │   ├── shared/                       shared building blocks — no module business logic
 │   │   ├── api/                      client.ts envelope.ts errors.ts query-client.ts
-│   │   ├── auth/                     session.ts permissions.ts guards.tsx
+│   │   ├── auth/                     session.ts permissions.ts use-crud-permissions.ts guards.tsx
 │   │   ├── components/               ui/ (shadcn primitives) data-table/ form/ layout/ feedback/
 │   │   ├── hooks/                    use-table-params.ts use-debounced-value.ts
 │   │   ├── lib/                      format.ts cn.ts search-params.ts
@@ -344,7 +346,12 @@ screens that need them:
 - Route registered in `src/config/navigation.ts` with the permission that reveals it.
 - Every response validated by a Zod schema; no `any` and no hand-written duplicate types.
 - Actions and navigation gated on permissions, with the backend still enforcing them.
-- List views paginate, and page, filters and sort live in the URL.
+- New / View / Edit / Delete (and nested create) gated independently via `useCrudPermissions`;
+  create-only users can create and view, not update. ERP/CRM masters use `/{resource}/{id}` and
+  `/{resource}/{id}/edit`; create stays in the form dialog (and nested `MasterSelect`), except
+  document `/new` where it already exists.
+- List views wrap in `ListPage`, paginate with compact page numbers, and keep page, filters and
+  sort in the URL.
 - `loading.tsx` and `error.tsx` present, plus empty and error states inside the feature.
 - Backend error codes mapped to user-facing messages; no raw error text surfaced.
 - Money and dates rendered through the shared formatters; no float arithmetic on money.

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,7 +10,14 @@ import { warehousePermissions } from "@/modules/inventory-management/warehouses/
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import type { Warehouse } from "@/modules/inventory-management/warehouses/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
@@ -24,20 +31,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Code", "Name", "Phone", "Default", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Code", "Name", "Phone", "Default", "Status"] as const;
 
 export function WarehousesPanel() {
-  const can = useCan();
-  const canRead = can(warehousePermissions.read);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(warehousePermissions);
   const warehousesQuery = useAllWarehouses(canRead);
   const deleteWarehouse = useDeleteWarehouse();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Warehouse | null>(null);
   const [deleting, setDeleting] = useState<Warehouse | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const warehouses = warehousesQuery.data ?? [];
+
+  function openCreate() {
+    setFormOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -64,15 +74,8 @@ export function WarehousesPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        {can(warehousePermissions.create) ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
+        {canCreate ? (
+          <Button type="button" size="sm" onClick={openCreate}>
             <Plus className="size-3.5" />
             New Warehouse
           </Button>
@@ -81,7 +84,7 @@ export function WarehousesPanel() {
       <DataTable>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -90,14 +93,14 @@ export function WarehousesPanel() {
           {warehousesQuery.isLoading ? (
             Array.from({ length: 3 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : warehousesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(warehousesQuery.error)}
                   onRetry={() => warehousesQuery.refetch()}
@@ -106,18 +109,22 @@ export function WarehousesPanel() {
             </TableRow>
           ) : warehouses.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No warehouses"
-                  message="Create a warehouse to get started."
+                  message={emptyListMessage(canCreate, "Create a warehouse to get started.")}
                 />
               </TableCell>
             </TableRow>
           ) : (
             warehouses.map((warehouse) => (
               <TableRow key={warehouse.id}>
-                <TableCell className="font-mono text-sm">{warehouse.code}</TableCell>
-                <TableCell className="font-medium">{warehouse.name}</TableCell>
+                <TableCell className="font-mono text-sm">
+                  <RecordLink href={`/warehouses/${warehouse.id}`}>{warehouse.code}</RecordLink>
+                </TableCell>
+                <TableCell className="font-medium">
+                  <RecordLink href={`/warehouses/${warehouse.id}`}>{warehouse.name}</RecordLink>
+                </TableCell>
                 <TableCell>{warehouse.phone || "—"}</TableCell>
                 <TableCell>
                   {warehouse.is_default ? <Badge variant="info">Default</Badge> : "—"}
@@ -125,52 +132,22 @@ export function WarehousesPanel() {
                 <TableCell>
                   <ActiveBadge active={warehouse.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(warehousePermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${warehouse.name}`}
-                        onClick={() => {
-                          setEditing(warehouse);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(warehousePermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${warehouse.name}`}
-                        onClick={() => setDeleting(warehouse)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={warehouse.name}
+                      viewHref={canRead ? `/warehouses/${warehouse.id}` : undefined}
+                      editHref={canUpdate ? `/warehouses/${warehouse.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(warehouse) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
         </TableBody>
       </DataTable>
-      <WarehouseFormDialog
-        open={formOpen}
-        warehouse={editing}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditing(null);
-          }
-        }}
-      />
+      <WarehouseFormDialog open={formOpen} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title="Delete warehouse"

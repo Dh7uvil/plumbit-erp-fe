@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { refineInitialContact } from "@/modules/crm/contacts/schemas";
 import {
   AddressFormSchema,
   AddressPayloadSchema,
@@ -80,7 +81,6 @@ export const CustomerListSchema = z.array(CustomerSchema);
 
 export const CustomerCreateRequestSchema = z.object({
   name: z.string().min(1).max(200),
-  code: z.string().min(1).max(50),
   company_type: CompanyTypeSchema.optional(),
   trn: z.string().max(50).nullable().optional(),
   tax_treatment: TaxTreatmentSchema,
@@ -124,7 +124,6 @@ export type CustomerExtraAddressCreateRequest = z.infer<
 export const CustomerFormSchema = z
   .object({
     name: z.string().min(1, "Enter a name").max(200),
-    code: z.string().min(1, "Enter a code").max(50),
     company_type: CustomerCompanyTypeSchema,
     trn: z.string().max(50),
     tax_treatment: TaxTreatmentSchema,
@@ -135,8 +134,12 @@ export const CustomerFormSchema = z
     salesperson_id: z.string(),
     billing_address: AddressFormSchema,
     shipping_address: AddressFormSchema,
+    same_as_billing: z.boolean(),
     notes: z.string().max(2000),
     is_active: z.boolean(),
+    initial_contact_name: z.string().max(200),
+    initial_contact_email: z.string().max(255),
+    initial_contact_phone: z.string().max(50),
   })
   .superRefine((values, ctx) => {
     if (values.tax_treatment === "REGISTERED" && !values.trn.trim()) {
@@ -146,6 +149,7 @@ export const CustomerFormSchema = z
         message: "Enter a TRN",
       });
     }
+    refineInitialContact(values, ctx);
   });
 export type CustomerFormValues = z.infer<typeof CustomerFormSchema>;
 

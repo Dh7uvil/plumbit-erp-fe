@@ -19,20 +19,22 @@ import {
 } from "@/modules/erp/quotations/schemas";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -43,9 +45,8 @@ import {
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Number", "Customer", "Date", "Status", "Grand total", "Actions"] as const;
+const COLUMN_HEADERS = ["Number", "Customer", "Date", "Status", "Grand total"] as const;
 const ALL = "all";
 const SORT_FIELDS = [
   { value: "quote_number", label: "Number" },
@@ -61,7 +62,7 @@ function parseStatus(value: string | undefined): QuotationStatus | undefined {
 }
 
 export function QuotationsScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate } = useCrudPermissions(quotationPermissions);
   const router = useRouter();
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
@@ -88,6 +89,8 @@ export function QuotationsScreen() {
   const branches = branchesQuery.data ?? [];
   const customerNameById = new Map(customers.map((customer) => [customer.id, customer.name]));
   const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
+  const showActions = hasRowActions(canRead, canUpdate, canCreate);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onClone(id: string) {
     try {
@@ -100,12 +103,12 @@ export function QuotationsScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Quotations"
         subtitle="Customer quotes with server-side totals"
         actions={
-          can(quotationPermissions.create) ? (
+          canCreate ? (
             <Button type="button" size="sm" asChild>
               <Link href="/quotations/new">
                 <Plus className="size-3.5" />
@@ -121,79 +124,60 @@ export function QuotationsScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search quotations…"
         />
-        <Select
+        <FilterSelect
+          className="w-44"
+          placeholder="Status"
           value={filters.status ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { status: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            {QUOTATION_STATUSES.map((status) => (
-              <SelectItem key={status} value={status}>
-                {QUOTATION_STATUS_LABELS[status]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All statuses" },
+            ...QUOTATION_STATUSES.map((status) => ({
+              value: status,
+              label: QUOTATION_STATUS_LABELS[status],
+            })),
+          ]}
+        />
+        <FilterSelect
+          className="w-48"
+          placeholder="Customer"
           value={filters.customer_id ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { customer_id: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Customer" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All customers</SelectItem>
-            {customers.map((customer) => (
-              <SelectItem key={customer.id} value={customer.id}>
-                {customer.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All customers" },
+            ...customers.map((customer) => ({ value: customer.id, label: customer.name })),
+          ]}
+        />
+        <FilterSelect
+          className="w-44"
+          placeholder="Branch"
           value={filters.branch_id ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { branch_id: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Branch" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All branches</SelectItem>
-            {branches.map((branch) => (
-              <SelectItem key={branch.id} value={branch.id}>
-                {branch.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All branches" },
+            ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+          ]}
+        />
+        <FilterSelect
+          className="w-40"
+          placeholder="Currency"
           value={filters.currency_id ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { currency_id: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Currency" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All currencies</SelectItem>
-            {currencies.map((currency) => (
-              <SelectItem key={currency.id} value={currency.id}>
-                {currency.code}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All currencies" },
+            ...currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+          ]}
+        />
+        <FilterSelect
+          className="w-40"
+          placeholder="Sort by"
           value={sort_by ?? ALL}
           onValueChange={(value) =>
             setParams({
@@ -201,38 +185,28 @@ export function QuotationsScreen() {
               sort_order: value === ALL ? null : (sort_order ?? "desc"),
             })
           }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>Default sort</SelectItem>
-            {SORT_FIELDS.map((field) => (
-              <SelectItem key={field.value} value={field.value}>
-                {field.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "Default sort" },
+            ...SORT_FIELDS.map((field) => ({ value: field.value, label: field.label })),
+          ]}
+        />
+        <FilterSelect
+          className="w-32"
+          placeholder="Order"
           value={sort_order ?? "desc"}
           onValueChange={(value) =>
             setParams({ sort_order: value === "asc" || value === "desc" ? value : null })
           }
-        >
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="Order" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="desc">Descending</SelectItem>
-            <SelectItem value="asc">Ascending</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: "desc", label: "Descending" },
+            { value: "asc", label: "Ascending" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead
                 key={header}
                 className={header === "Grand total" ? "text-right" : undefined}
@@ -246,14 +220,14 @@ export function QuotationsScreen() {
           {quotationsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : quotationsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(quotationsQuery.error)}
                   onRetry={() => quotationsQuery.refetch()}
@@ -262,10 +236,10 @@ export function QuotationsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No quotations"
-                  message="Create a quotation to get started."
+                  message={emptyListMessage(canCreate, "Create a quotation to get started.")}
                 />
               </TableCell>
             </TableRow>
@@ -276,12 +250,12 @@ export function QuotationsScreen() {
               return (
                 <TableRow key={quotation.id}>
                   <TableCell className="font-mono text-sm">
-                    <Link href={`/quotations/${quotation.id}`} className="hover:underline">
-                      {number ?? "—"}
-                    </Link>
+                    <RecordLink href={`/quotations/${quotation.id}`}>{number ?? "—"}</RecordLink>
                   </TableCell>
                   <TableCell className="font-medium">
-                    {customerNameById.get(quotation.customer_id) ?? "—"}
+                    <RecordLink href={`/quotations/${quotation.id}`}>
+                      {customerNameById.get(quotation.customer_id) ?? "—"}
+                    </RecordLink>
                   </TableCell>
                   <TableCell>{formatDate(quotation.quote_date)}</TableCell>
                   <TableCell>
@@ -290,29 +264,40 @@ export function QuotationsScreen() {
                   <TableCell className="text-right tabular-nums">
                     {formatMoney(quotation.grand_total, currencyCode)}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex gap-0.5">
-                      {can(quotationPermissions.create) ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-7"
-                          aria-label="Clone quotation"
-                          disabled={cloneQuotation.isPending}
-                          onClick={() => void onClone(quotation.id)}
-                        >
-                          <Copy className="size-3.5" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </TableCell>
+                  {showActions ? (
+                    <TableCell>
+                      <DataTableRowActions
+                        entityName={number ?? "quotation"}
+                        viewHref={canRead ? `/quotations/${quotation.id}` : undefined}
+                        editHref={
+                          canUpdate && quotation.status === "DRAFT"
+                            ? `/quotations/${quotation.id}/edit`
+                            : undefined
+                        }
+                        extra={
+                          canCreate ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              aria-label="Clone quotation"
+                              disabled={cloneQuotation.isPending}
+                              onClick={() => void onClone(quotation.id)}
+                            >
+                              <Copy className="size-3.5" />
+                            </Button>
+                          ) : undefined
+                        }
+                      />
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               );
             })
           )}
         </TableBody>
       </DataTable>
-    </div>
+    </ListPage>
   );
 }

@@ -18,7 +18,7 @@ test.describe("permissions", () => {
     await signIn(page);
     await page.goto("/permissions");
     await expect(page.getByRole("heading", { name: "Permissions" })).toBeVisible();
-    await expect(page.getByRole("combobox", { name: "Role" })).toHaveText("Superadmin");
+    await expect(page.getByRole("button", { name: "Role" })).toHaveText("Superadmin");
     await expect(page.getByRole("button", { name: "Reset to Default" }).first()).toBeVisible();
   });
 
@@ -27,8 +27,31 @@ test.describe("permissions", () => {
     await page.goto("/permissions");
     const rows = page.locator("table tbody tr");
     await expect(rows).toHaveCount(3);
-    await page.getByRole("combobox", { name: "Module" }).click();
-    await page.getByRole("option", { name: "identity" }).click();
+    await page.getByRole("button", { name: "Module" }).click();
+    await page.getByRole("menuitem", { name: "identity" }).click();
     await expect(rows).toHaveCount(2);
+  });
+
+  test("hides sidebar modules the user cannot read", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.getByRole("combobox", { name: "Organization" })).toHaveText(TENANT);
+    await page.getByLabel("Company Email").fill("reader@plumbit.com");
+    await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+    await page.getByRole("button", { name: "Sign In" }).click();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+
+    const nav = page.locator("aside").getByRole("navigation");
+    await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Units" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Customers" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Quotations" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Users" })).toHaveCount(0);
+    await expect(nav.getByText("CRM")).toHaveCount(0);
+    await expect(nav.getByText("ERP")).toHaveCount(0);
+    await expect(nav.getByText("Administration")).toHaveCount(0);
+
+    await page.goto("/units");
+    await expect(page.getByRole("heading", { name: "Units" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "New Unit" })).toHaveCount(0);
   });
 });

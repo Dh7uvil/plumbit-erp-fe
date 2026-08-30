@@ -70,7 +70,9 @@ the Playwright specs covering any flow you touched.
 - Query cache and client stores cleared on logout and tenant switch.
 - No tenant-scoped, user-scoped or financial data inside a `"use cache"` boundary or ISR page.
 - No secret or server-only value reaching a client component or a `NEXT_PUBLIC_` variable.
-- Permission gating present at navigation, route and action level — and understood as UX, not enforcement.
+- Permission gating present at navigation, route **and each CRUD action**, independently — and
+  understood as UX, not enforcement. No create-implied-edit; no empty Actions column; no create CTA
+  without `*.create`.
 - Redirect targets validated; no unsanitised `dangerouslySetInnerHTML`.
 
 **Correctness**

@@ -14,24 +14,20 @@ import {
 } from "@/modules/users-management/audit-logs/schemas";
 import { userPermissions } from "@/modules/users-management/users/permissions";
 import { useAllUsers } from "@/modules/users-management/users/queries";
+import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/shared/components/ui/card";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -232,7 +228,7 @@ export function AuditLogsScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Audit Logs"
         subtitle="System activity and security trail — all user actions recorded"
@@ -263,151 +259,128 @@ export function AuditLogsScreen() {
           isLoading={summaryQuery.isLoading}
         />
       </div>
-      <Card className="gap-0 py-0">
-        <CardHeader className="p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-              <Input
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search by user, resource…"
-                className="w-48 pl-8 md:w-56"
-              />
-            </div>
-            <Select
-              value={moduleFilter}
-              onValueChange={(value) => {
-                setModuleFilter(value);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-36 md:w-40">
-                <SelectValue placeholder="All Modules" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>All Modules</SelectItem>
-                {moduleOptions.map((module) => (
-                  <SelectItem key={module} value={module}>
-                    {titleCase(module)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={actionFilter}
-              onValueChange={(value) => {
-                setActionFilter(value);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-32 md:w-36">
-                <SelectValue placeholder="All Actions" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>All Actions</SelectItem>
-                {actionOptions.map((action) => (
-                  <SelectItem key={action} value={action}>
-                    {titleCase(action)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {canReadUsers ? (
-              <Select
-                value={userFilter}
-                onValueChange={(value) => {
-                  setUserFilter(value);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="w-40 md:w-48">
-                  <SelectValue placeholder="All Users" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>All Users</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
-                setPage(1);
-              }}
-              aria-label="From date"
-              className="w-36"
-            />
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setPage(1);
-              }}
-              aria-label="To date"
-              className="w-36"
-            />
-            {hasActiveFilters ? (
-              <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-                Clear
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <Table>
-          <TableHeader>
+      <DataTableToolbar>
+        <div className="relative">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search by user, resource…"
+            className="w-48 pl-8 md:w-56"
+          />
+        </div>
+        <FilterSelect
+          className="w-36 md:w-40"
+          placeholder="All Modules"
+          value={moduleFilter}
+          onValueChange={(value) => {
+            setModuleFilter(value);
+            setPage(1);
+          }}
+          options={[
+            { value: ALL, label: "All Modules" },
+            ...moduleOptions.map((module) => ({ value: module, label: titleCase(module) })),
+          ]}
+        />
+        <FilterSelect
+          className="w-32 md:w-36"
+          placeholder="All Actions"
+          value={actionFilter}
+          onValueChange={(value) => {
+            setActionFilter(value);
+            setPage(1);
+          }}
+          options={[
+            { value: ALL, label: "All Actions" },
+            ...actionOptions.map((action) => ({ value: action, label: titleCase(action) })),
+          ]}
+        />
+        {canReadUsers ? (
+          <FilterSelect
+            className="w-40 md:w-48"
+            placeholder="All Users"
+            value={userFilter}
+            onValueChange={(value) => {
+              setUserFilter(value);
+              setPage(1);
+            }}
+            options={[
+              { value: ALL, label: "All Users" },
+              ...users.map((user) => ({ value: user.id, label: user.name })),
+            ]}
+          />
+        ) : null}
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(event) => {
+            setDateFrom(event.target.value);
+            setPage(1);
+          }}
+          aria-label="From date"
+          className="w-36"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(event) => {
+            setDateTo(event.target.value);
+            setPage(1);
+          }}
+          aria-label="To date"
+          className="w-36"
+        />
+        {hasActiveFilters ? (
+          <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+            Clear
+          </Button>
+        ) : null}
+      </DataTableToolbar>
+      <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
+        <TableHeader>
+          <TableRow>
+            {COLUMNS.map((column) => (
+              <TableHead key={column}>{column}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {logsQuery.isLoading ? (
+            Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell colSpan={COLUMNS.length}>
+                  <Skeleton className="h-6 w-full" />
+                </TableCell>
+              </TableRow>
+            ))
+          ) : logsQuery.isError ? (
             <TableRow>
-              {COLUMNS.map((column) => (
-                <TableHead key={column}>{column}</TableHead>
-              ))}
+              <TableCell colSpan={COLUMNS.length}>
+                <DataTableError
+                  message={getErrorMessage(logsQuery.error)}
+                  onRetry={() => logsQuery.refetch()}
+                />
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {logsQuery.isLoading ? (
-              Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell colSpan={COLUMNS.length}>
-                    <Skeleton className="h-6 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : logsQuery.isError ? (
-              <TableRow>
-                <TableCell colSpan={COLUMNS.length}>
-                  <DataTableError
-                    message={getErrorMessage(logsQuery.error)}
-                    onRetry={() => logsQuery.refetch()}
-                  />
-                </TableCell>
-              </TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={COLUMNS.length}>
-                  <DataTableEmpty
-                    title="No audit logs"
-                    message={
-                      hasActiveFilters
-                        ? "Try a different search or filter."
-                        : "No activity has been recorded yet."
-                    }
-                  />
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((log) => <AuditLogRow key={log.id} log={log} />)
-            )}
-          </TableBody>
-        </Table>
-        {meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}
-      </Card>
-    </div>
+          ) : rows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={COLUMNS.length}>
+                <DataTableEmpty
+                  title="No audit logs"
+                  message={
+                    hasActiveFilters
+                      ? "Try a different search or filter."
+                      : "No activity has been recorded yet."
+                  }
+                />
+              </TableCell>
+            </TableRow>
+          ) : (
+            rows.map((log) => <AuditLogRow key={log.id} log={log} />)
+          )}
+        </TableBody>
+      </DataTable>
+    </ListPage>
   );
 }
 

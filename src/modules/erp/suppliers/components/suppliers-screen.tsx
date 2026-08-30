@@ -1,7 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,22 +17,24 @@ import {
 } from "@/modules/erp/suppliers/schemas";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -43,9 +44,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -73,7 +73,7 @@ function deleteDescription(supplier: Supplier | null): string {
 }
 
 export function SuppliersScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(supplierPermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const suppliersQuery = useSuppliers({
     page,
@@ -91,6 +91,8 @@ export function SuppliersScreen() {
   const rows = suppliersQuery.data?.data ?? [];
   const meta = suppliersQuery.data?.meta;
   const currencies = currenciesQuery.data ?? [];
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -106,12 +108,12 @@ export function SuppliersScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Suppliers"
         subtitle="Purchase-side supplier master"
         actions={
-          can(supplierPermissions.create) ? (
+          canCreate ? (
             <Button
               type="button"
               size="sm"
@@ -131,62 +133,51 @@ export function SuppliersScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search suppliers…"
         />
-        <Select
+        <FilterSelect
+          className="w-44"
+          placeholder="Tax treatment"
           value={filters.tax_treatment ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { tax_treatment: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Tax treatment" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All treatments</SelectItem>
-            {TAX_TREATMENTS.map((treatment) => (
-              <SelectItem key={treatment} value={treatment}>
-                {TAX_TREATMENT_LABELS[treatment]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All treatments" },
+            ...TAX_TREATMENTS.map((treatment) => ({
+              value: treatment,
+              label: TAX_TREATMENT_LABELS[treatment],
+            })),
+          ]}
+        />
+        <FilterSelect
+          className="w-40"
+          placeholder="Currency"
           value={filters.currency_id ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { currency_id: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Currency" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All currencies</SelectItem>
-            {currencies.map((currency) => (
-              <SelectItem key={currency.id} value={currency.id}>
-                {currency.code}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          options={[
+            { value: ALL, label: "All currencies" },
+            ...currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+          ]}
+        />
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -195,14 +186,14 @@ export function SuppliersScreen() {
           {suppliersQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : suppliersQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(suppliersQuery.error)}
                   onRetry={() => suppliersQuery.refetch()}
@@ -211,54 +202,37 @@ export function SuppliersScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
-                <DataTableEmpty title="No suppliers" message="Create a supplier to get started." />
+              <TableCell colSpan={headers.length}>
+                <DataTableEmpty
+                  title="No suppliers"
+                  message={emptyListMessage(canCreate, "Create a supplier to get started.")}
+                />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((supplier) => (
               <TableRow key={supplier.id}>
                 <TableCell className="font-mono text-sm">
-                  <Link href={`/suppliers/${supplier.id}`} className="hover:underline">
-                    {supplier.code}
-                  </Link>
+                  <RecordLink href={`/suppliers/${supplier.id}`}>{supplier.code}</RecordLink>
                 </TableCell>
-                <TableCell className="font-medium">{supplier.name}</TableCell>
+                <TableCell className="font-medium">
+                  <RecordLink href={`/suppliers/${supplier.id}`}>{supplier.name}</RecordLink>
+                </TableCell>
                 <TableCell>{COMPANY_TYPE_LABELS[supplier.company_type]}</TableCell>
                 <TableCell>{TAX_TREATMENT_LABELS[supplier.tax_treatment]}</TableCell>
                 <TableCell>
                   <ActiveBadge active={supplier.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(supplierPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${supplier.name}`}
-                        asChild
-                      >
-                        <Link href={`/suppliers/${supplier.id}`}>
-                          <Edit2 className="size-3.5" />
-                        </Link>
-                      </Button>
-                    ) : null}
-                    {can(supplierPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${supplier.name}`}
-                        onClick={() => setDeleting(supplier)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={supplier.name}
+                      viewHref={canRead ? `/suppliers/${supplier.id}` : undefined}
+                      editHref={canUpdate ? `/suppliers/${supplier.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(supplier) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
@@ -274,6 +248,6 @@ export function SuppliersScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

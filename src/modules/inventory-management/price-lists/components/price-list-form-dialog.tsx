@@ -1,13 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
+import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useCreatePriceList } from "@/modules/inventory-management/price-lists/mutations";
+import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import {
   PRICE_LIST_TYPE_LABELS,
   PRICE_LIST_TYPES,
@@ -16,14 +18,10 @@ import {
   type PriceListFormValues,
 } from "@/modules/inventory-management/price-lists/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
-import { Button } from "@/shared/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/dialog";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { FormDialogFooter } from "@/shared/components/form/form-dialog-footer";
+import { MasterSelect } from "@/shared/components/form/master-select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -41,6 +39,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useCan } from "@/shared/providers/session-provider";
 
 const EMPTY_FORM: PriceListFormValues = {
   name: "",
@@ -62,13 +61,20 @@ function toCreateRequest(values: PriceListFormValues): PriceListCreateRequest {
 export function PriceListFormDialog({
   open,
   onOpenChange,
+  onCreated,
+  nested = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreated?: (entity: { id: string }) => void;
+  nested?: boolean;
 }) {
+  const can = useCan();
+  const { canCreate } = useCrudPermissions(priceListPermissions);
   const createPriceList = useCreatePriceList();
   const currenciesQuery = useAllCurrencies(open);
   const [formError, setFormError] = useState<string | null>(null);
+  const [creatingCurrency, setCreatingCurrency] = useState(false);
   const currencies = currenciesQuery.data ?? [];
 
   const form = useForm<PriceListFormValues>({
@@ -87,10 +93,14 @@ export function PriceListFormDialog({
   }
 
   async function onSubmit(values: PriceListFormValues) {
+    if (!canCreate) {
+      return;
+    }
     setFormError(null);
     try {
-      await createPriceList.mutateAsync(toCreateRequest(values));
+      const created = await createPriceList.mutateAsync(toCreateRequest(values));
       toast.success("Price list created");
+      onCreated?.(created);
       handleOpenChange(false);
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {
@@ -104,51 +114,78 @@ export function PriceListFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent nested={nested} className="overflow-visible sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>New Price List</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
+          <form
+            onSubmit={canCreate ? form.handleSubmit(onSubmit) : (event) => event.preventDefault()}
+            className="flex flex-col gap-3"
+          >
             {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
+                  <FormItem className={listType !== "PERCENT" ? "sm:col-span-2" : undefined}>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Retail" maxLength={150} {...field} />
+                      <Input
+                        placeholder="Retail"
+                        maxLength={150}
+                        disabled={!canCreate}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {listType === "PERCENT" ? (
+                <FormField
+                  control={form.control}
+                  name="percent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Percent</FormLabel>
+                      <FormControl>
+                        <Input
+                          inputMode="decimal"
+                          placeholder="10"
+                          disabled={!canCreate}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
               <FormField
                 control={form.control}
                 name="currency_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Currency</FormLabel>
-                    <Select
-                      value={field.value || undefined}
+                    <MasterSelect
+                      value={field.value}
                       onValueChange={field.onChange}
-                      disabled={currenciesQuery.isLoading}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a currency" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {currencies.map((currency) => (
-                          <SelectItem key={currency.id} value={currency.id}>
-                            {currency.code} — {currency.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      disabled={currenciesQuery.isLoading || !canCreate}
+                      placeholder="Select a currency"
+                      searchPlaceholder="Search currency…"
+                      createLabel="Create currency"
+                      onCreate={
+                        can(currencyPermissions.create) && canCreate
+                          ? () => setCreatingCurrency(true)
+                          : undefined
+                      }
+                      options={currencies.map((currency) => ({
+                        value: currency.id,
+                        label: `${currency.code} — ${currency.name}`,
+                      }))}
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -159,9 +196,13 @@ export function PriceListFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={!canCreate}
+                    >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -177,38 +218,22 @@ export function PriceListFormDialog({
                   </FormItem>
                 )}
               />
-              {listType === "PERCENT" ? (
-                <FormField
-                  control={form.control}
-                  name="percent"
-                  render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
-                      <FormLabel>Percent</FormLabel>
-                      <FormControl>
-                        <Input inputMode="decimal" placeholder="10" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : null}
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-                disabled={pending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-                Create Price List
-              </Button>
-            </DialogFooter>
+            <FormDialogFooter
+              pending={pending}
+              canSubmit={canCreate}
+              submitLabel="Create Price List"
+              onClose={() => handleOpenChange(false)}
+            />
           </form>
         </Form>
+        <CurrencyFormDialog
+          open={creatingCurrency}
+          currency={null}
+          nested
+          onCreated={(entity) => form.setValue("currency_id", entity.id)}
+          onOpenChange={setCreatingCurrency}
+        />
       </DialogContent>
     </Dialog>
   );

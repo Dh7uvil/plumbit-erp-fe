@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,22 +10,24 @@ import { categoryPermissions } from "@/modules/inventory-management/categories/p
 import { useAllCategories, useCategories } from "@/modules/inventory-management/categories/queries";
 import type { Category } from "@/modules/inventory-management/categories/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -35,9 +37,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Code", "Name", "Parent", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Code", "Name", "Parent", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -51,7 +52,7 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
 }
 
 export function CategoriesScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(categoryPermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const categoriesQuery = useCategories({
     page,
@@ -62,8 +63,9 @@ export function CategoriesScreen() {
   const allCategoriesQuery = useAllCategories();
   const deleteCategory = useDeleteCategory();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState<Category | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = categoriesQuery.data?.data ?? [];
   const meta = categoriesQuery.data?.meta;
@@ -74,6 +76,10 @@ export function CategoriesScreen() {
     }
     return map;
   }, [allCategoriesQuery.data]);
+
+  function openCreate() {
+    setFormOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -89,20 +95,13 @@ export function CategoriesScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Categories"
         subtitle="Product category hierarchy"
         actions={
-          can(categoryPermissions.create) ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
+          canCreate ? (
+            <Button type="button" size="sm" onClick={openCreate}>
               <Plus className="size-3.5" />
               New Category
             </Button>
@@ -115,26 +114,24 @@ export function CategoriesScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search categories…"
         />
-        <Select
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -143,14 +140,14 @@ export function CategoriesScreen() {
           {categoriesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : categoriesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(categoriesQuery.error)}
                   onRetry={() => categoriesQuery.refetch()}
@@ -159,67 +156,44 @@ export function CategoriesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
-                <DataTableEmpty title="No categories" message="Create a category to get started." />
+              <TableCell colSpan={headers.length}>
+                <DataTableEmpty
+                  title="No categories"
+                  message={emptyListMessage(canCreate, "Create a category to get started.")}
+                />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((category) => (
               <TableRow key={category.id}>
-                <TableCell className="font-mono text-sm">{category.code}</TableCell>
-                <TableCell className="font-medium">{category.name}</TableCell>
+                <TableCell className="font-mono text-sm">
+                  <RecordLink href={`/categories/${category.id}`}>{category.code}</RecordLink>
+                </TableCell>
+                <TableCell className="font-medium">
+                  <RecordLink href={`/categories/${category.id}`}>{category.name}</RecordLink>
+                </TableCell>
                 <TableCell>
                   {category.parent_id ? (parentNameById.get(category.parent_id) ?? "—") : "—"}
                 </TableCell>
                 <TableCell>
                   <ActiveBadge active={category.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(categoryPermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${category.name}`}
-                        onClick={() => {
-                          setEditing(category);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(categoryPermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${category.name}`}
-                        onClick={() => setDeleting(category)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={category.name}
+                      viewHref={canRead ? `/categories/${category.id}` : undefined}
+                      editHref={canUpdate ? `/categories/${category.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(category) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
         </TableBody>
       </DataTable>
-      <CategoryFormDialog
-        open={formOpen}
-        category={editing}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditing(null);
-          }
-        }}
-      />
+      <CategoryFormDialog open={formOpen} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title="Delete category"
@@ -229,6 +203,6 @@ export function CategoriesScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

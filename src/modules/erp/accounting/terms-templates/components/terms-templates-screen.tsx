@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,23 +10,25 @@ import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templat
 import { useTermsTemplates } from "@/modules/erp/accounting/terms-templates/queries";
 import type { TermsTemplate } from "@/modules/erp/accounting/terms-templates/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { RecordLink } from "@/shared/components/data-table/record-link";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -36,9 +38,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Name", "Default", "Status", "Actions"] as const;
+const COLUMN_HEADERS = ["Name", "Default", "Status"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -52,7 +53,7 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
 }
 
 export function TermsTemplatesScreen() {
-  const can = useCan();
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(termsTemplatePermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const termsTemplatesQuery = useTermsTemplates({
     page,
@@ -62,11 +63,16 @@ export function TermsTemplatesScreen() {
   });
   const deleteTermsTemplate = useDeleteTermsTemplate();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<TermsTemplate | null>(null);
   const [deleting, setDeleting] = useState<TermsTemplate | null>(null);
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = termsTemplatesQuery.data?.data ?? [];
   const meta = termsTemplatesQuery.data?.meta;
+
+  function openCreate() {
+    setFormOpen(true);
+  }
 
   async function confirmDelete() {
     if (!deleting) {
@@ -82,20 +88,13 @@ export function TermsTemplatesScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="Terms templates"
         subtitle="Reusable terms and conditions bodies"
         actions={
-          can(termsTemplatePermissions.create) ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
+          canCreate ? (
+            <Button type="button" size="sm" onClick={openCreate}>
               <Plus className="size-3.5" />
               New Terms Template
             </Button>
@@ -108,26 +107,24 @@ export function TermsTemplatesScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search terms templates…"
         />
-        <Select
+        <FilterSelect
+          className="w-36"
+          placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {HEADERS.map((header) => (
+            {headers.map((header) => (
               <TableHead key={header}>{header}</TableHead>
             ))}
           </TableRow>
@@ -136,14 +133,14 @@ export function TermsTemplatesScreen() {
           {termsTemplatesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={HEADERS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : termsTemplatesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(termsTemplatesQuery.error)}
                   onRetry={() => termsTemplatesQuery.refetch()}
@@ -152,69 +149,43 @@ export function TermsTemplatesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={HEADERS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No terms templates"
-                  message="Create a terms template to get started."
+                  message={emptyListMessage(canCreate, "Create a terms template to get started.")}
                 />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((template) => (
               <TableRow key={template.id}>
-                <TableCell className="font-medium">{template.name}</TableCell>
+                <TableCell className="font-medium">
+                  <RecordLink href={`/terms-templates/${template.id}`}>{template.name}</RecordLink>
+                </TableCell>
                 <TableCell>
-                  {template.is_default ? <Badge variant="info">Default</Badge> : "—"}
+                  <RecordLink href={`/terms-templates/${template.id}`}>
+                    {template.is_default ? <Badge variant="info">Default</Badge> : "—"}
+                  </RecordLink>
                 </TableCell>
                 <TableCell>
                   <ActiveBadge active={template.is_active} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-0.5">
-                    {can(termsTemplatePermissions.update) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${template.name}`}
-                        onClick={() => {
-                          setEditing(template);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {can(termsTemplatePermissions.delete) ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label={`Delete ${template.name}`}
-                        onClick={() => setDeleting(template)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TableCell>
+                {showActions ? (
+                  <TableCell>
+                    <DataTableRowActions
+                      entityName={template.name}
+                      viewHref={canRead ? `/terms-templates/${template.id}` : undefined}
+                      editHref={canUpdate ? `/terms-templates/${template.id}/edit` : undefined}
+                      onDelete={canDelete ? () => setDeleting(template) : undefined}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))
           )}
         </TableBody>
       </DataTable>
-      <TermsTemplateFormDialog
-        open={formOpen}
-        template={editing}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditing(null);
-          }
-        }}
-      />
+      <TermsTemplateFormDialog open={formOpen} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title="Delete terms template"
@@ -224,6 +195,6 @@ export function TermsTemplatesScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </div>
+    </ListPage>
   );
 }

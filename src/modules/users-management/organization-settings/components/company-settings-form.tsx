@@ -7,6 +7,7 @@ import { useForm, type Control, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import type { Currency } from "@/modules/erp/currencies/schemas";
@@ -26,7 +27,8 @@ import {
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTableError } from "@/shared/components/data-table/states";
-import { SearchableSelect } from "@/shared/components/form/searchable-select";
+import { AddressFields } from "@/shared/components/form/address-fields";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { TimezoneSelect } from "@/shared/components/form/timezone-select";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -284,6 +286,7 @@ export function CompanySettingsForm() {
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isEditingRegional, setIsEditingRegional] = useState(false);
   const [currencyDraft, setCurrencyDraft] = useState(OPTIONAL_SELECT_NONE);
+  const [creatingCurrency, setCreatingCurrency] = useState(false);
   const tenant = tenantQuery.data;
   const currencies = currenciesQuery.data ?? EMPTY_CURRENCIES;
   const isEditing = isEditingCompany || isEditingRegional;
@@ -452,85 +455,50 @@ export function CompanySettingsForm() {
               </CardAction>
             ) : null}
           </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <TextField
+          <CardContent className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <TextField
+                control={form.control}
+                name="name"
+                label="Company Name"
+                disabled={!canUpdate || !isEditingCompany}
+              />
+              <TextField
+                control={form.control}
+                name="industry"
+                label="Industry"
+                disabled={!canUpdate || !isEditingCompany}
+              />
+              <TextField
+                control={form.control}
+                name="website"
+                label="Website"
+                disabled={!canUpdate || !isEditingCompany}
+              />
+              <TextField
+                control={form.control}
+                name="contact_email"
+                label="Contact Email"
+                type="email"
+                disabled={!canUpdate || !isEditingCompany}
+              />
+              <TextField
+                control={form.control}
+                name="phone"
+                label="Phone"
+                disabled={!canUpdate || !isEditingCompany}
+              />
+              <TextField
+                control={form.control}
+                name="founded"
+                label="Founded"
+                disabled={!canUpdate || !isEditingCompany}
+              />
+            </div>
+            <p className="text-sm font-medium">Headquarters</p>
+            <AddressFields
               control={form.control}
-              name="name"
-              label="Company Name"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="industry"
-              label="Industry"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="website"
-              label="Website"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="contact_email"
-              label="Contact Email"
-              type="email"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="phone"
-              label="Phone"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="founded"
-              label="Founded"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="headquarters.address_line_1"
-              label="Address line 1"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="headquarters.address_line_2"
-              label="Address line 2"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="headquarters.city"
-              label="City"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="headquarters.state"
-              label="State"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="headquarters.country"
-              label="Country"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="headquarters.country_code"
-              label="Country code"
-              disabled={!canUpdate || !isEditingCompany}
-            />
-            <TextField
-              control={form.control}
-              name="headquarters.postal_code"
-              label="Postal code"
-              className="sm:col-span-2"
+              name="headquarters"
               disabled={!canUpdate || !isEditingCompany}
             />
           </CardContent>
@@ -588,7 +556,7 @@ export function CompanySettingsForm() {
               </CardAction>
             ) : null}
           </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {canReadCurrencies && !currenciesQuery.isError ? (
               <FormField
                 control={form.control}
@@ -609,7 +577,7 @@ export function CompanySettingsForm() {
                   );
                   return (
                     <SettingsFieldItem label="Default Currency">
-                      <SearchableSelect
+                      <MasterSelect
                         value={selectValue}
                         onValueChange={(id) => {
                           setCurrencyDraft(id);
@@ -622,6 +590,12 @@ export function CompanySettingsForm() {
                         disabled={!canUpdate || !isEditingRegional || currenciesQuery.isLoading}
                         placeholder={selectLabel}
                         searchPlaceholder="Search currency…"
+                        createLabel="Create currency"
+                        onCreate={
+                          can(currencyPermissions.create)
+                            ? () => setCreatingCurrency(true)
+                            : undefined
+                        }
                         options={[
                           { value: OPTIONAL_SELECT_NONE, label: "None" },
                           ...(missingCurrent ? [{ value: selectValue, label: selectLabel }] : []),
@@ -662,14 +636,13 @@ export function CompanySettingsForm() {
               control={form.control}
               name="fiscal_year_start"
               label="Fiscal year start"
-              className="sm:col-span-2"
               disabled={!canUpdate || !isEditingRegional}
             />
             <FormField
               control={form.control}
               name="quotation_requires_approval"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 space-y-0 sm:col-span-2">
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -686,6 +659,17 @@ export function CompanySettingsForm() {
           </CardContent>
         </Card>
       </form>
+      <CurrencyFormDialog
+        open={creatingCurrency}
+        currency={null}
+        nested
+        onCreated={(entity) => {
+          setCurrencyDraft(entity.id);
+          form.setValue("default_currency_id", entity.id, { shouldDirty: true });
+          form.setValue("default_currency", entity.code, { shouldDirty: true });
+        }}
+        onOpenChange={setCreatingCurrency}
+      />
     </Form>
   );
 }

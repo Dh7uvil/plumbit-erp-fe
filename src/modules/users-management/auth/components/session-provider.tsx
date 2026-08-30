@@ -1,11 +1,12 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 
-import { authKeys } from "@/modules/users-management/auth/queries";
+import { useMe } from "@/modules/users-management/auth/queries";
 import type { SessionUser } from "@/shared/auth/session-schema";
 import { SessionProvider as SessionPermissionsProvider } from "@/shared/providers/session-provider";
+
+const EMPTY_PERMISSIONS: readonly string[] = [];
 
 export function SessionProvider({
   children,
@@ -14,17 +15,9 @@ export function SessionProvider({
   children: ReactNode;
   initialMe: SessionUser | null;
 }) {
-  const queryClient = useQueryClient();
+  const { data: me } = useMe(initialMe);
+  const permissions = me?.permissions ?? EMPTY_PERMISSIONS;
+  const value = useMemo(() => ({ permissions }), [permissions]);
 
-  useEffect(() => {
-    if (initialMe) {
-      queryClient.setQueryData(authKeys.me(), initialMe);
-    }
-  }, [initialMe, queryClient]);
-
-  return (
-    <SessionPermissionsProvider value={{ permissions: initialMe?.permissions ?? [] }}>
-      {children}
-    </SessionPermissionsProvider>
-  );
+  return <SessionPermissionsProvider value={value}>{children}</SessionPermissionsProvider>;
 }
