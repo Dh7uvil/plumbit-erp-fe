@@ -1,59 +1,47 @@
 import { z } from "zod";
 
 import {
+  COMPANY_TYPE_LABELS,
+  CompanyTypeSchema,
+  TAX_TREATMENT_LABELS,
+  TAX_TREATMENTS,
+  TaxTreatmentSchema,
+  type CompanyType,
+  type TaxTreatment,
+} from "@/modules/crm/customers/schemas";
+import {
   AddressFormSchema,
   AddressPayloadSchema,
 } from "@/modules/users-management/tenants/schemas";
 import { MoneySchema } from "@/shared/lib/money";
 
-export const COMPANY_TYPES = ["CUSTOMER", "SUPPLIER", "BOTH", "OTHER"] as const;
-export const CompanyTypeSchema = z.enum(COMPANY_TYPES);
-export type CompanyType = z.infer<typeof CompanyTypeSchema>;
+export { COMPANY_TYPE_LABELS, TAX_TREATMENT_LABELS, TAX_TREATMENTS };
+export type { CompanyType, TaxTreatment };
 
-export const CUSTOMER_COMPANY_TYPES = ["CUSTOMER", "BOTH", "OTHER"] as const;
-export const CustomerCompanyTypeSchema = z.enum(CUSTOMER_COMPANY_TYPES);
-export type CustomerCompanyType = z.infer<typeof CustomerCompanyTypeSchema>;
+export const SUPPLIER_COMPANY_TYPES = ["SUPPLIER", "BOTH"] as const;
+export const SupplierCompanyTypeSchema = z.enum(SUPPLIER_COMPANY_TYPES);
+export type SupplierCompanyType = z.infer<typeof SupplierCompanyTypeSchema>;
 
-export const COMPANY_TYPE_LABELS: Record<CompanyType, string> = {
-  CUSTOMER: "Customer",
+export const SUPPLIER_COMPANY_TYPE_LABELS: Record<SupplierCompanyType, string> = {
   SUPPLIER: "Supplier",
-  BOTH: "Both",
-  OTHER: "Other",
+  BOTH: "Both ( & Customer )",
 };
 
-export const CUSTOMER_COMPANY_TYPE_LABELS: Record<CustomerCompanyType, string> = {
-  CUSTOMER: "Customer",
-  BOTH: "Both ( & Supplier )",
-  OTHER: "Other",
-};
-
-export const TAX_TREATMENTS = ["REGISTERED", "UNREGISTERED", "EXPORT", "GCC", "EXEMPT"] as const;
-export const TaxTreatmentSchema = z.enum(TAX_TREATMENTS);
-export type TaxTreatment = z.infer<typeof TaxTreatmentSchema>;
-
-export const TAX_TREATMENT_LABELS: Record<TaxTreatment, string> = {
-  REGISTERED: "Registered",
-  UNREGISTERED: "Unregistered",
-  EXPORT: "Export",
-  GCC: "GCC",
-  EXEMPT: "Exempt",
-};
-
-export const CustomerAddressSchema = AddressPayloadSchema.extend({
+export const SupplierAddressSchema = AddressPayloadSchema.extend({
   id: z.string().uuid().optional(),
 });
-export type CustomerAddress = z.infer<typeof CustomerAddressSchema>;
+export type SupplierAddress = z.infer<typeof SupplierAddressSchema>;
 
-export const CustomerExtraAddressSchema = z.object({
+export const SupplierExtraAddressSchema = z.object({
   id: z.string().uuid(),
   label: z.string().nullable(),
   is_default_billing: z.boolean(),
   is_default_shipping: z.boolean(),
-  address: CustomerAddressSchema,
+  address: SupplierAddressSchema,
 });
-export type CustomerExtraAddress = z.infer<typeof CustomerExtraAddressSchema>;
+export type SupplierExtraAddress = z.infer<typeof SupplierExtraAddressSchema>;
 
-export const CustomerSchema = z.object({
+export const SupplierSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
   name: z.string(),
@@ -66,19 +54,19 @@ export const CustomerSchema = z.object({
   payment_terms_id: z.string().uuid().nullable(),
   credit_limit: MoneySchema.nullable(),
   salesperson_id: z.string().uuid().nullable(),
-  billing_address: CustomerAddressSchema.nullable().optional().default(null),
-  shipping_address: CustomerAddressSchema.nullable().optional().default(null),
-  extra_addresses: z.array(CustomerExtraAddressSchema).optional().default([]),
+  billing_address: SupplierAddressSchema.nullable().optional().default(null),
+  shipping_address: SupplierAddressSchema.nullable().optional().default(null),
+  extra_addresses: z.array(SupplierExtraAddressSchema).optional().default([]),
   notes: z.string().nullable(),
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
 });
-export type Customer = z.infer<typeof CustomerSchema>;
+export type Supplier = z.infer<typeof SupplierSchema>;
 
-export const CustomerListSchema = z.array(CustomerSchema);
+export const SupplierListSchema = z.array(SupplierSchema);
 
-export const CustomerCreateRequestSchema = z.object({
+export const SupplierCreateRequestSchema = z.object({
   name: z.string().min(1).max(200),
   code: z.string().min(1).max(50),
   company_type: CompanyTypeSchema.optional(),
@@ -93,10 +81,11 @@ export const CustomerCreateRequestSchema = z.object({
   shipping_address: AddressPayloadSchema.nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
 });
-export type CustomerCreateRequest = z.infer<typeof CustomerCreateRequestSchema>;
+export type SupplierCreateRequest = z.infer<typeof SupplierCreateRequestSchema>;
 
-export const CustomerUpdateRequestSchema = z.object({
+export const SupplierUpdateRequestSchema = z.object({
   name: z.string().min(1).max(200).nullable().optional(),
+  company_type: CompanyTypeSchema.nullable().optional(),
   trn: z.string().max(50).nullable().optional(),
   tax_treatment: TaxTreatmentSchema.nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
@@ -109,23 +98,23 @@ export const CustomerUpdateRequestSchema = z.object({
   notes: z.string().max(2000).nullable().optional(),
   is_active: z.boolean().nullable().optional(),
 });
-export type CustomerUpdateRequest = z.infer<typeof CustomerUpdateRequestSchema>;
+export type SupplierUpdateRequest = z.infer<typeof SupplierUpdateRequestSchema>;
 
-export const CustomerExtraAddressCreateRequestSchema = z.object({
+export const SupplierExtraAddressCreateRequestSchema = z.object({
   label: z.string().max(100).nullable().optional(),
   address: AddressPayloadSchema,
   is_default_billing: z.boolean().optional(),
   is_default_shipping: z.boolean().optional(),
 });
-export type CustomerExtraAddressCreateRequest = z.infer<
-  typeof CustomerExtraAddressCreateRequestSchema
+export type SupplierExtraAddressCreateRequest = z.infer<
+  typeof SupplierExtraAddressCreateRequestSchema
 >;
 
-export const CustomerFormSchema = z
+export const SupplierFormSchema = z
   .object({
     name: z.string().min(1, "Enter a name").max(200),
     code: z.string().min(1, "Enter a code").max(50),
-    company_type: CustomerCompanyTypeSchema,
+    company_type: SupplierCompanyTypeSchema,
     trn: z.string().max(50),
     tax_treatment: TaxTreatmentSchema,
     currency_id: z.string(),
@@ -147,7 +136,7 @@ export const CustomerFormSchema = z
       });
     }
   });
-export type CustomerFormValues = z.infer<typeof CustomerFormSchema>;
+export type SupplierFormValues = z.infer<typeof SupplierFormSchema>;
 
 export const ExtraAddressFormSchema = z.object({
   label: z.string().max(100),
@@ -157,7 +146,7 @@ export const ExtraAddressFormSchema = z.object({
 });
 export type ExtraAddressFormValues = z.infer<typeof ExtraAddressFormSchema>;
 
-export type CustomerListParams = {
+export type SupplierListParams = {
   page?: number;
   page_size?: number;
   search?: string;
@@ -165,6 +154,5 @@ export type CustomerListParams = {
   sort_order?: "asc" | "desc";
   tax_treatment?: TaxTreatment;
   currency_id?: string;
-  company_type?: CustomerCompanyType;
   is_active?: boolean;
 };

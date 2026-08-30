@@ -14,6 +14,7 @@ import {
   Shield,
   ShoppingCart,
   Tags,
+  Truck,
   UserCog,
   Users,
   Wallet,
@@ -30,6 +31,7 @@ import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templat
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
+import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
 import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
@@ -119,16 +121,21 @@ export const navigation: NavigationGroup[] = [
         icon: Warehouse,
       },
       {
-        label: "Customers",
-        href: "/customers",
-        permission: customerPermissions.read,
-        icon: Users,
-      },
-      {
         label: "Contacts",
         href: "/contacts",
         permission: contactPermissions.read,
         icon: Contact,
+      },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      {
+        label: "Customers",
+        href: "/customers",
+        permission: customerPermissions.read,
+        icon: Users,
       },
     ],
   },
@@ -140,6 +147,12 @@ export const navigation: NavigationGroup[] = [
         href: "/quotations",
         permission: quotationPermissions.read,
         icon: ShoppingCart,
+      },
+      {
+        label: "Suppliers",
+        href: "/suppliers",
+        permission: supplierPermissions.read,
+        icon: Truck,
       },
     ],
   },

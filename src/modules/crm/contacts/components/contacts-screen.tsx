@@ -9,8 +9,7 @@ import { useDeleteContact } from "@/modules/crm/contacts/mutations";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useContacts } from "@/modules/crm/contacts/queries";
 import type { Contact } from "@/modules/crm/contacts/schemas";
-import { customerPermissions } from "@/modules/crm/customers/permissions";
-import { useAllCustomers } from "@/modules/crm/customers/queries";
+import { useCompanyOptions } from "@/modules/crm/contacts/use-company-options";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -40,7 +39,7 @@ import {
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
-const HEADERS = ["Name", "Customer", "Email", "Phone", "Primary", "Status", "Actions"] as const;
+const HEADERS = ["Name", "Company", "Email", "Phone", "Primary", "Status", "Actions"] as const;
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -64,7 +63,7 @@ export function ContactsScreen() {
     is_primary: parseBoolFilter(filters.is_primary),
     is_active: parseBoolFilter(filters.is_active),
   });
-  const customersQuery = useAllCustomers(can(customerPermissions.read));
+  const companiesQuery = useCompanyOptions();
   const deleteContact = useDeleteContact();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
@@ -72,14 +71,14 @@ export function ContactsScreen() {
 
   const rows = contactsQuery.data?.data ?? [];
   const meta = contactsQuery.data?.meta;
-  const customerNameById = useMemo(() => {
+  const companyNameById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const customer of customersQuery.data ?? []) {
-      map.set(customer.id, customer.name);
+    for (const company of companiesQuery.companies) {
+      map.set(company.id, company.name);
     }
     return map;
-  }, [customersQuery.data]);
-  const customers = customersQuery.data ?? [];
+  }, [companiesQuery.companies]);
+  const companies = companiesQuery.companies;
 
   async function confirmDelete() {
     if (!deleting) {
@@ -98,7 +97,7 @@ export function ContactsScreen() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Contacts"
-        subtitle="People belonging to a customer"
+        subtitle="People belonging to a customer or supplier"
         actions={
           can(contactPermissions.create) ? (
             <Button
@@ -128,13 +127,13 @@ export function ContactsScreen() {
           }
         >
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Customer" />
+            <SelectValue placeholder="Company" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All customers</SelectItem>
-            {customers.map((customer) => (
-              <SelectItem key={customer.id} value={customer.id}>
-                {customer.name}
+            <SelectItem value={ALL}>All companies</SelectItem>
+            {companies.map((company) => (
+              <SelectItem key={company.id} value={company.id}>
+                {company.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -199,14 +198,17 @@ export function ContactsScreen() {
           ) : rows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={HEADERS.length}>
-                <DataTableEmpty title="No contacts" message="Create a contact to get started." />
+                <DataTableEmpty
+                  title="No contacts"
+                  message="Create a contact for a customer or supplier to get started."
+                />
               </TableCell>
             </TableRow>
           ) : (
             rows.map((contact) => (
               <TableRow key={contact.id}>
                 <TableCell className="font-medium">{contact.name}</TableCell>
-                <TableCell>{customerNameById.get(contact.customer_id) ?? "—"}</TableCell>
+                <TableCell>{companyNameById.get(contact.customer_id) ?? "—"}</TableCell>
                 <TableCell>{contact.email || "—"}</TableCell>
                 <TableCell>{contact.phone || "—"}</TableCell>
                 <TableCell>

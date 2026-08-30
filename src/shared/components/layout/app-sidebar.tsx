@@ -34,7 +34,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
     if (label in toggledGroups) {
       return toggledGroups[label];
     }
-    return label === active?.group;
+    return true;
   }
 
   return (
