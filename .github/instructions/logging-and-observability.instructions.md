@@ -42,6 +42,7 @@ report can be joined to the backend log for the same request.
 passwords                access tokens         refresh tokens
 session cookies          API keys              full request or response bodies
 financial figures        customer PII          another tenant's data
+ASP API keys             Peppol private material
 ```
 
 Redact at the reporting layer rather than trusting call sites, and scrub URLs and breadcrumbs too — a

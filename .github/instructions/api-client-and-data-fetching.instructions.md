@@ -139,11 +139,22 @@ Map codes to user-facing copy in one place, `src/shared/api/errors.ts`, with a s
 fallback for unknown codes:
 
 ```text
-AUTH_INVALID_CREDENTIALS   PERMISSION_DENIED     INSUFFICIENT_STOCK
-AUTH_TOKEN_EXPIRED         RESOURCE_NOT_FOUND    INVALID_STATUS_TRANSITION
-TENANT_ACCESS_DENIED       VALIDATION_ERROR      FINANCIAL_TRANSACTION_LOCKED
-DUPLICATE_RESOURCE         INTEGRATION_ERROR
+AUTH_INVALID_CREDENTIALS              PERMISSION_DENIED
+AUTH_TOKEN_EXPIRED                    RESOURCE_NOT_FOUND
+TENANT_ACCESS_DENIED                  VALIDATION_ERROR
+DUPLICATE_RESOURCE                    INVALID_STATUS_TRANSITION
+INTEGRATION_ERROR                     FINANCIAL_TRANSACTION_LOCKED
+INVENTORY_INSUFFICIENT_STOCK          INSUFFICIENT_STOCK (alias)
+PERIOD_LOCKED                         PERIOD_LOCK_BLOCKED_NEGATIVE_STOCK
+DRAFT_DOCUMENT_NOT_POSTED             DOCUMENT_STALE
+IDEMPOTENCY_CONFLICT                  EXCHANGE_RATE_MISSING
+EINVOICE_NOT_READY                    EINVOICE_REJECTED
+EINVOICE_ASP_UNAVAILABLE              EINVOICE_ALREADY_EXCHANGED
 ```
+
+For stock and lock errors, render `details` (warehouse, available qty, lock date) — do not invent
+them. For e-invoice rejection, show `asp_error_message` from the document or error details. On
+`DOCUMENT_STALE` / 409, refetch and block the write.
 
 Never render a raw exception, stack trace, status code or backend internal message to the user.
 `VALIDATION_ERROR` details are attached to the corresponding form fields rather than shown as one
@@ -211,12 +222,15 @@ export function useCreateLead() {
 }
 ```
 
-Invalidate every query the write affects, including other slices — creating a sales order changes
-stock, so invalidate the stock keys too. Prefer invalidation over manually patching the cache.
+Invalidate every query the write affects, including other slices — posting an invoice changes
+stock and the document, so invalidate both. Prefer invalidation over manually patching the cache.
+
+Send `Idempotency-Key` on post, payment, stock-movement and e-invoice submit mutations. Send
+`If-Match` / `version` on document PATCH and post when the API requires it.
 
 Use optimistic updates only for cheap, reversible interactions such as toggling a flag or
 reordering a list, and always implement the rollback. Never apply an optimistic update to money,
-stock, posting or approval — the user must see the server's answer.
+stock, posting, approval or e-invoice submit — the user must see the server's answer.
 
 Guard against duplicate submits: disable the submit control while the mutation is in flight, and
 never let a double click create two documents.
@@ -309,4 +323,6 @@ Before a slice's data layer is considered complete, verify all of:
 Single client         Zod validation      Error-code mapping
 Typed api.ts          Query key factory   Loading / empty / error states
 Version from config   Invalidation        Pagination, filters and sort in the URL
+Idempotency-Key on post / payment / einvoice submit
+If-Match / version on document PATCH and post
 ```

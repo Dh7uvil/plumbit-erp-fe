@@ -131,8 +131,8 @@ Dates, numbers and currency are formatted through the shared formatters built on
 the user's locale and the tenant's default currency from configuration. Do not add a date library to
 do what `Intl` and the platform already do.
 
-If the application is localised, all interface strings go through the i18n layer from the start —
-retrofitting is far more expensive than doing it as screens are built.
+Keep interface copy in components. Do not retrofit an i18n library in this pass. Do not concatenate
+sentences from fragments. Do not add Arabic/RTL until a product decision exists.
 
 ## Technology stack
 
@@ -163,14 +163,16 @@ client-side dependency is paid for by every user on every page load.
 ## Deployment topology
 
 ```text
-Internet → CDN / Load Balancer → Next.js (Node.js runtime)
-                                   ├── Route handlers (BFF: session, uploads)
-                                   ├── Server components (server-side data fetching)
-                                   └── ERP Backend API → PostgreSQL, Redis, Object Storage
+Internet → AWS Amplify (Next.js)
+              → API Gateway → Lambda (FastAPI)
+                    ├── Amazon RDS PostgreSQL
+                    └── Amazon S3 (MinIO locally)
 ```
 
-The front-end holds no database connection and no queue. Everything it needs comes from the backend
-API. Build once and configure per environment — a production image must not be rebuilt to change an
+Redis is not part of this topology and is not required. ASP credentials, JWT secrets and object-
+storage keys are server-only on the backend — never `NEXT_PUBLIC_`. The front-end holds no
+database connection, no queue and no e-invoicing provider key. Everything it needs comes from the
+backend API. Build once and configure per environment — a production image must not be rebuilt to change an
 API URL, so keep runtime-varying values out of the build where possible and document those that must
 be baked in.
 

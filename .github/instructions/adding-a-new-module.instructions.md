@@ -31,14 +31,14 @@ backend does. When in doubt about where a rule lives, it lives in the backend.
 These mirror the backend modules so a feature is found in the same place on both sides.
 Everything belongs to exactly one of them.
 
-| Module                  | Owns                                                                                                |
-| ----------------------- | --------------------------------------------------------------------------------------------------- |
-| `users-management`      | auth, users, roles, permissions, tenants                                                            |
-| `erp`                   | quotations, sales-orders, purchase-invoices, purchase-orders, accounting, logistics, exchange-rates |
-| `inventory-management`  | products, categories, warehouses, stock, transfers, adjustments                                     |
-| `crm`                   | leads, customers, contacts, opportunities, activities                                               |
-| `communication-service` | email, whatsapp, chat, meetings                                                                     |
-| `notifications-service` | notifications, templates, delivery status                                                           |
+| Module                  | Owns |
+| ----------------------- | ---- |
+| `users-management`      | Identity (BE `app/auth/`): **implemented** auth, users, roles, permissions, tenants/org-settings, branches, departments, employees (nested), audit-logs. **Planned:** tenant operational settings. |
+| `erp`                   | **Implemented:** quotations, currencies, exchange-rates, taxes, payment-terms, terms-templates, document-sequences, suppliers. **Planned:** sales-orders, sales-invoices, credit-notes, customer-payments, purchase-orders, purchase-invoices, debit-notes, supplier-payments, accounting (COA, journals, AR, AP), logistics, einvoicing status UX. |
+| `inventory-management`  | **Implemented:** units, categories, products, price-lists, warehouses. **Planned:** stock, stock-transfers, stock-adjustments, goods-receipts, delivery-notes, sales-returns. |
+| `crm`                   | **Implemented:** customers, contacts. **Planned:** leads, opportunities, activities. |
+| `communication-service` | email, whatsapp, chat, meetings (planned) |
+| `notifications-service` | notifications, templates, delivery status (planned) |
 
 Adding a new top-level module requires explicit justification. If a feature is close to an
 existing module's domain, it becomes a slice inside that module instead.
@@ -54,30 +54,30 @@ plumbit-erp-fe/
 │   │   ├── (auth)/                   login/ forgot-password/ — unauthenticated shell
 │   │   ├── (app)/                    authenticated shell: sidebar, topbar, tenant switcher
 │   │   │   ├── layout.tsx
-│   │   │   ├── leads/                page.tsx  [id]/page.tsx  loading.tsx  error.tsx
-│   │   │   ├── customers/
+│   │   │   ├── customers/            implemented
 │   │   │   ├── products/
 │   │   │   ├── quotations/
-│   │   │   └── purchase-invoices/
+│   │   │   ├── organization-settings/
+│   │   │   └── (planned slices omitted from nav until the API exists)
 │   │   └── api/                      route handlers — BFF only (auth cookie exchange, uploads)
 │   │
 │   ├── proxy.ts                      optimistic redirects only, never the auth boundary
 │   │
 │   ├── modules/                      one folder per top-level module, slices inside
 │   │   ├── users-management/         auth/ users/ roles/ permissions/ tenants/
+│   │   │                             organization-settings/ branches/ departments/ audit-logs/
 │   │   ├── erp/
-│   │   │   ├── quotations/
-│   │   │   ├── sales-orders/
-│   │   │   ├── purchase-invoices/
-│   │   │   ├── purchase-orders/
-│   │   │   ├── accounting/
-│   │   │   ├── logistics/
-│   │   │   └── exchange-rates/
-│   │   ├── inventory-management/     products/ categories/ warehouses/ stock/
-│   │   │                             stock-transfers/ stock-adjustments/
-│   │   ├── crm/                      leads/ customers/ contacts/ opportunities/ activities/
-│   │   ├── communication-service/    email/ whatsapp/ chat/ meetings/
-│   │   └── notifications-service/    notifications/ templates/ delivery/
+│   │   │   ├── quotations/  currencies/  exchange-rates/  suppliers/
+│   │   │   ├── accounting/  taxes/ payment-terms/ terms-templates/ document-sequences/
+│   │   │   ├── sales-orders/ sales-invoices/ credit-notes/ customer-payments/   (planned)
+│   │   │   ├── purchase-orders/ purchase-invoices/ debit-notes/ supplier-payments/  (planned)
+│   │   │   └── logistics/   (planned)
+│   │   ├── inventory-management/     units/ categories/ products/ price-lists/ warehouses/
+│   │   │                             stock/ stock-transfers/ stock-adjustments/  (planned)
+│   │   ├── crm/                      customers/ contacts/
+│   │   │                             leads/ opportunities/ activities/  (planned)
+│   │   ├── communication-service/    planned
+│   │   └── notifications-service/    planned
 │   │
 │   ├── shared/                       shared building blocks — no module business logic
 │   │   ├── api/                      client.ts envelope.ts errors.ts query-client.ts
@@ -93,7 +93,7 @@ plumbit-erp-fe/
 │
 ├── e2e/                              Playwright specs for critical flows
 ├── public/
-├── docs/                             architecture.md conventions.md
+├── docs/                             administration-api-gaps.md (do not invent screens without an API)
 │
 ├── .env.example  .gitignore  Dockerfile
 ├── next.config.ts  tsconfig.json  eslint.config.mjs  package.json  README.md
@@ -177,6 +177,8 @@ hardcode a link that the current user may not be allowed to open.
 ```
 
 Hiding a link is a usability decision, not a security one — the backend still enforces access.
+Register nav **only** for slices with a live API. Feature-flag or omit unimplemented slices (same
+rule as [administration-api-gaps.md](../../../docs/administration-api-gaps.md)).
 
 ## Render flow
 
@@ -264,8 +266,10 @@ if (order.total > 50000 && !user.isManager) {
 }
 
 // Good — the backend already told us
-{order.availableActions.includes("approve") && <ApproveButton />}
+{order.available_actions.includes("approve") && <ApproveButton />}
 ```
+
+Keep the field as the API returns it (`available_actions`). Do not compute the list from status.
 
 ## Schema rules
 
@@ -296,6 +300,10 @@ Ephemeral UI state       useState in the component that owns it
 Cross-screen UI state    Zustand — sidebar, command palette, unsaved-changes guard
 ```
 
+Command palette and keyboard shortcuts for list/document screens may use Zustand. Saved filters
+live in the URL only — no second cache. Print/PDF is a backend job opened from the document
+toolbar. Attachments use `identity.attachment.*`, not a new module.
+
 Never copy server data into Zustand or `useState`, and never keep two sources of truth for the
 same value. List parameters belong in the URL so a filtered view can be shared, bookmarked and
 restored on reload.
@@ -321,7 +329,7 @@ React component, or circular imports between slices.
 | Types and Zod schemas | `PascalCase`             | `Lead`, `LeadFilters`, `LeadCreateSchema`                          |
 | Routes                | hyphenated plural        | `/leads`, `/products`, `/sales-orders`, `/purchase-invoices`       |
 | Query keys            | array, resource first    | `["leads", "list", filters]`, `["leads", "detail", id]`            |
-| Permissions           | `module.resource.action` | `crm.lead.read`, `erp.quotation.approve`, `inventory.stock.adjust` |
+| Permissions           | `module.resource.action` | `identity.user.read`, `erp.quotation.approve`, `inventory.stock.adjust`, `erp.einvoice.submit` |
 
 One exported component per file, named the same as the file. Avoid `index.ts` barrels that
 re-export a whole module — they defeat tree-shaking and hide the real dependency.
@@ -332,18 +340,28 @@ When building the front-end from scratch, follow this order so the foundations e
 screens that need them:
 
 ```text
-1. Project foundation (config, providers, API client)   6. crm
-2. Design system primitives and app shell               7. inventory-management
-3. Auth, session and permission gating                  8. erp (quotations → sales-orders → purchase-invoices → accounting)
-4. Data-table, form and filter patterns                 9. communication-service
-5. Tenant switching and navigation registry            10. notifications-service, dashboards, reports, AI panels
+1. Project foundation (config, providers, API client)
+2. Design system primitives and app shell
+3. Auth, session and permission gating (identity.*)
+4. Data-table, form and filter patterns
+5. Tenant switching and navigation registry
+6. CRM masters (customers, contacts)
+7. Inventory masters (units, categories, products, warehouses)
+8. ERP masters then quotations
+9. Sales and purchase documents (SO, DN, INV, PO, GRN, bills, payments, credit/debit notes)
+10. Accounting (COA, journals, AR, AP)
+11. E-invoicing status UX (after posted invoices exist; never call an ASP from the browser)
+12. communication-service, notifications-service, dashboards, reports, AI panels
 ```
 
 ## Definition of done for a new slice
 
 - Slice contains its own `api.ts`, `schemas.ts`, query/mutation hooks, permissions and components.
 - Route segment is thin; components render; hooks cache; `api.ts` is the only place doing HTTP.
-- Route registered in `src/config/navigation.ts` with the permission that reveals it.
+- Route registered in `src/config/navigation.ts` with the permission that reveals it — only if the
+  API exists.
+- Workflow documents parse `available_actions`, `is_posted`, money fields and e-invoice status
+  when the OpenAPI has them. Actions are not computed locally.
 - Every response validated by a Zod schema; no `any` and no hand-written duplicate types.
 - Actions and navigation gated on permissions, with the backend still enforcing them.
 - New / View / Edit / Delete (and nested create) gated independently via `useCrudPermissions`;
@@ -352,9 +370,11 @@ screens that need them:
   document `/new` where it already exists.
 - List views wrap in `ListPage`, paginate with compact page numbers, and keep page, filters and
   sort in the URL.
-- `loading.tsx` and `error.tsx` present, plus empty and error states inside the feature.
-- Backend error codes mapped to user-facing messages; no raw error text surfaced.
-- Money and dates rendered through the shared formatters; no float arithmetic on money.
+- `loading.tsx` and `error.tsx` present, plus empty and no-access states inside the feature
+  (four ERP screen states).
+- Backend error codes mapped to user-facing messages including `PERIOD_LOCKED`,
+  `INVENTORY_INSUFFICIENT_STOCK`, `DOCUMENT_STALE`, `EINVOICE_*`; no raw error text surfaced.
+- Money and dates rendered through the shared formatters; no float arithmetic; no client VAT math.
 - Forms validate with Zod, disable on submit, and surface field-level server errors.
 - Keyboard and screen-reader accessible: labels, focus management, visible focus states.
 - Types, lint and formatting pass, and a Playwright spec covers the flow if it is critical.

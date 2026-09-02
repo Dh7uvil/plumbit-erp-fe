@@ -221,6 +221,8 @@ Empty value  an explicit dash, never a blank cell or "null"
 ```
 
 Never do arithmetic on money in a component. Totals come from the backend; the UI displays them.
+Never recalculate VAT, tax or exchange in the browser. Show tax treatment, place of supply and
+currency together on the document header.
 
 Timestamps arrive in UTC and are rendered in the user's timezone at display time only. Show the
 timezone where ambiguity matters, such as an audit trail or a scheduled action.
@@ -238,11 +240,17 @@ Empty      what this list is, why it is empty, and the action to fill it
 No access  a clear message, not an empty table
 ```
 
-Optimistic UI is for cheap reversible interactions only. Money, stock, posting and approval always
-wait for the server.
+Optimistic UI is for cheap reversible interactions only. Money, stock, posting, approval and
+e-invoice submit always wait for the server.
 
-Confirmations name the consequence — "Void invoice INV-2026-000123?" — rather than asking "Are you
-sure?", and the confirming button carries the verb.
+Confirmations name the consequence — "Post invoice INV-2026-000123? Stock, AR and tax will move."
+or "Void invoice INV-2026-000123?" — rather than asking "Are you sure?", and the confirming button
+carries the verb.
+
+Document screens use one layout: header (number, status, e-invoice badge) + lines (keyboard grid)
++ totals (display-only) + attachments (`identity.attachment.*`) + activity. Lock and insufficient-
+stock errors are banners with backend `details`, not toast-only. Period-lock and negative-stock
+banners belong on dated documents and warehouse screens.
 
 ## Accessibility
 
@@ -264,7 +272,7 @@ validity, a negative figure — is also conveyed by text or icon.
 Interface strings live with the component that shows them, error messages come from the shared
 error-code map, and copy is written plainly: a message says what happened and what to do next. Keep
 strings out of business logic and avoid concatenating sentences from fragments, which breaks the
-moment the app is translated.
+moment the app is translated. Do not add Arabic/RTL until a product decision exists.
 
 ## UI review checklist
 
@@ -276,6 +284,9 @@ moment the app is translated.
 - Form uses react-hook-form with the slice's Zod schema; server field errors mapped.
 - Submit disabled while pending; destructive actions confirmed and named.
 - Money, dates and quantities rendered through shared formatters with currency and units.
+- VAT / tax / place of supply displayed from the document; not recomputed.
+- Document header + lines + totals + attachments + activity where the slice is a voucher.
+- Posting confirmation names stock, AR/AP and tax; lock/stock banners use API details.
 - Status colours consistent with the rest of the application.
 - Keyboard operable, labelled, focus-visible, and not reliant on colour alone.
 - Responsive: wide tables scroll with sticky headers instead of breaking the layout.

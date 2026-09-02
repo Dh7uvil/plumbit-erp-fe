@@ -80,8 +80,12 @@ the Playwright specs covering any flow you touched.
 - No float arithmetic on money; totals taken from the backend.
 - Money rendered with its currency; historical documents use their stored `exchange_rate`.
 - Timestamps treated as UTC and rendered in the user's timezone.
-- Available actions driven by the backend, not by a hardcoded status table.
-- No client-generated document number; posted records offer no edit affordance.
+- Available actions driven by `document.available_actions`, not by a hardcoded status table.
+- No client-generated document number; posted and e-invoice-exchanged records offer no edit.
+- Save does not post; Post is a named mutation with Idempotency-Key.
+- No mocked lock dates, negative-stock toggles, ledger figures, or ASP credentials.
+- VAT / tax / exchange displayed from the API; never recalculated in the browser.
+- No draft or browser-built XML sent to an e-invoicing provider; Zoho/Tally are not the ledger.
 - `params` and `searchParams` awaited and validated.
 
 **UI**
@@ -132,4 +136,11 @@ A pull request that violates any of these is rejected regardless of its other me
 18. Never log or report credentials, tokens, PII or financial figures.
 19. Never ship a flow that cannot be completed with a keyboard.
 20. Never commit secrets.
+21. Never post a document as a side effect of save.
+22. Never offer edit on a posted record; offer the correction document the API supports.
+23. Never compute available workflow actions locally.
+24. Never mock lock dates, negative-stock toggles, or ledger figures.
+25. Never recalculate VAT, tax, or exchange in the browser.
+26. Never send a draft or a browser-built XML to an e-invoicing provider.
+27. Never treat Zoho, Tally, or any ASP as the source of accounting truth.
 ```

@@ -1,13 +1,17 @@
 ---
-description: Boundaries that must not be crossed — session and tenant handling, permissions as UX, module ownership, third-party providers, money, workflow and AI rules.
+description: Boundaries that must not be crossed — session and tenant handling, permissions as UX, module ownership, providers, money, posting, lock/stock, VAT, e-invoicing and AI rules.
 applyTo: "src/**"
 ---
 
 # Front-end Domain Boundaries
 
-This is a multi-tenant ERP client for a modular backend. The boundaries below keep tenant data
-separated, keep financial figures trustworthy, and keep a module extractable later. Convenience
-never outranks them.
+This is a multi-tenant UAE trading ERP client for a modular backend. The boundaries below keep
+tenant data separated, keep financial figures trustworthy, and keep a module extractable later.
+Convenience never outranks them.
+
+Document posting, lock, stock, VAT and e-invoicing UX:
+[erp-documents-and-workflows](erp-documents-and-workflows.instructions.md). Do not mock settings
+the tenant API does not expose ([administration-api-gaps.md](../../../docs/administration-api-gaps.md)).
 
 ## Architecture principles
 
@@ -92,11 +96,16 @@ Good:  per-request server client, per-tenant query keys, dynamic rendering
 Permissions are formatted `<module>.<resource>.<action>`, matching the backend exactly:
 
 ```text
-crm.lead.read           inventory.stock.read     erp.quotation.approve
-crm.customer.create     inventory.stock.adjust   erp.sales_order.create
-crm.customer.update     inventory.product.read   erp.purchase_invoice.approve
-crm.customer.delete     users.role.assign        erp.journal_entry.post
+identity.user.read          identity.role.update       identity.organization.update
+identity.attachment.read    erp.quotation.approve      erp.period.lock
+crm.customer.create         inventory.stock.adjust     erp.sales_order.create
+crm.customer.update         inventory.product.read     erp.purchase_invoice.approve
+crm.lead.read               inventory.stock.read       erp.journal_entry.post
+erp.einvoice.submit         erp.einvoice.read          erp.credit_note.create
 ```
+
+Do not invent `users.role.assign`. Catalog and session permissions are `identity.*` / `crm.*` /
+`inventory.*` / `erp.*`.
 
 Permissions come from the session and are checked through the shared helpers in
 `src/shared/auth/permissions.ts`. Never hardcode a role name in a component — check the permission,
@@ -140,15 +149,23 @@ missing. View-only forms disable fields and omit Save.
 Each module owns its slices, its API calls, its schemas, its query keys and its components.
 
 ```text
-users-management        Auth, Users, Roles, Permissions, Tenants
-erp                     Quotations, Sales Orders, Purchase Invoices, Purchase Orders,
-                        Accounting (Accounts, Journals, Receivables, Payables, Taxes),
+users-management        Identity (BE: app/auth/): Auth, Users, Roles, Permissions,
+                        Tenants/org-settings, Branches, Departments, Employees (nested),
+                        Audit Logs. Attachments via identity.attachment.*.
+                        Planned: tenant operational settings (allow_negative_stock, lock dates).
+erp                     Implemented: Quotations, Currencies, Exchange Rates, Taxes,
+                        Payment Terms, Terms Templates, Document Sequences, Suppliers.
+                        Planned: Sales Orders, Sales Invoices, Credit Notes, Customer Payments,
+                        Purchase Orders, Purchase Invoices, Debit Notes, Supplier Payments,
+                        Accounting (Accounts, Journals, Receivables, Payables),
                         Logistics (Imports, Exports, Shipments, Containers),
-                        Exchange Rates (daily user-entered rates)
-inventory-management    Products, Categories, Warehouses, Stock, Transfers, Adjustments
-crm                     Leads, Customers, Contacts, Opportunities, Activities
-communication-service   Email, WhatsApp, Chat, Meetings
-notifications-service   In-App, Email, WhatsApp and Push notifications, templates, delivery status
+                        e-invoicing status UX on sales invoices and credit notes.
+inventory-management    Implemented: Units, Categories, Products, Price Lists, Warehouses.
+                        Planned: Stock, Transfers, Adjustments, GRN, Delivery Notes, Sales Returns.
+crm                     Implemented: Customers, Contacts.
+                        Planned: Leads, Opportunities, Activities.
+communication-service   Email, WhatsApp, Chat, Meetings (planned)
+notifications-service   In-App, Email, WhatsApp and Push notifications, templates, delivery status (planned)
 ```
 
 A module never re-implements another module's request or type. It imports the owning slice's query
@@ -190,9 +207,10 @@ Bad:   modules/crm/leads/components → Sentry SDK
 Good:  modules/crm/leads/components → integrations/error-reporting
 ```
 
-Anything that talks to WhatsApp, email, payments or storage is the backend's job. The front-end
-calls our API; it does not hold a provider credential, and a provider key must never reach the
-browser bundle.
+Anything that talks to WhatsApp, email, payments, storage or an e-invoicing ASP is the
+backend's job. The front-end calls our API; it does not hold a provider credential, and a
+provider key must never reach the browser bundle. Never treat Zoho, Tally, or any ASP as the
+source of accounting truth. Never send a draft or a browser-built XML to an e-invoicing provider.
 
 ## 8. Notifications and communication
 
@@ -213,9 +231,10 @@ tracks it — it does not do the work in the browser.
 User action → API creates job → UI shows job status → poll or subscribe → notify on completion
 ```
 
-This covers Excel and CSV imports and exports, large report generation, bulk updates and AI
-forecasting. Never block the UI thread on a large computation, never parse a large spreadsheet in
-the browser to "pre-validate" it, and never hold a request open waiting for a job to finish.
+This covers Excel and CSV imports and exports, large report generation, PDF/print, bulk updates,
+AI forecasting and e-invoice submit/poll. Never block the UI thread on a large computation, never
+parse a large spreadsheet in the browser to "pre-validate" it, never generate PINT-AE XML, never
+call Zoho/Tally from the browser, and never hold a request open waiting for a job to finish.
 Uploads show progress, support cancellation, and validate size and type before sending.
 
 ## 10. Money and figures
@@ -244,33 +263,50 @@ provider. The rate form is a normal ERP form: it records the rate for a currency
 and the UI never guesses or interpolates a missing rate.
 
 Percentages, quantities and tax figures follow the same rule — display what the backend calculated
-rather than recalculating a total the user might compare against an invoice.
+rather than recalculating a total the user might compare against an invoice. Never recalculate VAT,
+tax or exchange in the browser. Show tax treatment, place of supply (emirate) and TRN when the
+document carries them. On `EXCHANGE_RATE_MISSING` or `PERIOD_LOCKED`, surface the mapped error;
+do not invent a rate or a lock date.
 
 ## 11. Workflow status
 
 Status transitions are decided by the backend and validated against its state machine. The UI
-renders the transitions the backend says are available.
+renders `document.available_actions` only — never a local `STATUS → buttons` table (quotation
+workflow helpers are the anti-pattern to stop repeating).
 
 ```text
-Draft → Submitted → Approved → Confirmed → Completed
+DRAFT  →  POSTED (local ledger)  →  einvoice pending  →  exchanged
+                                              ↘ rejected → credit note
 ```
 
 Never hardcode a transition table in the front-end and never offer an action because the status
-string looks right. Drive the available actions from the document, gate them on permission, and
-surface `INVALID_STATUS_TRANSITION` as a clear message if the state changed underneath the user.
+string looks right. Gate each action on permission, and surface `INVALID_STATUS_TRANSITION` or
+`DOCUMENT_STALE` as a clear message if the state changed underneath the user.
 
-Destructive or irreversible actions — approving, posting, cancelling, voiding, deleting — require
-an explicit confirmation that names what will happen, and they are disabled while in flight.
+Save keeps `DRAFT`. Confirm/Post is a named action with confirmation that stock, AR/AP and tax
+will move. Posted and e-invoice-`exchanged` records are read-only; offer Credit note / Debit note
+/ Reversal when the API lists that action.
+
+Destructive or irreversible actions — approving, posting, cancelling, voiding, deleting, submitting
+an e-invoice — require an explicit confirmation that names what will happen, and they are disabled
+while in flight.
+
+On `PERIOD_LOCKED`, disable dated writes and show the lock date from error `details`. On
+`INVENTORY_INSUFFICIENT_STOCK`, show warehouse and qty from `details`. Do not mock
+`allow_negative_stock` or lock dates — wait for the tenant API (see
+[erp-documents-and-workflows](erp-documents-and-workflows.instructions.md)).
 
 ## 12. Documents and identifiers
 
-Document numbers (`QUO-2026-000001`, `SO-2026-000001`, `INV-2026-000001`) are generated by the
-backend. The front-end never generates, guesses, predicts or displays a provisional number for an
-unsaved document. Entity IDs are opaque UUIDs — do not parse them, sort by them or infer order from
-them.
+Document numbers (`QUO-2026-000001`, `SO-2026-000001`, `INV-2026-000001`, `CN-…`, `GRN-…`,
+`BILL-…`, `SDN-…`) are generated by the backend. The front-end never generates, guesses, predicts
+or displays a provisional number for an unsaved document. Entity IDs are opaque UUIDs — do not
+parse them, sort by them or infer order from them.
 
 Posted financial records are read-only. The UI must not present an edit affordance for one; offer
-the correction path the backend supports — reversal, credit note, debit note or adjustment.
+the correction path the backend supports — reversal, credit note, debit note or adjustment — and
+only when `available_actions` includes it. An e-invoice `exchanged` document is as immutable as
+posted. Rejection does not unlock the row; offer the credit-note path.
 
 ## 13. AI boundary
 
@@ -283,7 +319,8 @@ AI Forecast → Recommendation → User Review → Approval → ERP Action
 An AI panel may recommend reorder quantities, expected demand, potential stock shortages, shipment
 projections and sales forecasts, and it must be visibly labelled as a recommendation with its
 confidence or basis where available. It must never auto-submit a purchase order, change stock,
-approve a payment, post an accounting entry or delete a record.
+approve a payment, post an accounting entry, submit an e-invoice, set a lock date or delete a
+record.
 
 Never send ERP data to an AI provider from the browser. AI calls go through the backend, and the
 front-end only renders what comes back.

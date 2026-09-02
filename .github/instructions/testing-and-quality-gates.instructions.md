@@ -41,10 +41,17 @@ e2e/
                                Sidebar omits modules without `*.read` and drops empty groups.
                                Cover a missing create/update/delete affordance when a limited test
                                user exists; do not invent that user to land a helper change.
-├── leads.spec.ts              list, filter, paginate, create, edit
 ├── quotation-approval.spec.ts create → submit → approve, with the state reflected
-└── invoice-posting.spec.ts    post an invoice, then confirm it is no longer editable
+├── invoice-posting.spec.ts    post an invoice, then confirm it is no longer editable
+├── period-lock.spec.ts        PERIOD_LOCKED rejects a dated write; UI shows the lock date
+├── insufficient-stock.spec.ts INVENTORY_INSUFFICIENT_STOCK surfaces warehouse and qty
+├── credit-note.spec.ts        posted invoice offers credit note; original row stays unchanged
+└── einvoice.spec.ts           when the API exists: post → pending → exchanged;
+                               rejected → credit note offered; draft never submitted
 ```
+
+Do not add `leads.spec.ts` until the leads API exists. Add a spec when a flow becomes
+business-critical, not for every new screen.
 
 Add a spec when a flow becomes business-critical, not for every new screen. If a flow is not worth an
 end-to-end test, it is also not worth a mountain of unit tests — rely on the types and review it well.
@@ -93,8 +100,9 @@ Keyboard     the whole flow completes without a mouse
 Narrow       the layout holds; wide tables scroll rather than break
 ```
 
-For anything touching money, workflow status or tenancy, also confirm the figures match the backend,
-the actions offered match the document's state, and switching tenant leaves nothing behind.
+For anything touching money, workflow status, posting, lock, stock, VAT or tenancy, also confirm
+the figures match the backend, the buttons match `available_actions` (not a local table), posted
+records are not editable, and switching tenant leaves nothing behind.
 
 ## Tooling
 
