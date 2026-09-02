@@ -4,9 +4,20 @@ const TENANT = process.env.NEXT_PUBLIC_ORGANIZATION_NAME ?? "Plumbit";
 const EMAIL = "ada@plumbit.com";
 const PASSWORD = "correct-horse";
 
+async function waitForFirstOrganization(page: Page) {
+  await expect(async () => {
+    const combo = page.getByRole("combobox", { name: "Organization" });
+    const text = (await combo.textContent())?.replace(/\s+/g, " ").trim() ?? "";
+    if (text === "Select organization") {
+      await page.reload();
+    }
+    await expect(combo).toHaveText(TENANT);
+  }).toPass({ timeout: 20_000 });
+}
+
 async function signIn(page: Page) {
   await page.goto("/login");
-  await expect(page.getByRole("combobox", { name: "Organization" })).toHaveText(TENANT);
+  await waitForFirstOrganization(page);
   await page.getByLabel("Company Email").fill(EMAIL);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign In" }).click();
@@ -34,7 +45,7 @@ test.describe("permissions", () => {
 
   test("hides sidebar modules the user cannot read", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByRole("combobox", { name: "Organization" })).toHaveText(TENANT);
+    await waitForFirstOrganization(page);
     await page.getByLabel("Company Email").fill("reader@plumbit.com");
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: "Sign In" }).click();
@@ -43,6 +54,8 @@ test.describe("permissions", () => {
     const nav = page.locator("aside").getByRole("navigation");
     await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Units" })).toBeVisible();
+    await expect(nav.getByRole("button", { name: "Inventory" })).toBeVisible();
+    await expect(nav.getByRole("button", { name: "Masters" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Customers" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Quotations" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Users" })).toHaveCount(0);

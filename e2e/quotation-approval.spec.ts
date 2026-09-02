@@ -5,7 +5,14 @@ const EMAIL = "ada@plumbit.com";
 const PASSWORD = "correct-horse";
 
 async function waitForFirstOrganization(page: Page) {
-  await expect(page.getByRole("combobox", { name: "Organization" })).toHaveText(TENANT);
+  await expect(async () => {
+    const combo = page.getByRole("combobox", { name: "Organization" });
+    const text = (await combo.textContent())?.replace(/\s+/g, " ").trim() ?? "";
+    if (text === "Select organization") {
+      await page.reload();
+    }
+    await expect(combo).toHaveText(TENANT);
+  }).toPass({ timeout: 20_000 });
 }
 
 async function signIn(page: Page) {
@@ -23,8 +30,8 @@ test.describe("quotation approval", () => {
     await page.goto("/quotations/new");
     await expect(page.getByRole("heading", { name: "New quotation" })).toBeVisible();
 
-    await page.getByRole("combobox", { name: "Customer" }).click();
-    await page.getByRole("option", { name: "Acme Trading" }).click();
+    await page.getByLabel("Customer").click();
+    await page.getByRole("menuitem", { name: "Acme Trading" }).click();
     await expect(page.getByText("Loading customer defaults…")).toBeHidden();
 
     await page.getByLabel("Line 1 description").fill("Custom copper fitting");

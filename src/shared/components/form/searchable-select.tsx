@@ -1,9 +1,9 @@
 "use client";
 
 import { CheckIcon, ChevronDownIcon, Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from "react";
 
-import { FormControl } from "@/shared/components/ui/form";
+import { useFormField } from "@/shared/components/ui/form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,54 @@ export type SearchableSelectCreateAction = {
   label: string;
   onSelect: () => void;
 };
+
+type SelectTriggerButtonProps = {
+  selectedLabel?: string;
+  placeholder: string;
+  ariaLabel?: string;
+} & ButtonHTMLAttributes<HTMLButtonElement>;
+
+const SelectTriggerButton = forwardRef<HTMLButtonElement, SelectTriggerButtonProps>(
+  function SelectTriggerButton(
+    { id, disabled, className, selectedLabel, placeholder, ariaLabel, ...props },
+    ref,
+  ) {
+    return (
+      <button
+        {...props}
+        ref={ref}
+        type="button"
+        disabled={disabled}
+        id={id}
+        aria-label={ariaLabel}
+        data-slot="select-trigger"
+        data-placeholder={selectedLabel ? undefined : ""}
+        className={cn(
+          "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 bg-input-background flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          className,
+        )}
+      >
+        <span className="min-w-0 flex-1 truncate text-left">{selectedLabel ?? placeholder}</span>
+        <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+      </button>
+    );
+  },
+);
+
+const FormBoundSelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerButtonProps>(
+  function FormBoundSelectTrigger(props, ref) {
+    const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+    return (
+      <SelectTriggerButton
+        {...props}
+        ref={ref}
+        id={props.id ?? formItemId}
+        aria-invalid={Boolean(error)}
+        aria-describedby={!error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`}
+      />
+    );
+  },
+);
 
 export function SearchableSelect({
   options,
@@ -76,23 +124,13 @@ export function SearchableSelect({
     );
   }, [options, query]);
 
-  const trigger = (
-    <button
-      type="button"
-      disabled={disabled}
-      id={id}
-      aria-label={ariaLabel}
-      data-slot="select-trigger"
-      data-placeholder={selected ? undefined : ""}
-      className={cn(
-        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 bg-input-background flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
-    >
-      <span className="min-w-0 flex-1 truncate text-left">{selected?.label ?? placeholder}</span>
-      <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
-    </button>
-  );
+  const triggerProps = {
+    disabled,
+    className,
+    selectedLabel: selected?.label,
+    placeholder,
+    ariaLabel,
+  };
 
   return (
     <DropdownMenu
@@ -106,7 +144,11 @@ export function SearchableSelect({
       }}
     >
       <DropdownMenuTrigger asChild>
-        {asFormControl ? <FormControl>{trigger}</FormControl> : trigger}
+        {asFormControl ? (
+          <FormBoundSelectTrigger id={id} {...triggerProps} />
+        ) : (
+          <SelectTriggerButton id={id} {...triggerProps} />
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"

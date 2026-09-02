@@ -74,6 +74,26 @@ create action, and skips react-hook-form `FormControl` so it can live outside a 
 enum fields, login/forgot-password tenant pickers, and in-row editors stay on shadcn `Select` or
 `MasterSelect`.
 
+List toolbars always follow this order: **search**, **status** (when the resource has `status` or
+`is_active`), **one primary filter**, **More filters** for every remaining OpenAPI query param,
+**Sort**, **Clear**. Never put extra `FilterSelect`s on the toolbar. Use `MoreFiltersDialog` even
+when there is only one extra filter (copy quotations and products). Status is document/active
+status, not a domain field such as warehouse or reason. Primary is the main dimension (customer,
+warehouse, type). Date ranges, branch, secondary masters, flags (`negative_only`, `below_reorder`),
+and line-level `product_id` belong in More filters. Extra values live in the URL via
+`useTableParams` `filters`; the dialog keeps draft values until Apply. Do not put generic list-mixin
+`date_from` / `date_to` on inventory document lists — use `document_date_from` / `document_date_to`.
+
+Inventory list toolbars:
+
+```text
+Stock              search + warehouse            More: product, category, negative_only, below_reorder
+Stock movements    search + warehouse            More: product, category, movement_type, source_type,
+                                                 source_id, document dates
+Stock adjustments  search + status + warehouse   More: reason, branch, product, document dates
+Stock transfers    search + status + from wh     More: to warehouse, branch, product, document dates
+```
+
 ```text
 Toolbar     search, filters, column visibility, primary action
 Header      sortable columns limited to what the backend allows
@@ -248,9 +268,10 @@ or "Void invoice INV-2026-000123?" — rather than asking "Are you sure?", and t
 carries the verb.
 
 Document screens use one layout: header (number, status, e-invoice badge) + lines (keyboard grid)
-+ totals (display-only) + attachments (`identity.attachment.*`) + activity. Lock and insufficient-
-stock errors are banners with backend `details`, not toast-only. Period-lock and negative-stock
-banners belong on dated documents and warehouse screens.
+
+- totals (display-only) + attachments (`identity.attachment.*`) + activity. Lock and insufficient-
+  stock errors are banners with backend `details`, not toast-only. Period-lock and negative-stock
+  banners belong on dated documents and warehouse screens.
 
 ## Accessibility
 
@@ -279,7 +300,8 @@ moment the app is translated. Do not add Arabic/RTL until a product decision exi
 - Primitives reused; no forked or near-duplicate component.
 - No hardcoded colours, spacing or font sizes; tokens and utilities only.
 - Table uses the shared pattern with server-side pagination, sorting and filtering.
-- List-toolbar dropdowns use `FilterSelect`, not shadcn `Select`.
+- List-toolbar dropdowns use `FilterSelect`, not shadcn `Select`. Toolbar is search + status (if
+  any) + one primary filter; remaining query params go in `MoreFiltersDialog`.
 - Loading, empty, error and no-access states all present.
 - Form uses react-hook-form with the slice's Zod schema; server field errors mapped.
 - Submit disabled while pending; destructive actions confirmed and named.

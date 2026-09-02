@@ -1,9 +1,13 @@
 import {
+  ArrowLeftRight,
   BookOpen,
+  Boxes,
   ClipboardList,
+  ClipboardPen,
   Contact,
   FileText,
   FolderTree,
+  History,
   LayoutDashboard,
   ListOrdered,
   Lock,
@@ -35,6 +39,9 @@ import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
 import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
+import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
+import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
+import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { warehousePermissions } from "@/modules/inventory-management/warehouses/permissions";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
@@ -60,6 +67,83 @@ export const navigation: NavigationGroup[] = [
   {
     label: "Overview",
     items: [{ label: "Dashboard", href: "/", permission: null, icon: LayoutDashboard }],
+  },
+  {
+    label: "CRM",
+    items: [
+      {
+        label: "Customers",
+        href: "/customers",
+        permission: customerPermissions.read,
+        icon: Users,
+      },
+    ],
+  },
+  {
+    label: "ERP",
+    items: [
+      {
+        label: "Quotations",
+        href: "/quotations",
+        permission: quotationPermissions.read,
+        icon: ShoppingCart,
+      },
+      {
+        label: "Suppliers",
+        href: "/suppliers",
+        permission: supplierPermissions.read,
+        icon: Truck,
+      },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      { label: "Units", href: "/units", permission: unitPermissions.read, icon: Ruler },
+      {
+        label: "Categories",
+        href: "/categories",
+        permission: categoryPermissions.read,
+        icon: FolderTree,
+      },
+      {
+        label: "Products",
+        href: "/products",
+        permission: productPermissions.read,
+        icon: Package,
+      },
+      {
+        label: "Price lists",
+        href: "/price-lists",
+        permission: priceListPermissions.read,
+        icon: Tags,
+      },
+      {
+        label: "Warehouses",
+        href: "/warehouses",
+        permission: warehousePermissions.read,
+        icon: Warehouse,
+      },
+      { label: "Stock", href: "/stock", permission: stockPermissions.read, icon: Boxes },
+      {
+        label: "Stock movements",
+        href: "/stock-movements",
+        permission: stockPermissions.read,
+        icon: History,
+      },
+      {
+        label: "Stock transfers",
+        href: "/stock-transfers",
+        permission: stockTransferPermissions.read,
+        icon: ArrowLeftRight,
+      },
+      {
+        label: "Stock adjustments",
+        href: "/stock-adjustments",
+        permission: stockAdjustmentPermissions.read,
+        icon: ClipboardPen,
+      },
+    ],
   },
   {
     label: "Masters",
@@ -95,64 +179,11 @@ export const navigation: NavigationGroup[] = [
         permission: documentSequencePermissions.read,
         icon: BookOpen,
       },
-      { label: "Units", href: "/units", permission: unitPermissions.read, icon: Ruler },
-      {
-        label: "Categories",
-        href: "/categories",
-        permission: categoryPermissions.read,
-        icon: FolderTree,
-      },
-      {
-        label: "Products",
-        href: "/products",
-        permission: productPermissions.read,
-        icon: Package,
-      },
-      {
-        label: "Price lists",
-        href: "/price-lists",
-        permission: priceListPermissions.read,
-        icon: Tags,
-      },
-      {
-        label: "Warehouses",
-        href: "/warehouses",
-        permission: warehousePermissions.read,
-        icon: Warehouse,
-      },
       {
         label: "Contacts",
         href: "/contacts",
         permission: contactPermissions.read,
         icon: Contact,
-      },
-    ],
-  },
-  {
-    label: "CRM",
-    items: [
-      {
-        label: "Customers",
-        href: "/customers",
-        permission: customerPermissions.read,
-        icon: Users,
-      },
-    ],
-  },
-  {
-    label: "ERP",
-    items: [
-      {
-        label: "Quotations",
-        href: "/quotations",
-        permission: quotationPermissions.read,
-        icon: ShoppingCart,
-      },
-      {
-        label: "Suppliers",
-        href: "/suppliers",
-        permission: supplierPermissions.read,
-        icon: Truck,
       },
     ],
   },

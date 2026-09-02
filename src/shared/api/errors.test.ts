@@ -15,6 +15,34 @@ describe("getErrorMessage", () => {
     );
   });
 
+  it("appends warehouse and qty from insufficient-stock details", () => {
+    expect(
+      getErrorMessage(
+        new ApiError("INVENTORY_INSUFFICIENT_STOCK", "ignored", 409, {
+          warehouse_code: "MAIN",
+          available_qty: "2",
+          requested_qty: "10",
+        }),
+      ),
+    ).toBe(
+      "There is not enough stock to complete this action. Warehouse MAIN. Available 2. Requested 10.",
+    );
+  });
+
+  it("appends lock dates from period-lock details", () => {
+    expect(
+      getErrorMessage(
+        new ApiError("PERIOD_LOCKED", "ignored", 409, {
+          lock_date: "2026-01-31",
+          hard_lock_date: "2026-02-28",
+          document_date: "2026-01-15",
+        }),
+      ),
+    ).toBe(
+      "This date falls in a locked period and cannot be changed. Lock date 2026-01-31. Hard lock 2026-02-28. Document date 2026-01-15.",
+    );
+  });
+
   it("reads the code from an ApiError", () => {
     expect(getErrorMessage(new ApiError("PERMISSION_DENIED", "ignored", 403))).toBe(
       "You do not have permission to perform this action.",

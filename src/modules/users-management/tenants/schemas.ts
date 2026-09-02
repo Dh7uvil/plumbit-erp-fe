@@ -99,6 +99,9 @@ export const TenantCurrentSchema = z.object({
   default_currency: z.string().nullable().optional(),
   default_currency_id: z.string().uuid().nullable().optional(),
   quotation_requires_approval: z.boolean().default(true),
+  allow_negative_stock: z.boolean().default(false),
+  lock_date: z.string().nullable().optional(),
+  hard_lock_date: z.string().nullable().optional(),
   headquarters: AddressPayloadSchema.nullable().optional(),
   logo_url: z.string().nullable().optional(),
   users_count: z.number().int().nonnegative(),
@@ -121,6 +124,7 @@ export const TenantCurrentUpdateSchema = z.object({
   default_currency: z.string().max(3).nullable().optional(),
   default_currency_id: z.string().uuid().nullable().optional(),
   quotation_requires_approval: z.boolean().nullable().optional(),
+  allow_negative_stock: z.boolean().nullable().optional(),
   headquarters: AddressPayloadSchema.nullable().optional(),
 });
 export type TenantCurrentUpdate = z.infer<typeof TenantCurrentUpdateSchema>;
@@ -136,6 +140,7 @@ export const CompanySettingsFormSchema = z.object({
   default_currency: z.string().max(150),
   default_currency_id: z.string(),
   quotation_requires_approval: z.boolean(),
+  allow_negative_stock: z.boolean(),
   timezone: z.string().max(100),
   fiscal_year_start: z.string().max(50),
 });
