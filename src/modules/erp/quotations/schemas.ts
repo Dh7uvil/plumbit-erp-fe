@@ -98,8 +98,12 @@ export const QuotationSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
   quote_number: z.string(),
+  document_number: z.string().optional(),
   status: QuotationStatusSchema,
+  version: z.number().int(),
+  is_posted: z.boolean(),
   quote_date: z.string(),
+  document_date: z.string().optional(),
   valid_until: z.string().nullable(),
   branch_id: z.string().uuid().nullable(),
   customer_id: z.string().uuid(),
@@ -130,6 +134,7 @@ export const QuotationSchema = z.object({
   converted_at: z.string().nullable(),
   converted_document_type: z.string().nullable(),
   converted_document_id: z.string().uuid().nullable(),
+  available_actions: z.array(z.string()).default([]),
   lines: z.array(QuotationLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
@@ -206,6 +211,7 @@ export const QuotationUpdateRequestSchema = z.object({
   adjustment_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   lines: z.array(QuotationLineInputSchema).nullable().optional(),
+  version: z.number().int().optional(),
 });
 export type QuotationUpdateRequest = z.infer<typeof QuotationUpdateRequestSchema>;
 
@@ -293,7 +299,9 @@ export type QuotationListParams = {
   currency_id?: string;
 };
 
-export function quotationDisplayNumber(quotation: Pick<Quotation, "quote_number">): string | null {
-  const value = quotation.quote_number.trim();
+export function quotationDisplayNumber(
+  quotation: Pick<Quotation, "quote_number"> & { document_number?: string },
+): string | null {
+  const value = (quotation.quote_number || quotation.document_number || "").trim();
   return value ? value : null;
 }

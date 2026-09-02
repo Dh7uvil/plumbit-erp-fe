@@ -62,6 +62,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { formatMoney } from "@/shared/lib/format";
 
 const ITEM_COLUMNS = ["Product", "Rate"] as const;
@@ -109,6 +110,7 @@ export function PriceListDetailScreen({
       is_active: priceList?.is_active ?? true,
     },
   });
+  useDirtyFormGuard(isEdit && form.formState.isDirty);
 
   const items = priceList?.items ?? [];
   const itemHeaders = tableHeaders(ITEM_COLUMNS, isEdit);

@@ -1,13 +1,43 @@
 import { z } from "zod";
 
-export const DOCUMENT_TYPES = ["QUOTATION"] as const;
+export const DOCUMENT_TYPES = [
+  "QUOTATION",
+  "SALES_ORDER",
+  "DELIVERY_NOTE",
+  "SALES_INVOICE",
+  "CREDIT_NOTE",
+  "PURCHASE_ORDER",
+  "GOODS_RECEIPT",
+  "PURCHASE_INVOICE",
+  "DEBIT_NOTE",
+] as const;
 export const DocumentTypeSchema = z.enum(DOCUMENT_TYPES);
 export type DocumentType = z.infer<typeof DocumentTypeSchema>;
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  QUOTATION: "Quotation",
+  SALES_ORDER: "Sales order",
+  DELIVERY_NOTE: "Delivery note",
+  SALES_INVOICE: "Sales invoice",
+  CREDIT_NOTE: "Credit note",
+  PURCHASE_ORDER: "Purchase order",
+  GOODS_RECEIPT: "Goods receipt",
+  PURCHASE_INVOICE: "Purchase invoice",
+  DEBIT_NOTE: "Debit note",
+};
+
+export function isDocumentType(value: string): value is DocumentType {
+  return (DOCUMENT_TYPES as readonly string[]).includes(value);
+}
+
+export function documentTypeLabel(value: string): string {
+  return isDocumentType(value) ? DOCUMENT_TYPE_LABELS[value] : value;
+}
 
 export const DocumentSequenceSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
-  document_type: DocumentTypeSchema,
+  document_type: z.string(),
   series: z.string(),
   fiscal_year: z.number().int(),
   prefix: z.string(),

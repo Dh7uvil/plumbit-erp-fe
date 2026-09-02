@@ -61,6 +61,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 function toSupplierCompanyType(type: Supplier["company_type"] | undefined): SupplierCompanyType {
@@ -147,6 +148,7 @@ export function SupplierForm({
     resolver: zodResolver(SupplierFormSchema),
     values: toFormValues(supplier, defaultCurrencyId),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: SupplierFormValues) {
     setFormError(null);

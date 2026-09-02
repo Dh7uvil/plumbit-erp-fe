@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 const EMPTY_FORM: PriceListFormValues = {
@@ -81,6 +82,7 @@ export function PriceListFormDialog({
     resolver: zodResolver(PriceListFormSchema),
     defaultValues: EMPTY_FORM,
   });
+  useDirtyFormGuard(open && canCreate && form.formState.isDirty);
 
   const listType = useWatch({ control: form.control, name: "list_type" });
 

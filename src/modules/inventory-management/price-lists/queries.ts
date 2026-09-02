@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { priceListsApi } from "@/modules/inventory-management/price-lists/api";
 import type { PriceListListParams } from "@/modules/inventory-management/price-lists/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const priceListKeys = {
   all: ["price-lists"] as const,
@@ -14,14 +15,15 @@ export const priceListKeys = {
 
 export function usePriceLists(params: PriceListListParams) {
   return useQuery({
-    queryKey: priceListKeys.list(params),
+    queryKey: useTenantQueryKey(priceListKeys.list(params)),
     queryFn: () => priceListsApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllPriceLists(enabled = true) {
   return useQuery({
-    queryKey: priceListKeys.allItems(),
+    queryKey: useTenantQueryKey(priceListKeys.allItems()),
     queryFn: priceListsApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllPriceLists(enabled = true) {
 
 export function usePriceList(id: string | null) {
   return useQuery({
-    queryKey: priceListKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(priceListKeys.detail(id ?? "")),
     queryFn: () => priceListsApi.get(id!),
     enabled: Boolean(id),
   });

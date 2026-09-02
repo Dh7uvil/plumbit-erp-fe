@@ -35,6 +35,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function toFormValues(category: Category | null): CategoryFormValues {
   return {
@@ -84,6 +85,7 @@ export function CategoryForm({
     resolver: zodResolver(CategoryFormSchema),
     values: toFormValues(category),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   const parentOptions = (categoriesQuery.data ?? []).filter((item) => item.id !== category?.id);
 

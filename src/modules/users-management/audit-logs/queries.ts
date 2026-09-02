@@ -1,12 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { auditLogsApi } from "@/modules/users-management/audit-logs/api";
 import type {
   AuditLogFilterParams,
   AuditLogListParams,
 } from "@/modules/users-management/audit-logs/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const auditLogKeys = {
   all: ["audit-logs"] as const,
@@ -16,14 +17,15 @@ export const auditLogKeys = {
 
 export function useAuditLogs(params: AuditLogListParams) {
   return useQuery({
-    queryKey: auditLogKeys.list(params),
+    queryKey: useTenantQueryKey(auditLogKeys.list(params)),
     queryFn: () => auditLogsApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAuditLogSummary(params: AuditLogFilterParams) {
   return useQuery({
-    queryKey: auditLogKeys.summary(params),
+    queryKey: useTenantQueryKey(auditLogKeys.summary(params)),
     queryFn: () => auditLogsApi.summary(params),
   });
 }

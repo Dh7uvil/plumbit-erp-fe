@@ -77,6 +77,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 type ComposeField =
@@ -249,6 +250,7 @@ export function QuotationForm({
     defaultValues: toFormValues(quotation),
     values: quotation ? toFormValues(quotation) : undefined,
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   const customerId = useWatch({ control: form.control, name: "customer_id" });
   const selectedCustomerId = optionalUuid(customerId);
@@ -325,7 +327,11 @@ export function QuotationForm({
     setFormError(null);
     try {
       if (quotation) {
-        await updateQuotation.mutateAsync({ id: quotation.id, values: toUpdateRequest(values) });
+        await updateQuotation.mutateAsync({
+          id: quotation.id,
+          values: toUpdateRequest(values),
+          version: quotation.version,
+        });
         toast.success("Quotation saved");
         onSuccess?.();
       } else {

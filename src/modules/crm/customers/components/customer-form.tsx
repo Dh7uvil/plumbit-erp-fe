@@ -61,6 +61,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 function toCustomerCompanyType(type: Customer["company_type"] | undefined): CustomerCompanyType {
@@ -150,6 +151,7 @@ export function CustomerForm({
     resolver: zodResolver(CustomerFormSchema),
     values: toFormValues(customer, defaultCurrencyId),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: CustomerFormValues) {
     setFormError(null);

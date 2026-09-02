@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { taxesApi } from "@/modules/erp/accounting/taxes/api";
 import type { TaxListParams } from "@/modules/erp/accounting/taxes/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const taxKeys = {
   all: ["taxes"] as const,
@@ -14,14 +15,15 @@ export const taxKeys = {
 
 export function useTaxes(params: TaxListParams) {
   return useQuery({
-    queryKey: taxKeys.list(params),
+    queryKey: useTenantQueryKey(taxKeys.list(params)),
     queryFn: () => taxesApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllTaxes(enabled = true) {
   return useQuery({
-    queryKey: taxKeys.allItems(),
+    queryKey: useTenantQueryKey(taxKeys.allItems()),
     queryFn: taxesApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllTaxes(enabled = true) {
 
 export function useTax(id: string | null) {
   return useQuery({
-    queryKey: taxKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(taxKeys.detail(id ?? "")),
     queryFn: () => taxesApi.get(id!),
     enabled: Boolean(id),
   });

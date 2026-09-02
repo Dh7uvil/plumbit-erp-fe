@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function toFormValues(tax: Tax | null): TaxFormValues {
   return {
@@ -77,6 +78,7 @@ export function TaxForm({
     resolver: zodResolver(TaxFormSchema),
     values: toFormValues(tax),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: TaxFormValues) {
     setFormError(null);

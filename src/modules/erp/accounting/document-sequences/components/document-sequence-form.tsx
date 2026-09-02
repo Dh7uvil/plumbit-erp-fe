@@ -11,8 +11,10 @@ import {
   useUpdateDocumentSequence,
 } from "@/modules/erp/accounting/document-sequences/mutations";
 import {
+  DOCUMENT_TYPE_LABELS,
   DOCUMENT_TYPES,
   DocumentSequenceFormSchema,
+  isDocumentType,
   type DocumentSequence,
   type DocumentSequenceCreateRequest,
   type DocumentSequenceFormValues,
@@ -37,10 +39,12 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function toFormValues(sequence: DocumentSequence | null): DocumentSequenceFormValues {
   return {
-    document_type: sequence?.document_type ?? "QUOTATION",
+    document_type:
+      sequence && isDocumentType(sequence.document_type) ? sequence.document_type : "QUOTATION",
     series: sequence?.series ?? "",
     fiscal_year: sequence?.fiscal_year ?? new Date().getFullYear(),
     prefix: sequence?.prefix ?? "",
@@ -83,6 +87,7 @@ export function DocumentSequenceForm({
     resolver: zodResolver(DocumentSequenceFormSchema),
     values: toFormValues(sequence),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: DocumentSequenceFormValues) {
     setFormError(null);
@@ -141,7 +146,7 @@ export function DocumentSequenceForm({
                   <SelectContent>
                     {DOCUMENT_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {type}
+                        {DOCUMENT_TYPE_LABELS[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>

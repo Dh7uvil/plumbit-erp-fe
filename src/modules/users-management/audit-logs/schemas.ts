@@ -56,4 +56,6 @@ export type AuditLogFilterParams = {
 export type AuditLogListParams = AuditLogFilterParams & {
   page?: number;
   page_size?: number;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
 };

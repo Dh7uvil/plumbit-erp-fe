@@ -39,7 +39,11 @@ export const ExchangeRateFormSchema = z.object({
 export type ExchangeRateFormValues = z.infer<typeof ExchangeRateFormSchema>;
 
 export type ExchangeRateListParams = {
+  page?: number;
+  page_size?: number;
   effective_date?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
 };
 
 export type ExchangeRateResolveParams = {

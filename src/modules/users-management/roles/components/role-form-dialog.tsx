@@ -31,6 +31,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 export function RoleFormDialog({
   open,
@@ -62,6 +63,7 @@ export function RoleFormDialog({
       description: role?.description ?? "",
     },
   });
+  useDirtyFormGuard(open && canSubmit && form.formState.isDirty);
 
   function handleOpenChange(next: boolean) {
     if (!next) {

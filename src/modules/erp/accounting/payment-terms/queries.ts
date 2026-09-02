@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { paymentTermsApi } from "@/modules/erp/accounting/payment-terms/api";
 import type { PaymentTermListParams } from "@/modules/erp/accounting/payment-terms/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const paymentTermKeys = {
   all: ["payment-terms"] as const,
@@ -14,14 +15,15 @@ export const paymentTermKeys = {
 
 export function usePaymentTerms(params: PaymentTermListParams) {
   return useQuery({
-    queryKey: paymentTermKeys.list(params),
+    queryKey: useTenantQueryKey(paymentTermKeys.list(params)),
     queryFn: () => paymentTermsApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllPaymentTerms(enabled = true) {
   return useQuery({
-    queryKey: paymentTermKeys.allItems(),
+    queryKey: useTenantQueryKey(paymentTermKeys.allItems()),
     queryFn: paymentTermsApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllPaymentTerms(enabled = true) {
 
 export function usePaymentTerm(id: string | null) {
   return useQuery({
-    queryKey: paymentTermKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(paymentTermKeys.detail(id ?? "")),
     queryFn: () => paymentTermsApi.get(id!),
     enabled: Boolean(id),
   });

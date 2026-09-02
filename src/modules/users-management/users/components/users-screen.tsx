@@ -3,15 +3,15 @@
 import { Ban, UserCheck, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { DeactivateUserDialog } from "@/modules/users-management/users/components/deactivate-user-dialog";
 import { UserFormDialog } from "@/modules/users-management/users/components/user-form-dialog";
 import { UserStatusBadge } from "@/modules/users-management/users/components/user-status-badge";
 import {
+  USER_SORT_FIELD_BY_HEADER,
   UsersTableFilters,
-  type UserListFilterParams,
+  userListParamsFromTable,
 } from "@/modules/users-management/users/components/users-table-filters";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { UserViewDialog } from "@/modules/users-management/users/components/user-view-dialog";
 import { useActivateUser } from "@/modules/users-management/users/mutations";
 import { userPermissions } from "@/modules/users-management/users/permissions";
@@ -33,14 +33,9 @@ import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { formatDate, initials } from "@/shared/lib/format";
+import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMN_HEADERS = [
@@ -57,23 +52,23 @@ export function UsersScreen() {
   const can = useCan();
   const { canCreate, canRead, canUpdate } = useCrudPermissions(userPermissions);
   const activateUser = useActivateUser();
-  const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<UserListFilterParams>({});
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deactivating, setDeactivating] = useState<User | null>(null);
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
 
-  const usersQuery = useUsers({
-    page,
-    page_size: DEFAULT_PAGE_SIZE,
-    ...filters,
-  });
-
-  function handleFiltersChange(next: UserListFilterParams) {
-    setFilters(next);
-    setPage(1);
-  }
+  const usersQuery = useUsers(
+    userListParamsFromTable({
+      page,
+      page_size,
+      search,
+      sort_by,
+      sort_order,
+      filters,
+    }),
+  );
 
   function openCreate() {
     setEditingId(null);
@@ -114,13 +109,17 @@ export function UsersScreen() {
           ) : undefined
         }
       />
-      <UsersTableFilters onChange={handleFiltersChange} />
+      <UsersTableFilters />
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={USER_SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>

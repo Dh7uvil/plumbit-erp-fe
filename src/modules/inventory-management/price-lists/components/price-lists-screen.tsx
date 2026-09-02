@@ -11,13 +11,16 @@ import { priceListPermissions } from "@/modules/inventory-management/price-lists
 import { usePriceLists } from "@/modules/inventory-management/price-lists/queries";
 import {
   PRICE_LIST_TYPE_LABELS,
+  PRICE_LIST_TYPES,
   type PriceList,
+  type PriceListType,
 } from "@/modules/inventory-management/price-lists/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
+import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import {
@@ -25,6 +28,8 @@ import {
   hasRowActions,
   tableHeaders,
 } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -33,16 +38,20 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
 const COLUMN_HEADERS = ["Name", "Type", "Currency", "Percent", "Status"] as const;
+const SORT_FIELDS = [
+  { value: "name", label: "Name" },
+  { value: "list_type", label: "Type" },
+  { value: "is_active", label: "Status" },
+] as const;
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  Name: "name",
+  Type: "list_type",
+  Status: "is_active",
+};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -55,14 +64,26 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
+function parseListType(value: string | undefined): PriceListType | undefined {
+  return PRICE_LIST_TYPES.includes(value as PriceListType) ? (value as PriceListType) : undefined;
+}
+
 export function PriceListsScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(priceListPermissions);
-  const { page, page_size, search, filters, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
+  const extraCurrency = filters.currency_id ?? ALL;
+  const extraCount = extraCurrency !== ALL ? 1 : 0;
+  const [draftCurrency, setDraftCurrency] = useState(ALL);
   const priceListsQuery = usePriceLists({
     page,
     page_size,
     search,
+    sort_by,
+    sort_order,
     is_active: parseBoolFilter(filters.is_active),
+    list_type: parseListType(filters.list_type),
+    currency_id: filters.currency_id,
   });
   const currenciesQuery = useAllCurrencies();
   const deletePriceList = useDeletePriceList();
@@ -127,13 +148,82 @@ export function PriceListsScreen() {
             { value: "false", label: "Inactive" },
           ]}
         />
+        <FilterSelect
+          className="w-40"
+          placeholder="Type"
+          value={filters.list_type ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { list_type: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All types" },
+            ...PRICE_LIST_TYPES.map((type) => ({
+              value: type,
+              label: PRICE_LIST_TYPE_LABELS[type],
+            })),
+          ]}
+        />
+        <MoreFiltersDialog
+          extraCount={extraCount}
+          draftCount={draftCurrency !== ALL ? 1 : 0}
+          description="Filter by currency."
+          onOpen={() => setDraftCurrency(extraCurrency)}
+          onApply={() =>
+            setParams({ filters: { currency_id: draftCurrency === ALL ? null : draftCurrency } })
+          }
+          onClearDraft={() => setDraftCurrency(ALL)}
+        >
+          <FilterField label="Currency" htmlFor="price-list-filter-currency">
+            <FilterSelect
+              id="price-list-filter-currency"
+              className="w-full"
+              placeholder="Currency"
+              value={draftCurrency}
+              onValueChange={setDraftCurrency}
+              options={[
+                { value: ALL, label: "All currencies" },
+                ...(currenciesQuery.data ?? []).map((currency) => ({
+                  value: currency.id,
+                  label: currency.code,
+                })),
+              ]}
+            />
+          </FilterField>
+        </MoreFiltersDialog>
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
+        />
+        {search || filters.is_active || filters.list_type || extraCount > 0 || sort_by ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setParams({
+                search: null,
+                sort_by: null,
+                sort_order: null,
+                filters: { is_active: null, list_type: null, currency_id: null },
+              })
+            }
+          >
+            Clear
+          </Button>
+        ) : null}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>

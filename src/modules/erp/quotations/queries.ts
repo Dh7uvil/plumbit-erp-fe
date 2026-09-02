@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { quotationsApi } from "@/modules/erp/quotations/api";
 import type { QuotationListParams } from "@/modules/erp/quotations/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const quotationKeys = {
   all: ["quotations"] as const,
@@ -15,14 +16,15 @@ export const quotationKeys = {
 
 export function useQuotations(params: QuotationListParams) {
   return useQuery({
-    queryKey: quotationKeys.list(params),
+    queryKey: useTenantQueryKey(quotationKeys.list(params)),
     queryFn: () => quotationsApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useQuotation(id: string | null) {
   return useQuery({
-    queryKey: quotationKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(quotationKeys.detail(id ?? "")),
     queryFn: () => quotationsApi.get(id!),
     enabled: Boolean(id),
   });
@@ -30,7 +32,7 @@ export function useQuotation(id: string | null) {
 
 export function useQuotationComposeDefaults(customerId: string | null) {
   return useQuery({
-    queryKey: quotationKeys.composeDefaults(customerId ?? ""),
+    queryKey: useTenantQueryKey(quotationKeys.composeDefaults(customerId ?? "")),
     queryFn: () => quotationsApi.composeDefaults(customerId!),
     enabled: Boolean(customerId),
   });

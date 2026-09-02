@@ -11,6 +11,7 @@ import {
   useCancelQuotation,
   useCloneQuotation,
   useDeclineQuotation,
+  useDeleteQuotation,
   useRejectQuotation,
   useReopenQuotation,
   useSendQuotation,
@@ -19,22 +20,28 @@ import {
 import { quotationDisplayNumber, type Quotation } from "@/modules/erp/quotations/schemas";
 import {
   isIrreversibleQuotationAction,
+  quotationActionEffect,
   QUOTATION_ACTION_LABELS,
   visibleQuotationActions,
   type QuotationWorkflowAction,
 } from "@/modules/erp/quotations/workflow";
-import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Button } from "@/shared/components/ui/button";
+import { Label } from "@/shared/components/ui/label";
+import { Textarea } from "@/shared/components/ui/textarea";
 import { useCan } from "@/shared/providers/session-provider";
 
-const DESTRUCTIVE_ACTIONS = new Set<QuotationWorkflowAction>(["reject", "decline", "cancel"]);
+const DESTRUCTIVE_ACTIONS = new Set<QuotationWorkflowAction>([
+  "reject",
+  "decline",
+  "cancel",
+  "delete",
+]);
 
 export function QuotationWorkflowButtons({ quotation }: { quotation: Quotation }) {
   const can = useCan();
   const router = useRouter();
-  const tenantQuery = useCurrentTenant();
   const submitQuotation = useSubmitQuotation();
   const approveQuotation = useApproveQuotation();
   const rejectQuotation = useRejectQuotation();
@@ -44,47 +51,57 @@ export function QuotationWorkflowButtons({ quotation }: { quotation: Quotation }
   const declineQuotation = useDeclineQuotation();
   const cancelQuotation = useCancelQuotation();
   const cloneQuotation = useCloneQuotation();
+  const deleteQuotation = useDeleteQuotation();
   const [confirming, setConfirming] = useState<QuotationWorkflowAction | null>(null);
   const [running, setRunning] = useState<QuotationWorkflowAction | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
-  const requiresApproval = tenantQuery.data?.quotation_requires_approval ?? true;
-  const actions = visibleQuotationActions(quotation.status, { can, requiresApproval });
+  const actions = visibleQuotationActions(quotation.available_actions, can);
   const label = quotationDisplayNumber(quotation) ?? "quotation";
   const pending = Boolean(running);
+  const write = { id: quotation.id, version: quotation.version };
 
   async function runAction(action: QuotationWorkflowAction) {
     setRunning(action);
     try {
       if (action === "submit") {
-        await submitQuotation.mutateAsync(quotation.id);
+        await submitQuotation.mutateAsync(write);
         toast.success("Quotation submitted");
       } else if (action === "approve") {
-        await approveQuotation.mutateAsync(quotation.id);
+        await approveQuotation.mutateAsync(write);
         toast.success("Quotation approved");
       } else if (action === "reject") {
-        await rejectQuotation.mutateAsync(quotation.id);
+        await rejectQuotation.mutateAsync({
+          ...write,
+          reason: rejectReason.trim() ? rejectReason.trim() : null,
+        });
         toast.success("Quotation rejected");
       } else if (action === "reopen") {
-        await reopenQuotation.mutateAsync(quotation.id);
+        await reopenQuotation.mutateAsync(write);
         toast.success("Quotation reopened");
       } else if (action === "send") {
-        await sendQuotation.mutateAsync(quotation.id);
+        await sendQuotation.mutateAsync(write);
         toast.success("Quotation sent");
       } else if (action === "accept") {
-        await acceptQuotation.mutateAsync(quotation.id);
+        await acceptQuotation.mutateAsync(write);
         toast.success("Quotation accepted");
       } else if (action === "decline") {
-        await declineQuotation.mutateAsync(quotation.id);
+        await declineQuotation.mutateAsync(write);
         toast.success("Quotation declined");
       } else if (action === "cancel") {
-        await cancelQuotation.mutateAsync(quotation.id);
+        await cancelQuotation.mutateAsync(write);
         toast.success("Quotation cancelled");
       } else if (action === "clone") {
         const cloned = await cloneQuotation.mutateAsync(quotation.id);
         toast.success("Quotation cloned");
         router.push(`/quotations/${cloned.id}`);
+      } else if (action === "delete") {
+        await deleteQuotation.mutateAsync(write);
+        toast.success("Quotation deleted");
+        router.push("/quotations");
       }
       setConfirming(null);
+      setRejectReason("");
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -131,11 +148,30 @@ export function QuotationWorkflowButtons({ quotation }: { quotation: Quotation }
       <ConfirmActionDialog
         open={Boolean(confirming)}
         title={confirmTitle}
-        description="This cannot be undone."
+        description={confirming ? quotationActionEffect(confirming, label) : ""}
+        extra={
+          confirming === "reject" ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="quotation-reject-reason">Reason (optional)</Label>
+              <Textarea
+                id="quotation-reject-reason"
+                value={rejectReason}
+                maxLength={2000}
+                onChange={(event) => setRejectReason(event.target.value)}
+                placeholder="Why this quotation is being rejected"
+              />
+            </div>
+          ) : null
+        }
         confirmLabel={confirmLabel}
         pending={pending}
         variant={confirming && DESTRUCTIVE_ACTIONS.has(confirming) ? "destructive" : "default"}
-        onOpenChange={(open) => !open && setConfirming(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirming(null);
+            setRejectReason("");
+          }
+        }}
         onConfirm={() => {
           if (confirming) {
             void runAction(confirming);

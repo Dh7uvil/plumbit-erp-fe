@@ -17,7 +17,8 @@ export function SessionProvider({
 }) {
   const { data: me } = useMe(initialMe);
   const permissions = me?.permissions ?? EMPTY_PERMISSIONS;
-  const value = useMemo(() => ({ permissions }), [permissions]);
+  const tenantId = me?.tenant_id ?? null;
+  const value = useMemo(() => ({ permissions, tenantId }), [permissions, tenantId]);
 
   return <SessionPermissionsProvider value={value}>{children}</SessionPermissionsProvider>;
 }

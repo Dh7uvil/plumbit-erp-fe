@@ -8,17 +8,22 @@ import { toast } from "sonner";
 import { RoleFormDialog } from "@/modules/users-management/roles/components/role-form-dialog";
 import { useDeleteRole } from "@/modules/users-management/roles/mutations";
 import { rolePermissions } from "@/modules/users-management/roles/permissions";
-import { useAllRoles } from "@/modules/users-management/roles/queries";
+import { useRoles } from "@/modules/users-management/roles/queries";
 import type { Role } from "@/modules/users-management/roles/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { ListSearch } from "@/shared/components/data-table/list-search";
+import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import {
   DataTableRowActions,
   hasRowActions,
   tableHeaders,
 } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import {
@@ -33,23 +38,27 @@ import {
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { formatDate } from "@/shared/lib/format";
+import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMN_HEADERS = ["Role", "Description", "Type", "Users", "Created"] as const;
+const SORT_FIELDS = [
+  { value: "name", label: "Role" },
+  { value: "created_at", label: "Created" },
+] as const;
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  Role: "name",
+  Created: "created_at",
+};
 
 export function RolesScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(rolePermissions);
   const can = useCan();
   const canAssign = can(rolePermissions.assignPermissions);
-  const rolesQuery = useAllRoles();
+  const { page, page_size, search, sort_by, sort_order, setParams, setPage } = useTableParams();
+  const rolesQuery = useRoles({ page, page_size, search, sort_by, sort_order });
   const deleteRole = useDeleteRole();
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<Role | null>(null);
@@ -58,7 +67,8 @@ export function RolesScreen() {
   const showActions = hasRowActions(canRead, canUpdate, canDelete, true);
   const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
-  const roles = rolesQuery.data ?? [];
+  const roles = rolesQuery.data?.data ?? [];
+  const meta = rolesQuery.data?.meta;
 
   function openCreate() {
     setSelected(null);
@@ -105,12 +115,39 @@ export function RolesScreen() {
           ) : undefined
         }
       />
-      <DataTable>
+      <DataTableToolbar>
+        <ListSearch
+          value={search ?? ""}
+          onChange={(value) => setParams({ search: value || null })}
+          placeholder="Search roles…"
+        />
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
+        />
+        {search || sort_by ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setParams({ search: null, sort_by: null, sort_order: null })}
+          >
+            Clear
+          </Button>
+        ) : null}
+      </DataTableToolbar>
+      <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -50,6 +50,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 function toFormValues(
@@ -111,6 +112,7 @@ export function DepartmentFormDialog({
     resolver: zodResolver(DepartmentFormSchema),
     values: toFormValues(department, defaultBranchId),
   });
+  useDirtyFormGuard(open && canSubmit && form.formState.isDirty);
 
   function handleOpenChange(next: boolean) {
     if (!next) {

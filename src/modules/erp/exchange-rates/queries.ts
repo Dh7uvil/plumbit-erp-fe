@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { exchangeRatesApi } from "@/modules/erp/exchange-rates/api";
 import type { ExchangeRateListParams } from "@/modules/erp/exchange-rates/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const exchangeRateKeys = {
   all: ["exchange-rates"] as const,
@@ -15,14 +16,15 @@ export const exchangeRateKeys = {
 
 export function useExchangeRates(params: ExchangeRateListParams) {
   return useQuery({
-    queryKey: exchangeRateKeys.list(params),
+    queryKey: useTenantQueryKey(exchangeRateKeys.list(params)),
     queryFn: () => exchangeRatesApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllExchangeRates(params: ExchangeRateListParams = {}, enabled = true) {
   return useQuery({
-    queryKey: exchangeRateKeys.allItems(params),
+    queryKey: useTenantQueryKey(exchangeRateKeys.allItems(params)),
     queryFn: () => exchangeRatesApi.listAll(params),
     enabled,
   });

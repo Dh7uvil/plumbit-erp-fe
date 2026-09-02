@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { departmentsApi } from "@/modules/users-management/departments/api";
 import type { DepartmentListParams } from "@/modules/users-management/departments/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const departmentKeys = {
   all: ["departments"] as const,
@@ -15,8 +16,9 @@ export const departmentKeys = {
 
 export function useDepartments(params: DepartmentListParams) {
   return useQuery({
-    queryKey: departmentKeys.list(params),
+    queryKey: useTenantQueryKey(departmentKeys.list(params)),
     queryFn: () => departmentsApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -25,7 +27,7 @@ export function useAllDepartments(
   enabled = true,
 ) {
   return useQuery({
-    queryKey: departmentKeys.allItems(params),
+    queryKey: useTenantQueryKey(departmentKeys.allItems(params)),
     queryFn: () => departmentsApi.listAll(params),
     enabled,
   });
@@ -33,7 +35,7 @@ export function useAllDepartments(
 
 export function useDepartment(id: string | null) {
   return useQuery({
-    queryKey: departmentKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(departmentKeys.detail(id ?? "")),
     queryFn: () => departmentsApi.get(id!),
     enabled: Boolean(id),
   });

@@ -21,6 +21,7 @@ import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-per
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
+import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import {
@@ -28,6 +29,8 @@ import {
   hasRowActions,
   tableHeaders,
 } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -36,17 +39,25 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatMoney } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["SKU", "Name", "Type", "Rate", "Status"] as const;
+const SORT_FIELDS = [
+  { value: "sku", label: "SKU" },
+  { value: "name", label: "Name" },
+  { value: "item_type", label: "Type" },
+  { value: "selling_rate", label: "Rate" },
+  { value: "is_active", label: "Status" },
+] as const;
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  SKU: "sku",
+  Name: "name",
+  Type: "item_type",
+  Rate: "selling_rate",
+  Status: "is_active",
+};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -65,11 +76,17 @@ function parseItemType(value: string | undefined): ItemType | undefined {
 
 export function ProductsScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(productPermissions);
-  const { page, page_size, search, filters, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
+  const extraCategory = filters.category_id ?? ALL;
+  const extraCount = extraCategory !== ALL ? 1 : 0;
+  const [draftCategory, setDraftCategory] = useState(ALL);
   const productsQuery = useProducts({
     page,
     page_size,
     search,
+    sort_by,
+    sort_order,
     item_type: parseItemType(filters.item_type),
     is_active: parseBoolFilter(filters.is_active),
     category_id: filters.category_id,
@@ -129,30 +146,6 @@ export function ProductsScreen() {
         />
         <FilterSelect
           className="w-36"
-          placeholder="Type"
-          value={filters.item_type ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { item_type: value === ALL ? null : value } })
-          }
-          options={[
-            { value: ALL, label: "All types" },
-            ...ITEM_TYPES.map((type) => ({ value: type, label: ITEM_TYPE_LABELS[type] })),
-          ]}
-        />
-        <FilterSelect
-          className="w-44"
-          placeholder="Category"
-          value={filters.category_id ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { category_id: value === ALL ? null : value } })
-          }
-          options={[
-            { value: ALL, label: "All categories" },
-            ...categories.map((category) => ({ value: category.id, label: category.name })),
-          ]}
-        />
-        <FilterSelect
-          className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
@@ -164,13 +157,76 @@ export function ProductsScreen() {
             { value: "false", label: "Inactive" },
           ]}
         />
+        <FilterSelect
+          className="w-36"
+          placeholder="Type"
+          value={filters.item_type ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { item_type: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All types" },
+            ...ITEM_TYPES.map((type) => ({ value: type, label: ITEM_TYPE_LABELS[type] })),
+          ]}
+        />
+        <MoreFiltersDialog
+          extraCount={extraCount}
+          draftCount={draftCategory !== ALL ? 1 : 0}
+          description="Filter by category."
+          onOpen={() => setDraftCategory(extraCategory)}
+          onApply={() =>
+            setParams({ filters: { category_id: draftCategory === ALL ? null : draftCategory } })
+          }
+          onClearDraft={() => setDraftCategory(ALL)}
+        >
+          <FilterField label="Category" htmlFor="product-filter-category">
+            <FilterSelect
+              id="product-filter-category"
+              className="w-full"
+              placeholder="Category"
+              value={draftCategory}
+              onValueChange={setDraftCategory}
+              options={[
+                { value: ALL, label: "All categories" },
+                ...categories.map((category) => ({ value: category.id, label: category.name })),
+              ]}
+            />
+          </FilterField>
+        </MoreFiltersDialog>
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
+        />
+        {search || filters.is_active || filters.item_type || extraCount > 0 || sort_by ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setParams({
+                search: null,
+                sort_by: null,
+                sort_order: null,
+                filters: { is_active: null, item_type: null, category_id: null },
+              })
+            }
+          >
+            Clear
+          </Button>
+        ) : null}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>

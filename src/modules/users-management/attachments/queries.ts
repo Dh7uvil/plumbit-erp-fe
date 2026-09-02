@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { attachmentsApi } from "@/modules/users-management/attachments/api";
 import type { AttachmentListParams } from "@/modules/users-management/attachments/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const attachmentKeys = {
   all: ["attachments"] as const,
@@ -15,8 +16,9 @@ export const attachmentKeys = {
 
 export function useAttachments(params: AttachmentListParams, enabled = true) {
   return useQuery({
-    queryKey: attachmentKeys.list(params),
+    queryKey: useTenantQueryKey(attachmentKeys.list(params)),
     queryFn: () => attachmentsApi.list(params),
+    placeholderData: keepPreviousData,
     enabled,
   });
 }
@@ -27,7 +29,7 @@ export function useEntityAttachments(
   enabled = true,
 ) {
   return useQuery({
-    queryKey: attachmentKeys.forEntity(entityType, entityId ?? ""),
+    queryKey: useTenantQueryKey(attachmentKeys.forEntity(entityType, entityId ?? "")),
     queryFn: () => attachmentsApi.listAll({ entity_type: entityType, entity_id: entityId! }),
     enabled: enabled && Boolean(entityId),
   });

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { DocumentSequenceForm } from "@/modules/erp/accounting/document-sequences/components/document-sequence-form";
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
+import { documentTypeLabel } from "@/modules/erp/accounting/document-sequences/schemas";
 import { useDocumentSequence } from "@/modules/erp/accounting/document-sequences/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -61,7 +62,7 @@ export function DocumentSequenceDetailScreen({
   return (
     <div className="flex flex-col gap-5">
       <RecordPageHeader
-        title={`${sequence.document_type} · ${sequence.series}`}
+        title={`${documentTypeLabel(sequence.document_type)} · ${sequence.series}`}
         listHref="/document-sequences"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}

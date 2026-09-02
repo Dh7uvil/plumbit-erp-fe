@@ -12,7 +12,12 @@ import {
   type QuotationUpdateRequest,
 } from "@/modules/erp/quotations/schemas";
 import { apiClient } from "@/shared/api/client";
+import { ifMatchHeaders } from "@/shared/api/concurrency";
 import type { ListResponse } from "@/shared/api/envelope";
+
+export type QuotationWriteOptions = {
+  version: number;
+};
 
 export const quotationsApi = {
   composeDefaults: async (customerId: string): Promise<QuotationComposeDefaults> =>
@@ -43,26 +48,75 @@ export const quotationsApi = {
     QuotationSchema.parse(
       await apiClient.post("/quotations", QuotationCreateRequestSchema.parse(values)),
     ),
-  update: async (id: string, values: QuotationUpdateRequest): Promise<Quotation> =>
+  update: async (
+    id: string,
+    values: QuotationUpdateRequest,
+    options: QuotationWriteOptions,
+  ): Promise<Quotation> =>
     QuotationSchema.parse(
-      await apiClient.patch(`/quotations/${id}`, QuotationUpdateRequestSchema.parse(values)),
+      await apiClient.patch(
+        `/quotations/${id}`,
+        QuotationUpdateRequestSchema.parse({ ...values, version: options.version }),
+        { headers: ifMatchHeaders(options.version) },
+      ),
     ),
-  submit: async (id: string): Promise<Quotation> =>
-    QuotationSchema.parse(await apiClient.post(`/quotations/${id}/submit`)),
-  approve: async (id: string): Promise<Quotation> =>
-    QuotationSchema.parse(await apiClient.post(`/quotations/${id}/approve`)),
-  reject: async (id: string): Promise<Quotation> =>
-    QuotationSchema.parse(await apiClient.post(`/quotations/${id}/reject`)),
-  reopen: async (id: string): Promise<Quotation> =>
-    QuotationSchema.parse(await apiClient.post(`/quotations/${id}/reopen`)),
-  send: async (id: string): Promise<Quotation> =>
-    QuotationSchema.parse(await apiClient.post(`/quotations/${id}/send`)),
-  accept: async (id: string): Promise<Quotation> =>
-    QuotationSchema.parse(await apiClient.post(`/quotations/${id}/accept`)),
-  decline: async (id: string): Promise<Quotation> =>
-    QuotationSchema.parse(await apiClient.post(`/quotations/${id}/decline`)),
-  cancel: async (id: string): Promise<Quotation> =>
-    QuotationSchema.parse(await apiClient.post(`/quotations/${id}/cancel`)),
+  submit: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(`/quotations/${id}/submit`, undefined, {
+        headers: ifMatchHeaders(options.version),
+      }),
+    ),
+  approve: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(`/quotations/${id}/approve`, undefined, {
+        headers: ifMatchHeaders(options.version),
+      }),
+    ),
+  reject: async (
+    id: string,
+    options: QuotationWriteOptions & { reason?: string | null },
+  ): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(
+        `/quotations/${id}/reject`,
+        { reason: options.reason ?? null, version: options.version },
+        { headers: ifMatchHeaders(options.version) },
+      ),
+    ),
+  reopen: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(`/quotations/${id}/reopen`, undefined, {
+        headers: ifMatchHeaders(options.version),
+      }),
+    ),
+  send: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(`/quotations/${id}/send`, undefined, {
+        headers: ifMatchHeaders(options.version),
+      }),
+    ),
+  accept: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(`/quotations/${id}/accept`, undefined, {
+        headers: ifMatchHeaders(options.version),
+      }),
+    ),
+  decline: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(`/quotations/${id}/decline`, undefined, {
+        headers: ifMatchHeaders(options.version),
+      }),
+    ),
+  cancel: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(`/quotations/${id}/cancel`, undefined, {
+        headers: ifMatchHeaders(options.version),
+      }),
+    ),
   clone: async (id: string): Promise<Quotation> =>
     QuotationSchema.parse(await apiClient.post(`/quotations/${id}/clone`)),
+  delete: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.delete(`/quotations/${id}`, { headers: ifMatchHeaders(options.version) }),
+    ),
 };

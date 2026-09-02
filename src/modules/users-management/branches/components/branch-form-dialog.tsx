@@ -53,6 +53,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 function toFormValues(branch: Branch | null): BranchFormValues {
@@ -115,6 +116,7 @@ export function BranchFormDialog({
     resolver: zodResolver(BranchFormSchema),
     values: toFormValues(branch),
   });
+  useDirtyFormGuard(open && canSubmit && form.formState.isDirty);
 
   function handleOpenChange(next: boolean) {
     if (!next) {

@@ -22,6 +22,7 @@ import { useAllRoles } from "@/modules/users-management/roles/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -49,6 +50,8 @@ export function PermissionsScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roleIdParam = searchParams.get("role_id");
+  const moduleFilter = searchParams.get("module") ?? ALL;
+  const resourceFilter = searchParams.get("resource") ?? ALL;
   const rolesQuery = useAllRoles();
   const selectedRoleId = roleIdParam ?? rolesQuery.data?.[0]?.id ?? null;
   const matrixQuery = usePermissionMatrix(selectedRoleId);
@@ -56,8 +59,7 @@ export function PermissionsScreen() {
   const resetPermissions = useResetRolePermissions();
   const [draft, setDraft] = useState<{ roleId: string; ids: string[] } | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
-  const [moduleFilter, setModuleFilter] = useState(ALL);
-  const [resourceFilter, setResourceFilter] = useState(ALL);
+  const [draftResource, setDraftResource] = useState(ALL);
 
   const canSave = can(rolePermissions.assignPermissions) || can(rolePermissions.update);
   const selectedRole = rolesQuery.data?.find((role) => role.id === selectedRoleId) ?? null;
@@ -117,19 +119,45 @@ export function PermissionsScreen() {
     setDraft({ roleId: selectedRoleId, ids: [...next] });
   }
 
+  function replaceFilters(patch: {
+    role_id?: string;
+    module?: string | null;
+    resource?: string | null;
+  }) {
+    const next = new URLSearchParams(searchParams.toString());
+    if (patch.role_id !== undefined) {
+      next.set("role_id", patch.role_id);
+    }
+    if (patch.module !== undefined) {
+      if (patch.module && patch.module !== ALL) {
+        next.set("module", patch.module);
+      } else {
+        next.delete("module");
+      }
+    }
+    if (patch.resource !== undefined) {
+      if (patch.resource && patch.resource !== ALL) {
+        next.set("resource", patch.resource);
+      } else {
+        next.delete("resource");
+      }
+    }
+    const query = next.toString();
+    router.replace(query ? `/permissions?${query}` : "/permissions");
+  }
+
   function selectRole(id: string) {
     setDraft(null);
-    router.replace(`/permissions?role_id=${id}`);
+    replaceFilters({ role_id: id });
   }
 
   function selectModule(value: string) {
-    setModuleFilter(value);
     const nextResources = new Set(
       table.rows.filter((row) => value === ALL || row.module === value).map((row) => row.resource),
     );
-    if (resourceFilter !== ALL && !nextResources.has(resourceFilter)) {
-      setResourceFilter(ALL);
-    }
+    const nextResource =
+      resourceFilter !== ALL && !nextResources.has(resourceFilter) ? ALL : resourceFilter;
+    replaceFilters({ module: value, resource: nextResource });
   }
 
   async function onSave() {
@@ -230,24 +258,44 @@ export function PermissionsScreen() {
             ]}
           />
         </div>
-        <div className="flex w-56 flex-col items-start gap-1.5">
-          <Label htmlFor="permissions-filter-resource" className="text-muted-foreground">
-            Resource
-          </Label>
-          <FilterSelect
-            id="permissions-filter-resource"
-            className="w-full"
-            placeholder="All resources"
-            aria-label="Resource"
-            value={resourceFilter}
-            onValueChange={setResourceFilter}
-            disabled={matrixQuery.isLoading || resources.length === 0}
-            options={[
-              { value: ALL, label: "All resources" },
-              ...resources.map((resource) => ({ value: resource, label: resource })),
-            ]}
-          />
+        <div className="flex items-end self-end">
+          <MoreFiltersDialog
+            extraCount={resourceFilter !== ALL ? 1 : 0}
+            draftCount={draftResource !== ALL ? 1 : 0}
+            description="Narrow the matrix by resource."
+            onOpen={() => setDraftResource(resourceFilter)}
+            onApply={() => replaceFilters({ resource: draftResource })}
+            onClearDraft={() => setDraftResource(ALL)}
+          >
+            <FilterField label="Resource" htmlFor="permissions-filter-resource">
+              <FilterSelect
+                id="permissions-filter-resource"
+                className="w-full"
+                placeholder="All resources"
+                aria-label="Resource"
+                value={draftResource}
+                onValueChange={setDraftResource}
+                disabled={matrixQuery.isLoading || resources.length === 0}
+                options={[
+                  { value: ALL, label: "All resources" },
+                  ...resources.map((resource) => ({ value: resource, label: resource })),
+                ]}
+              />
+            </FilterField>
+          </MoreFiltersDialog>
         </div>
+        {moduleFilter !== ALL || resourceFilter !== ALL ? (
+          <div className="flex items-end self-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => replaceFilters({ module: ALL, resource: ALL })}
+            >
+              Clear
+            </Button>
+          </div>
+        ) : null}
       </DataTableToolbar>
       {rolesQuery.isError || matrixQuery.isError ? (
         <DataTableError

@@ -1,9 +1,7 @@
 "use client";
 
-import { AlertCircle, ClipboardList, Search, Shield, Users, type LucideIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-
-import { DEFAULT_PAGE_SIZE } from "@/config/constants";
+import { AlertCircle, ClipboardList, Shield, Users, type LucideIcon } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useAuditLogs, useAuditLogSummary } from "@/modules/users-management/audit-logs/queries";
 import {
   AUDIT_ACTIONS,
@@ -16,7 +14,11 @@ import { userPermissions } from "@/modules/users-management/users/permissions";
 import { useAllUsers } from "@/modules/users-management/users/queries";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListSearch } from "@/shared/components/data-table/list-search";
+import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -27,15 +29,10 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { getErrorMessage } from "@/shared/api/errors";
 import { formatDateTime, initials, titleCase } from "@/shared/lib/format";
+import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMNS = [
@@ -50,7 +47,35 @@ const COLUMNS = [
   "Status",
 ] as const;
 
+const SORT_FIELDS = [
+  { value: "timestamp", label: "Timestamp" },
+  { value: "action", label: "Action" },
+  { value: "module", label: "Module" },
+  { value: "status", label: "Status" },
+] as const;
+
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  Timestamp: "timestamp",
+  Action: "action",
+  Module: "module",
+  Status: "status",
+};
+
 const ALL = "all";
+
+type ExtraFilters = {
+  action: string;
+  userId: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+const EMPTY_EXTRA: ExtraFilters = {
+  action: ALL,
+  userId: ALL,
+  dateFrom: "",
+  dateTo: "",
+};
 
 function uniqueSorted(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
@@ -141,42 +166,52 @@ function KpiCard({
 export function AuditLogsScreen() {
   const can = useCan();
   const canReadUsers = can(userPermissions.read);
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [moduleFilter, setModuleFilter] = useState(ALL);
-  const [actionFilter, setActionFilter] = useState(ALL);
-  const [userFilter, setUserFilter] = useState(ALL);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
+  const moduleFilter = filters.module ?? ALL;
+  const extraFilters: ExtraFilters = {
+    action: filters.action ?? ALL,
+    userId: filters.user_id ?? ALL,
+    dateFrom: filters.date_from ?? "",
+    dateTo: filters.date_to ?? "",
+  };
+  const [draftExtra, setDraftExtra] = useState<ExtraFilters>(EMPTY_EXTRA);
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 300);
-    return () => window.clearTimeout(timeout);
-  }, [searchInput]);
+  const extraCount = [
+    extraFilters.action !== ALL,
+    extraFilters.userId !== ALL,
+    Boolean(extraFilters.dateFrom),
+    Boolean(extraFilters.dateTo),
+  ].filter(Boolean).length;
 
   const filterParams: AuditLogFilterParams = useMemo(
     () => ({
       search: search || undefined,
       module: moduleFilter === ALL ? undefined : moduleFilter,
-      action: actionFilter === ALL ? undefined : actionFilter,
-      user_id: userFilter === ALL ? undefined : userFilter,
-      date_from: dateFrom ? startOfDayIso(dateFrom) : undefined,
-      date_to: dateTo ? endOfDayIso(dateTo) : undefined,
+      action: extraFilters.action === ALL ? undefined : extraFilters.action,
+      user_id: extraFilters.userId === ALL ? undefined : extraFilters.userId,
+      date_from: extraFilters.dateFrom ? startOfDayIso(extraFilters.dateFrom) : undefined,
+      date_to: extraFilters.dateTo ? endOfDayIso(extraFilters.dateTo) : undefined,
     }),
-    [search, moduleFilter, actionFilter, userFilter, dateFrom, dateTo],
+    [
+      search,
+      moduleFilter,
+      extraFilters.action,
+      extraFilters.userId,
+      extraFilters.dateFrom,
+      extraFilters.dateTo,
+    ],
   );
 
   const listParams: AuditLogListParams = useMemo(
     () => ({
       page,
-      page_size: DEFAULT_PAGE_SIZE,
+      page_size,
+      sort_by,
+      sort_order,
       ...filterParams,
     }),
-    [page, filterParams],
+    [page, page_size, sort_by, sort_order, filterParams],
   );
 
   const logsQuery = useAuditLogs(listParams);
@@ -187,14 +222,7 @@ export function AuditLogsScreen() {
   const meta = logsQuery.data?.meta;
   const users = usersQuery.data ?? [];
 
-  const hasActiveFilters = Boolean(
-    searchInput ||
-    moduleFilter !== ALL ||
-    actionFilter !== ALL ||
-    userFilter !== ALL ||
-    dateFrom ||
-    dateTo,
-  );
+  const hasActiveFilters = Boolean(search || moduleFilter !== ALL || extraCount > 0 || sort_by);
 
   const moduleOptions = useMemo(
     () =>
@@ -211,20 +239,32 @@ export function AuditLogsScreen() {
       uniqueSorted([
         ...AUDIT_ACTIONS,
         ...(logsQuery.data?.data ?? []).map((row) => row.action),
-        ...(actionFilter !== ALL ? [actionFilter] : []),
+        ...(extraFilters.action !== ALL ? [extraFilters.action] : []),
+        ...(draftExtra.action !== ALL ? [draftExtra.action] : []),
       ]),
-    [logsQuery.data?.data, actionFilter],
+    [logsQuery.data?.data, extraFilters.action, draftExtra.action],
   );
 
+  function extraToUrlPatch(extra: ExtraFilters): Record<string, string | null> {
+    return {
+      action: extra.action === ALL ? null : extra.action,
+      user_id: extra.userId === ALL ? null : extra.userId,
+      date_from: extra.dateFrom || null,
+      date_to: extra.dateTo || null,
+    };
+  }
+
   function clearFilters() {
-    setSearchInput("");
-    setSearch("");
-    setModuleFilter(ALL);
-    setActionFilter(ALL);
-    setUserFilter(ALL);
-    setDateFrom("");
-    setDateTo("");
-    setPage(1);
+    setDraftExtra(EMPTY_EXTRA);
+    setParams({
+      search: null,
+      sort_by: null,
+      sort_order: null,
+      filters: {
+        module: null,
+        ...extraToUrlPatch(EMPTY_EXTRA),
+      },
+    });
   }
 
   return (
@@ -260,75 +300,94 @@ export function AuditLogsScreen() {
         />
       </div>
       <DataTableToolbar>
-        <div className="relative">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-          <Input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search by user, resource…"
-            className="w-48 pl-8 md:w-56"
-          />
-        </div>
+        <ListSearch
+          value={search ?? ""}
+          onChange={(value) => setParams({ search: value.trim() || null })}
+          placeholder="Search by user, resource…"
+        />
         <FilterSelect
           className="w-36 md:w-40"
           placeholder="All Modules"
           value={moduleFilter}
-          onValueChange={(value) => {
-            setModuleFilter(value);
-            setPage(1);
-          }}
+          onValueChange={(value) =>
+            setParams({ filters: { module: value === ALL ? null : value } })
+          }
           options={[
             { value: ALL, label: "All Modules" },
             ...moduleOptions.map((module) => ({ value: module, label: titleCase(module) })),
           ]}
         />
-        <FilterSelect
-          className="w-32 md:w-36"
-          placeholder="All Actions"
-          value={actionFilter}
-          onValueChange={(value) => {
-            setActionFilter(value);
-            setPage(1);
-          }}
-          options={[
-            { value: ALL, label: "All Actions" },
-            ...actionOptions.map((action) => ({ value: action, label: titleCase(action) })),
-          ]}
-        />
-        {canReadUsers ? (
-          <FilterSelect
-            className="w-40 md:w-48"
-            placeholder="All Users"
-            value={userFilter}
-            onValueChange={(value) => {
-              setUserFilter(value);
-              setPage(1);
-            }}
-            options={[
-              { value: ALL, label: "All Users" },
-              ...users.map((user) => ({ value: user.id, label: user.name })),
-            ]}
-          />
-        ) : null}
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(event) => {
-            setDateFrom(event.target.value);
-            setPage(1);
-          }}
-          aria-label="From date"
-          className="w-36"
-        />
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(event) => {
-            setDateTo(event.target.value);
-            setPage(1);
-          }}
-          aria-label="To date"
-          className="w-36"
+        <MoreFiltersDialog
+          extraCount={extraCount}
+          draftCount={
+            [
+              draftExtra.action !== ALL,
+              draftExtra.userId !== ALL,
+              Boolean(draftExtra.dateFrom),
+              Boolean(draftExtra.dateTo),
+            ].filter(Boolean).length
+          }
+          description="Filter by action, user, and date range."
+          onOpen={() => setDraftExtra(extraFilters)}
+          onApply={() => setParams({ filters: extraToUrlPatch(draftExtra) })}
+          onClearDraft={() => setDraftExtra(EMPTY_EXTRA)}
+        >
+          <FilterField label="Action" htmlFor="audit-filter-action">
+            <FilterSelect
+              id="audit-filter-action"
+              className="w-full"
+              placeholder="All Actions"
+              value={draftExtra.action}
+              onValueChange={(value) => setDraftExtra((current) => ({ ...current, action: value }))}
+              options={[
+                { value: ALL, label: "All Actions" },
+                ...actionOptions.map((action) => ({ value: action, label: titleCase(action) })),
+              ]}
+            />
+          </FilterField>
+          {canReadUsers ? (
+            <FilterField label="User" htmlFor="audit-filter-user">
+              <FilterSelect
+                id="audit-filter-user"
+                className="w-full"
+                placeholder="All Users"
+                value={draftExtra.userId}
+                onValueChange={(value) =>
+                  setDraftExtra((current) => ({ ...current, userId: value }))
+                }
+                options={[
+                  { value: ALL, label: "All Users" },
+                  ...users.map((user) => ({ value: user.id, label: user.name })),
+                ]}
+              />
+            </FilterField>
+          ) : null}
+          <FilterField label="From date" htmlFor="audit-filter-from">
+            <Input
+              id="audit-filter-from"
+              type="date"
+              value={draftExtra.dateFrom}
+              onChange={(event) =>
+                setDraftExtra((current) => ({ ...current, dateFrom: event.target.value }))
+              }
+            />
+          </FilterField>
+          <FilterField label="To date" htmlFor="audit-filter-to">
+            <Input
+              id="audit-filter-to"
+              type="date"
+              value={draftExtra.dateTo}
+              onChange={(event) =>
+                setDraftExtra((current) => ({ ...current, dateTo: event.target.value }))
+              }
+            />
+          </FilterField>
+        </MoreFiltersDialog>
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
         />
         {hasActiveFilters ? (
           <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
@@ -339,9 +398,13 @@ export function AuditLogsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {COLUMNS.map((column) => (
-              <TableHead key={column}>{column}</TableHead>
-            ))}
+            <SortableHeads
+              headers={COLUMNS}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>
