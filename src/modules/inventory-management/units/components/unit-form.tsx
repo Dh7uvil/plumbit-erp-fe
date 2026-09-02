@@ -26,6 +26,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function toFormValues(unit: Unit | null): UnitFormValues {
   return {
@@ -64,6 +65,7 @@ export function UnitForm({
     resolver: zodResolver(UnitFormSchema),
     values: toFormValues(unit),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: UnitFormValues) {
     setFormError(null);
@@ -100,9 +102,7 @@ export function UnitForm({
         className="flex flex-col gap-3"
       >
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div
-          className={isEdit ? "flex flex-col gap-3" : "grid grid-cols-1 gap-3 sm:grid-cols-2"}
-        >
+        <div className={isEdit ? "flex flex-col gap-3" : "grid grid-cols-1 gap-3 sm:grid-cols-2"}>
           {!isEdit ? (
             <FormField
               control={form.control}

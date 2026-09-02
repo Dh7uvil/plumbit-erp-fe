@@ -52,6 +52,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 function optionalUuid(value: string): string | null {
@@ -131,6 +132,7 @@ export function ProductForm({
     resolver: zodResolver(ProductFormSchema),
     values: toFormValues(product),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: ProductFormValues) {
     setFormError(null);

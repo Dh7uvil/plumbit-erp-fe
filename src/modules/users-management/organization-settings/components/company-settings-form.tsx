@@ -45,6 +45,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useIsClient } from "@/shared/hooks/use-is-client";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 const EMPTY_FORM: CompanySettingsFormValues = {
@@ -295,6 +296,7 @@ export function CompanySettingsForm() {
     resolver: zodResolver(CompanySettingsFormSchema),
     defaultValues: EMPTY_FORM,
   });
+  useDirtyFormGuard(isEditing && form.formState.isDirty);
 
   useEffect(() => {
     if (!tenant || isEditing) {

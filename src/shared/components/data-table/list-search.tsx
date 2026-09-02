@@ -15,8 +15,14 @@ export function ListSearch({
   placeholder?: string;
 }) {
   const [input, setInput] = useState(value);
+  const [prevValue, setPrevValue] = useState(value);
   const onChangeRef = useRef(onChange);
   const skipFirst = useRef(true);
+
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setInput(value);
+  }
 
   useEffect(() => {
     onChangeRef.current = onChange;

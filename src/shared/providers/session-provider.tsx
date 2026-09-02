@@ -6,9 +6,10 @@ import { can as canPermission } from "@/shared/auth/permissions";
 
 export type SessionValue = {
   permissions: readonly string[];
+  tenantId: string | null;
 };
 
-const SessionContext = createContext<SessionValue>({ permissions: [] });
+const SessionContext = createContext<SessionValue>({ permissions: [], tenantId: null });
 
 export function SessionProvider({
   children,
@@ -18,7 +19,7 @@ export function SessionProvider({
   value?: SessionValue;
 }) {
   return (
-    <SessionContext.Provider value={value ?? { permissions: [] }}>
+    <SessionContext.Provider value={value ?? { permissions: [], tenantId: null }}>
       {children}
     </SessionContext.Provider>
   );

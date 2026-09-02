@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { contactsApi } from "@/modules/crm/contacts/api";
 import type { ContactListParams } from "@/modules/crm/contacts/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const contactKeys = {
   all: ["contacts"] as const,
@@ -14,15 +15,16 @@ export const contactKeys = {
 
 export function useContacts(params: ContactListParams, enabled = true) {
   return useQuery({
-    queryKey: contactKeys.list(params),
+    queryKey: useTenantQueryKey(contactKeys.list(params)),
     queryFn: () => contactsApi.list(params),
+    placeholderData: keepPreviousData,
     enabled,
   });
 }
 
 export function useAllContacts(enabled = true) {
   return useQuery({
-    queryKey: contactKeys.allItems(),
+    queryKey: useTenantQueryKey(contactKeys.allItems()),
     queryFn: () => contactsApi.listAll(),
     enabled,
   });
@@ -30,7 +32,7 @@ export function useAllContacts(enabled = true) {
 
 export function usePartyContacts(customerId: string | null, enabled = true) {
   return useQuery({
-    queryKey: [...contactKeys.all, "party", customerId] as const,
+    queryKey: useTenantQueryKey([...contactKeys.all, "party", customerId] as const),
     queryFn: () => contactsApi.listAll({ customer_id: customerId! }),
     enabled: Boolean(customerId) && enabled,
   });
@@ -38,7 +40,7 @@ export function usePartyContacts(customerId: string | null, enabled = true) {
 
 export function useContact(id: string | null) {
   return useQuery({
-    queryKey: contactKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(contactKeys.detail(id ?? "")),
     queryFn: () => contactsApi.get(id!),
     enabled: Boolean(id),
   });

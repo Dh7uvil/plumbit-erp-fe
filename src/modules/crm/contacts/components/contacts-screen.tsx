@@ -15,6 +15,7 @@ import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-per
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
+import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import {
@@ -22,6 +23,8 @@ import {
   hasRowActions,
   tableHeaders,
 } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
@@ -31,16 +34,22 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
 const COLUMN_HEADERS = ["Name", "Company", "Email", "Phone", "Primary", "Status"] as const;
+const SORT_FIELDS = [
+  { value: "name", label: "Name" },
+  { value: "email", label: "Email" },
+  { value: "is_primary", label: "Primary" },
+  { value: "is_active", label: "Status" },
+] as const;
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  Name: "name",
+  Email: "email",
+  Primary: "is_primary",
+  Status: "is_active",
+};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -55,11 +64,17 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
 
 export function ContactsScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(contactPermissions);
-  const { page, page_size, search, filters, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
+  const extraPrimary = filters.is_primary ?? ALL;
+  const extraCount = extraPrimary !== ALL ? 1 : 0;
+  const [draftPrimary, setDraftPrimary] = useState(ALL);
   const contactsQuery = useContacts({
     page,
     page_size,
     search,
+    sort_by,
+    sort_order,
     customer_id: filters.customer_id,
     is_primary: parseBoolFilter(filters.is_primary),
     is_active: parseBoolFilter(filters.is_active),
@@ -120,31 +135,6 @@ export function ContactsScreen() {
           placeholder="Search contacts…"
         />
         <FilterSelect
-          className="w-48"
-          placeholder="Company"
-          value={filters.customer_id ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { customer_id: value === ALL ? null : value } })
-          }
-          options={[
-            { value: ALL, label: "All companies" },
-            ...companies.map((company) => ({ value: company.id, label: company.name })),
-          ]}
-        />
-        <FilterSelect
-          className="w-36"
-          placeholder="Primary"
-          value={filters.is_primary ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { is_primary: value === ALL ? null : value } })
-          }
-          options={[
-            { value: ALL, label: "All" },
-            { value: "true", label: "Primary" },
-            { value: "false", label: "Other" },
-          ]}
-        />
-        <FilterSelect
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
@@ -157,13 +147,77 @@ export function ContactsScreen() {
             { value: "false", label: "Inactive" },
           ]}
         />
+        <FilterSelect
+          className="w-48"
+          placeholder="Company"
+          value={filters.customer_id ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { customer_id: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All companies" },
+            ...companies.map((company) => ({ value: company.id, label: company.name })),
+          ]}
+        />
+        <MoreFiltersDialog
+          extraCount={extraCount}
+          draftCount={draftPrimary !== ALL ? 1 : 0}
+          description="Filter by primary contact."
+          onOpen={() => setDraftPrimary(extraPrimary)}
+          onApply={() =>
+            setParams({ filters: { is_primary: draftPrimary === ALL ? null : draftPrimary } })
+          }
+          onClearDraft={() => setDraftPrimary(ALL)}
+        >
+          <FilterField label="Primary" htmlFor="contact-filter-primary">
+            <FilterSelect
+              id="contact-filter-primary"
+              className="w-full"
+              placeholder="Primary"
+              value={draftPrimary}
+              onValueChange={setDraftPrimary}
+              options={[
+                { value: ALL, label: "All" },
+                { value: "true", label: "Primary" },
+                { value: "false", label: "Other" },
+              ]}
+            />
+          </FilterField>
+        </MoreFiltersDialog>
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
+        />
+        {search || filters.is_active || filters.customer_id || extraCount > 0 || sort_by ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setParams({
+                search: null,
+                sort_by: null,
+                sort_order: null,
+                filters: { is_active: null, customer_id: null, is_primary: null },
+              })
+            }
+          >
+            Clear
+          </Button>
+        ) : null}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>

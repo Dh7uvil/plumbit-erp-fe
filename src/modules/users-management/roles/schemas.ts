@@ -58,4 +58,6 @@ export type RoleListParams = {
   page?: number;
   page_size?: number;
   search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
 };

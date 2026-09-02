@@ -23,6 +23,8 @@ export const rolesApi = {
         page: params.page ?? 1,
         page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
         search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
       },
     });
     return { data: RoleListSchema.parse(result.data), meta: result.meta };

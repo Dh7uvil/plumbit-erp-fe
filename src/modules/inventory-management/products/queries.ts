@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { productsApi } from "@/modules/inventory-management/products/api";
 import type { ProductListParams } from "@/modules/inventory-management/products/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const productKeys = {
   all: ["products"] as const,
@@ -14,14 +15,15 @@ export const productKeys = {
 
 export function useProducts(params: ProductListParams) {
   return useQuery({
-    queryKey: productKeys.list(params),
+    queryKey: useTenantQueryKey(productKeys.list(params)),
     queryFn: () => productsApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllProducts(enabled = true) {
   return useQuery({
-    queryKey: productKeys.allItems(),
+    queryKey: useTenantQueryKey(productKeys.allItems()),
     queryFn: productsApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllProducts(enabled = true) {
 
 export function useProduct(id: string | null) {
   return useQuery({
-    queryKey: productKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(productKeys.detail(id ?? "")),
     queryFn: () => productsApi.get(id!),
     enabled: Boolean(id),
   });

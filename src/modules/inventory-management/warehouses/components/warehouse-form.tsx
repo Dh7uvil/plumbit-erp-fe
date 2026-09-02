@@ -36,6 +36,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function toFormValues(warehouse: Warehouse | null): WarehouseFormValues {
   return {
@@ -80,6 +81,7 @@ export function WarehouseForm({
     resolver: zodResolver(WarehouseFormSchema),
     values: toFormValues(warehouse),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: WarehouseFormValues) {
     setFormError(null);

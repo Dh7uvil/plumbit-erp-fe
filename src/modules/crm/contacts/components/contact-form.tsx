@@ -32,6 +32,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 function toFormValues(
@@ -81,6 +82,7 @@ export function ContactForm({
     resolver: zodResolver(ContactFormSchema),
     values: toFormValues(contact, defaultCustomerId, defaultIsPrimary),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   const companies = companiesQuery.companies;
 
@@ -139,9 +141,7 @@ export function ContactForm({
                   {customerLocked ? (
                     <FormControl>
                       <Input
-                        value={
-                          companies.find((company) => company.id === field.value)?.name ?? "—"
-                        }
+                        value={companies.find((company) => company.id === field.value)?.name ?? "—"}
                         disabled
                       />
                     </FormControl>

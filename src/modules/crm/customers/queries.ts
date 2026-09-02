@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { customersApi } from "@/modules/crm/customers/api";
 import type { CustomerListParams } from "@/modules/crm/customers/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const customerKeys = {
   all: ["customers"] as const,
@@ -14,14 +15,15 @@ export const customerKeys = {
 
 export function useCustomers(params: CustomerListParams) {
   return useQuery({
-    queryKey: customerKeys.list(params),
+    queryKey: useTenantQueryKey(customerKeys.list(params)),
     queryFn: () => customersApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllCustomers(enabled = true) {
   return useQuery({
-    queryKey: customerKeys.allItems(),
+    queryKey: useTenantQueryKey(customerKeys.allItems()),
     queryFn: customersApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllCustomers(enabled = true) {
 
 export function useCustomer(id: string | null) {
   return useQuery({
-    queryKey: customerKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(customerKeys.detail(id ?? "")),
     queryFn: () => customersApi.get(id!),
     enabled: Boolean(id),
   });

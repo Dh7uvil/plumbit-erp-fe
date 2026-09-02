@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { branchesApi } from "@/modules/users-management/branches/api";
 import type { BranchListParams } from "@/modules/users-management/branches/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const branchKeys = {
   all: ["branches"] as const,
@@ -14,14 +15,15 @@ export const branchKeys = {
 
 export function useBranches(params: BranchListParams) {
   return useQuery({
-    queryKey: branchKeys.list(params),
+    queryKey: useTenantQueryKey(branchKeys.list(params)),
     queryFn: () => branchesApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllBranches(enabled = true) {
   return useQuery({
-    queryKey: branchKeys.allItems(),
+    queryKey: useTenantQueryKey(branchKeys.allItems()),
     queryFn: branchesApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllBranches(enabled = true) {
 
 export function useBranch(id: string | null) {
   return useQuery({
-    queryKey: branchKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(branchKeys.detail(id ?? "")),
     queryFn: () => branchesApi.get(id!),
     enabled: Boolean(id),
   });

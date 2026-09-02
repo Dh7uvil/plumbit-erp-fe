@@ -35,6 +35,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 function toFormValues(rate: ExchangeRate | null): ExchangeRateFormValues {
@@ -84,6 +85,7 @@ export function ExchangeRateFormDialog({
     resolver: zodResolver(ExchangeRateFormSchema),
     values: toFormValues(rate),
   });
+  useDirtyFormGuard(open && canSubmit && form.formState.isDirty);
 
   function handleOpenChange(next: boolean) {
     if (!next) {

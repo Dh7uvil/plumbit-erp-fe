@@ -1,36 +1,47 @@
 "use client";
 
-import { ListFilter, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { departmentPermissions } from "@/modules/users-management/departments/permissions";
 import { useAllDepartments } from "@/modules/users-management/departments/queries";
+import type { Department } from "@/modules/users-management/departments/schemas";
 import { rolePermissions } from "@/modules/users-management/roles/permissions";
 import { useAllRoles } from "@/modules/users-management/roles/queries";
 import type {
   EmployeeStatus,
   UserListParams,
+  UserListSortBy,
   UserStatus,
 } from "@/modules/users-management/users/schemas";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListSearch } from "@/shared/components/data-table/list-search";
+import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
+import type { SortFieldOption } from "@/shared/components/data-table/sort";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
-import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
+import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all" as const;
+const EMPTY_DEPARTMENTS: Department[] = [];
+
+export const USER_SORT_FIELDS: SortFieldOption[] = [
+  { value: "name", label: "User" },
+  { value: "email", label: "Email" },
+  { value: "status", label: "Status" },
+  { value: "last_login_at", label: "Last login" },
+  { value: "created_at", label: "Created" },
+];
+
+export const USER_SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  User: "name",
+  Email: "email",
+  Status: "status",
+};
 
 export type UserListFilterParams = Omit<UserListParams, "page" | "page_size">;
 
@@ -81,7 +92,7 @@ function endOfDayIso(date: string): string {
   return new Date(year, month - 1, day, 23, 59, 59, 999).toISOString();
 }
 
-function compactParams(params: UserListFilterParams): UserListFilterParams {
+function compactParams<T extends object>(params: T): T {
   return Object.fromEntries(
     Object.entries(params).filter(([, value]) => {
       if (value === undefined) {
@@ -89,7 +100,7 @@ function compactParams(params: UserListFilterParams): UserListFilterParams {
       }
       return !(Array.isArray(value) && value.length === 0);
     }),
-  ) as UserListFilterParams;
+  ) as T;
 }
 
 function extraFilterCount(filters: ExtraFilters): number {
@@ -106,6 +117,40 @@ function extraFilterCount(filters: ExtraFilters): number {
     Boolean(filters.lastLoginFrom),
     Boolean(filters.lastLoginTo),
   ].filter(Boolean).length;
+}
+
+function extraFromUrl(filters: Record<string, string>): ExtraFilters {
+  const employeeStatus = filters.employee_status;
+  return {
+    branchId: filters.branch_id ?? ALL,
+    departmentId: filters.department_id ?? ALL,
+    employeeStatus:
+      employeeStatus === "ACTIVE" || employeeStatus === "INACTIVE" ? employeeStatus : ALL,
+    managerId: filters.manager_id ?? ALL,
+    designation: filters.designation ?? "",
+    employeeCode: filters.employee_code ?? "",
+    phone: filters.phone ?? "",
+    joiningDateFrom: filters.joining_date_from ?? "",
+    joiningDateTo: filters.joining_date_to ?? "",
+    lastLoginFrom: filters.last_login_from ?? "",
+    lastLoginTo: filters.last_login_to ?? "",
+  };
+}
+
+function extraToUrlPatch(filters: ExtraFilters): Record<string, string | null> {
+  return {
+    branch_id: optionalId(filters.branchId) ?? null,
+    department_id: optionalId(filters.departmentId) ?? null,
+    employee_status: filters.employeeStatus === ALL ? null : filters.employeeStatus,
+    manager_id: optionalId(filters.managerId) ?? null,
+    designation: optionalText(filters.designation) ?? null,
+    employee_code: optionalText(filters.employeeCode) ?? null,
+    phone: optionalText(filters.phone) ?? null,
+    joining_date_from: optionalText(filters.joiningDateFrom) ?? null,
+    joining_date_to: optionalText(filters.joiningDateTo) ?? null,
+    last_login_from: optionalText(filters.lastLoginFrom) ?? null,
+    last_login_to: optionalText(filters.lastLoginTo) ?? null,
+  };
 }
 
 function extraToParams(filters: ExtraFilters): UserListFilterParams {
@@ -131,23 +176,58 @@ function extraToParams(filters: ExtraFilters): UserListFilterParams {
   });
 }
 
-export function UsersTableFilters({
-  onChange,
-}: {
-  onChange: (params: UserListFilterParams) => void;
-}) {
+function parseUserStatus(value: string | undefined): UserStatus | undefined {
+  if (value === "ACTIVE" || value === "INVITED" || value === "DISABLED") {
+    return value;
+  }
+  return undefined;
+}
+
+const USER_SORT_BY = new Set<UserListSortBy>([
+  "created_at",
+  "updated_at",
+  "name",
+  "email",
+  "status",
+  "last_login_at",
+]);
+
+function parseUserSortBy(value: string | undefined): UserListSortBy | undefined {
+  return value && USER_SORT_BY.has(value as UserListSortBy) ? (value as UserListSortBy) : undefined;
+}
+
+export function userListParamsFromTable(input: {
+  page: number;
+  page_size: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+  filters: Record<string, string>;
+}): UserListParams {
+  const extra = extraFromUrl(input.filters);
+  return compactParams({
+    page: input.page,
+    page_size: input.page_size,
+    search: optionalText(input.search ?? ""),
+    sort_by: parseUserSortBy(input.sort_by),
+    sort_order: input.sort_order,
+    status: parseUserStatus(input.filters.status),
+    role_id: input.filters.role_id,
+    ...extraToParams(extra),
+  });
+}
+
+export function UsersTableFilters() {
   const can = useCan();
   const canReadRoles = can(rolePermissions.read);
   const canReadBranches = can(branchPermissions.read);
   const canReadDepartments = can(departmentPermissions.read);
+  const { search, sort_by, sort_order, filters, setParams } = useTableParams();
+  const extraFilters = extraFromUrl(filters);
+  const status = parseUserStatus(filters.status) ?? ALL;
+  const roleId = filters.role_id ?? ALL;
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"all" | UserStatus>(ALL);
-  const [roleId, setRoleId] = useState<string>(ALL);
-  const [extraFilters, setExtraFilters] = useState<ExtraFilters>(EMPTY_EXTRA);
   const [draftExtra, setDraftExtra] = useState<ExtraFilters>(EMPTY_EXTRA);
-  const [moreOpen, setMoreOpen] = useState(false);
 
   const rolesQuery = useAllRoles(canReadRoles);
   const branchesQuery = useAllBranches(canReadBranches);
@@ -155,7 +235,7 @@ export function UsersTableFilters({
 
   const roles = rolesQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
-  const departments = departmentsQuery.data ?? [];
+  const departments = departmentsQuery.data ?? EMPTY_DEPARTMENTS;
 
   const departmentOptions = useMemo(
     () =>
@@ -177,54 +257,22 @@ export function UsersTableFilters({
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [departments]);
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => setSearch(searchInput), 300);
-    return () => window.clearTimeout(timeout);
-  }, [searchInput]);
-
-  const params = useMemo((): UserListFilterParams => {
-    const selectedRole = optionalId(roleId);
-    return compactParams({
-      search: optionalText(search),
-      status: status === ALL ? undefined : status,
-      role_ids: selectedRole ? [selectedRole] : undefined,
-      ...extraToParams(extraFilters),
-    });
-  }, [search, status, roleId, extraFilters]);
-
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-
-  useEffect(() => {
-    onChangeRef.current(params);
-  }, [params]);
-
   const extraCount = extraFilterCount(extraFilters);
-  const hasToolbarFilters = Boolean(searchInput || status !== ALL || roleId !== ALL);
-  const hasActiveFilters = hasToolbarFilters || extraCount > 0;
-
-  function openMoreFilters() {
-    setDraftExtra(extraFilters);
-    setMoreOpen(true);
-  }
-
-  function applyExtraFilters() {
-    setExtraFilters(draftExtra);
-    setMoreOpen(false);
-  }
-
-  function clearExtraDraft() {
-    setDraftExtra(EMPTY_EXTRA);
-  }
+  const hasToolbarFilters = Boolean(search || status !== ALL || roleId !== ALL);
+  const hasActiveFilters = hasToolbarFilters || extraCount > 0 || Boolean(sort_by);
 
   function clearFilters() {
-    setSearchInput("");
-    setSearch("");
-    setStatus(ALL);
-    setRoleId(ALL);
-    setExtraFilters(EMPTY_EXTRA);
     setDraftExtra(EMPTY_EXTRA);
-    setMoreOpen(false);
+    setParams({
+      search: null,
+      sort_by: null,
+      sort_order: null,
+      filters: {
+        status: null,
+        role_id: null,
+        ...extraToUrlPatch(EMPTY_EXTRA),
+      },
+    });
   }
 
   function updateDraft<Key extends keyof ExtraFilters>(key: Key, value: ExtraFilters[Key]) {
@@ -232,225 +280,188 @@ export function UsersTableFilters({
   }
 
   return (
-    <>
-      <DataTableToolbar>
-        <div className="relative max-w-xs flex-1">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-          <Input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search users…"
-            className="pl-8"
-          />
-        </div>
+    <DataTableToolbar>
+      <ListSearch
+        value={search ?? ""}
+        onChange={(value) => setParams({ search: optionalText(value) ?? null })}
+        placeholder="Search users…"
+      />
+      <FilterSelect
+        className="w-40"
+        placeholder="Status"
+        value={status}
+        onValueChange={(value) => setParams({ filters: { status: value === ALL ? null : value } })}
+        options={[
+          { value: ALL, label: "All statuses" },
+          { value: "ACTIVE", label: "Active" },
+          { value: "INVITED", label: "Invited" },
+          { value: "DISABLED", label: "Disabled" },
+        ]}
+      />
+      {canReadRoles ? (
         <FilterSelect
-          className="w-40"
-          placeholder="Status"
-          value={status}
-          onValueChange={(value) => setStatus(value as typeof status)}
+          className="w-48"
+          placeholder="Role"
+          value={roleId}
+          onValueChange={(value) =>
+            setParams({ filters: { role_id: value === ALL ? null : value } })
+          }
+          disabled={rolesQuery.isLoading}
           options={[
-            { value: ALL, label: "All statuses" },
-            { value: "ACTIVE", label: "Active" },
-            { value: "INVITED", label: "Invited" },
-            { value: "DISABLED", label: "Disabled" },
+            { value: ALL, label: "All roles" },
+            ...roles.map((role) => ({ value: role.id, label: role.name })),
           ]}
         />
-        {canReadRoles ? (
+      ) : null}
+      <MoreFiltersDialog
+        extraCount={extraCount}
+        draftCount={extraFilterCount(draftExtra)}
+        description="Narrow the user list by employee, branch, and login details."
+        contentClassName="sm:max-w-2xl"
+        onOpen={() => setDraftExtra(extraFilters)}
+        onApply={() => setParams({ filters: extraToUrlPatch(draftExtra) })}
+        onClearDraft={() => setDraftExtra(EMPTY_EXTRA)}
+      >
+        {canReadBranches ? (
+          <FilterField label="Branch" htmlFor="user-filter-branch">
+            <FilterSelect
+              id="user-filter-branch"
+              className="w-full"
+              placeholder="Branch"
+              value={draftExtra.branchId}
+              onValueChange={(value) =>
+                setDraftExtra((current) => ({
+                  ...current,
+                  branchId: value,
+                  departmentId: ALL,
+                }))
+              }
+              disabled={branchesQuery.isLoading}
+              options={[
+                { value: ALL, label: "All branches" },
+                ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+              ]}
+            />
+          </FilterField>
+        ) : null}
+        {canReadDepartments ? (
+          <FilterField label="Department" htmlFor="user-filter-department">
+            <FilterSelect
+              id="user-filter-department"
+              className="w-full"
+              placeholder="Department"
+              value={draftExtra.departmentId}
+              onValueChange={(value) => updateDraft("departmentId", value)}
+              disabled={departmentsQuery.isLoading}
+              options={[
+                { value: ALL, label: "All departments" },
+                ...departmentOptions.map((department) => ({
+                  value: department.id,
+                  label: department.name,
+                })),
+              ]}
+            />
+          </FilterField>
+        ) : null}
+        <FilterField label="Employee status" htmlFor="user-filter-employee-status">
           <FilterSelect
-            className="w-48"
-            placeholder="Role"
-            value={roleId}
-            onValueChange={setRoleId}
-            disabled={rolesQuery.isLoading}
+            id="user-filter-employee-status"
+            className="w-full"
+            placeholder="Employee status"
+            value={draftExtra.employeeStatus}
+            onValueChange={(value) =>
+              updateDraft("employeeStatus", value as ExtraFilters["employeeStatus"])
+            }
             options={[
-              { value: ALL, label: "All roles" },
-              ...roles.map((role) => ({ value: role.id, label: role.name })),
+              { value: ALL, label: "All employee statuses" },
+              { value: "ACTIVE", label: "Active employee" },
+              { value: "INACTIVE", label: "Inactive employee" },
             ]}
           />
+        </FilterField>
+        {canReadDepartments && managers.length > 0 ? (
+          <FilterField label="Manager" htmlFor="user-filter-manager">
+            <FilterSelect
+              id="user-filter-manager"
+              className="w-full"
+              placeholder="Manager"
+              value={draftExtra.managerId}
+              onValueChange={(value) => updateDraft("managerId", value)}
+              options={[
+                { value: ALL, label: "All managers" },
+                ...managers.map((manager) => ({ value: manager.id, label: manager.name })),
+              ]}
+            />
+          </FilterField>
         ) : null}
-        <Button type="button" variant="outline" size="sm" onClick={openMoreFilters}>
-          <ListFilter className="size-3.5" />
-          More filters
-          {extraCount > 0 ? (
-            <Badge variant="secondary" className="h-5 min-w-5 px-1">
-              {extraCount}
-            </Badge>
-          ) : null}
+        <FilterField label="Designation" htmlFor="user-filter-designation">
+          <Input
+            id="user-filter-designation"
+            value={draftExtra.designation}
+            onChange={(event) => updateDraft("designation", event.target.value)}
+            placeholder="Designation"
+          />
+        </FilterField>
+        <FilterField label="Employee code" htmlFor="user-filter-employee-code">
+          <Input
+            id="user-filter-employee-code"
+            value={draftExtra.employeeCode}
+            onChange={(event) => updateDraft("employeeCode", event.target.value)}
+            placeholder="EMP-001"
+          />
+        </FilterField>
+        <FilterField label="Phone" htmlFor="user-filter-phone">
+          <Input
+            id="user-filter-phone"
+            value={draftExtra.phone}
+            onChange={(event) => updateDraft("phone", event.target.value)}
+            placeholder="Phone"
+          />
+        </FilterField>
+        <FilterField label="Joining date from" htmlFor="user-filter-joining-from">
+          <Input
+            id="user-filter-joining-from"
+            type="date"
+            value={draftExtra.joiningDateFrom}
+            onChange={(event) => updateDraft("joiningDateFrom", event.target.value)}
+          />
+        </FilterField>
+        <FilterField label="Joining date to" htmlFor="user-filter-joining-to">
+          <Input
+            id="user-filter-joining-to"
+            type="date"
+            value={draftExtra.joiningDateTo}
+            onChange={(event) => updateDraft("joiningDateTo", event.target.value)}
+          />
+        </FilterField>
+        <FilterField label="Last login from" htmlFor="user-filter-login-from">
+          <Input
+            id="user-filter-login-from"
+            type="date"
+            value={draftExtra.lastLoginFrom}
+            onChange={(event) => updateDraft("lastLoginFrom", event.target.value)}
+          />
+        </FilterField>
+        <FilterField label="Last login to" htmlFor="user-filter-login-to">
+          <Input
+            id="user-filter-login-to"
+            type="date"
+            value={draftExtra.lastLoginTo}
+            onChange={(event) => updateDraft("lastLoginTo", event.target.value)}
+          />
+        </FilterField>
+      </MoreFiltersDialog>
+      <SortDialog
+        fields={USER_SORT_FIELDS}
+        sortBy={sort_by}
+        sortOrder={sort_order}
+        onApply={setParams}
+      />
+      {hasActiveFilters ? (
+        <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+          Clear
         </Button>
-        {hasActiveFilters ? (
-          <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
-      <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>More filters</DialogTitle>
-            <DialogDescription>
-              Narrow the user list by employee, branch, and login details.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {canReadBranches ? (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="user-filter-branch">Branch</Label>
-                <FilterSelect
-                  id="user-filter-branch"
-                  className="w-full"
-                  placeholder="Branch"
-                  value={draftExtra.branchId}
-                  onValueChange={(value) =>
-                    setDraftExtra((current) => ({
-                      ...current,
-                      branchId: value,
-                      departmentId: ALL,
-                    }))
-                  }
-                  disabled={branchesQuery.isLoading}
-                  options={[
-                    { value: ALL, label: "All branches" },
-                    ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
-                  ]}
-                />
-              </div>
-            ) : null}
-            {canReadDepartments ? (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="user-filter-department">Department</Label>
-                <FilterSelect
-                  id="user-filter-department"
-                  className="w-full"
-                  placeholder="Department"
-                  value={draftExtra.departmentId}
-                  onValueChange={(value) => updateDraft("departmentId", value)}
-                  disabled={departmentsQuery.isLoading}
-                  options={[
-                    { value: ALL, label: "All departments" },
-                    ...departmentOptions.map((department) => ({
-                      value: department.id,
-                      label: department.name,
-                    })),
-                  ]}
-                />
-              </div>
-            ) : null}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-filter-employee-status">Employee status</Label>
-              <FilterSelect
-                id="user-filter-employee-status"
-                className="w-full"
-                placeholder="Employee status"
-                value={draftExtra.employeeStatus}
-                onValueChange={(value) =>
-                  updateDraft("employeeStatus", value as ExtraFilters["employeeStatus"])
-                }
-                options={[
-                  { value: ALL, label: "All employee statuses" },
-                  { value: "ACTIVE", label: "Active employee" },
-                  { value: "INACTIVE", label: "Inactive employee" },
-                ]}
-              />
-            </div>
-            {canReadDepartments && managers.length > 0 ? (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="user-filter-manager">Manager</Label>
-                <FilterSelect
-                  id="user-filter-manager"
-                  className="w-full"
-                  placeholder="Manager"
-                  value={draftExtra.managerId}
-                  onValueChange={(value) => updateDraft("managerId", value)}
-                  options={[
-                    { value: ALL, label: "All managers" },
-                    ...managers.map((manager) => ({ value: manager.id, label: manager.name })),
-                  ]}
-                />
-              </div>
-            ) : null}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-filter-designation">Designation</Label>
-              <Input
-                id="user-filter-designation"
-                value={draftExtra.designation}
-                onChange={(event) => updateDraft("designation", event.target.value)}
-                placeholder="Designation"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-filter-employee-code">Employee code</Label>
-              <Input
-                id="user-filter-employee-code"
-                value={draftExtra.employeeCode}
-                onChange={(event) => updateDraft("employeeCode", event.target.value)}
-                placeholder="EMP-001"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-filter-phone">Phone</Label>
-              <Input
-                id="user-filter-phone"
-                value={draftExtra.phone}
-                onChange={(event) => updateDraft("phone", event.target.value)}
-                placeholder="Phone"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-filter-joining-from">Joining date from</Label>
-              <Input
-                id="user-filter-joining-from"
-                type="date"
-                value={draftExtra.joiningDateFrom}
-                onChange={(event) => updateDraft("joiningDateFrom", event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-filter-joining-to">Joining date to</Label>
-              <Input
-                id="user-filter-joining-to"
-                type="date"
-                value={draftExtra.joiningDateTo}
-                onChange={(event) => updateDraft("joiningDateTo", event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-filter-login-from">Last login from</Label>
-              <Input
-                id="user-filter-login-from"
-                type="date"
-                value={draftExtra.lastLoginFrom}
-                onChange={(event) => updateDraft("lastLoginFrom", event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-filter-login-to">Last login to</Label>
-              <Input
-                id="user-filter-login-to"
-                type="date"
-                value={draftExtra.lastLoginTo}
-                onChange={(event) => updateDraft("lastLoginTo", event.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:justify-between">
-            {extraFilterCount(draftExtra) > 0 ? (
-              <Button type="button" variant="ghost" onClick={clearExtraDraft}>
-                Clear extra
-              </Button>
-            ) : (
-              <span />
-            )}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row">
-              <Button type="button" variant="outline" onClick={() => setMoreOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={applyExtraFilters}>
-                Apply
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+      ) : null}
+    </DataTableToolbar>
   );
 }

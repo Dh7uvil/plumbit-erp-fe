@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { permissionsApi } from "@/modules/users-management/permissions/api";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const permissionKeys = {
   all: ["permissions"] as const,
@@ -11,7 +12,7 @@ export const permissionKeys = {
 
 export function usePermissionMatrix(roleId: string | null) {
   return useQuery({
-    queryKey: permissionKeys.matrix(roleId),
+    queryKey: useTenantQueryKey(permissionKeys.matrix(roleId)),
     queryFn: () => permissionsApi.matrix(roleId),
     enabled: Boolean(roleId),
   });

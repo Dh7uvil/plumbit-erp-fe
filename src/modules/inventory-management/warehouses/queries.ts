@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { warehousesApi } from "@/modules/inventory-management/warehouses/api";
 import type { WarehouseListParams } from "@/modules/inventory-management/warehouses/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const warehouseKeys = {
   all: ["warehouses"] as const,
@@ -14,14 +15,15 @@ export const warehouseKeys = {
 
 export function useWarehouses(params: WarehouseListParams) {
   return useQuery({
-    queryKey: warehouseKeys.list(params),
+    queryKey: useTenantQueryKey(warehouseKeys.list(params)),
     queryFn: () => warehousesApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllWarehouses(enabled = true) {
   return useQuery({
-    queryKey: warehouseKeys.allItems(),
+    queryKey: useTenantQueryKey(warehouseKeys.allItems()),
     queryFn: warehousesApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllWarehouses(enabled = true) {
 
 export function useWarehouse(id: string | null) {
   return useQuery({
-    queryKey: warehouseKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(warehouseKeys.detail(id ?? "")),
     queryFn: () => warehousesApi.get(id!),
     enabled: Boolean(id),
   });

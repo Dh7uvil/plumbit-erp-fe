@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
   ExchangeRateListSchema,
   ExchangeRateResolveSchema,
@@ -16,7 +17,11 @@ export const exchangeRatesApi = {
   list: async (params: ExchangeRateListParams = {}): Promise<ListResponse<ExchangeRate[]>> => {
     const result = await apiClient.getList<unknown>("/exchange-rates", {
       params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
         effective_date: params.effective_date,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
       },
     });
     return { data: ExchangeRateListSchema.parse(result.data), meta: result.meta };

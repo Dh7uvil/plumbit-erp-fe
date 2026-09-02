@@ -54,6 +54,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
 const STATUSES: UserStatus[] = ["ACTIVE", "INVITED", "DISABLED"];
@@ -163,6 +164,9 @@ export function UserFormDialog({
         }
       : undefined,
   });
+  useDirtyFormGuard(
+    open && canSubmit && (createForm.formState.isDirty || updateForm.formState.isDirty),
+  );
 
   function handleOpenChange(next: boolean) {
     if (!next) {

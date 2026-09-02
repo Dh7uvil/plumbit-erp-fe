@@ -21,6 +21,8 @@ import {
   hasRowActions,
   tableHeaders,
 } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -30,16 +32,22 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
 const COLUMN_HEADERS = ["Code", "Name", "Symbol", "Decimals", "Base", "Status"] as const;
+const SORT_FIELDS = [
+  { value: "code", label: "Code" },
+  { value: "name", label: "Name" },
+  { value: "is_base", label: "Base" },
+  { value: "is_active", label: "Status" },
+] as const;
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  Code: "code",
+  Name: "name",
+  Base: "is_base",
+  Status: "is_active",
+};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -54,11 +62,14 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
 
 export function CurrenciesScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(currencyPermissions);
-  const { page, page_size, search, filters, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
   const currenciesQuery = useCurrencies({
     page,
     page_size,
     search,
+    sort_by,
+    sort_order,
     is_base: parseBoolFilter(filters.is_base),
     is_active: parseBoolFilter(filters.is_active),
   });
@@ -110,19 +121,6 @@ export function CurrenciesScreen() {
         />
         <FilterSelect
           className="w-36"
-          placeholder="Base"
-          value={filters.is_base ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { is_base: value === ALL ? null : value } })
-          }
-          options={[
-            { value: ALL, label: "All" },
-            { value: "true", label: "Base" },
-            { value: "false", label: "Non-base" },
-          ]}
-        />
-        <FilterSelect
-          className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
@@ -134,13 +132,53 @@ export function CurrenciesScreen() {
             { value: "false", label: "Inactive" },
           ]}
         />
+        <FilterSelect
+          className="w-36"
+          placeholder="Base"
+          value={filters.is_base ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { is_base: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All" },
+            { value: "true", label: "Base" },
+            { value: "false", label: "Non-base" },
+          ]}
+        />
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
+        />
+        {search || filters.is_active || filters.is_base || sort_by ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setParams({
+                search: null,
+                sort_by: null,
+                sort_order: null,
+                filters: { is_active: null, is_base: null },
+              })
+            }
+          >
+            Clear
+          </Button>
+        ) : null}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>

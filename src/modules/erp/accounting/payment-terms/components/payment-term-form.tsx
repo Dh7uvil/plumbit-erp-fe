@@ -29,6 +29,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function toFormValues(term: PaymentTerm | null): PaymentTermFormValues {
   return {
@@ -70,6 +71,7 @@ export function PaymentTermForm({
     resolver: zodResolver(PaymentTermFormSchema),
     values: toFormValues(term),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: PaymentTermFormValues) {
     setFormError(null);

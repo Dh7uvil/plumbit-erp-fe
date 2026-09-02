@@ -11,11 +11,14 @@ import type { ExchangeRate } from "@/modules/erp/exchange-rates/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import {
   DataTableRowActions,
   hasRowActions,
   tableHeaders,
 } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -23,23 +26,29 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
 const COLUMN_HEADERS = ["From currency", "Rate to base", "Effective date"] as const;
+const SORT_FIELDS = [
+  { value: "effective_date", label: "Effective date" },
+  { value: "rate", label: "Rate to base" },
+] as const;
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  "Rate to base": "rate",
+  "Effective date": "effective_date",
+};
 
 export function ExchangeRatesScreen() {
   const { canCreate, canRead, canUpdate } = useCrudPermissions(exchangeRatePermissions);
-  const { filters, setParams } = useTableParams();
+  const { page, page_size, sort_by, sort_order, filters, setParams, setPage } = useTableParams();
   const effectiveDate = filters.effective_date;
   const exchangeRatesQuery = useExchangeRates({
+    page,
+    page_size,
     effective_date: effectiveDate,
+    sort_by,
+    sort_order,
   });
   const currenciesQuery = useAllCurrencies();
   const [formOpen, setFormOpen] = useState(false);
@@ -49,6 +58,7 @@ export function ExchangeRatesScreen() {
   const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = exchangeRatesQuery.data?.data ?? [];
+  const meta = exchangeRatesQuery.data?.meta;
   const currenciesById = useMemo(() => {
     const map = new Map<string, { name: string; code: string }>();
     for (const currency of currenciesQuery.data ?? []) {
@@ -104,13 +114,39 @@ export function ExchangeRatesScreen() {
           aria-label="Effective date"
           className="w-44"
         />
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
+        />
+        {effectiveDate || sort_by ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setParams({
+                sort_by: null,
+                sort_order: null,
+                filters: { effective_date: null },
+              })
+            }
+          >
+            Clear
+          </Button>
+        ) : null}
       </DataTableToolbar>
-      <DataTable>
+      <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>

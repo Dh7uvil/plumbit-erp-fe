@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { categoriesApi } from "@/modules/inventory-management/categories/api";
 import type { CategoryListParams } from "@/modules/inventory-management/categories/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const categoryKeys = {
   all: ["categories"] as const,
@@ -14,14 +15,15 @@ export const categoryKeys = {
 
 export function useCategories(params: CategoryListParams) {
   return useQuery({
-    queryKey: categoryKeys.list(params),
+    queryKey: useTenantQueryKey(categoryKeys.list(params)),
     queryFn: () => categoriesApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllCategories(enabled = true) {
   return useQuery({
-    queryKey: categoryKeys.allItems(),
+    queryKey: useTenantQueryKey(categoryKeys.allItems()),
     queryFn: categoriesApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllCategories(enabled = true) {
 
 export function useCategory(id: string | null) {
   return useQuery({
-    queryKey: categoryKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(categoryKeys.detail(id ?? "")),
     queryFn: () => categoriesApi.get(id!),
     enabled: Boolean(id),
   });

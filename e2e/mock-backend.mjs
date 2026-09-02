@@ -194,18 +194,50 @@ function buildLines(inputLines) {
   });
 }
 
+function quotationAvailableActions(status) {
+  switch (status) {
+    case "DRAFT":
+      return ["submit", "cancel", "clone", "delete"];
+    case "PENDING_APPROVAL":
+      return ["approve", "reject", "clone"];
+    case "APPROVED":
+      return ["send", "reopen", "clone"];
+    case "REJECTED":
+      return ["reopen", "clone"];
+    case "SENT":
+      return ["accept", "decline", "clone"];
+    default:
+      return ["clone"];
+  }
+}
+
+function applyQuotationStatus(quotation, status) {
+  quotation.status = status;
+  quotation.version = (quotation.version ?? 1) + 1;
+  quotation.available_actions = quotationAvailableActions(status);
+  quotation.updated_at = new Date().toISOString();
+  return quotation;
+}
+
 function buildQuotation(body, existing = null) {
   quoteSeq += existing ? 0 : 1;
   const id = existing?.id ?? crypto.randomUUID();
   const lines = buildLines(body.lines ?? existing?.lines ?? []);
   const subtotal = lines.reduce((sum, line) => sum + Number(line.amount), 0).toFixed(2);
   const now = new Date().toISOString();
+  const quoteNumber = existing?.quote_number ?? `QUO-${String(quoteSeq).padStart(4, "0")}`;
+  const quoteDate = body.quote_date ?? existing?.quote_date ?? "2026-08-27";
+  const status = existing?.status ?? "DRAFT";
   return {
     id,
     tenant_id: TENANT_ID,
-    quote_number: existing?.quote_number ?? `QUO-${String(quoteSeq).padStart(4, "0")}`,
-    status: existing?.status ?? "DRAFT",
-    quote_date: body.quote_date ?? existing?.quote_date ?? "2026-08-27",
+    quote_number: quoteNumber,
+    document_number: quoteNumber,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    is_posted: false,
+    quote_date: quoteDate,
+    document_date: quoteDate,
     valid_until: body.valid_until ?? existing?.valid_until ?? null,
     branch_id: body.branch_id ?? existing?.branch_id ?? null,
     customer_id: body.customer_id ?? existing?.customer_id ?? CUSTOMER_ID,
@@ -236,6 +268,7 @@ function buildQuotation(body, existing = null) {
     converted_at: null,
     converted_document_type: null,
     converted_document_id: null,
+    available_actions: quotationAvailableActions(status),
     lines,
     created_at: existing?.created_at ?? now,
     updated_at: now,
@@ -645,41 +678,41 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const action = quotationAction[2];
-      if (action === "submit") {
-        quotation.status = "PENDING_APPROVAL";
-      } else if (action === "approve") {
-        quotation.status = "APPROVED";
-      } else if (action === "reject") {
-        quotation.status = "REJECTED";
-      } else if (action === "reopen") {
-        quotation.status = "DRAFT";
-      } else if (action === "send") {
-        quotation.status = "SENT";
-      } else if (action === "accept") {
-        quotation.status = "ACCEPTED";
-      } else if (action === "decline") {
-        quotation.status = "DECLINED";
-      } else if (action === "cancel") {
-        quotation.status = "CANCELLED";
-      } else if (action === "clone") {
+      if (action === "clone") {
         const cloned = buildQuotation({
           ...quotation,
           lines: quotation.lines,
           customer_id: quotation.customer_id,
         });
         cloned.status = "DRAFT";
+        cloned.available_actions = quotationAvailableActions("DRAFT");
         quotations.set(cloned.id, cloned);
         ok(res, cloned, 201);
         return;
       }
-      quotation.updated_at = new Date().toISOString();
+      const nextStatus = {
+        submit: "PENDING_APPROVAL",
+        approve: "APPROVED",
+        reject: "REJECTED",
+        reopen: "DRAFT",
+        send: "SENT",
+        accept: "ACCEPTED",
+        decline: "DECLINED",
+        cancel: "CANCELLED",
+      }[action];
+      if (nextStatus) {
+        applyQuotationStatus(quotation, nextStatus);
+      }
       quotations.set(quotation.id, quotation);
       ok(res, quotation);
       return;
     }
 
     const quotationDetail = url.pathname.match(/^\/api\/v1\/quotations\/([0-9a-f-]{36})$/i);
-    if (quotationDetail && (req.method === "GET" || req.method === "PATCH")) {
+    if (
+      quotationDetail &&
+      (req.method === "GET" || req.method === "PATCH" || req.method === "DELETE")
+    ) {
       if (unauthorized(req, res)) {
         return;
       }
@@ -689,6 +722,11 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "DELETE") {
+        quotations.delete(quotationDetail[1]);
         ok(res, existing);
         return;
       }

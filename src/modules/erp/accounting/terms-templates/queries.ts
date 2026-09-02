@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { termsTemplatesApi } from "@/modules/erp/accounting/terms-templates/api";
 import type { TermsTemplateListParams } from "@/modules/erp/accounting/terms-templates/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const termsTemplateKeys = {
   all: ["terms-templates"] as const,
@@ -14,14 +15,15 @@ export const termsTemplateKeys = {
 
 export function useTermsTemplates(params: TermsTemplateListParams) {
   return useQuery({
-    queryKey: termsTemplateKeys.list(params),
+    queryKey: useTenantQueryKey(termsTemplateKeys.list(params)),
     queryFn: () => termsTemplatesApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllTermsTemplates(enabled = true) {
   return useQuery({
-    queryKey: termsTemplateKeys.allItems(),
+    queryKey: useTenantQueryKey(termsTemplateKeys.allItems()),
     queryFn: termsTemplatesApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllTermsTemplates(enabled = true) {
 
 export function useTermsTemplate(id: string | null) {
   return useQuery({
-    queryKey: termsTemplateKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(termsTemplateKeys.detail(id ?? "")),
     queryFn: () => termsTemplatesApi.get(id!),
     enabled: Boolean(id),
   });

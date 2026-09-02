@@ -34,15 +34,63 @@ export function formatDate(value: string | null | undefined): string {
   return date.toLocaleDateString();
 }
 
-export function formatMoney(value: string | null | undefined, currencyCode: string): string {
+function parseDecimalParts(value: string): { negative: boolean; whole: string; fraction: string } {
+  const trimmed = value.trim();
+  const negative = trimmed.startsWith("-");
+  const unsigned = trimmed.replace(/^[+-]/, "");
+  const [wholeRaw = "0", fraction = ""] = unsigned.split(".");
+  const whole = wholeRaw.replace(/^0+(?=\d)/, "") || "0";
+  if (!/^\d+$/.test(whole) || (fraction.length > 0 && !/^\d+$/.test(fraction))) {
+    throw new Error("invalid decimal");
+  }
+  return { negative, whole, fraction };
+}
+
+export function formatDecimal(value: string | null | undefined): string {
   if (value == null || value === "") {
     return "—";
   }
   try {
-    return new Intl.NumberFormat(undefined, {
+    const { negative, whole, fraction } = parseDecimalParts(value);
+    const grouped = new Intl.NumberFormat(undefined, { useGrouping: true }).format(BigInt(whole));
+    const sign = negative && whole !== "0" ? "-" : "";
+    return fraction ? `${sign}${grouped}.${fraction}` : `${sign}${grouped}`;
+  } catch {
+    return value;
+  }
+}
+
+export function formatMoney(value: string | null | undefined, currencyCode: string): string {
+  if (value == null || value === "") {
+    return "—";
+  }
+  const currency = currencyCode || "AED";
+  try {
+    const { negative, whole, fraction } = parseDecimalParts(value);
+    const formatter = new Intl.NumberFormat(undefined, {
       style: "currency",
-      currency: currencyCode || "AED",
-    }).format(Number(value));
+      currency,
+    });
+    const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+    const paddedFraction = (fraction + "0".repeat(fractionDigits)).slice(0, fractionDigits);
+    const groupedWhole = new Intl.NumberFormat(undefined, { useGrouping: true }).format(
+      BigInt(whole),
+    );
+    const parts = formatter.formatToParts(negative && whole !== "0" ? -1 : 1);
+    return parts
+      .map((part) => {
+        if (part.type === "integer") {
+          return groupedWhole;
+        }
+        if (part.type === "group") {
+          return "";
+        }
+        if (part.type === "fraction") {
+          return paddedFraction;
+        }
+        return part.value;
+      })
+      .join("");
   } catch {
     return currencyCode ? `${currencyCode} ${value}` : value;
   }

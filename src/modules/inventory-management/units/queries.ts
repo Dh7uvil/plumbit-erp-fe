@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { unitsApi } from "@/modules/inventory-management/units/api";
 import type { UnitListParams } from "@/modules/inventory-management/units/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const unitKeys = {
   all: ["units"] as const,
@@ -14,14 +15,15 @@ export const unitKeys = {
 
 export function useUnits(params: UnitListParams) {
   return useQuery({
-    queryKey: unitKeys.list(params),
+    queryKey: useTenantQueryKey(unitKeys.list(params)),
     queryFn: () => unitsApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllUnits(enabled = true) {
   return useQuery({
-    queryKey: unitKeys.allItems(),
+    queryKey: useTenantQueryKey(unitKeys.allItems()),
     queryFn: unitsApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllUnits(enabled = true) {
 
 export function useUnit(id: string | null) {
   return useQuery({
-    queryKey: unitKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(unitKeys.detail(id ?? "")),
     queryFn: () => unitsApi.get(id!),
     enabled: Boolean(id),
   });

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { tenantsApi } from "@/modules/users-management/tenants/api";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const tenantKeys = {
   all: ["tenants"] as const,
@@ -20,7 +21,7 @@ export function useTenants() {
 
 export function useCurrentTenant() {
   return useQuery({
-    queryKey: tenantKeys.current(),
+    queryKey: useTenantQueryKey(tenantKeys.current()),
     queryFn: tenantsApi.getCurrent,
   });
 }

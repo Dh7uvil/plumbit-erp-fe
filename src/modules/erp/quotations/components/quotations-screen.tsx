@@ -3,18 +3,20 @@
 import { Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { QuotationStatusBadge } from "@/modules/erp/quotations/components/quotation-status-badge";
-import { useCloneQuotation } from "@/modules/erp/quotations/mutations";
+import { useCloneQuotation, useDeleteQuotation } from "@/modules/erp/quotations/mutations";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import { useQuotations } from "@/modules/erp/quotations/queries";
 import {
   QUOTATION_STATUS_LABELS,
   QUOTATION_STATUSES,
   quotationDisplayNumber,
+  type Quotation,
   type QuotationStatus,
 } from "@/modules/erp/quotations/schemas";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
@@ -23,6 +25,7 @@ import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-per
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
+import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import {
@@ -30,19 +33,17 @@ import {
   hasRowActions,
   tableHeaders,
 } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
+import { quotationActionEffect, QUOTATION_ACTION_LABELS } from "@/modules/erp/quotations/workflow";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
@@ -54,6 +55,12 @@ const SORT_FIELDS = [
   { value: "status", label: "Status" },
   { value: "grand_total", label: "Grand total" },
 ] as const;
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  Number: "quote_number",
+  Date: "quote_date",
+  Status: "status",
+  "Grand total": "grand_total",
+};
 
 function parseStatus(value: string | undefined): QuotationStatus | undefined {
   return QUOTATION_STATUSES.includes(value as QuotationStatus)
@@ -62,10 +69,18 @@ function parseStatus(value: string | undefined): QuotationStatus | undefined {
 }
 
 export function QuotationsScreen() {
-  const { canCreate, canRead, canUpdate } = useCrudPermissions(quotationPermissions);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(quotationPermissions);
   const router = useRouter();
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
+  const extraFilters = {
+    branchId: filters.branch_id ?? ALL,
+    currencyId: filters.currency_id ?? ALL,
+  };
+  const extraCount = [extraFilters.branchId !== ALL, extraFilters.currencyId !== ALL].filter(
+    Boolean,
+  ).length;
+  const [draftExtra, setDraftExtra] = useState({ branchId: ALL, currencyId: ALL });
   const quotationsQuery = useQuotations({
     page,
     page_size,
@@ -81,6 +96,8 @@ export function QuotationsScreen() {
   const currenciesQuery = useAllCurrencies();
   const branchesQuery = useAllBranches();
   const cloneQuotation = useCloneQuotation();
+  const deleteQuotation = useDeleteQuotation();
+  const [deleting, setDeleting] = useState<Quotation | null>(null);
 
   const rows = quotationsQuery.data?.data ?? [];
   const meta = quotationsQuery.data?.meta;
@@ -89,7 +106,7 @@ export function QuotationsScreen() {
   const branches = branchesQuery.data ?? [];
   const customerNameById = new Map(customers.map((customer) => [customer.id, customer.name]));
   const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
-  const showActions = hasRowActions(canRead, canUpdate, canCreate);
+  const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
   const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onClone(id: string) {
@@ -97,6 +114,19 @@ export function QuotationsScreen() {
       const cloned = await cloneQuotation.mutateAsync(id);
       toast.success("Quotation cloned");
       router.push(`/quotations/${cloned.id}`);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  }
+
+  async function onDelete() {
+    if (!deleting) {
+      return;
+    }
+    try {
+      await deleteQuotation.mutateAsync({ id: deleting.id, version: deleting.version });
+      toast.success("Quotation deleted");
+      setDeleting(null);
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -151,69 +181,94 @@ export function QuotationsScreen() {
             ...customers.map((customer) => ({ value: customer.id, label: customer.name })),
           ]}
         />
-        <FilterSelect
-          className="w-44"
-          placeholder="Branch"
-          value={filters.branch_id ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { branch_id: value === ALL ? null : value } })
+        <MoreFiltersDialog
+          extraCount={extraCount}
+          draftCount={
+            [draftExtra.branchId !== ALL, draftExtra.currencyId !== ALL].filter(Boolean).length
           }
-          options={[
-            { value: ALL, label: "All branches" },
-            ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
-          ]}
-        />
-        <FilterSelect
-          className="w-40"
-          placeholder="Currency"
-          value={filters.currency_id ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { currency_id: value === ALL ? null : value } })
-          }
-          options={[
-            { value: ALL, label: "All currencies" },
-            ...currencies.map((currency) => ({ value: currency.id, label: currency.code })),
-          ]}
-        />
-        <FilterSelect
-          className="w-40"
-          placeholder="Sort by"
-          value={sort_by ?? ALL}
-          onValueChange={(value) =>
+          description="Filter by branch and currency."
+          onOpen={() => setDraftExtra(extraFilters)}
+          onApply={() =>
             setParams({
-              sort_by: value === ALL ? null : value,
-              sort_order: value === ALL ? null : (sort_order ?? "desc"),
+              filters: {
+                branch_id: draftExtra.branchId === ALL ? null : draftExtra.branchId,
+                currency_id: draftExtra.currencyId === ALL ? null : draftExtra.currencyId,
+              },
             })
           }
-          options={[
-            { value: ALL, label: "Default sort" },
-            ...SORT_FIELDS.map((field) => ({ value: field.value, label: field.label })),
-          ]}
+          onClearDraft={() => setDraftExtra({ branchId: ALL, currencyId: ALL })}
+        >
+          <FilterField label="Branch" htmlFor="quotation-filter-branch">
+            <FilterSelect
+              id="quotation-filter-branch"
+              className="w-full"
+              placeholder="Branch"
+              value={draftExtra.branchId}
+              onValueChange={(value) =>
+                setDraftExtra((current) => ({ ...current, branchId: value }))
+              }
+              options={[
+                { value: ALL, label: "All branches" },
+                ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+              ]}
+            />
+          </FilterField>
+          <FilterField label="Currency" htmlFor="quotation-filter-currency">
+            <FilterSelect
+              id="quotation-filter-currency"
+              className="w-full"
+              placeholder="Currency"
+              value={draftExtra.currencyId}
+              onValueChange={(value) =>
+                setDraftExtra((current) => ({ ...current, currencyId: value }))
+              }
+              options={[
+                { value: ALL, label: "All currencies" },
+                ...currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+              ]}
+            />
+          </FilterField>
+        </MoreFiltersDialog>
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
         />
-        <FilterSelect
-          className="w-32"
-          placeholder="Order"
-          value={sort_order ?? "desc"}
-          onValueChange={(value) =>
-            setParams({ sort_order: value === "asc" || value === "desc" ? value : null })
-          }
-          options={[
-            { value: "desc", label: "Descending" },
-            { value: "asc", label: "Ascending" },
-          ]}
-        />
+        {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setParams({
+                search: null,
+                sort_by: null,
+                sort_order: null,
+                filters: {
+                  status: null,
+                  customer_id: null,
+                  branch_id: null,
+                  currency_id: null,
+                },
+              })
+            }
+          >
+            Clear
+          </Button>
+        ) : null}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead
-                key={header}
-                className={header === "Grand total" ? "text-right" : undefined}
-              >
-                {header}
-              </TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+              classNameByHeader={{ "Grand total": "text-right" }}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -275,7 +330,7 @@ export function QuotationsScreen() {
                             : undefined
                         }
                         extra={
-                          canCreate ? (
+                          quotation.available_actions.includes("clone") && canCreate ? (
                             <Button
                               type="button"
                               variant="ghost"
@@ -289,6 +344,11 @@ export function QuotationsScreen() {
                             </Button>
                           ) : undefined
                         }
+                        onDelete={
+                          quotation.available_actions.includes("delete") && canDelete
+                            ? () => setDeleting(quotation)
+                            : undefined
+                        }
                       />
                     </TableCell>
                   ) : null}
@@ -298,6 +358,23 @@ export function QuotationsScreen() {
           )}
         </TableBody>
       </DataTable>
+      <ConfirmActionDialog
+        open={Boolean(deleting)}
+        title={`${QUOTATION_ACTION_LABELS.delete} quotation ${deleting ? (quotationDisplayNumber(deleting) ?? "quotation") : "quotation"}`}
+        description={
+          deleting
+            ? quotationActionEffect("delete", quotationDisplayNumber(deleting) ?? "quotation")
+            : ""
+        }
+        confirmLabel={QUOTATION_ACTION_LABELS.delete}
+        pending={deleteQuotation.isPending}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleting(null);
+          }
+        }}
+        onConfirm={() => void onDelete()}
+      />
     </ListPage>
   );
 }

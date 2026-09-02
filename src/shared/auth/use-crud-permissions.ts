@@ -18,14 +18,21 @@ export type CrudPermissions = {
 
 export type FormDialogMode = "create" | "view" | "edit";
 
-export function useCrudPermissions(permissions: CrudKeys): CrudPermissions {
-  const can = useCan();
+export function crudPermissions(
+  can: (permission: string) => boolean,
+  permissions: CrudKeys,
+): CrudPermissions {
   return {
     canRead: can(permissions.read),
     canCreate: Boolean(permissions.create && can(permissions.create)),
     canUpdate: Boolean(permissions.update && can(permissions.update)),
     canDelete: Boolean(permissions.delete && can(permissions.delete)),
   };
+}
+
+export function useCrudPermissions(permissions: CrudKeys): CrudPermissions {
+  const can = useCan();
+  return crudPermissions(can, permissions);
 }
 
 export function resolveFormDialogMode({

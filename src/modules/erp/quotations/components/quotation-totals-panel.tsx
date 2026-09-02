@@ -3,7 +3,7 @@
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import type { Quotation } from "@/modules/erp/quotations/schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatMoney } from "@/shared/lib/format";
+import { formatDecimal, formatMoney } from "@/shared/lib/format";
 
 export function QuotationTotalsPanel({ quotation }: { quotation: Quotation }) {
   const currenciesQuery = useAllCurrencies();
@@ -22,7 +22,7 @@ export function QuotationTotalsPanel({ quotation }: { quotation: Quotation }) {
     { label: "Base amount", value: formatMoney(quotation.base_amount, baseCode) },
     {
       label: `Exchange rate${code && baseCode ? ` (${code}/${baseCode})` : ""}`,
-      value: formatMoney(quotation.exchange_rate, code || baseCode),
+      value: quotation.exchange_rate ? formatDecimal(quotation.exchange_rate) : "—",
     },
   ];
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { currenciesApi } from "@/modules/erp/currencies/api";
 import type { CurrencyListParams } from "@/modules/erp/currencies/schemas";
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const currencyKeys = {
   all: ["currencies"] as const,
@@ -14,14 +15,15 @@ export const currencyKeys = {
 
 export function useCurrencies(params: CurrencyListParams) {
   return useQuery({
-    queryKey: currencyKeys.list(params),
+    queryKey: useTenantQueryKey(currencyKeys.list(params)),
     queryFn: () => currenciesApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useAllCurrencies(enabled = true) {
   return useQuery({
-    queryKey: currencyKeys.allItems(),
+    queryKey: useTenantQueryKey(currencyKeys.allItems()),
     queryFn: currenciesApi.listAll,
     enabled,
   });
@@ -29,7 +31,7 @@ export function useAllCurrencies(enabled = true) {
 
 export function useCurrency(id: string | null) {
   return useQuery({
-    queryKey: currencyKeys.detail(id ?? ""),
+    queryKey: useTenantQueryKey(currencyKeys.detail(id ?? "")),
     queryFn: () => currenciesApi.get(id!),
     enabled: Boolean(id),
   });

@@ -21,6 +21,7 @@ import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-per
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
+import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import {
@@ -28,6 +29,8 @@ import {
   hasRowActions,
   tableHeaders,
 } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
@@ -36,16 +39,22 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
 const COLUMN_HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status"] as const;
+const SORT_FIELDS = [
+  { value: "code", label: "Code" },
+  { value: "name", label: "Name" },
+  { value: "tax_treatment", label: "Tax treatment" },
+  { value: "is_active", label: "Status" },
+] as const;
+const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
+  Code: "code",
+  Name: "name",
+  "Tax treatment": "tax_treatment",
+  Status: "is_active",
+};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -74,11 +83,17 @@ function deleteDescription(supplier: Supplier | null): string {
 
 export function SuppliersScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(supplierPermissions);
-  const { page, page_size, search, filters, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
+  const extraCurrency = filters.currency_id ?? ALL;
+  const extraCount = extraCurrency !== ALL ? 1 : 0;
+  const [draftCurrency, setDraftCurrency] = useState(ALL);
   const suppliersQuery = useSuppliers({
     page,
     page_size,
     search,
+    sort_by,
+    sort_order,
     tax_treatment: parseTaxTreatment(filters.tax_treatment),
     currency_id: filters.currency_id,
     is_active: parseBoolFilter(filters.is_active),
@@ -134,6 +149,19 @@ export function SuppliersScreen() {
           placeholder="Search suppliers…"
         />
         <FilterSelect
+          className="w-36"
+          placeholder="Status"
+          value={filters.is_active ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { is_active: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All statuses" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+        />
+        <FilterSelect
           className="w-44"
           placeholder="Tax treatment"
           value={filters.tax_treatment ?? ALL}
@@ -148,38 +176,64 @@ export function SuppliersScreen() {
             })),
           ]}
         />
-        <FilterSelect
-          className="w-40"
-          placeholder="Currency"
-          value={filters.currency_id ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { currency_id: value === ALL ? null : value } })
+        <MoreFiltersDialog
+          extraCount={extraCount}
+          draftCount={draftCurrency !== ALL ? 1 : 0}
+          description="Filter by currency."
+          onOpen={() => setDraftCurrency(extraCurrency)}
+          onApply={() =>
+            setParams({ filters: { currency_id: draftCurrency === ALL ? null : draftCurrency } })
           }
-          options={[
-            { value: ALL, label: "All currencies" },
-            ...currencies.map((currency) => ({ value: currency.id, label: currency.code })),
-          ]}
+          onClearDraft={() => setDraftCurrency(ALL)}
+        >
+          <FilterField label="Currency" htmlFor="supplier-filter-currency">
+            <FilterSelect
+              id="supplier-filter-currency"
+              className="w-full"
+              placeholder="Currency"
+              value={draftCurrency}
+              onValueChange={setDraftCurrency}
+              options={[
+                { value: ALL, label: "All currencies" },
+                ...currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+              ]}
+            />
+          </FilterField>
+        </MoreFiltersDialog>
+        <SortDialog
+          fields={[...SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
         />
-        <FilterSelect
-          className="w-36"
-          placeholder="Status"
-          value={filters.is_active ?? ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { is_active: value === ALL ? null : value } })
-          }
-          options={[
-            { value: ALL, label: "All statuses" },
-            { value: "true", label: "Active" },
-            { value: "false", label: "Inactive" },
-          ]}
-        />
+        {search || filters.is_active || filters.tax_treatment || extraCount > 0 || sort_by ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setParams({
+                search: null,
+                sort_by: null,
+                sort_order: null,
+                filters: { is_active: null, tax_treatment: null, currency_id: null },
+              })
+            }
+          >
+            Clear
+          </Button>
+        ) : null}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
-            ))}
+            <SortableHeads
+              headers={headers}
+              fieldByHeader={SORT_FIELD_BY_HEADER}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>

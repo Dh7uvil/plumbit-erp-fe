@@ -1,4 +1,5 @@
 import { API_VERSION_PREFIX, BFF_AUTH_PREFIX } from "@/config/constants";
+import { publicEnv } from "@/config/env.public";
 import { reportError } from "@/integrations/error-reporting/report";
 import { parseEnvelope, parseListMeta, type ListResponse } from "@/shared/api/envelope";
 import { ApiError, getErrorMessage, isApiError } from "@/shared/api/errors";
@@ -30,8 +31,8 @@ function resolveBase(prefix: string): string {
   if (isBrowser()) {
     return prefix;
   }
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  return `${appUrl ?? "http://127.0.0.1:3000"}${prefix}`;
+  const appUrl = publicEnv.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  return `${appUrl}${prefix}`;
 }
 
 function buildUrl(path: string, basePrefix: string, params?: RequestParams): string {

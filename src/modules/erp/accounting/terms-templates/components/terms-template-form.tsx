@@ -30,6 +30,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function toFormValues(template: TermsTemplate | null): TermsTemplateFormValues {
   return {
@@ -70,6 +71,7 @@ export function TermsTemplateForm({
     resolver: zodResolver(TermsTemplateFormSchema),
     values: toFormValues(template),
   });
+  useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: TermsTemplateFormValues) {
     setFormError(null);
