@@ -1,22 +1,32 @@
 "use client";
 
 import { AlertCircle, ClipboardList, Shield, Users, type LucideIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { AuditLogDetailSheet } from "@/modules/users-management/audit-logs/components/audit-log-detail-sheet";
+import { auditLogPermissions } from "@/modules/users-management/audit-logs/permissions";
 import { useAuditLogs, useAuditLogSummary } from "@/modules/users-management/audit-logs/queries";
 import {
   AUDIT_ACTIONS,
   AUDIT_MODULE_IDENTITY,
+  parseAuditLogSortBy,
   type AuditLog,
   type AuditLogFilterParams,
   type AuditLogListParams,
 } from "@/modules/users-management/audit-logs/schemas";
 import { userPermissions } from "@/modules/users-management/users/permissions";
 import { useAllUsers } from "@/modules/users-management/users/queries";
+import { getErrorMessage } from "@/shared/api/errors";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import {
+  DataTableRowActions,
+  hasRowActions,
+  tableHeaders,
+} from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -30,9 +40,8 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { getErrorMessage } from "@/shared/api/errors";
-import { formatDateTime, initials, titleCase } from "@/shared/lib/format";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { formatDateTime, initials, titleCase } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMNS = [
@@ -48,17 +57,15 @@ const COLUMNS = [
 ] as const;
 
 const SORT_FIELDS = [
-  { value: "timestamp", label: "Timestamp" },
+  { value: "created_at", label: "Timestamp" },
   { value: "action", label: "Action" },
   { value: "module", label: "Module" },
-  { value: "status", label: "Status" },
 ] as const;
 
 const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Timestamp: "timestamp",
+  Timestamp: "created_at",
   Action: "action",
   Module: "module",
-  Status: "status",
 };
 
 const ALL = "all";
@@ -165,9 +172,13 @@ function KpiCard({
 
 export function AuditLogsScreen() {
   const can = useCan();
+  const { canRead } = useCrudPermissions(auditLogPermissions);
   const canReadUsers = can(userPermissions.read);
+  const [viewingId, setViewingId] = useState<string | null>(null);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
+  const showActions = hasRowActions(canRead);
+  const headers = tableHeaders(COLUMNS, showActions);
   const moduleFilter = filters.module ?? ALL;
   const extraFilters: ExtraFilters = {
     action: filters.action ?? ALL,
@@ -203,15 +214,17 @@ export function AuditLogsScreen() {
     ],
   );
 
+  const sortBy = parseAuditLogSortBy(sort_by);
+
   const listParams: AuditLogListParams = useMemo(
     () => ({
       page,
       page_size,
-      sort_by,
+      sort_by: sortBy,
       sort_order,
       ...filterParams,
     }),
-    [page, page_size, sort_by, sort_order, filterParams],
+    [page, page_size, sortBy, sort_order, filterParams],
   );
 
   const logsQuery = useAuditLogs(listParams);
@@ -222,7 +235,7 @@ export function AuditLogsScreen() {
   const meta = logsQuery.data?.meta;
   const users = usersQuery.data ?? [];
 
-  const hasActiveFilters = Boolean(search || moduleFilter !== ALL || extraCount > 0 || sort_by);
+  const hasActiveFilters = Boolean(search || moduleFilter !== ALL || extraCount > 0 || sortBy);
 
   const moduleOptions = useMemo(
     () =>
@@ -385,7 +398,7 @@ export function AuditLogsScreen() {
         </MoreFiltersDialog>
         <SortDialog
           fields={[...SORT_FIELDS]}
-          sortBy={sort_by}
+          sortBy={sortBy}
           sortOrder={sort_order}
           onApply={setParams}
         />
@@ -399,9 +412,9 @@ export function AuditLogsScreen() {
         <TableHeader>
           <TableRow>
             <SortableHeads
-              headers={COLUMNS}
+              headers={headers}
               fieldByHeader={SORT_FIELD_BY_HEADER}
-              sortBy={sort_by}
+              sortBy={sortBy}
               sortOrder={sort_order}
               onSort={setParams}
             />
@@ -411,14 +424,14 @@ export function AuditLogsScreen() {
           {logsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={COLUMNS.length}>
+                <TableCell colSpan={headers.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : logsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={COLUMNS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableError
                   message={getErrorMessage(logsQuery.error)}
                   onRetry={() => logsQuery.refetch()}
@@ -427,7 +440,7 @@ export function AuditLogsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={COLUMNS.length}>
+              <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No audit logs"
                   message={
@@ -439,21 +452,81 @@ export function AuditLogsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((log) => <AuditLogRow key={log.id} log={log} />)
+            rows.map((log) => (
+              <AuditLogRow
+                key={log.id}
+                log={log}
+                selected={viewingId === log.id}
+                canRead={canRead}
+                showActions={showActions}
+                onView={() => setViewingId(log.id)}
+              />
+            ))
           )}
         </TableBody>
       </DataTable>
+      <AuditLogDetailSheet
+        logId={viewingId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingId(null);
+          }
+        }}
+      />
     </ListPage>
   );
 }
 
-function AuditLogRow({ log }: { log: AuditLog }) {
+function ViewTrigger({
+  enabled,
+  onView,
+  children,
+  className,
+}: {
+  enabled: boolean;
+  onView: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  if (!enabled) {
+    return children;
+  }
+  return (
+    <button
+      type="button"
+      className={className ?? "cursor-pointer hover:underline"}
+      onClick={onView}
+    >
+      {children}
+    </button>
+  );
+}
+
+function AuditLogRow({
+  log,
+  selected,
+  canRead,
+  showActions,
+  onView,
+}: {
+  log: AuditLog;
+  selected: boolean;
+  canRead: boolean;
+  showActions: boolean;
+  onView: () => void;
+}) {
   const userName = log.user?.name ?? "Unknown";
 
   return (
-    <TableRow>
+    <TableRow data-state={selected ? "selected" : undefined}>
       <TableCell className="text-muted-foreground font-mono text-xs" title={log.id}>
-        {shortId(log.id)}
+        <ViewTrigger
+          enabled={canRead}
+          onView={onView}
+          className="cursor-pointer font-mono hover:underline"
+        >
+          {shortId(log.id)}
+        </ViewTrigger>
       </TableCell>
       <TableCell className="text-muted-foreground text-xs">
         {formatDateTime(log.timestamp)}
@@ -469,7 +542,11 @@ function AuditLogRow({ log }: { log: AuditLog }) {
       <TableCell>
         <Badge variant={actionVariant(log.action)}>{titleCase(log.action)}</Badge>
       </TableCell>
-      <TableCell className="text-sm">{titleCase(log.entity_type)}</TableCell>
+      <TableCell className="text-sm">
+        <ViewTrigger enabled={canRead} onView={onView}>
+          {titleCase(log.entity_type)}
+        </ViewTrigger>
+      </TableCell>
       <TableCell
         className="text-muted-foreground font-mono text-xs"
         title={log.entity_id ?? undefined}
@@ -485,6 +562,14 @@ function AuditLogRow({ log }: { log: AuditLog }) {
       <TableCell>
         <Badge variant={statusVariant(log.status)}>{titleCase(log.status)}</Badge>
       </TableCell>
+      {showActions ? (
+        <TableCell>
+          <DataTableRowActions
+            entityName={`audit log ${shortId(log.id)}`}
+            onView={canRead ? onView : undefined}
+          />
+        </TableCell>
+      ) : null}
     </TableRow>
   );
 }

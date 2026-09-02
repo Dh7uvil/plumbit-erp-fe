@@ -1,8 +1,10 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  AuditLogDetailSchema,
   AuditLogListSchema,
   AuditLogSummarySchema,
   type AuditLog,
+  type AuditLogDetail,
   type AuditLogFilterParams,
   type AuditLogListParams,
   type AuditLogSummary,
@@ -38,4 +40,6 @@ export const auditLogsApi = {
     AuditLogSummarySchema.parse(
       await apiClient.get("/audit-logs/summary", { params: filterQuery(params) }),
     ),
+  byId: async (id: string): Promise<AuditLogDetail> =>
+    AuditLogDetailSchema.parse(await apiClient.get(`/audit-logs/${id}`)),
 };
