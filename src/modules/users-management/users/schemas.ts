@@ -34,7 +34,6 @@ export const EmployeeSummarySchema = z.object({
 export type EmployeeSummary = z.infer<typeof EmployeeSummarySchema>;
 
 export const EmployeeUpsertSchema = z.object({
-  employee_code: z.string().min(1).max(50),
   branch_id: z.string().uuid().nullable().optional(),
   department_id: z.string().uuid().nullable().optional(),
   designation: z.string().max(150).nullable().optional(),
@@ -45,7 +44,6 @@ export type EmployeeUpsert = z.infer<typeof EmployeeUpsertSchema>;
 export const EMPLOYEE_SELECT_NONE = "none";
 
 export const EmployeeFormFieldsSchema = z.object({
-  employee_code: z.string().max(50),
   branch_id: z.string(),
   department_id: z.string(),
   designation: z.string().max(150),
@@ -57,28 +55,8 @@ function optionalSelectUuid(value: string): string | null {
   return value && value !== EMPLOYEE_SELECT_NONE ? value : null;
 }
 
-function hasEmployeeExtras(values: EmployeeFormFields): boolean {
-  return Boolean(
-    optionalSelectUuid(values.branch_id) ||
-    optionalSelectUuid(values.department_id) ||
-    values.designation.trim() ||
-    values.joining_date.trim(),
-  );
-}
-
-export function refineEmployeeForm(values: EmployeeFormFields, ctx: z.RefinementCtx) {
-  if (hasEmployeeExtras(values) && !values.employee_code.trim()) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["employee_code"],
-      message: "Enter an employee code",
-    });
-  }
-}
-
 export function emptyEmployeeFormValues(): EmployeeFormFields {
   return {
-    employee_code: "",
     branch_id: EMPLOYEE_SELECT_NONE,
     department_id: EMPLOYEE_SELECT_NONE,
     designation: "",
@@ -93,7 +71,6 @@ export function employeeFormValuesFromUser(user: {
     return emptyEmployeeFormValues();
   }
   return {
-    employee_code: user.employee.employee_code,
     branch_id: user.employee.branch?.id ?? EMPLOYEE_SELECT_NONE,
     department_id: user.employee.department?.id ?? EMPLOYEE_SELECT_NONE,
     designation: user.employee.designation ?? "",
@@ -101,13 +78,8 @@ export function employeeFormValuesFromUser(user: {
   };
 }
 
-export function toEmployeeUpsert(values: EmployeeFormFields): EmployeeUpsert | undefined {
-  const employeeCode = values.employee_code.trim();
-  if (!employeeCode && !hasEmployeeExtras(values)) {
-    return undefined;
-  }
+export function toEmployeeUpsert(values: EmployeeFormFields): EmployeeUpsert {
   return {
-    employee_code: employeeCode,
     branch_id: optionalSelectUuid(values.branch_id),
     department_id: optionalSelectUuid(values.department_id),
     designation: values.designation.trim() ? values.designation.trim() : null,
@@ -156,8 +128,7 @@ export const UserCreateFormSchema = z
     status: UserStatusSchema,
     role_ids: z.array(z.string().uuid()),
   })
-  .merge(EmployeeFormFieldsSchema)
-  .superRefine(refineEmployeeForm);
+  .merge(EmployeeFormFieldsSchema);
 export type UserCreateFormValues = z.infer<typeof UserCreateFormSchema>;
 
 export const UserUpdateRequestSchema = z.object({
@@ -177,8 +148,7 @@ export const UserUpdateFormSchema = z
     status: UserStatusSchema,
     role_ids: z.array(z.string().uuid()),
   })
-  .merge(EmployeeFormFieldsSchema)
-  .superRefine(refineEmployeeForm);
+  .merge(EmployeeFormFieldsSchema);
 export type UserUpdateFormValues = z.infer<typeof UserUpdateFormSchema>;
 
 export const AssignRolesRequestSchema = z.object({
