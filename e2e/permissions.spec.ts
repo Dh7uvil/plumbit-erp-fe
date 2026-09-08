@@ -37,7 +37,7 @@ test.describe("permissions", () => {
     await signIn(page);
     await page.goto("/permissions");
     const rows = page.locator("table tbody tr");
-    await expect(rows).toHaveCount(3);
+    await expect(rows).toHaveCount(4);
     await page.getByRole("button", { name: "Module" }).click();
     await page.getByRole("menuitem", { name: "identity" }).click();
     await expect(rows).toHaveCount(2);

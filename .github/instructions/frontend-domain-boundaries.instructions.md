@@ -291,9 +291,9 @@ Destructive or irreversible actions — approving, posting, cancelling, voiding,
 an e-invoice — require an explicit confirmation that names what will happen, and they are disabled
 while in flight.
 
-On `PERIOD_LOCKED`, disable dated writes and show the lock date from error `details`. On
-`INVENTORY_INSUFFICIENT_STOCK`, show warehouse and qty from `details`. Do not mock
-`allow_negative_stock` or lock dates — wait for the tenant API (see
+On `PERIOD_LOCKED`, show a destructive Alert with the lock date from error `details` and keep the
+date field editable. On `INVENTORY_INSUFFICIENT_STOCK`, show warehouse and qty from `details`.
+Lock dates are edited with `erp.period.lock` via `/period-lock` (see
 [erp-documents-and-workflows](erp-documents-and-workflows.instructions.md)).
 
 ## 12. Documents and identifiers

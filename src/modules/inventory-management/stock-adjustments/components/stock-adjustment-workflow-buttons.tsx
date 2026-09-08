@@ -22,6 +22,10 @@ import {
   visibleStockAdjustmentActions,
   type StockAdjustmentWorkflowAction,
 } from "@/modules/inventory-management/stock-adjustments/workflow";
+import {
+  StockWriteAlert,
+  isStockWriteAlertError,
+} from "@/modules/erp/period-lock/components/stock-write-alert";
 import { getErrorMessage } from "@/shared/api/errors";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Button } from "@/shared/components/ui/button";
@@ -41,6 +45,7 @@ export function StockAdjustmentWorkflowButtons({ adjustment }: { adjustment: Sto
   const [confirming, setConfirming] = useState<StockAdjustmentWorkflowAction | null>(null);
   const [running, setRunning] = useState<StockAdjustmentWorkflowAction | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [writeError, setWriteError] = useState<unknown>(null);
   const actions = visibleStockAdjustmentActions(adjustment.available_actions, can);
   const label = stockAdjustmentDisplayNumber(adjustment) ?? "adjustment";
   const pending = Boolean(running);
@@ -48,6 +53,7 @@ export function StockAdjustmentWorkflowButtons({ adjustment }: { adjustment: Sto
 
   async function runAction(action: StockAdjustmentWorkflowAction) {
     setRunning(action);
+    setWriteError(null);
     try {
       if (action === "post") {
         await postAdjustment.mutateAsync(write);
@@ -70,7 +76,11 @@ export function StockAdjustmentWorkflowButtons({ adjustment }: { adjustment: Sto
       setConfirming(null);
       setCancelReason("");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      if (isStockWriteAlertError(error)) {
+        setWriteError(error);
+      } else {
+        toast.error(getErrorMessage(error));
+      }
     } finally {
       setRunning(null);
     }
@@ -86,26 +96,29 @@ export function StockAdjustmentWorkflowButtons({ adjustment }: { adjustment: Sto
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        {actions.map((action) => (
-          <Button
-            key={action}
-            type="button"
-            size="sm"
-            variant={
-              action === "clone"
-                ? "outline"
-                : DESTRUCTIVE_ACTIONS.has(action)
-                  ? "destructive"
-                  : "default"
-            }
-            disabled={pending}
-            onClick={() => onAction(action)}
-          >
-            {running === action ? <Loader2 className="size-3.5 animate-spin" /> : null}
-            {STOCK_ADJUSTMENT_ACTION_LABELS[action]}
-          </Button>
-        ))}
+      <div className="flex flex-col items-end gap-2">
+        <StockWriteAlert periodLocked={adjustment.period_locked} error={writeError} />
+        <div className="flex flex-wrap items-center gap-2">
+          {actions.map((action) => (
+            <Button
+              key={action}
+              type="button"
+              size="sm"
+              variant={
+                action === "clone"
+                  ? "outline"
+                  : DESTRUCTIVE_ACTIONS.has(action)
+                    ? "destructive"
+                    : "default"
+              }
+              disabled={pending}
+              onClick={() => onAction(action)}
+            >
+              {running === action ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              {STOCK_ADJUSTMENT_ACTION_LABELS[action]}
+            </Button>
+          ))}
+        </div>
       </div>
       <ConfirmActionDialog
         open={Boolean(confirming)}

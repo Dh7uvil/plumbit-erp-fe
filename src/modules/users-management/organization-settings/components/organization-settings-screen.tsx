@@ -1,5 +1,6 @@
 "use client";
 
+import { TransactionLockCard } from "@/modules/erp/period-lock/components/transaction-lock-card";
 import { WarehousesPanel } from "@/modules/inventory-management/warehouses/components/warehouses-panel";
 import { BranchesPanel } from "@/modules/users-management/branches/components/branches-panel";
 import { DepartmentsPanel } from "@/modules/users-management/departments/components/departments-panel";
@@ -21,8 +22,13 @@ export function OrganizationSettingsScreen() {
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="warehouses">Warehouses</TabsTrigger>
         </TabsList>
-        <TabsContent value="company" className="mt-4">
+        <TabsContent value="company" className="mt-4 flex flex-col gap-4">
           <CompanySettingsForm />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <TransactionLockCard />
+            </div>
+          </div>
         </TabsContent>
         <TabsContent value="branches" className="mt-4">
           <BranchesPanel />

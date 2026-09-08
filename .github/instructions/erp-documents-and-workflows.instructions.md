@@ -44,11 +44,17 @@ field, delete the local table.
 
 ## Period lock
 
-- On `PERIOD_LOCKED`, disable dated fields and writes. Show the lock date from error `details`
-  (`lock_date`, `hard_lock_date`, `document_date`).
-- Do not let the UI invent a lock, compare dates locally, or hide the error.
-- Period-close controls in Organization Settings exist only after the tenant API exposes
-  `lock_date` / `hard_lock_date`. Do not mock them.
+- Render `period_locked` from the document and hide `post` when it is absent from
+  `available_actions`. Do not compare `document_date` to lock dates in the client. Keep the date
+  field editable so a stranded draft can be moved into the open period.
+- On `PERIOD_LOCKED`, show a destructive Alert with `details` (`lock_date`, `hard_lock_date`,
+  `document_date`, `tier`, reason). Do not invent a lock or disable the date field.
+- Transaction lock and books close are edited on Organization Settings via GET / preview / PATCH
+  `/period-lock`, permissioned `erp.period.lock`. `erp.period.override` bypasses the transaction
+  lock only. Do not fall back to `identity.organization.update`.
+- Preview lists current negative balances and unposted documents. On
+  `PERIOD_LOCK_BLOCKED_NEGATIVE_STOCK`, show `details.reason` and `details.balances` in a
+  destructive Alert, not a toast.
 
 ## Negative stock
 
@@ -64,14 +70,14 @@ field, delete the local table.
 Organization Settings may expose, **only after OpenAPI has them**:
 
 ```text
-allow_negative_stock    lock_date    hard_lock_date
+allow_negative_stock
 einvoicing_required     asp_provider (id, not secrets)
 peppol_participant_id   tin          digital identity
 ```
 
-Do not mock lock dates, negative-stock toggles, ledger figures, ASP keys or Peppol IDs. Changing
-locks is permissioned (`erp.period.lock` or `identity.organization.update`); changing ASP
-credentials is never done from the browser.
+Transaction lock (`lock_date`) and books close (`hard_lock_date`) are edited through
+`GET`/`PATCH` `/period-lock` with `erp.period.lock`. Do not mock lock dates, ledger figures, ASP
+keys or Peppol IDs. Changing ASP credentials is never done from the browser.
 
 ## Money and UAE VAT display
 
