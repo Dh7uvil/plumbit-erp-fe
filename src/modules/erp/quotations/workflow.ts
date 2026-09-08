@@ -1,3 +1,4 @@
+import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 
 export const QUOTATION_WORKFLOW_ACTIONS = [
@@ -8,6 +9,7 @@ export const QUOTATION_WORKFLOW_ACTIONS = [
   "send",
   "accept",
   "decline",
+  "convert",
   "cancel",
   "clone",
   "delete",
@@ -22,6 +24,7 @@ export const QUOTATION_ACTION_PERMISSION: Record<QuotationWorkflowAction, string
   send: quotationPermissions.send,
   accept: quotationPermissions.update,
   decline: quotationPermissions.update,
+  convert: salesOrderPermissions.create,
   cancel: quotationPermissions.update,
   clone: quotationPermissions.create,
   delete: quotationPermissions.delete,
@@ -35,6 +38,7 @@ export const QUOTATION_ACTION_LABELS: Record<QuotationWorkflowAction, string> = 
   send: "Send",
   accept: "Accept",
   decline: "Decline",
+  convert: "Convert to sales order",
   cancel: "Cancel",
   clone: "Clone",
   delete: "Delete",
@@ -46,6 +50,7 @@ const IRREVERSIBLE_ACTIONS = new Set<QuotationWorkflowAction>([
   "send",
   "accept",
   "decline",
+  "convert",
   "cancel",
   "delete",
 ]);
@@ -77,6 +82,8 @@ export function quotationActionEffect(
       return `${quoteNumber} will be marked accepted.`;
     case "decline":
       return `${quoteNumber} will be marked declined.`;
+    case "convert":
+      return `${quoteNumber} will be converted to a sales order.`;
     case "cancel":
       return `${quoteNumber} will be cancelled and will no longer be active.`;
     case "clone":

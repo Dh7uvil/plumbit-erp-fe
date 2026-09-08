@@ -156,12 +156,7 @@ export const AssignRolesRequestSchema = z.object({
 });
 
 export type UserListSortBy =
-  | "created_at"
-  | "updated_at"
-  | "name"
-  | "email"
-  | "status"
-  | "last_login_at";
+  "created_at" | "updated_at" | "name" | "email" | "status" | "last_login_at";
 export type UserListSortOrder = "asc" | "desc";
 
 export type UserListParams = {

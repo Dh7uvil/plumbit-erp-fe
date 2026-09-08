@@ -3,10 +3,7 @@
 import { useEffect } from "react";
 import { useFormContext, useWatch, type FieldValues } from "react-hook-form";
 
-import {
-  addressesMatch,
-  type AddressFormValues,
-} from "@/modules/users-management/tenants/schemas";
+import { addressesMatch, type AddressFormValues } from "@/modules/users-management/tenants/schemas";
 import { AddressFields } from "@/shared/components/form/address-fields";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { FormControl, FormField, FormItem, FormLabel } from "@/shared/components/ui/form";

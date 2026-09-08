@@ -50,7 +50,9 @@ export function UserViewDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{user?.name ?? "User details"}</DialogTitle>
-          <DialogDescription className="sr-only">User account and employee details</DialogDescription>
+          <DialogDescription className="sr-only">
+            User account and employee details
+          </DialogDescription>
         </DialogHeader>
         {detailQuery.isLoading ? (
           <div className="space-y-3 py-2">

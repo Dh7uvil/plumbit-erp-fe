@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { quotationsApi } from "@/modules/erp/quotations/api";
 import { quotationKeys } from "@/modules/erp/quotations/queries";
+import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { isApiError } from "@/shared/api/errors";
 
 type QuotationWriteVars = { id: string; version: number };
@@ -120,6 +121,26 @@ export function useCloneQuotation() {
     mutationFn: quotationsApi.clone,
     onSuccess: async () => {
       await invalidateQuotations(queryClient);
+    },
+  });
+}
+
+export function useConvertQuotationToSalesOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      values,
+    }: QuotationWriteVars & {
+      values?: Parameters<typeof quotationsApi.convertToSalesOrder>[1]["values"];
+    }) => quotationsApi.convertToSalesOrder(id, { version, values }),
+    onSuccess: async (_data, { id }) => {
+      await invalidateQuotations(queryClient, id);
+      await queryClient.invalidateQueries({ queryKey: salesOrderKeys.all });
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
     },
   });
 }

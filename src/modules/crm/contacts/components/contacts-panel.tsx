@@ -126,9 +126,7 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
                     <RecordLink href={`/contacts/${contact.id}`}>{contact.name}</RecordLink>
                   </TableCell>
                   <TableCell>
-                    <RecordLink href={`/contacts/${contact.id}`}>
-                      {contact.email || "—"}
-                    </RecordLink>
+                    <RecordLink href={`/contacts/${contact.id}`}>{contact.email || "—"}</RecordLink>
                   </TableCell>
                   <TableCell>{contact.phone || "—"}</TableCell>
                   <TableCell>

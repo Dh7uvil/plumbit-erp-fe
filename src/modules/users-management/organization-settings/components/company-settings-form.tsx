@@ -59,6 +59,8 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   default_currency: "",
   default_currency_id: OPTIONAL_SELECT_NONE,
   quotation_requires_approval: true,
+  sales_order_requires_approval: false,
+  purchase_order_requires_approval: false,
   allow_negative_stock: false,
   timezone: "",
   fiscal_year_start: "",
@@ -68,7 +70,11 @@ const EMPTY_CURRENCIES: Currency[] = [];
 
 type CompanyTextFieldPath = Exclude<
   FieldPath<CompanySettingsFormValues>,
-  "headquarters" | "quotation_requires_approval" | "allow_negative_stock"
+  | "headquarters"
+  | "quotation_requires_approval"
+  | "sales_order_requires_approval"
+  | "purchase_order_requires_approval"
+  | "allow_negative_stock"
 >;
 
 function toCurrencyCode(code: string | null | undefined): string | null {
@@ -112,6 +118,8 @@ function toFormValues(
     default_currency: tenant.default_currency ?? "",
     default_currency_id: resolveDefaultCurrencyId(tenant, currencies),
     quotation_requires_approval: tenant.quotation_requires_approval,
+    sales_order_requires_approval: tenant.sales_order_requires_approval,
+    purchase_order_requires_approval: tenant.purchase_order_requires_approval,
     allow_negative_stock: tenant.allow_negative_stock,
     timezone: tenant.timezone ?? "",
     fiscal_year_start: tenant.fiscal_year_start ?? "",
@@ -203,6 +211,8 @@ function toRegionalPayload(
     default_currency: toCurrencyCode(currencyCode ?? values.default_currency),
     default_currency_id: currencyId,
     quotation_requires_approval: values.quotation_requires_approval,
+    sales_order_requires_approval: values.sales_order_requires_approval,
+    purchase_order_requires_approval: values.purchase_order_requires_approval,
     allow_negative_stock: values.allow_negative_stock,
   };
 }
@@ -361,6 +371,8 @@ export function CompanySettingsForm() {
         default_currency: original.default_currency,
         default_currency_id: original.default_currency_id,
         quotation_requires_approval: original.quotation_requires_approval,
+        sales_order_requires_approval: original.sales_order_requires_approval,
+        purchase_order_requires_approval: original.purchase_order_requires_approval,
         allow_negative_stock: original.allow_negative_stock,
         timezone: original.timezone,
         fiscal_year_start: original.fiscal_year_start,
@@ -658,6 +670,42 @@ export function CompanySettingsForm() {
                   </FormControl>
                   <FormLabel className="text-muted-foreground text-xs font-medium">
                     Quotations require approval before sending
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="sales_order_requires_approval"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Sales orders require approval before confirming
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="purchase_order_requires_approval"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Purchase orders require approval before issuing
                   </FormLabel>
                 </FormItem>
               )}

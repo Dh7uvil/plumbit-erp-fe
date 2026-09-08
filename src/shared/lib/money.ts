@@ -8,4 +8,6 @@ export const MoneySchema = DecimalStringSchema;
 
 export const NullableDecimalStringSchema = z
   .union([z.string(), z.number(), z.null()])
-  .transform((value) => (value === null ? null : typeof value === "number" ? String(value) : value.trim()));
+  .transform((value) =>
+    value === null ? null : typeof value === "number" ? String(value) : value.trim(),
+  );

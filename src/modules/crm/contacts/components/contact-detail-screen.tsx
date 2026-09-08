@@ -77,9 +77,7 @@ export function ContactDetailScreen({
           />
         </CardContent>
       </Card>
-      {isEdit ? null : (
-        <EntityAttachmentsPanel entityType="CONTACT" entityId={contact.id} />
-      )}
+      {isEdit ? null : <EntityAttachmentsPanel entityType="CONTACT" entityId={contact.id} />}
     </div>
   );
 }

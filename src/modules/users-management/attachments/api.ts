@@ -26,7 +26,9 @@ export const attachmentsApi = {
     });
     return { data: AttachmentListSchema.parse(result.data), meta: result.meta };
   },
-  listAll: (params: Pick<AttachmentListParams, "entity_type" | "entity_id">): Promise<Attachment[]> =>
+  listAll: (
+    params: Pick<AttachmentListParams, "entity_type" | "entity_id">,
+  ): Promise<Attachment[]> =>
     fetchAllPages((page, pageSize) =>
       attachmentsApi.list({ page, page_size: pageSize, ...params }),
     ),

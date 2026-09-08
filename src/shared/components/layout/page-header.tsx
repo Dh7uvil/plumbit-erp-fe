@@ -16,9 +16,7 @@ export function PageHeader({
       <div className="min-w-0">
         <div className="flex items-center gap-3">
           <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>
-          {code ? (
-            <span className="text-muted-foreground font-mono text-sm">{code}</span>
-          ) : null}
+          {code ? <span className="text-muted-foreground font-mono text-sm">{code}</span> : null}
         </div>
         {subtitle ? <p className="text-muted-foreground mt-0.5 text-sm">{subtitle}</p> : null}
       </div>

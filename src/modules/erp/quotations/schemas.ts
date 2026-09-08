@@ -215,6 +215,16 @@ export const QuotationUpdateRequestSchema = z.object({
 });
 export type QuotationUpdateRequest = z.infer<typeof QuotationUpdateRequestSchema>;
 
+export const ConvertToSalesOrderRequestSchema = z.object({
+  order_date: z.string().nullable().optional(),
+  expected_shipment_date: z.string().nullable().optional(),
+  reference_number: z.string().max(60).nullable().optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  branch_id: z.string().uuid().nullable().optional(),
+  version: z.number().int().optional(),
+});
+export type ConvertToSalesOrderRequest = z.infer<typeof ConvertToSalesOrderRequestSchema>;
+
 export const QuotationLineFormSchema = z.object({
   product_id: z.string(),
   description: z.string(),
