@@ -46,6 +46,7 @@ export const StockTransferSchema = z.object({
   cancelled_by: z.string().uuid().nullable(),
   cancel_reason: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),
+  period_locked: z.boolean().default(false),
   lines: z.array(StockTransferLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

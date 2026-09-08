@@ -680,12 +680,6 @@ export function CompanySettingsForm() {
                 </FormItem>
               )}
             />
-            {tenant?.lock_date || tenant?.hard_lock_date ? (
-              <p className="text-muted-foreground col-span-full text-xs">
-                Period lock date {tenant.lock_date ?? "—"}
-                {tenant.hard_lock_date ? ` · hard lock ${tenant.hard_lock_date}` : ""}
-              </p>
-            ) : null}
           </CardContent>
         </Card>
       </form>

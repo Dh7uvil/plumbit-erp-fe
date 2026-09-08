@@ -22,6 +22,10 @@ import {
   visibleStockTransferActions,
   type StockTransferWorkflowAction,
 } from "@/modules/inventory-management/stock-transfers/workflow";
+import {
+  StockWriteAlert,
+  isStockWriteAlertError,
+} from "@/modules/erp/period-lock/components/stock-write-alert";
 import { getErrorMessage } from "@/shared/api/errors";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Button } from "@/shared/components/ui/button";
@@ -41,6 +45,7 @@ export function StockTransferWorkflowButtons({ transfer }: { transfer: StockTran
   const [confirming, setConfirming] = useState<StockTransferWorkflowAction | null>(null);
   const [running, setRunning] = useState<StockTransferWorkflowAction | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [writeError, setWriteError] = useState<unknown>(null);
   const actions = visibleStockTransferActions(transfer.available_actions, can);
   const label = stockTransferDisplayNumber(transfer) ?? "transfer";
   const pending = Boolean(running);
@@ -48,6 +53,7 @@ export function StockTransferWorkflowButtons({ transfer }: { transfer: StockTran
 
   async function runAction(action: StockTransferWorkflowAction) {
     setRunning(action);
+    setWriteError(null);
     try {
       if (action === "post") {
         await postTransfer.mutateAsync(write);
@@ -70,7 +76,11 @@ export function StockTransferWorkflowButtons({ transfer }: { transfer: StockTran
       setConfirming(null);
       setCancelReason("");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      if (isStockWriteAlertError(error)) {
+        setWriteError(error);
+      } else {
+        toast.error(getErrorMessage(error));
+      }
     } finally {
       setRunning(null);
     }
@@ -86,26 +96,29 @@ export function StockTransferWorkflowButtons({ transfer }: { transfer: StockTran
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        {actions.map((action) => (
-          <Button
-            key={action}
-            type="button"
-            size="sm"
-            variant={
-              action === "clone"
-                ? "outline"
-                : DESTRUCTIVE_ACTIONS.has(action)
-                  ? "destructive"
-                  : "default"
-            }
-            disabled={pending}
-            onClick={() => onAction(action)}
-          >
-            {running === action ? <Loader2 className="size-3.5 animate-spin" /> : null}
-            {STOCK_TRANSFER_ACTION_LABELS[action]}
-          </Button>
-        ))}
+      <div className="flex flex-col items-end gap-2">
+        <StockWriteAlert periodLocked={transfer.period_locked} error={writeError} />
+        <div className="flex flex-wrap items-center gap-2">
+          {actions.map((action) => (
+            <Button
+              key={action}
+              type="button"
+              size="sm"
+              variant={
+                action === "clone"
+                  ? "outline"
+                  : DESTRUCTIVE_ACTIONS.has(action)
+                    ? "destructive"
+                    : "default"
+              }
+              disabled={pending}
+              onClick={() => onAction(action)}
+            >
+              {running === action ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              {STOCK_TRANSFER_ACTION_LABELS[action]}
+            </Button>
+          ))}
+        </div>
       </div>
       <ConfirmActionDialog
         open={Boolean(confirming)}

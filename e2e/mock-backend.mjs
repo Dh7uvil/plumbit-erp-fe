@@ -61,6 +61,8 @@ let tenantState = {
   allow_negative_stock: false,
   lock_date: null,
   hard_lock_date: null,
+  lock_reason: null,
+  hard_lock_reason: null,
 };
 
 function json(res, status, body) {
@@ -143,6 +145,10 @@ function resetErpState() {
   xferSeq = 0;
   postReplays = new Map();
   tenantState.allow_negative_stock = false;
+  tenantState.lock_date = null;
+  tenantState.hard_lock_date = null;
+  tenantState.lock_reason = null;
+  tenantState.hard_lock_reason = null;
 }
 
 function currency() {
@@ -497,6 +503,148 @@ function draftActions() {
   return ["post", "cancel", "clone", "delete"];
 }
 
+function todayIsoDate() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function actorCanOverride() {
+  return currentSessionKind !== "limited";
+}
+
+function isHardLocked(documentDate) {
+  return Boolean(tenantState.hard_lock_date && documentDate <= tenantState.hard_lock_date);
+}
+
+function isSoftLocked(documentDate) {
+  return Boolean(tenantState.lock_date && documentDate <= tenantState.lock_date);
+}
+
+function isPeriodCovered(documentDate) {
+  return isHardLocked(documentDate) || isSoftLocked(documentDate);
+}
+
+function isPeriodLockedForActor(documentDate) {
+  if (isHardLocked(documentDate)) {
+    return true;
+  }
+  return isSoftLocked(documentDate) && !actorCanOverride();
+}
+
+function periodLockErrorDetails(documentDate) {
+  const hard = isHardLocked(documentDate);
+  return {
+    lock_date: tenantState.lock_date,
+    hard_lock_date: tenantState.hard_lock_date,
+    document_date: documentDate,
+    tier: hard ? "hard" : "soft",
+    reason: hard ? tenantState.hard_lock_reason : tenantState.lock_reason,
+  };
+}
+
+function rejectIfPeriodLocked(res, documentDate) {
+  if (!isPeriodLockedForActor(documentDate)) {
+    return false;
+  }
+  fail(res, 409, "PERIOD_LOCKED", "Period locked", periodLockErrorDetails(documentDate));
+  return true;
+}
+
+function stockDocumentResponse(document) {
+  const period_locked = isPeriodCovered(document.document_date);
+  let available_actions = [...(document.available_actions ?? [])];
+  if (document.status === "DRAFT" && isPeriodLockedForActor(document.document_date)) {
+    available_actions = available_actions.filter((action) => action !== "post");
+  }
+  return { ...document, period_locked, available_actions };
+}
+
+function negativeBalances() {
+  return [...balances.values()]
+    .filter((row) => qtyNumber(row.qty_on_hand) < 0)
+    .map((row) => ({
+      warehouse_id: row.warehouse_id,
+      warehouse_code: row.warehouse_code,
+      product_id: row.product_id,
+      sku: row.sku,
+      qty_on_hand: row.qty_on_hand,
+    }));
+}
+
+function unpostedDocumentsOnOrBefore(cutoff) {
+  if (!cutoff) {
+    return [];
+  }
+  const rows = [];
+  for (const document of adjustments.values()) {
+    if (document.status === "DRAFT" && document.document_date <= cutoff) {
+      rows.push({
+        id: document.id,
+        document_type: "stock_adjustment",
+        document_number: document.document_number,
+        document_date: document.document_date,
+        status: document.status,
+      });
+    }
+  }
+  for (const document of transfers.values()) {
+    if (document.status === "DRAFT" && document.document_date <= cutoff) {
+      rows.push({
+        id: document.id,
+        document_type: "stock_transfer",
+        document_number: document.document_number,
+        document_date: document.document_date,
+        status: document.status,
+      });
+    }
+  }
+  return rows;
+}
+
+function previewCutoff(lockDate, hardLockDate) {
+  if (lockDate && hardLockDate) {
+    return lockDate >= hardLockDate ? lockDate : hardLockDate;
+  }
+  return lockDate || hardLockDate || null;
+}
+
+function periodLockPreview(lockDate, hardLockDate) {
+  const negatives = negativeBalances();
+  const unposted = unpostedDocumentsOnOrBefore(previewCutoff(lockDate, hardLockDate));
+  const unlocking = !lockDate && !hardLockDate;
+  const blocked = !unlocking && negatives.length > 0 && !tenantState.allow_negative_stock;
+  const requiresAcknowledgement =
+    !unlocking && negatives.length > 0 && tenantState.allow_negative_stock;
+  return {
+    allow_negative_stock: tenantState.allow_negative_stock,
+    negative_balances: negatives.slice(0, 50),
+    negative_balances_total_count: negatives.length,
+    negative_balances_are_current: true,
+    unposted_documents: unposted.slice(0, 50),
+    unposted_documents_total_count: unposted.length,
+    blocked,
+    requires_acknowledgement: requiresAcknowledgement,
+  };
+}
+
+function isRetreatOrClear(current, next) {
+  if (current && !next) {
+    return true;
+  }
+  return Boolean(current && next && next < current);
+}
+
+function periodLockState() {
+  return {
+    lock_date: tenantState.lock_date,
+    hard_lock_date: tenantState.hard_lock_date,
+    lock_reason: tenantState.lock_reason,
+    hard_lock_reason: tenantState.hard_lock_reason,
+  };
+}
+
 function isStale(req, version) {
   const match = req.headers["if-match"];
   return match != null && match !== "" && String(match) !== String(version);
@@ -817,6 +965,8 @@ function me() {
       "erp.quotation.delete",
       "erp.quotation.approve",
       "erp.quotation.send",
+      "erp.period.lock",
+      "erp.period.override",
       "erp.supplier.read",
       "erp.supplier.create",
       "erp.supplier.update",
@@ -933,6 +1083,118 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       ok(res, currentTenant());
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/period-lock") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, periodLockState());
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/period-lock/preview") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const lockDate = url.searchParams.get("lock_date");
+      const hardLockDate = url.searchParams.get("hard_lock_date");
+      ok(res, periodLockPreview(lockDate || null, hardLockDate || null));
+      return;
+    }
+
+    if (req.method === "PATCH" && url.pathname === "/api/v1/period-lock") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const nextLock = Object.prototype.hasOwnProperty.call(body, "lock_date")
+        ? body.lock_date
+        : tenantState.lock_date;
+      const nextHard = Object.prototype.hasOwnProperty.call(body, "hard_lock_date")
+        ? body.hard_lock_date
+        : tenantState.hard_lock_date;
+      const today = todayIsoDate();
+      if (nextLock && nextLock > today) {
+        fail(res, 422, "VALIDATION_ERROR", "Validation error", [
+          {
+            loc: ["body", "lock_date"],
+            msg: "Lock date cannot be in the future",
+            type: "value_error",
+          },
+        ]);
+        return;
+      }
+      if (nextHard && nextHard > today) {
+        fail(res, 422, "VALIDATION_ERROR", "Validation error", [
+          {
+            loc: ["body", "hard_lock_date"],
+            msg: "Books close cannot be in the future",
+            type: "value_error",
+          },
+        ]);
+        return;
+      }
+      if (nextLock && nextHard && nextHard > nextLock) {
+        fail(res, 422, "VALIDATION_ERROR", "Validation error", [
+          {
+            loc: ["body", "hard_lock_date"],
+            msg: "Books close cannot be after the transaction lock",
+            type: "value_error",
+          },
+        ]);
+        return;
+      }
+      const retreating =
+        isRetreatOrClear(tenantState.lock_date, nextLock) ||
+        isRetreatOrClear(tenantState.hard_lock_date, nextHard);
+      const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+      if (retreating && reason.length < 10) {
+        fail(res, 422, "VALIDATION_ERROR", "Validation error", [
+          {
+            loc: ["body", "reason"],
+            msg: "Reason must be at least 10 characters",
+            type: "value_error",
+          },
+        ]);
+        return;
+      }
+      const unlocking = !nextLock && !nextHard;
+      const preview = periodLockPreview(nextLock, nextHard);
+      if (!unlocking && preview.blocked) {
+        fail(res, 409, "PERIOD_LOCK_BLOCKED_NEGATIVE_STOCK", "Negative stock", {
+          reason: "negative_stock_disallowed",
+          balances: preview.negative_balances,
+          total_count: preview.negative_balances_total_count,
+        });
+        return;
+      }
+      if (!unlocking && preview.requires_acknowledgement && !body.acknowledge_negative_stock) {
+        fail(res, 409, "PERIOD_LOCK_BLOCKED_NEGATIVE_STOCK", "Negative stock", {
+          reason: "acknowledgement_required",
+          balances: preview.negative_balances,
+          total_count: preview.negative_balances_total_count,
+        });
+        return;
+      }
+      tenantState.lock_date = nextLock;
+      tenantState.hard_lock_date = nextHard;
+      if (reason) {
+        if (nextLock) {
+          tenantState.lock_reason = reason;
+        }
+        if (nextHard) {
+          tenantState.hard_lock_reason = reason;
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "lock_date") && !nextLock) {
+        tenantState.lock_reason = null;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "hard_lock_date") && !nextHard) {
+        tenantState.hard_lock_reason = null;
+      }
+      ok(res, periodLockState());
       return;
     }
 
@@ -1214,6 +1476,28 @@ const server = http.createServer(async (req, res) => {
               },
             ],
           },
+          {
+            module: "erp",
+            resources: [
+              {
+                resource: "period",
+                actions: [
+                  {
+                    id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+                    action: "lock",
+                    code: "erp.period.lock",
+                    granted: true,
+                  },
+                  {
+                    id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+                    action: "override",
+                    code: "erp.period.override",
+                    granted: true,
+                  },
+                ],
+              },
+            ],
+          },
         ],
       });
       return;
@@ -1393,7 +1677,7 @@ const server = http.createServer(async (req, res) => {
         }
         return includesSearch([row.document_number, row.notes, row.reference], search);
       });
-      listOk(res, rows);
+      listOk(res, rows.map(stockDocumentResponse));
       return;
     }
 
@@ -1402,9 +1686,13 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const body = await readBody(req);
+      const documentDate = body.document_date ?? NOW.slice(0, 10);
+      if (rejectIfPeriodLocked(res, documentDate)) {
+        return;
+      }
       const document = buildAdjustment(body);
       adjustments.set(document.id, document);
-      ok(res, document, 201);
+      ok(res, stockDocumentResponse(document), 201);
       return;
     }
 
@@ -1428,7 +1716,7 @@ const server = http.createServer(async (req, res) => {
         cloned.is_posted = false;
         cloned.available_actions = draftActions();
         adjustments.set(cloned.id, cloned);
-        ok(res, cloned);
+        ok(res, stockDocumentResponse(cloned));
         return;
       }
       if (isStale(req, document.version)) {
@@ -1438,18 +1726,21 @@ const server = http.createServer(async (req, res) => {
       if (action === "post") {
         const replayed = replayPost(req);
         if (replayed) {
-          ok(res, replayed);
+          ok(res, stockDocumentResponse(replayed));
           return;
         }
         if (document.status === "POSTED") {
-          ok(res, document);
+          ok(res, stockDocumentResponse(document));
+          return;
+        }
+        if (rejectIfPeriodLocked(res, document.document_date)) {
           return;
         }
         try {
           const posted = postAdjustment(document);
           adjustments.set(posted.id, posted);
           storePost(req, posted);
-          ok(res, posted);
+          ok(res, stockDocumentResponse(posted));
         } catch (error) {
           if (error.message === "INSUFFICIENT") {
             fail(res, 409, "INVENTORY_INSUFFICIENT_STOCK", "Insufficient stock", error.details);
@@ -1467,7 +1758,7 @@ const server = http.createServer(async (req, res) => {
         document.cancelled_at = new Date().toISOString();
         document.version += 1;
         adjustments.set(document.id, document);
-        ok(res, document);
+        ok(res, stockDocumentResponse(document));
         return;
       }
     }
@@ -1483,7 +1774,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       if (req.method === "GET") {
-        ok(res, existing);
+        ok(res, stockDocumentResponse(existing));
         return;
       }
       if (isStale(req, existing.version)) {
@@ -1492,14 +1783,18 @@ const server = http.createServer(async (req, res) => {
       }
       if (req.method === "DELETE") {
         adjustments.delete(adjustmentDetail[1]);
-        ok(res, existing);
+        ok(res, stockDocumentResponse(existing));
         return;
       }
       if (req.method === "PATCH") {
         const body = await readBody(req);
+        const documentDate = body.document_date ?? existing.document_date;
+        if (rejectIfPeriodLocked(res, documentDate)) {
+          return;
+        }
         const updated = buildAdjustment(body, existing);
         adjustments.set(updated.id, updated);
-        ok(res, updated);
+        ok(res, stockDocumentResponse(updated));
         return;
       }
     }
@@ -1537,7 +1832,7 @@ const server = http.createServer(async (req, res) => {
         }
         return includesSearch([row.document_number, row.notes, row.reference], search);
       });
-      listOk(res, rows);
+      listOk(res, rows.map(stockDocumentResponse));
       return;
     }
 
@@ -1546,9 +1841,13 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const body = await readBody(req);
+      const documentDate = body.document_date ?? NOW.slice(0, 10);
+      if (rejectIfPeriodLocked(res, documentDate)) {
+        return;
+      }
       const document = buildTransfer(body);
       transfers.set(document.id, document);
-      ok(res, document, 201);
+      ok(res, stockDocumentResponse(document), 201);
       return;
     }
 
@@ -1572,7 +1871,7 @@ const server = http.createServer(async (req, res) => {
         cloned.is_posted = false;
         cloned.available_actions = draftActions();
         transfers.set(cloned.id, cloned);
-        ok(res, cloned);
+        ok(res, stockDocumentResponse(cloned));
         return;
       }
       if (isStale(req, document.version)) {
@@ -1582,18 +1881,21 @@ const server = http.createServer(async (req, res) => {
       if (action === "post") {
         const replayed = replayPost(req);
         if (replayed) {
-          ok(res, replayed);
+          ok(res, stockDocumentResponse(replayed));
           return;
         }
         if (document.status === "POSTED") {
-          ok(res, document);
+          ok(res, stockDocumentResponse(document));
+          return;
+        }
+        if (rejectIfPeriodLocked(res, document.document_date)) {
           return;
         }
         try {
           const posted = postTransfer(document);
           transfers.set(posted.id, posted);
           storePost(req, posted);
-          ok(res, posted);
+          ok(res, stockDocumentResponse(posted));
         } catch (error) {
           if (error.message === "INSUFFICIENT") {
             fail(res, 409, "INVENTORY_INSUFFICIENT_STOCK", "Insufficient stock", error.details);
@@ -1611,7 +1913,7 @@ const server = http.createServer(async (req, res) => {
         document.cancelled_at = new Date().toISOString();
         document.version += 1;
         transfers.set(document.id, document);
-        ok(res, document);
+        ok(res, stockDocumentResponse(document));
         return;
       }
     }
@@ -1627,7 +1929,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       if (req.method === "GET") {
-        ok(res, existing);
+        ok(res, stockDocumentResponse(existing));
         return;
       }
       if (isStale(req, existing.version)) {
@@ -1636,14 +1938,18 @@ const server = http.createServer(async (req, res) => {
       }
       if (req.method === "DELETE") {
         transfers.delete(transferDetail[1]);
-        ok(res, existing);
+        ok(res, stockDocumentResponse(existing));
         return;
       }
       if (req.method === "PATCH") {
         const body = await readBody(req);
+        const documentDate = body.document_date ?? existing.document_date;
+        if (rejectIfPeriodLocked(res, documentDate)) {
+          return;
+        }
         const updated = buildTransfer(body, existing);
         transfers.set(updated.id, updated);
-        ok(res, updated);
+        ok(res, stockDocumentResponse(updated));
         return;
       }
     }

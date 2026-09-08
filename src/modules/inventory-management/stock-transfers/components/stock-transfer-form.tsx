@@ -33,6 +33,10 @@ import { useAllWarehouses } from "@/modules/inventory-management/warehouses/quer
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
+import {
+  StockWriteAlert,
+  isStockWriteAlertError,
+} from "@/modules/erp/period-lock/components/stock-write-alert";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -134,6 +138,7 @@ export function StockTransferForm({
   const warehousesQuery = useAllWarehouses();
   const branchesQuery = useAllBranches();
   const [creating, setCreating] = useState<"fromWarehouse" | "toWarehouse" | "branch" | null>(null);
+  const [writeError, setWriteError] = useState<unknown>(null);
   const defaults = useMemo(
     () => ({ productId: defaultProductId, warehouseId: defaultWarehouseId }),
     [defaultProductId, defaultWarehouseId],
@@ -191,6 +196,7 @@ export function StockTransferForm({
       notes: emptyToNull(values.notes),
       lines,
     };
+    setWriteError(null);
     try {
       if (transfer) {
         const update: StockTransferUpdateRequest = payload;
@@ -211,6 +217,10 @@ export function StockTransferForm({
       if (applyFieldErrors(error, form.setError)) {
         return;
       }
+      if (isStockWriteAlertError(error)) {
+        setWriteError(error);
+        return;
+      }
       toast.error(getErrorMessage(error));
     }
   }
@@ -225,6 +235,7 @@ export function StockTransferForm({
   return (
     <Form {...form}>
       <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
+        <StockWriteAlert periodLocked={Boolean(transfer?.period_locked)} error={writeError} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <FormField
             control={form.control}

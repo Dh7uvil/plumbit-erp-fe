@@ -19,8 +19,9 @@ only security boundary, and this codebase is written on the assumption that a us
 around the UI.
 
 Screens without a live API stay omitted or empty. Follow
-[docs/administration-api-gaps.md](docs/administration-api-gaps.md) — do not mock ERP settings,
-lock dates, or e-invoicing fields.
+[docs/administration-api-gaps.md](docs/administration-api-gaps.md) — do not mock ERP settings
+or e-invoicing fields that the API does not expose. Period lock is edited through
+`/period-lock`, not by inventing dates on the tenant form.
 
 ## Architecture
 
@@ -50,7 +51,6 @@ src/
 │   │                             implemented: auth, users, roles, permissions,
 │   │                             tenants/org-settings, branches, departments,
 │   │                             employees (nested), audit-logs
-│   │                             planned: tenant operational settings (negative stock, lock dates)
 │   ├── crm/
 │   │                             implemented: customers, contacts
 │   │                             planned: leads, opportunities, activities
@@ -60,7 +60,8 @@ src/
 │   │                             goods-receipts (GRN), delivery-notes, sales-returns
 │   ├── erp/
 │   │                             implemented: currencies, exchange-rates, taxes, payment-terms,
-│   │                             terms-templates, document-sequences, suppliers, quotations
+│   │                             terms-templates, document-sequences, suppliers, quotations,
+│   │                             period-lock
 │   │                             planned: sales-orders, sales-invoices, credit-notes,
 │   │                             customer-payments, purchase-orders, purchase-invoices,
 │   │                             debit-notes, supplier-payments, accounting (COA, journals, AR, AP),

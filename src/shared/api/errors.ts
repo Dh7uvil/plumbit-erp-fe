@@ -80,6 +80,39 @@ function appendDetailSentence(base: string, fragments: Array<string | null>): st
   return `${base.replace(/\.$/, "")}. ${parts.join(" ")}`;
 }
 
+function numberDetail(details: Record<string, unknown>, key: string): number | null {
+  const value = details[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function negativeStockBalanceFragment(details: Record<string, unknown>): string | null {
+  const balances = details.balances;
+  if (!Array.isArray(balances) || balances.length === 0) {
+    return null;
+  }
+  const parts: string[] = [];
+  for (const row of balances.slice(0, 5)) {
+    if (!row || typeof row !== "object") {
+      continue;
+    }
+    const record = row as Record<string, unknown>;
+    const warehouse = stringDetail(record, "warehouse_code");
+    const sku = stringDetail(record, "sku");
+    const qty = stringDetail(record, "qty_on_hand");
+    const label = [warehouse, sku, qty].filter(Boolean).join(" ");
+    if (label) {
+      parts.push(label);
+    }
+  }
+  if (parts.length === 0) {
+    return null;
+  }
+  const total = numberDetail(details, "total_count");
+  const remaining = total != null ? Math.max(0, total - balances.length) : 0;
+  const listed = `${parts.join("; ")}.`;
+  return remaining > 0 ? `${listed} ${remaining} more.` : listed;
+}
+
 export function getErrorMessage(codeOrError: unknown): string {
   const code = codeFrom(codeOrError);
   if (!code) {
@@ -105,11 +138,27 @@ export function getErrorMessage(codeOrError: unknown): string {
     const lockDate = stringDetail(details, "lock_date");
     const hardLock = stringDetail(details, "hard_lock_date");
     const documentDate = stringDetail(details, "document_date");
+    const tier = stringDetail(details, "tier");
+    const reason = stringDetail(details, "reason");
+    const tierLabel =
+      tier === "hard" ? "Books closed." : tier === "soft" ? "Transactions locked." : null;
     return appendDetailSentence(base, [
       lockDate ? `Lock date ${lockDate}.` : null,
       hardLock ? `Hard lock ${hardLock}.` : null,
       documentDate ? `Document date ${documentDate}.` : null,
+      tierLabel,
+      reason ? `${reason}.` : null,
     ]);
+  }
+  if (code === "PERIOD_LOCK_BLOCKED_NEGATIVE_STOCK") {
+    const reason = stringDetail(details, "reason");
+    const reasonText =
+      reason === "acknowledgement_required"
+        ? "Negative stock exists. Confirm to lock anyway."
+        : reason === "negative_stock_disallowed"
+          ? "Negative stock is not allowed."
+          : null;
+    return appendDetailSentence(base, [reasonText, negativeStockBalanceFragment(details)]);
   }
   return base;
 }
