@@ -6,7 +6,11 @@ import { PermissionGate } from "@/shared/auth/guards";
 
 const IdSchema = z.string().uuid();
 
-export default async function CategoryDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CategoryDetailEditPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const parsed = IdSchema.safeParse(id);
 

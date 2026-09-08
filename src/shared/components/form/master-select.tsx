@@ -48,8 +48,7 @@ export function MasterSelect({
   createActions?: SearchableSelectCreateAction[];
 }) {
   const actions =
-    createActions ??
-    (onCreate && createLabel ? [{ label: createLabel, onSelect: onCreate }] : []);
+    createActions ?? (onCreate && createLabel ? [{ label: createLabel, onSelect: onCreate }] : []);
   const canCreate = !disabled && actions.length > 0;
 
   return (

@@ -7,6 +7,7 @@ const SUPERADMIN_ROLE_ID = "33333333-3333-4333-8333-333333333333";
 const EMPLOYEE_ROLE_ID = "66666666-6666-4666-8666-666666666666";
 const CURRENCY_ID = "44444444-4444-4444-8444-444444444444";
 const CUSTOMER_ID = "55555555-5555-4555-8555-555555555555";
+const SUPPLIER_ID = "14141414-1414-4141-8141-141414141414";
 const UNIT_ID = "88888888-8888-4888-8888-888888888888";
 const PRODUCT_ID = "99999999-9999-4999-8999-999999999999";
 const WAREHOUSE_MAIN_ID = "12121212-1212-4121-8121-121212121212";
@@ -32,7 +33,6 @@ const EMPTY_LIST_PATHS = new Set([
   "/api/v1/exchange-rates",
   "/api/v1/payment-terms",
   "/api/v1/price-lists",
-  "/api/v1/suppliers",
   "/api/v1/taxes",
   "/api/v1/terms-templates",
   "/api/v1/users",
@@ -44,6 +44,10 @@ let accessToken = "access-token-1";
 let refreshToken = "refresh-token-1";
 let quotations = new Map();
 let quoteSeq = 0;
+let salesOrders = new Map();
+let soSeq = 0;
+let purchaseOrders = new Map();
+let poSeq = 0;
 let adjustments = new Map();
 let transfers = new Map();
 let balances = new Map();
@@ -58,6 +62,8 @@ let tenantState = {
   default_currency: "AED",
   default_currency_id: CURRENCY_ID,
   quotation_requires_approval: true,
+  sales_order_requires_approval: false,
+  purchase_order_requires_approval: false,
   allow_negative_stock: false,
   lock_date: null,
   hard_lock_date: null,
@@ -137,6 +143,10 @@ function drain(req) {
 function resetErpState() {
   quotations = new Map();
   quoteSeq = 0;
+  salesOrders = new Map();
+  soSeq = 0;
+  purchaseOrders = new Map();
+  poSeq = 0;
   adjustments = new Map();
   transfers = new Map();
   balances = new Map();
@@ -144,6 +154,8 @@ function resetErpState() {
   adjSeq = 0;
   xferSeq = 0;
   postReplays = new Map();
+  tenantState.sales_order_requires_approval = false;
+  tenantState.purchase_order_requires_approval = false;
   tenantState.allow_negative_stock = false;
   tenantState.lock_date = null;
   tenantState.hard_lock_date = null;
@@ -234,6 +246,8 @@ function quotationAvailableActions(status) {
       return ["reopen", "clone"];
     case "SENT":
       return ["accept", "decline", "clone"];
+    case "ACCEPTED":
+      return ["convert", "clone"];
     default:
       return ["clone"];
   }
@@ -326,12 +340,303 @@ function productRow() {
     unit_id: UNIT_ID,
     category_id: null,
     selling_rate: "10.00",
+    purchase_rate: "8.00",
+    purchase_description: "Copper pipe (purchase)",
     tax_id: null,
     hs_code: null,
     track_inventory: true,
     is_active: true,
     created_at: NOW,
     updated_at: NOW,
+  };
+}
+
+function supplier() {
+  return {
+    id: SUPPLIER_ID,
+    tenant_id: TENANT_ID,
+    name: "Gulf Pipes",
+    code: "GULF",
+    company_type: "SUPPLIER",
+    trn: null,
+    tax_treatment: "UNREGISTERED",
+    currency_id: CURRENCY_ID,
+    default_price_list_id: null,
+    payment_terms_id: null,
+    credit_limit: null,
+    salesperson_id: null,
+    billing_address: null,
+    shipping_address: null,
+    extra_addresses: [],
+    notes: null,
+    is_active: true,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}
+
+function salesOrderAvailableActions(status) {
+  const requiresApproval = tenantState.sales_order_requires_approval;
+  switch (status) {
+    case "DRAFT":
+      return requiresApproval
+        ? ["submit", "cancel", "clone", "delete"]
+        : ["confirm", "cancel", "clone", "delete"];
+    case "PENDING_APPROVAL":
+      return ["approve", "reject", "cancel", "clone"];
+    case "APPROVED":
+      return ["confirm", "cancel", "clone"];
+    case "REJECTED":
+      return ["reopen", "cancel", "clone"];
+    case "CONFIRMED":
+      return ["close", "cancel", "clone"];
+    case "CLOSED":
+      return ["reopen", "clone"];
+    default:
+      return ["clone"];
+  }
+}
+
+function purchaseOrderAvailableActions(status) {
+  const requiresApproval = tenantState.purchase_order_requires_approval;
+  switch (status) {
+    case "DRAFT":
+      return requiresApproval
+        ? ["submit", "cancel", "clone", "delete"]
+        : ["issue", "cancel", "clone", "delete"];
+    case "PENDING_APPROVAL":
+      return ["approve", "reject", "cancel", "clone"];
+    case "APPROVED":
+      return ["issue", "cancel", "clone"];
+    case "REJECTED":
+      return ["reopen", "cancel", "clone"];
+    case "ISSUED":
+      return ["close", "cancel", "clone"];
+    case "CLOSED":
+      return ["reopen", "clone"];
+    default:
+      return ["clone"];
+  }
+}
+
+function applySalesOrderStatus(order, status) {
+  order.status = status;
+  order.version = (order.version ?? 1) + 1;
+  order.available_actions = salesOrderAvailableActions(status);
+  order.updated_at = new Date().toISOString();
+  if (status === "CONFIRMED") {
+    order.confirmed_at = order.updated_at;
+    order.confirmed_by = USER_ID;
+  }
+  if (status === "CLOSED") {
+    order.closed_at = order.updated_at;
+    order.closed_by = USER_ID;
+  }
+  if (status === "CANCELLED") {
+    order.cancelled_at = order.updated_at;
+    order.cancelled_by = USER_ID;
+  }
+  return order;
+}
+
+function applyPurchaseOrderStatus(order, status) {
+  order.status = status;
+  order.version = (order.version ?? 1) + 1;
+  order.available_actions = purchaseOrderAvailableActions(status);
+  order.updated_at = new Date().toISOString();
+  if (status === "ISSUED") {
+    order.issued_at = order.updated_at;
+    order.issued_by = USER_ID;
+  }
+  if (status === "CLOSED") {
+    order.closed_at = order.updated_at;
+    order.closed_by = USER_ID;
+  }
+  if (status === "CANCELLED") {
+    order.cancelled_at = order.updated_at;
+    order.cancelled_by = USER_ID;
+  }
+  return order;
+}
+
+function buildSalesOrderLines(inputLines) {
+  return (inputLines ?? []).map((line, index) => {
+    const quantity = line.quantity ?? "1";
+    const rate = line.rate ?? "0";
+    return {
+      id: crypto.randomUUID(),
+      line_number: index + 1,
+      product_id: line.product_id ?? null,
+      description: line.description ?? "",
+      quantity: String(quantity),
+      unit_id: line.unit_id ?? null,
+      rate: String(rate),
+      discount_type: line.discount_type ?? null,
+      discount_value: line.discount_value ?? null,
+      discount_amount: "0",
+      tax_id: line.tax_id ?? null,
+      tax_rate: "0",
+      tax_amount: "0",
+      amount: moneyProduct(quantity, rate),
+      qty_delivered: line.qty_delivered ?? "0",
+      qty_invoiced: line.qty_invoiced ?? "0",
+      source_quotation_line_id: line.source_quotation_line_id ?? null,
+    };
+  });
+}
+
+function buildPurchaseOrderLines(inputLines) {
+  return (inputLines ?? []).map((line, index) => {
+    const quantity = line.quantity ?? "1";
+    const rate = line.rate ?? "0";
+    return {
+      id: crypto.randomUUID(),
+      line_number: index + 1,
+      product_id: line.product_id ?? null,
+      description: line.description ?? "",
+      quantity: String(quantity),
+      unit_id: line.unit_id ?? null,
+      rate: String(rate),
+      discount_type: line.discount_type ?? null,
+      discount_value: line.discount_value ?? null,
+      discount_amount: "0",
+      tax_id: line.tax_id ?? null,
+      tax_rate: "0",
+      tax_amount: "0",
+      amount: moneyProduct(quantity, rate),
+      qty_received: line.qty_received ?? "0",
+      qty_billed: line.qty_billed ?? "0",
+    };
+  });
+}
+
+function buildSalesOrder(body, existing = null, extras = {}) {
+  soSeq += existing ? 0 : 1;
+  const id = existing?.id ?? extras.id ?? crypto.randomUUID();
+  const sourceLines = (body.lines ?? existing?.lines ?? []).map((line) => ({
+    ...line,
+    source_quotation_line_id:
+      extras.fromQuotation && line.id ? line.id : (line.source_quotation_line_id ?? null),
+  }));
+  const lines = buildSalesOrderLines(sourceLines);
+  const subtotal = lines.reduce((sum, line) => sum + Number(line.amount), 0).toFixed(2);
+  const now = new Date().toISOString();
+  const documentNumber = existing?.document_number ?? `SO-${String(soSeq).padStart(4, "0")}`;
+  const orderDate = body.order_date ?? existing?.order_date ?? "2026-08-27";
+  const status = extras.status ?? existing?.status ?? "DRAFT";
+  return {
+    id,
+    tenant_id: TENANT_ID,
+    document_number: documentNumber,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    is_posted: false,
+    reference_number: body.reference_number ?? existing?.reference_number ?? null,
+    order_date: orderDate,
+    document_date: orderDate,
+    expected_shipment_date: body.expected_shipment_date ?? existing?.expected_shipment_date ?? null,
+    branch_id: body.branch_id ?? existing?.branch_id ?? null,
+    warehouse_id: body.warehouse_id ?? existing?.warehouse_id ?? extras.warehouse_id ?? null,
+    customer_id: body.customer_id ?? existing?.customer_id ?? CUSTOMER_ID,
+    contact_id: body.contact_id ?? existing?.contact_id ?? null,
+    customer_trn: existing?.customer_trn ?? extras.customer_trn ?? null,
+    tax_treatment: existing?.tax_treatment ?? extras.tax_treatment ?? "UNREGISTERED",
+    place_of_supply: body.place_of_supply ?? existing?.place_of_supply ?? "DUBAI",
+    currency_id: body.currency_id ?? existing?.currency_id ?? CURRENCY_ID,
+    base_currency_id: existing?.base_currency_id ?? CURRENCY_ID,
+    exchange_rate: existing?.exchange_rate ?? "1",
+    price_list_id: body.price_list_id ?? existing?.price_list_id ?? null,
+    payment_terms_id: body.payment_terms_id ?? existing?.payment_terms_id ?? null,
+    salesperson_id: body.salesperson_id ?? existing?.salesperson_id ?? null,
+    notes: body.notes ?? existing?.notes ?? null,
+    terms_and_conditions: body.terms_and_conditions ?? existing?.terms_and_conditions ?? null,
+    bill_to_snapshot: existing?.bill_to_snapshot ?? extras.bill_to_snapshot ?? null,
+    ship_to_snapshot: existing?.ship_to_snapshot ?? extras.ship_to_snapshot ?? null,
+    discount_type: body.discount_type ?? existing?.discount_type ?? null,
+    discount_value: body.discount_value ?? existing?.discount_value ?? null,
+    discount_amount: "0",
+    shipping_amount: body.shipping_amount ?? existing?.shipping_amount ?? "0",
+    adjustment_amount: body.adjustment_amount ?? existing?.adjustment_amount ?? "0",
+    subtotal,
+    tax_amount: "0",
+    grand_total: subtotal,
+    foreign_amount: subtotal,
+    base_amount: subtotal,
+    fulfillment_status: existing?.fulfillment_status ?? "NOT_DELIVERED",
+    billing_status: existing?.billing_status ?? "NOT_INVOICED",
+    source_quotation_id: extras.source_quotation_id ?? existing?.source_quotation_id ?? null,
+    confirmed_at: existing?.confirmed_at ?? null,
+    confirmed_by: existing?.confirmed_by ?? null,
+    closed_at: existing?.closed_at ?? null,
+    closed_by: existing?.closed_by ?? null,
+    cancelled_at: existing?.cancelled_at ?? null,
+    cancelled_by: existing?.cancelled_by ?? null,
+    cancel_reason: body.reason ?? existing?.cancel_reason ?? null,
+    available_actions: salesOrderAvailableActions(status),
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function buildPurchaseOrder(body, existing = null) {
+  poSeq += existing ? 0 : 1;
+  const id = existing?.id ?? crypto.randomUUID();
+  const lines = buildPurchaseOrderLines(body.lines ?? existing?.lines ?? []);
+  const subtotal = lines.reduce((sum, line) => sum + Number(line.amount), 0).toFixed(2);
+  const now = new Date().toISOString();
+  const documentNumber = existing?.document_number ?? `PO-${String(poSeq).padStart(4, "0")}`;
+  const orderDate = body.order_date ?? existing?.order_date ?? "2026-08-27";
+  const status = existing?.status ?? "DRAFT";
+  return {
+    id,
+    tenant_id: TENANT_ID,
+    document_number: documentNumber,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    is_posted: false,
+    reference_number: body.reference_number ?? existing?.reference_number ?? null,
+    order_date: orderDate,
+    document_date: orderDate,
+    expected_delivery_date: body.expected_delivery_date ?? existing?.expected_delivery_date ?? null,
+    branch_id: body.branch_id ?? existing?.branch_id ?? null,
+    warehouse_id: body.warehouse_id ?? existing?.warehouse_id ?? null,
+    supplier_id: body.supplier_id ?? existing?.supplier_id ?? SUPPLIER_ID,
+    contact_id: body.contact_id ?? existing?.contact_id ?? null,
+    supplier_trn: existing?.supplier_trn ?? null,
+    tax_treatment: existing?.tax_treatment ?? "UNREGISTERED",
+    place_of_supply: body.place_of_supply ?? existing?.place_of_supply ?? "DUBAI",
+    currency_id: body.currency_id ?? existing?.currency_id ?? CURRENCY_ID,
+    base_currency_id: existing?.base_currency_id ?? CURRENCY_ID,
+    exchange_rate: existing?.exchange_rate ?? "1",
+    payment_terms_id: body.payment_terms_id ?? existing?.payment_terms_id ?? null,
+    notes: body.notes ?? existing?.notes ?? null,
+    terms_and_conditions: body.terms_and_conditions ?? existing?.terms_and_conditions ?? null,
+    supplier_address_snapshot: existing?.supplier_address_snapshot ?? null,
+    deliver_to_snapshot: existing?.deliver_to_snapshot ?? null,
+    discount_type: body.discount_type ?? existing?.discount_type ?? null,
+    discount_value: body.discount_value ?? existing?.discount_value ?? null,
+    discount_amount: "0",
+    shipping_amount: body.shipping_amount ?? existing?.shipping_amount ?? "0",
+    adjustment_amount: body.adjustment_amount ?? existing?.adjustment_amount ?? "0",
+    subtotal,
+    tax_amount: "0",
+    grand_total: subtotal,
+    foreign_amount: subtotal,
+    base_amount: subtotal,
+    receipt_status: existing?.receipt_status ?? "NOT_RECEIVED",
+    billing_status: existing?.billing_status ?? "NOT_INVOICED",
+    issued_at: existing?.issued_at ?? null,
+    issued_by: existing?.issued_by ?? null,
+    closed_at: existing?.closed_at ?? null,
+    closed_by: existing?.closed_by ?? null,
+    cancelled_at: existing?.cancelled_at ?? null,
+    cancelled_by: existing?.cancelled_by ?? null,
+    cancel_reason: body.reason ?? existing?.cancel_reason ?? null,
+    available_actions: purchaseOrderAvailableActions(status),
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
   };
 }
 
@@ -849,6 +1154,8 @@ function currentTenant() {
     default_currency: tenantState.default_currency,
     default_currency_id: tenantState.default_currency_id,
     quotation_requires_approval: tenantState.quotation_requires_approval,
+    sales_order_requires_approval: tenantState.sales_order_requires_approval,
+    purchase_order_requires_approval: tenantState.purchase_order_requires_approval,
     allow_negative_stock: tenantState.allow_negative_stock,
     lock_date: tenantState.lock_date,
     hard_lock_date: tenantState.hard_lock_date,
@@ -965,6 +1272,20 @@ function me() {
       "erp.quotation.delete",
       "erp.quotation.approve",
       "erp.quotation.send",
+      "erp.sales_order.read",
+      "erp.sales_order.create",
+      "erp.sales_order.update",
+      "erp.sales_order.delete",
+      "erp.sales_order.approve",
+      "erp.sales_order.confirm",
+      "erp.sales_order.close",
+      "erp.purchase_order.read",
+      "erp.purchase_order.create",
+      "erp.purchase_order.update",
+      "erp.purchase_order.delete",
+      "erp.purchase_order.approve",
+      "erp.purchase_order.issue",
+      "erp.purchase_order.close",
       "erp.period.lock",
       "erp.period.override",
       "erp.supplier.read",
@@ -1214,6 +1535,12 @@ const server = http.createServer(async (req, res) => {
         ...(body.quotation_requires_approval !== undefined
           ? { quotation_requires_approval: body.quotation_requires_approval }
           : {}),
+        ...(body.sales_order_requires_approval !== undefined
+          ? { sales_order_requires_approval: body.sales_order_requires_approval }
+          : {}),
+        ...(body.purchase_order_requires_approval !== undefined
+          ? { purchase_order_requires_approval: body.purchase_order_requires_approval }
+          : {}),
         ...(body.allow_negative_stock !== undefined
           ? { allow_negative_stock: body.allow_negative_stock }
           : {}),
@@ -1282,6 +1609,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/v1/suppliers") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [supplier()]);
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/v1/currencies") {
       if (unauthorized(req, res)) {
         return;
@@ -1331,6 +1666,62 @@ const server = http.createServer(async (req, res) => {
         place_of_supply: "DUBAI",
         bill_to_snapshot: null,
         ship_to_snapshot: null,
+        terms_and_conditions: null,
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/sales-orders/compose-defaults") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const customerId = url.searchParams.get("customer_id");
+      if (customerId !== CUSTOMER_ID) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const seeded = customer();
+      ok(res, {
+        customer_id: seeded.id,
+        customer_name: seeded.name,
+        customer_trn: seeded.trn,
+        tax_treatment: seeded.tax_treatment,
+        currency_id: seeded.currency_id,
+        price_list_id: seeded.default_price_list_id,
+        payment_terms_id: seeded.payment_terms_id,
+        salesperson_id: seeded.salesperson_id,
+        contact_id: null,
+        warehouse_id: WAREHOUSE_MAIN_ID,
+        place_of_supply: "DUBAI",
+        bill_to_snapshot: null,
+        ship_to_snapshot: null,
+        terms_and_conditions: null,
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/purchase-orders/compose-defaults") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const supplierId = url.searchParams.get("supplier_id");
+      if (supplierId !== SUPPLIER_ID) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const seeded = supplier();
+      ok(res, {
+        supplier_id: seeded.id,
+        supplier_name: seeded.name,
+        supplier_trn: seeded.trn,
+        tax_treatment: seeded.tax_treatment,
+        currency_id: seeded.currency_id,
+        payment_terms_id: seeded.payment_terms_id,
+        contact_id: null,
+        warehouse_id: WAREHOUSE_MAIN_ID,
+        place_of_supply: "DUBAI",
+        supplier_address_snapshot: null,
+        deliver_to_snapshot: null,
         terms_and_conditions: null,
       });
       return;
@@ -1424,6 +1815,265 @@ const server = http.createServer(async (req, res) => {
       const quotation = buildQuotation(body, existing);
       quotations.set(quotation.id, quotation);
       ok(res, quotation);
+      return;
+    }
+
+    const convertQuotation = url.pathname.match(
+      /^\/api\/v1\/quotations\/([0-9a-f-]{36})\/convert-to-sales-order$/i,
+    );
+    if (req.method === "POST" && convertQuotation) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const quotation = quotations.get(convertQuotation[1]);
+      if (!quotation) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (quotation.status !== "ACCEPTED") {
+        fail(
+          res,
+          409,
+          "INVALID_STATUS",
+          "Only an accepted quotation can be converted to a sales order",
+        );
+        return;
+      }
+      if (quotation.converted_document_id) {
+        fail(res, 409, "ALREADY_CONVERTED", "Quotation already converted");
+        return;
+      }
+      const body = await readBody(req);
+      const order = buildSalesOrder(
+        {
+          customer_id: quotation.customer_id,
+          contact_id: quotation.contact_id,
+          branch_id: body.branch_id ?? quotation.branch_id,
+          warehouse_id: body.warehouse_id ?? WAREHOUSE_MAIN_ID,
+          order_date: body.order_date ?? quotation.quote_date,
+          expected_shipment_date: body.expected_shipment_date ?? null,
+          reference_number: body.reference_number ?? null,
+          currency_id: quotation.currency_id,
+          price_list_id: quotation.price_list_id,
+          payment_terms_id: quotation.payment_terms_id,
+          salesperson_id: quotation.salesperson_id,
+          notes: quotation.notes,
+          terms_and_conditions: quotation.terms_and_conditions,
+          place_of_supply: quotation.place_of_supply,
+          discount_type: quotation.discount_type,
+          discount_value: quotation.discount_value,
+          shipping_amount: quotation.shipping_amount,
+          adjustment_amount: quotation.adjustment_amount,
+          lines: quotation.lines,
+        },
+        null,
+        {
+          fromQuotation: true,
+          source_quotation_id: quotation.id,
+          customer_trn: quotation.customer_trn,
+          tax_treatment: quotation.tax_treatment,
+          bill_to_snapshot: quotation.bill_to_snapshot,
+          ship_to_snapshot: quotation.ship_to_snapshot,
+          warehouse_id: body.warehouse_id ?? WAREHOUSE_MAIN_ID,
+        },
+      );
+      salesOrders.set(order.id, order);
+      const now = new Date().toISOString();
+      quotation.status = "CONVERTED";
+      quotation.version = (quotation.version ?? 1) + 1;
+      quotation.converted_at = now;
+      quotation.converted_document_type = "SALES_ORDER";
+      quotation.converted_document_id = order.id;
+      quotation.available_actions = quotationAvailableActions("CONVERTED");
+      quotation.updated_at = now;
+      quotations.set(quotation.id, quotation);
+      ok(res, order);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/sales-orders") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [...salesOrders.values()]);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/sales-orders") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const order = buildSalesOrder(body);
+      salesOrders.set(order.id, order);
+      ok(res, order, 201);
+      return;
+    }
+
+    const salesOrderAction = url.pathname.match(
+      /^\/api\/v1\/sales-orders\/([0-9a-f-]{36})\/(submit|approve|reject|reopen|confirm|close|cancel|clone)$/i,
+    );
+    if (req.method === "POST" && salesOrderAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const order = salesOrders.get(salesOrderAction[1]);
+      if (!order) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const action = salesOrderAction[2];
+      if (action === "clone") {
+        const cloned = buildSalesOrder({
+          ...order,
+          lines: order.lines,
+          customer_id: order.customer_id,
+        });
+        cloned.status = "DRAFT";
+        cloned.available_actions = salesOrderAvailableActions("DRAFT");
+        salesOrders.set(cloned.id, cloned);
+        ok(res, cloned, 201);
+        return;
+      }
+      let nextStatus = {
+        submit: "PENDING_APPROVAL",
+        approve: "APPROVED",
+        reject: "REJECTED",
+        confirm: "CONFIRMED",
+        close: "CLOSED",
+        cancel: "CANCELLED",
+      }[action];
+      if (action === "reopen") {
+        nextStatus = order.status === "CLOSED" ? "CONFIRMED" : "DRAFT";
+      }
+      if (nextStatus) {
+        applySalesOrderStatus(order, nextStatus);
+      }
+      salesOrders.set(order.id, order);
+      ok(res, order);
+      return;
+    }
+
+    const salesOrderDetail = url.pathname.match(/^\/api\/v1\/sales-orders\/([0-9a-f-]{36})$/i);
+    if (
+      salesOrderDetail &&
+      (req.method === "GET" || req.method === "PATCH" || req.method === "DELETE")
+    ) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = salesOrders.get(salesOrderDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "DELETE") {
+        salesOrders.delete(salesOrderDetail[1]);
+        ok(res, existing);
+        return;
+      }
+      const body = await readBody(req);
+      const order = buildSalesOrder(body, existing);
+      salesOrders.set(order.id, order);
+      ok(res, order);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/purchase-orders") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [...purchaseOrders.values()]);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/purchase-orders") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const order = buildPurchaseOrder(body);
+      purchaseOrders.set(order.id, order);
+      ok(res, order, 201);
+      return;
+    }
+
+    const purchaseOrderAction = url.pathname.match(
+      /^\/api\/v1\/purchase-orders\/([0-9a-f-]{36})\/(submit|approve|reject|reopen|issue|close|cancel|clone)$/i,
+    );
+    if (req.method === "POST" && purchaseOrderAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const order = purchaseOrders.get(purchaseOrderAction[1]);
+      if (!order) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const action = purchaseOrderAction[2];
+      if (action === "clone") {
+        const cloned = buildPurchaseOrder({
+          ...order,
+          lines: order.lines,
+          supplier_id: order.supplier_id,
+        });
+        cloned.status = "DRAFT";
+        cloned.available_actions = purchaseOrderAvailableActions("DRAFT");
+        purchaseOrders.set(cloned.id, cloned);
+        ok(res, cloned, 201);
+        return;
+      }
+      let nextStatus = {
+        submit: "PENDING_APPROVAL",
+        approve: "APPROVED",
+        reject: "REJECTED",
+        issue: "ISSUED",
+        close: "CLOSED",
+        cancel: "CANCELLED",
+      }[action];
+      if (action === "reopen") {
+        nextStatus = order.status === "CLOSED" ? "ISSUED" : "DRAFT";
+      }
+      if (nextStatus) {
+        applyPurchaseOrderStatus(order, nextStatus);
+      }
+      purchaseOrders.set(order.id, order);
+      ok(res, order);
+      return;
+    }
+
+    const purchaseOrderDetail = url.pathname.match(
+      /^\/api\/v1\/purchase-orders\/([0-9a-f-]{36})$/i,
+    );
+    if (
+      purchaseOrderDetail &&
+      (req.method === "GET" || req.method === "PATCH" || req.method === "DELETE")
+    ) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = purchaseOrders.get(purchaseOrderDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "DELETE") {
+        purchaseOrders.delete(purchaseOrderDetail[1]);
+        ok(res, existing);
+        return;
+      }
+      const body = await readBody(req);
+      const order = buildPurchaseOrder(body, existing);
+      purchaseOrders.set(order.id, order);
+      ok(res, order);
       return;
     }
 

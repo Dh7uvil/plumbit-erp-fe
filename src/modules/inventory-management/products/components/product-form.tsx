@@ -68,6 +68,8 @@ function toFormValues(product: Product | null): ProductFormValues {
     unit_id: product?.unit_id ?? OPTIONAL_SELECT_NONE,
     category_id: product?.category_id ?? OPTIONAL_SELECT_NONE,
     selling_rate: product?.selling_rate ?? "0",
+    purchase_rate: product?.purchase_rate ?? "0",
+    purchase_description: product?.purchase_description ?? "",
     tax_id: product?.tax_id ?? OPTIONAL_SELECT_NONE,
     hs_code: product?.hs_code ?? "",
     track_inventory: product?.track_inventory ?? false,
@@ -84,6 +86,8 @@ function toCreateRequest(values: ProductFormValues): ProductCreateRequest {
     unit_id: optionalUuid(values.unit_id),
     category_id: optionalUuid(values.category_id),
     selling_rate: values.selling_rate.trim() || "0",
+    purchase_rate: values.purchase_rate.trim() || "0",
+    purchase_description: emptyToNull(values.purchase_description),
     tax_id: optionalUuid(values.tax_id),
     hs_code: emptyToNull(values.hs_code),
     track_inventory: values.track_inventory,
@@ -98,6 +102,8 @@ function toUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
     unit_id: optionalUuid(values.unit_id),
     category_id: optionalUuid(values.category_id),
     selling_rate: values.selling_rate.trim() || "0",
+    purchase_rate: values.purchase_rate.trim() || "0",
+    purchase_description: emptyToNull(values.purchase_description),
     tax_id: optionalUuid(values.tax_id),
     hs_code: emptyToNull(values.hs_code),
     track_inventory: values.track_inventory,
@@ -224,12 +230,53 @@ export function ProductForm({
               </FormItem>
             )}
           />
+          <p className="col-span-full text-sm font-medium">Sales information</p>
+          <FormField
+            control={form.control}
+            name="selling_rate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Selling rate</FormLabel>
+                <FormControl>
+                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="sales_description"
             render={({ field }) => (
-              <FormItem className="col-span-full">
+              <FormItem className="sm:col-span-2">
                 <FormLabel>Sales description</FormLabel>
+                <FormControl>
+                  <Textarea disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <p className="col-span-full text-sm font-medium">Purchase information</p>
+          <FormField
+            control={form.control}
+            name="purchase_rate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Purchase rate</FormLabel>
+                <FormControl>
+                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="purchase_description"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Purchase description</FormLabel>
                 <FormControl>
                   <Textarea disabled={disabled} {...field} />
                 </FormControl>
@@ -287,19 +334,6 @@ export function ProductForm({
                     })),
                   ]}
                 />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="selling_rate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Selling rate</FormLabel>
-                <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

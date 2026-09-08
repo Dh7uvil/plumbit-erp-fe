@@ -22,13 +22,8 @@ export function useCreateTax() {
 export function useUpdateTax() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      values,
-    }: {
-      id: string;
-      values: Parameters<typeof taxesApi.update>[1];
-    }) => taxesApi.update(id, values),
+    mutationFn: ({ id, values }: { id: string; values: Parameters<typeof taxesApi.update>[1] }) =>
+      taxesApi.update(id, values),
     onSuccess: async (_data, { id }) => {
       await invalidateTaxes(queryClient);
       await queryClient.invalidateQueries({ queryKey: taxKeys.detail(id) });

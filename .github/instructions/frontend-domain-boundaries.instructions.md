@@ -153,10 +153,10 @@ users-management        Identity (BE: app/auth/): Auth, Users, Roles, Permission
                         Tenants/org-settings, Branches, Departments, Employees (nested),
                         Audit Logs. Attachments via identity.attachment.*.
                         Planned: tenant operational settings (allow_negative_stock, lock dates).
-erp                     Implemented: Quotations, Currencies, Exchange Rates, Taxes,
-                        Payment Terms, Terms Templates, Document Sequences, Suppliers.
-                        Planned: Sales Orders, Sales Invoices, Credit Notes, Customer Payments,
-                        Purchase Orders, Purchase Invoices, Debit Notes, Supplier Payments,
+erp                     Implemented: Quotations, Sales Orders, Purchase Orders, Currencies, Exchange Rates, Taxes,
+                        Payment Terms, Terms Templates, Document Sequences, Suppliers, Period Lock.
+                        Planned: Sales Invoices, Credit Notes, Customer Payments,
+                        Purchase Invoices, Debit Notes, Supplier Payments,
                         Accounting (Accounts, Journals, Receivables, Payables),
                         Logistics (Imports, Exports, Shipments, Containers),
                         e-invoicing status UX on sales invoices and credit notes.

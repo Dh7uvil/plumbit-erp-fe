@@ -71,11 +71,7 @@ export function PaymentTermDetailScreen({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <PaymentTermForm
-            term={term}
-            disabled={!isEdit}
-            onSuccess={() => router.push(viewHref)}
-          />
+          <PaymentTermForm term={term} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
         </CardContent>
       </Card>
     </div>

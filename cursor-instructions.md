@@ -61,9 +61,9 @@ src/
 │   ├── erp/
 │   │                             implemented: currencies, exchange-rates, taxes, payment-terms,
 │   │                             terms-templates, document-sequences, suppliers, quotations,
-│   │                             period-lock
-│   │                             planned: sales-orders, sales-invoices, credit-notes,
-│   │                             customer-payments, purchase-orders, purchase-invoices,
+│   │                             period-lock, sales-orders, purchase-orders
+│   │                             planned: sales-invoices, credit-notes,
+│   │                             customer-payments, purchase-invoices,
 │   │                             debit-notes, supplier-payments, accounting (COA, journals, AR, AP),
 │   │                             logistics, einvoicing status UX on invoices and credit notes
 │   ├── communication-service/    planned: email, whatsapp, chat, meetings

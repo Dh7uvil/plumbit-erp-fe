@@ -5,6 +5,8 @@ export const AttachmentEntityTypeSchema = z.enum([
   "CONTACT",
   "PRODUCT",
   "QUOTATION",
+  "SALES_ORDER",
+  "PURCHASE_ORDER",
   "BRANCH",
   "EMPLOYEE",
 ]);

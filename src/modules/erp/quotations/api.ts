@@ -1,16 +1,19 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  ConvertToSalesOrderRequestSchema,
   QuotationComposeDefaultsSchema,
   QuotationCreateRequestSchema,
   QuotationListSchema,
   QuotationSchema,
   QuotationUpdateRequestSchema,
+  type ConvertToSalesOrderRequest,
   type Quotation,
   type QuotationComposeDefaults,
   type QuotationCreateRequest,
   type QuotationListParams,
   type QuotationUpdateRequest,
 } from "@/modules/erp/quotations/schemas";
+import { SalesOrderSchema, type SalesOrder } from "@/modules/erp/sales-orders/schemas";
 import { apiClient } from "@/shared/api/client";
 import { ifMatchHeaders } from "@/shared/api/concurrency";
 import type { ListResponse } from "@/shared/api/envelope";
@@ -115,6 +118,20 @@ export const quotationsApi = {
     ),
   clone: async (id: string): Promise<Quotation> =>
     QuotationSchema.parse(await apiClient.post(`/quotations/${id}/clone`)),
+  convertToSalesOrder: async (
+    id: string,
+    options: QuotationWriteOptions & { values?: ConvertToSalesOrderRequest },
+  ): Promise<SalesOrder> =>
+    SalesOrderSchema.parse(
+      await apiClient.post(
+        `/quotations/${id}/convert-to-sales-order`,
+        ConvertToSalesOrderRequestSchema.parse({
+          ...(options.values ?? {}),
+          version: options.version,
+        }),
+        { headers: ifMatchHeaders(options.version) },
+      ),
+    ),
   delete: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
     QuotationSchema.parse(
       await apiClient.delete(`/quotations/${id}`, { headers: ifMatchHeaders(options.version) }),

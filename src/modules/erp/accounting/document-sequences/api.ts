@@ -35,7 +35,10 @@ export const documentSequencesApi = {
     DocumentSequenceSchema.parse(await apiClient.get(`/document-sequences/${id}`)),
   create: async (values: DocumentSequenceCreateRequest): Promise<DocumentSequence> =>
     DocumentSequenceSchema.parse(
-      await apiClient.post("/document-sequences", DocumentSequenceCreateRequestSchema.parse(values)),
+      await apiClient.post(
+        "/document-sequences",
+        DocumentSequenceCreateRequestSchema.parse(values),
+      ),
     ),
   update: async (id: string, values: DocumentSequenceUpdateRequest): Promise<DocumentSequence> =>
     DocumentSequenceSchema.parse(

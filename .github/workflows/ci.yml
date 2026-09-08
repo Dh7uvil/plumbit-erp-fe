@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      API_URL: http://127.0.0.1:4010
+      NEXT_PUBLIC_APP_NAME: Plumbit ERP
+      NEXT_PUBLIC_ORGANIZATION_NAME: Plumbit
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_ENVIRONMENT: testing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.20.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

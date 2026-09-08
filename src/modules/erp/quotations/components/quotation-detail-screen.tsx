@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { documentTypeLabel } from "@/modules/erp/accounting/document-sequences/schemas";
 import { QuotationForm } from "@/modules/erp/quotations/components/quotation-form";
 import { QuotationStatusBadge } from "@/modules/erp/quotations/components/quotation-status-badge";
 import { QuotationWorkflowButtons } from "@/modules/erp/quotations/components/quotation-workflow-buttons";
@@ -91,11 +92,26 @@ export function QuotationDetailScreen({
           )
         }
       />
-      {quotation.status === "CONVERTED" ? (
+      {quotation.status === "CONVERTED" || quotation.converted_document_id ? (
         <p className="text-muted-foreground text-sm">
           Converted
-          {quotation.converted_document_type ? ` to ${quotation.converted_document_type}` : ""}
-          {quotation.converted_at ? ` on ${formatDateTime(quotation.converted_at)}` : ""}.
+          {quotation.converted_document_type
+            ? ` to ${documentTypeLabel(quotation.converted_document_type)}`
+            : ""}
+          {quotation.converted_at ? ` on ${formatDateTime(quotation.converted_at)}` : ""}
+          {quotation.converted_document_id ? (
+            <>
+              {". "}
+              <Link
+                href={`/sales-orders/${quotation.converted_document_id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                Open sales order
+              </Link>
+            </>
+          ) : (
+            "."
+          )}
         </p>
       ) : null}
       <Card>

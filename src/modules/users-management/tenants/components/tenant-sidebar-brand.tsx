@@ -28,10 +28,7 @@ export function TenantSidebarBrand({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div
-      className={cn(
-        "flex items-center",
-        collapsed ? "shrink-0 justify-center" : "min-w-0 gap-2.5",
-      )}
+      className={cn("flex items-center", collapsed ? "shrink-0 justify-center" : "min-w-0 gap-2.5")}
     >
       <TenantLogoMark
         name={name}

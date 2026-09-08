@@ -5,7 +5,9 @@ export const LOGO_PROXY_PATH = "/api/logo-proxy";
 export function isLoopbackLogoUrl(logoUrl: string): boolean {
   try {
     const url = new URL(logoUrl);
-    return (url.protocol === "http:" || url.protocol === "https:") && LOOPBACK_HOSTS.has(url.hostname);
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") && LOOPBACK_HOSTS.has(url.hostname)
+    );
   } catch {
     return false;
   }

@@ -10,6 +10,7 @@ import {
   useApproveQuotation,
   useCancelQuotation,
   useCloneQuotation,
+  useConvertQuotationToSalesOrder,
   useDeclineQuotation,
   useDeleteQuotation,
   useRejectQuotation,
@@ -51,6 +52,7 @@ export function QuotationWorkflowButtons({ quotation }: { quotation: Quotation }
   const declineQuotation = useDeclineQuotation();
   const cancelQuotation = useCancelQuotation();
   const cloneQuotation = useCloneQuotation();
+  const convertQuotation = useConvertQuotationToSalesOrder();
   const deleteQuotation = useDeleteQuotation();
   const [confirming, setConfirming] = useState<QuotationWorkflowAction | null>(null);
   const [running, setRunning] = useState<QuotationWorkflowAction | null>(null);
@@ -95,6 +97,10 @@ export function QuotationWorkflowButtons({ quotation }: { quotation: Quotation }
         const cloned = await cloneQuotation.mutateAsync(quotation.id);
         toast.success("Quotation cloned");
         router.push(`/quotations/${cloned.id}`);
+      } else if (action === "convert") {
+        const order = await convertQuotation.mutateAsync(write);
+        toast.success("Sales order created");
+        router.push(`/sales-orders/${order.id}`);
       } else if (action === "delete") {
         await deleteQuotation.mutateAsync(write);
         toast.success("Quotation deleted");
