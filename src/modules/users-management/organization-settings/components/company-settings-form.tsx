@@ -59,6 +59,7 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   default_currency: "",
   default_currency_id: OPTIONAL_SELECT_NONE,
   quotation_requires_approval: true,
+  allow_negative_stock: false,
   timezone: "",
   fiscal_year_start: "",
 };
@@ -67,7 +68,7 @@ const EMPTY_CURRENCIES: Currency[] = [];
 
 type CompanyTextFieldPath = Exclude<
   FieldPath<CompanySettingsFormValues>,
-  "headquarters" | "quotation_requires_approval"
+  "headquarters" | "quotation_requires_approval" | "allow_negative_stock"
 >;
 
 function toCurrencyCode(code: string | null | undefined): string | null {
@@ -111,6 +112,7 @@ function toFormValues(
     default_currency: tenant.default_currency ?? "",
     default_currency_id: resolveDefaultCurrencyId(tenant, currencies),
     quotation_requires_approval: tenant.quotation_requires_approval,
+    allow_negative_stock: tenant.allow_negative_stock,
     timezone: tenant.timezone ?? "",
     fiscal_year_start: tenant.fiscal_year_start ?? "",
   };
@@ -201,6 +203,7 @@ function toRegionalPayload(
     default_currency: toCurrencyCode(currencyCode ?? values.default_currency),
     default_currency_id: currencyId,
     quotation_requires_approval: values.quotation_requires_approval,
+    allow_negative_stock: values.allow_negative_stock,
   };
 }
 
@@ -358,6 +361,7 @@ export function CompanySettingsForm() {
         default_currency: original.default_currency,
         default_currency_id: original.default_currency_id,
         quotation_requires_approval: original.quotation_requires_approval,
+        allow_negative_stock: original.allow_negative_stock,
         timezone: original.timezone,
         fiscal_year_start: original.fiscal_year_start,
       });
@@ -658,6 +662,30 @@ export function CompanySettingsForm() {
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="allow_negative_stock"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Allow negative stock
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            {tenant?.lock_date || tenant?.hard_lock_date ? (
+              <p className="text-muted-foreground col-span-full text-xs">
+                Period lock date {tenant.lock_date ?? "—"}
+                {tenant.hard_lock_date ? ` · hard lock ${tenant.hard_lock_date}` : ""}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </form>

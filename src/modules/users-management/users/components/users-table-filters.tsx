@@ -407,7 +407,7 @@ export function UsersTableFilters() {
             id="user-filter-employee-code"
             value={draftExtra.employeeCode}
             onChange={(event) => updateDraft("employeeCode", event.target.value)}
-            placeholder="EMP-001"
+            placeholder="EMP202601"
           />
         </FilterField>
         <FilterField label="Phone" htmlFor="user-filter-phone">

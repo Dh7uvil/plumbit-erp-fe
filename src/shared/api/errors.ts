@@ -57,12 +57,61 @@ function codeFrom(codeOrError: unknown): string | undefined {
   return undefined;
 }
 
+function detailsRecord(details: unknown): Record<string, unknown> | null {
+  if (!details || typeof details !== "object" || Array.isArray(details)) {
+    return null;
+  }
+  return details as Record<string, unknown>;
+}
+
+function stringDetail(details: Record<string, unknown>, key: string): string | null {
+  const value = details[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function appendDetailSentence(base: string, fragments: Array<string | null>): string {
+  const parts = fragments.filter((part): part is string => Boolean(part));
+  if (parts.length === 0) {
+    return base;
+  }
+  return `${base.replace(/\.$/, "")}. ${parts.join(" ")}`;
+}
+
 export function getErrorMessage(codeOrError: unknown): string {
   const code = codeFrom(codeOrError);
   if (!code) {
     return FALLBACK_ERROR_MESSAGE;
   }
-  return ERROR_MESSAGES[code] ?? FALLBACK_ERROR_MESSAGE;
+  const base = ERROR_MESSAGES[code] ?? FALLBACK_ERROR_MESSAGE;
+  const details = isApiError(codeOrError) ? detailsRecord(codeOrError.details) : null;
+  if (!details) {
+    return base;
+  }
+  if (code === "INVENTORY_INSUFFICIENT_STOCK" || code === "INSUFFICIENT_STOCK") {
+    const warehouse =
+      stringDetail(details, "warehouse_code") ?? stringDetail(details, "warehouse_name");
+    const available = stringDetail(details, "available_qty");
+    const requested = stringDetail(details, "requested_qty");
+    return appendDetailSentence(base, [
+      warehouse ? `Warehouse ${warehouse}.` : null,
+      available ? `Available ${available}.` : null,
+      requested ? `Requested ${requested}.` : null,
+    ]);
+  }
+  if (code === "PERIOD_LOCKED") {
+    const lockDate = stringDetail(details, "lock_date");
+    const hardLock = stringDetail(details, "hard_lock_date");
+    const documentDate = stringDetail(details, "document_date");
+    return appendDetailSentence(base, [
+      lockDate ? `Lock date ${lockDate}.` : null,
+      hardLock ? `Hard lock ${hardLock}.` : null,
+      documentDate ? `Document date ${documentDate}.` : null,
+    ]);
+  }
+  return base;
 }
 
 export function isClientError(error: unknown): boolean {

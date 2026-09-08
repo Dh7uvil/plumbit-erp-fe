@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useFormContext } from "react-hook-form";
 
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
@@ -22,9 +22,18 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import { useCan } from "@/shared/providers/session-provider";
 
-export function UserEmployeeFields() {
+export function UserEmployeeFields({
+  assignedCode = null,
+  showEmployeeCode = false,
+  leading,
+}: {
+  assignedCode?: string | null;
+  showEmployeeCode?: boolean;
+  leading?: ReactNode;
+}) {
   const can = useCan();
   const { control, setValue, watch } = useFormContext<EmployeeFormFields>();
   const canReadBranches = can(branchPermissions.read);
@@ -40,20 +49,26 @@ export function UserEmployeeFields() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <FormField
-          control={control}
-          name="employee_code"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Employee code</FormLabel>
-              <FormControl>
-                <Input placeholder="EMP-001" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <div
+        className={
+          leading
+            ? "grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto]"
+            : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+        }
+      >
+        {leading}
+        {showEmployeeCode ? (
+          <FormItem>
+            <Label htmlFor="employee-code">Employee code</Label>
+            <Input
+              id="employee-code"
+              disabled
+              readOnly
+              value={assignedCode ?? ""}
+              placeholder="EMP202601"
+            />
+          </FormItem>
+        ) : null}
         <FormField
           control={control}
           name="designation"
@@ -71,10 +86,10 @@ export function UserEmployeeFields() {
           control={control}
           name="joining_date"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="sm:w-max">
               <FormLabel>Joining date</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <Input type="date" className="w-auto" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

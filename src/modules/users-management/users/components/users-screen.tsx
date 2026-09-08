@@ -157,7 +157,12 @@ export function UsersScreen() {
                     <Avatar className="size-7">
                       <AvatarFallback className="text-[10px]">{initials(user.name)}</AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{user.name}</span>
+                    <div className="min-w-0">
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {user.employee?.employee_code ?? "—"}
+                      </p>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">{user.email}</TableCell>

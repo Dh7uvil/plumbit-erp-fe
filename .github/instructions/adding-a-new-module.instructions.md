@@ -31,14 +31,14 @@ backend does. When in doubt about where a rule lives, it lives in the backend.
 These mirror the backend modules so a feature is found in the same place on both sides.
 Everything belongs to exactly one of them.
 
-| Module                  | Owns |
-| ----------------------- | ---- |
-| `users-management`      | Identity (BE `app/auth/`): **implemented** auth, users, roles, permissions, tenants/org-settings, branches, departments, employees (nested), audit-logs. **Planned:** tenant operational settings. |
+| Module                  | Owns                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users-management`      | Identity (BE `app/auth/`): **implemented** auth, users, roles, permissions, tenants/org-settings, branches, departments, employees (nested), audit-logs. **Planned:** tenant operational settings.                                                                                                                                                  |
 | `erp`                   | **Implemented:** quotations, currencies, exchange-rates, taxes, payment-terms, terms-templates, document-sequences, suppliers. **Planned:** sales-orders, sales-invoices, credit-notes, customer-payments, purchase-orders, purchase-invoices, debit-notes, supplier-payments, accounting (COA, journals, AR, AP), logistics, einvoicing status UX. |
-| `inventory-management`  | **Implemented:** units, categories, products, price-lists, warehouses. **Planned:** stock, stock-transfers, stock-adjustments, goods-receipts, delivery-notes, sales-returns. |
-| `crm`                   | **Implemented:** customers, contacts. **Planned:** leads, opportunities, activities. |
-| `communication-service` | email, whatsapp, chat, meetings (planned) |
-| `notifications-service` | notifications, templates, delivery status (planned) |
+| `inventory-management`  | **Implemented:** units, categories, products, price-lists, warehouses, stock (balances + `/stock-movements`), stock-transfers, stock-adjustments. **Planned:** goods-receipts, delivery-notes, sales-returns.                                                                                                                                       |
+| `crm`                   | **Implemented:** customers, contacts. **Planned:** leads, opportunities, activities.                                                                                                                                                                                                                                                                |
+| `communication-service` | email, whatsapp, chat, meetings (planned)                                                                                                                                                                                                                                                                                                           |
+| `notifications-service` | notifications, templates, delivery status (planned)                                                                                                                                                                                                                                                                                                 |
 
 Adding a new top-level module requires explicit justification. If a feature is close to an
 existing module's domain, it becomes a slice inside that module instead.
@@ -73,7 +73,7 @@ plumbit-erp-fe/
 │   │   │   ├── purchase-orders/ purchase-invoices/ debit-notes/ supplier-payments/  (planned)
 │   │   │   └── logistics/   (planned)
 │   │   ├── inventory-management/     units/ categories/ products/ price-lists/ warehouses/
-│   │   │                             stock/ stock-transfers/ stock-adjustments/  (planned)
+│   │   │                             stock (balances + movements list)/ stock-transfers/ stock-adjustments/
 │   │   ├── crm/                      customers/ contacts/
 │   │   │                             leads/ opportunities/ activities/  (planned)
 │   │   ├── communication-service/    planned
@@ -320,15 +320,15 @@ React component, or circular imports between slices.
 
 ## Naming conventions
 
-| Thing                 | Convention               | Examples                                                           |
-| --------------------- | ------------------------ | ------------------------------------------------------------------ |
-| Directories           | `kebab-case`             | `users-management`, `purchase-invoices`, `crm/leads`               |
-| Files                 | `kebab-case`             | `api.ts`, `leads-table.tsx`, `use-table-params.ts`                 |
-| Components            | `PascalCase`             | `LeadsTable`, `QuotationForm`, `StockAdjustmentDialog`             |
-| Hooks                 | `useCamelCase`           | `useLeads`, `useCreateQuotation`, `useTableParams`                 |
-| Types and Zod schemas | `PascalCase`             | `Lead`, `LeadFilters`, `LeadCreateSchema`                          |
-| Routes                | hyphenated plural        | `/leads`, `/products`, `/sales-orders`, `/purchase-invoices`       |
-| Query keys            | array, resource first    | `["leads", "list", filters]`, `["leads", "detail", id]`            |
+| Thing                 | Convention               | Examples                                                                                       |
+| --------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| Directories           | `kebab-case`             | `users-management`, `purchase-invoices`, `crm/leads`                                           |
+| Files                 | `kebab-case`             | `api.ts`, `leads-table.tsx`, `use-table-params.ts`                                             |
+| Components            | `PascalCase`             | `LeadsTable`, `QuotationForm`, `StockAdjustmentDialog`                                         |
+| Hooks                 | `useCamelCase`           | `useLeads`, `useCreateQuotation`, `useTableParams`                                             |
+| Types and Zod schemas | `PascalCase`             | `Lead`, `LeadFilters`, `LeadCreateSchema`                                                      |
+| Routes                | hyphenated plural        | `/leads`, `/products`, `/sales-orders`, `/purchase-invoices`                                   |
+| Query keys            | array, resource first    | `["leads", "list", filters]`, `["leads", "detail", id]`                                        |
 | Permissions           | `module.resource.action` | `identity.user.read`, `erp.quotation.approve`, `inventory.stock.adjust`, `erp.einvoice.submit` |
 
 One exported component per file, named the same as the file. Avoid `index.ts` barrels that
@@ -369,7 +369,8 @@ screens that need them:
   `/{resource}/{id}/edit`; create stays in the form dialog (and nested `MasterSelect`), except
   document `/new` where it already exists.
 - List views wrap in `ListPage`, paginate with compact page numbers, and keep page, filters and
-  sort in the URL.
+  sort in the URL. Toolbar: search + status (if the resource has one) + one primary filter;
+  remaining OpenAPI list params go in `MoreFiltersDialog` (same layout as quotations and products).
 - `loading.tsx` and `error.tsx` present, plus empty and no-access states inside the feature
   (four ERP screen states).
 - Backend error codes mapped to user-facing messages including `PERIOD_LOCKED`,

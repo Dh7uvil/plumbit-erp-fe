@@ -316,7 +316,10 @@ export function UserFormDialog({
                   )}
                 />
               </div>
-              <UserEmployeeFields />
+              <UserEmployeeFields
+                showEmployeeCode
+                assignedCode={detailQuery.data?.employee?.employee_code ?? null}
+              />
               {canAssignRoles ? (
                 <FormField
                   control={updateForm.control}
@@ -416,26 +419,29 @@ export function UserFormDialog({
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={createForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem className="col-span-full">
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          autoComplete="new-password"
-                          placeholder="Temporary password"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
-              <UserEmployeeFields />
+              <UserEmployeeFields
+                leading={
+                  <FormField
+                    control={createForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            autoComplete="new-password"
+                            placeholder="Temporary password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                }
+              />
               {canAssignRoles ? (
                 <FormField
                   control={createForm.control}
