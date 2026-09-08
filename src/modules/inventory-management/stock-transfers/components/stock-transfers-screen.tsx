@@ -208,7 +208,7 @@ export function StockTransfersScreen() {
             setParams({ filters: { from_warehouse_id: value === ALL ? null : value } })
           }
           options={[
-            { value: ALL, label: "All sources" },
+            { value: ALL, label: "All warehouses" },
             ...warehouses.map((warehouse) => ({
               value: warehouse.id,
               label: `${warehouse.code} — ${warehouse.name}`,
@@ -245,7 +245,7 @@ export function StockTransfersScreen() {
                 setDraftExtra((current) => ({ ...current, toWarehouseId: value }))
               }
               options={[
-                { value: ALL, label: "All destinations" },
+                { value: ALL, label: "All warehouses" },
                 ...warehouses.map((warehouse) => ({
                   value: warehouse.id,
                   label: `${warehouse.code} — ${warehouse.name}`,
