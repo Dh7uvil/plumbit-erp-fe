@@ -2,8 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
@@ -30,6 +30,7 @@ import { useAllUnits } from "@/modules/inventory-management/units/queries";
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
+import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
@@ -73,6 +74,7 @@ function toFormValues(product: Product | null): ProductFormValues {
     tax_id: product?.tax_id ?? OPTIONAL_SELECT_NONE,
     hs_code: product?.hs_code ?? "",
     track_inventory: product?.track_inventory ?? false,
+    requires_qc: product?.requires_qc ?? false,
     is_active: product?.is_active ?? true,
   };
 }
@@ -91,6 +93,7 @@ function toCreateRequest(values: ProductFormValues): ProductCreateRequest {
     tax_id: optionalUuid(values.tax_id),
     hs_code: emptyToNull(values.hs_code),
     track_inventory: values.track_inventory,
+    requires_qc: values.requires_qc,
   };
 }
 
@@ -107,6 +110,7 @@ function toUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
     tax_id: optionalUuid(values.tax_id),
     hs_code: emptyToNull(values.hs_code),
     track_inventory: values.track_inventory,
+    requires_qc: values.requires_qc,
     is_active: values.is_active,
   };
 }
@@ -127,6 +131,7 @@ export function ProductForm({
   onCancel?: () => void;
 }) {
   const can = useCan();
+  const tenantQuery = useCurrentTenant();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const unitsQuery = useAllUnits();
@@ -135,14 +140,24 @@ export function ProductForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState<"unit" | "category" | "tax" | null>(null);
   const isEdit = Boolean(product);
+  const qcDefault = tenantQuery.data?.qc_required_default ?? false;
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(ProductFormSchema),
     ...(product
       ? { values: toFormValues(product) }
-      : { defaultValues: { ...toFormValues(null), ...initialValues } }),
+      : { defaultValues: { ...toFormValues(null), requires_qc: qcDefault, ...initialValues } }),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  const itemType = useWatch({ control: form.control, name: "item_type" });
+  const trackInventory = useWatch({ control: form.control, name: "track_inventory" });
+
+  useEffect(() => {
+    if (product || form.formState.isDirty || initialValues?.requires_qc != null) {
+      return;
+    }
+    form.setValue("requires_qc", qcDefault);
+  }, [form, initialValues?.requires_qc, product, qcDefault]);
 
   async function onSubmit(values: ProductFormValues) {
     setFormError(null);
@@ -400,6 +415,24 @@ export function ProductForm({
                 </FormItem>
               )}
             />
+            {itemType === "PRODUCT" && trackInventory ? (
+              <FormField
+                control={form.control}
+                name="requires_qc"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        disabled={disabled}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                    </FormControl>
+                    <FormLabel>Requires quality inspection</FormLabel>
+                  </FormItem>
+                )}
+              />
+            ) : null}
             {isEdit ? (
               <FormField
                 control={form.control}

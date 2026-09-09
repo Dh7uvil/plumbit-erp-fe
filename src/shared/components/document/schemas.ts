@@ -61,6 +61,9 @@ export const DocumentLineFormSchema = z.object({
   discount_type: z.string(),
   discount_value: z.string(),
   tax_id: z.string(),
+  net_weight: z.string(),
+  gross_weight: z.string(),
+  purchase_order_line_id: z.string(),
 });
 export type DocumentLineFormValues = z.infer<typeof DocumentLineFormSchema>;
 
@@ -76,5 +79,8 @@ export function emptyDocumentLine(): DocumentLineFormValues {
     discount_type: OPTIONAL_SELECT_NONE,
     discount_value: "",
     tax_id: OPTIONAL_SELECT_NONE,
+    net_weight: "",
+    gross_weight: "",
+    purchase_order_line_id: "",
   };
 }

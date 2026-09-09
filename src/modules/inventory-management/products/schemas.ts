@@ -26,6 +26,7 @@ export const ProductSchema = z.object({
   tax_id: z.string().uuid().nullable(),
   hs_code: z.string().nullable(),
   track_inventory: z.boolean(),
+  requires_qc: z.boolean(),
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -47,6 +48,7 @@ export const ProductCreateRequestSchema = z.object({
   tax_id: z.string().uuid().nullable().optional(),
   hs_code: z.string().max(20).nullable().optional(),
   track_inventory: z.boolean().optional(),
+  requires_qc: z.boolean().nullable().optional(),
 });
 export type ProductCreateRequest = z.infer<typeof ProductCreateRequestSchema>;
 
@@ -62,6 +64,7 @@ export const ProductUpdateRequestSchema = z.object({
   tax_id: z.string().uuid().nullable().optional(),
   hs_code: z.string().max(20).nullable().optional(),
   track_inventory: z.boolean().nullable().optional(),
+  requires_qc: z.boolean().nullable().optional(),
   is_active: z.boolean().nullable().optional(),
 });
 export type ProductUpdateRequest = z.infer<typeof ProductUpdateRequestSchema>;
@@ -79,6 +82,7 @@ export const ProductFormSchema = z.object({
   tax_id: z.string(),
   hs_code: z.string().max(20),
   track_inventory: z.boolean(),
+  requires_qc: z.boolean(),
   is_active: z.boolean(),
 });
 export type ProductFormValues = z.infer<typeof ProductFormSchema>;

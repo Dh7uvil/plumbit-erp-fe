@@ -24,6 +24,8 @@ import {
   Users,
   Wallet,
   Warehouse,
+  ClipboardCheck,
+  PackageCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,6 +47,8 @@ import { categoryPermissions } from "@/modules/inventory-management/categories/p
 import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
+import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
+import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
 import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
@@ -171,6 +175,18 @@ export const navigation: NavigationGroup[] = [
         href: "/stock-adjustments",
         permission: stockAdjustmentPermissions.read,
         icon: ClipboardPen,
+      },
+      {
+        label: "Goods receipts",
+        href: "/goods-receipts",
+        permission: goodsReceiptPermissions.read,
+        icon: PackageCheck,
+      },
+      {
+        label: "Quality inspections",
+        href: "/quality-inspections",
+        permission: qualityInspectionPermissions.read,
+        icon: ClipboardCheck,
       },
     ],
   },

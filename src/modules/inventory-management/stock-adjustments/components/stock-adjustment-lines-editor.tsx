@@ -37,6 +37,7 @@ export function emptyAdjustmentLine(): StockAdjustmentLineFormValues {
     unit_id: OPTIONAL_SELECT_NONE,
     qty_delta: "",
     qty_counted: "",
+    unit_cost: "",
     notes: "",
   };
 }
@@ -69,8 +70,12 @@ export function StockAdjustmentLinesEditor({
   const qtyHeader = isCount ? "Counted qty" : "Adjust by";
   const showBooked = Boolean(bookedByProductId?.size);
 
-  function applyProduct(index: number, product: Pick<Product, "unit_id">) {
+  function applyProduct(index: number, product: Pick<Product, "unit_id" | "purchase_rate">) {
     form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
+    const currentCost = form.getValues(`lines.${index}.unit_cost`);
+    if (!currentCost.trim()) {
+      form.setValue(`lines.${index}.unit_cost`, product.purchase_rate ?? "");
+    }
   }
 
   function onLastFieldKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
@@ -92,6 +97,7 @@ export function StockAdjustmentLinesEditor({
               <TableHead>Product</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>{qtyHeader}</TableHead>
+              <TableHead>Unit cost</TableHead>
               {showBooked ? <TableHead>Booked</TableHead> : null}
               {showBooked && isCount ? <TableHead>Delta</TableHead> : null}
               <TableHead>Notes</TableHead>
@@ -101,7 +107,7 @@ export function StockAdjustmentLinesEditor({
           <TableBody>
             {fields.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showBooked ? 7 : 5} className="text-muted-foreground">
+                <TableCell colSpan={showBooked ? 8 : 6} className="text-muted-foreground">
                   No lines yet.
                 </TableCell>
               </TableRow>
@@ -221,6 +227,26 @@ export function StockAdjustmentLinesEditor({
                           )}
                         />
                       )}
+                    </TableCell>
+                    <TableCell className="w-32 align-top">
+                      <FormField
+                        control={form.control}
+                        name={`lines.${index}.unit_cost`}
+                        render={({ field: costField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                inputMode="decimal"
+                                className="text-right"
+                                disabled={disabled}
+                                aria-label={`Line ${index + 1} unit cost`}
+                                {...costField}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </TableCell>
                     {showBooked ? (
                       <TableCell className="text-right tabular-nums">

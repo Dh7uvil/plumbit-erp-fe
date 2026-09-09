@@ -11,7 +11,7 @@ export const STOCK_ADJUSTMENT_ACTION_REGISTRY: DocumentActionSpec<StockAdjustmen
       label: "Post",
       permission: stockAdjustmentPermissions.post,
       confirmCopy: (documentNumber) =>
-        `Posting ${documentNumber}: stock will move immediately. This cannot be undone from this document — correct with a new adjustment.`,
+        `Posting ${documentNumber}: stock will move immediately and inventory value will be created at each line's unit cost. This cannot be undone from this document — correct with a new adjustment.`,
     },
     {
       action: "cancel",

@@ -13,6 +13,10 @@ const WRITE_ALERT_CODES = new Set([
   "PERIOD_LOCKED",
   "INVENTORY_INSUFFICIENT_STOCK",
   "INSUFFICIENT_STOCK",
+  "GRN_OVER_RECEIPT",
+  "GRN_CANNOT_CANCEL",
+  "QUALITY_QTY_MISMATCH",
+  "SUPPLIER_SKU_NOT_MAPPED",
 ]);
 
 export function isStockWriteAlertError(error: unknown): boolean {

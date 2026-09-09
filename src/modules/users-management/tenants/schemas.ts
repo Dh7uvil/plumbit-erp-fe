@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { NullableDecimalStringSchema } from "@/shared/lib/money";
+
 export const TenantPublicSchema = z.object({
   tenant_id: z.string().uuid(),
   name: z.string(),
@@ -102,6 +104,10 @@ export const TenantCurrentSchema = z.object({
   sales_order_requires_approval: z.boolean().default(false),
   purchase_order_requires_approval: z.boolean().default(false),
   allow_negative_stock: z.boolean().default(false),
+  costing_method: z.enum(["FIFO"]).default("FIFO"),
+  allow_over_receipt: z.boolean().default(false),
+  over_receipt_tolerance_pct: NullableDecimalStringSchema.optional().nullable(),
+  qc_required_default: z.boolean().default(false),
   lock_date: z.string().nullable().optional(),
   hard_lock_date: z.string().nullable().optional(),
   headquarters: AddressPayloadSchema.nullable().optional(),
@@ -129,6 +135,10 @@ export const TenantCurrentUpdateSchema = z.object({
   sales_order_requires_approval: z.boolean().nullable().optional(),
   purchase_order_requires_approval: z.boolean().nullable().optional(),
   allow_negative_stock: z.boolean().nullable().optional(),
+  costing_method: z.enum(["FIFO"]).nullable().optional(),
+  allow_over_receipt: z.boolean().nullable().optional(),
+  over_receipt_tolerance_pct: NullableDecimalStringSchema.optional(),
+  qc_required_default: z.boolean().nullable().optional(),
   headquarters: AddressPayloadSchema.nullable().optional(),
 });
 export type TenantCurrentUpdate = z.infer<typeof TenantCurrentUpdateSchema>;
@@ -147,6 +157,10 @@ export const CompanySettingsFormSchema = z.object({
   sales_order_requires_approval: z.boolean(),
   purchase_order_requires_approval: z.boolean(),
   allow_negative_stock: z.boolean(),
+  costing_method: z.enum(["FIFO"]),
+  allow_over_receipt: z.boolean(),
+  over_receipt_tolerance_pct: z.string(),
+  qc_required_default: z.boolean(),
   timezone: z.string().max(100),
   fiscal_year_start: z.string().max(50),
 });

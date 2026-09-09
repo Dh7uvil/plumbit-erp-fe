@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
-import { useForm, type Control, type FieldPath } from "react-hook-form";
+import { useForm, useWatch, type Control, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
@@ -62,6 +62,10 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   sales_order_requires_approval: false,
   purchase_order_requires_approval: false,
   allow_negative_stock: false,
+  costing_method: "FIFO",
+  allow_over_receipt: false,
+  over_receipt_tolerance_pct: "",
+  qc_required_default: false,
   timezone: "",
   fiscal_year_start: "",
 };
@@ -75,6 +79,9 @@ type CompanyTextFieldPath = Exclude<
   | "sales_order_requires_approval"
   | "purchase_order_requires_approval"
   | "allow_negative_stock"
+  | "costing_method"
+  | "allow_over_receipt"
+  | "qc_required_default"
 >;
 
 function toCurrencyCode(code: string | null | undefined): string | null {
@@ -121,6 +128,10 @@ function toFormValues(
     sales_order_requires_approval: tenant.sales_order_requires_approval,
     purchase_order_requires_approval: tenant.purchase_order_requires_approval,
     allow_negative_stock: tenant.allow_negative_stock,
+    costing_method: tenant.costing_method,
+    allow_over_receipt: tenant.allow_over_receipt,
+    over_receipt_tolerance_pct: tenant.over_receipt_tolerance_pct ?? "",
+    qc_required_default: tenant.qc_required_default,
     timezone: tenant.timezone ?? "",
     fiscal_year_start: tenant.fiscal_year_start ?? "",
   };
@@ -214,6 +225,9 @@ function toRegionalPayload(
     sales_order_requires_approval: values.sales_order_requires_approval,
     purchase_order_requires_approval: values.purchase_order_requires_approval,
     allow_negative_stock: values.allow_negative_stock,
+    allow_over_receipt: values.allow_over_receipt,
+    over_receipt_tolerance_pct: emptyToNull(values.over_receipt_tolerance_pct),
+    qc_required_default: values.qc_required_default,
   };
 }
 
@@ -310,6 +324,7 @@ export function CompanySettingsForm() {
     defaultValues: EMPTY_FORM,
   });
   useDirtyFormGuard(isEditing && form.formState.isDirty);
+  const allowOverReceipt = useWatch({ control: form.control, name: "allow_over_receipt" });
 
   useEffect(() => {
     if (!tenant || isEditing) {
@@ -374,6 +389,10 @@ export function CompanySettingsForm() {
         sales_order_requires_approval: original.sales_order_requires_approval,
         purchase_order_requires_approval: original.purchase_order_requires_approval,
         allow_negative_stock: original.allow_negative_stock,
+        costing_method: original.costing_method,
+        allow_over_receipt: original.allow_over_receipt,
+        over_receipt_tolerance_pct: original.over_receipt_tolerance_pct,
+        qc_required_default: original.qc_required_default,
         timezone: original.timezone,
         fiscal_year_start: original.fiscal_year_start,
       });
@@ -724,6 +743,77 @@ export function CompanySettingsForm() {
                   </FormControl>
                   <FormLabel className="text-muted-foreground text-xs font-medium">
                     Allow negative stock
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="costing_method"
+              render={({ field }) => (
+                <FormItem className="col-span-full">
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Costing method
+                  </FormLabel>
+                  <FormControl>
+                    <Input disabled value={field.value} readOnly />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="allow_over_receipt"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Allow over-receipt against purchase orders
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            {allowOverReceipt ? (
+              <FormField
+                control={form.control}
+                name="over_receipt_tolerance_pct"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-muted-foreground text-xs font-medium">
+                      Over-receipt tolerance %
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        inputMode="decimal"
+                        disabled={!canUpdate || !isEditingRegional}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
+            <FormField
+              control={form.control}
+              name="qc_required_default"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    New products require quality inspection by default
                   </FormLabel>
                 </FormItem>
               )}

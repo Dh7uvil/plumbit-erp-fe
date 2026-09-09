@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { purchaseOrdersApi } from "@/modules/erp/purchase-orders/api";
 import { purchaseOrderKeys } from "@/modules/erp/purchase-orders/queries";
+import { stockKeys } from "@/modules/inventory-management/stock/queries";
 import { isApiError } from "@/shared/api/errors";
 
 type PurchaseOrderWriteVars = { id: string; version: number };
@@ -16,6 +17,7 @@ async function invalidatePurchaseOrders(
   if (id) {
     await queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(id) });
   }
+  await queryClient.invalidateQueries({ queryKey: stockKeys.all });
 }
 
 async function refetchIfStale(

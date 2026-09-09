@@ -16,6 +16,7 @@ import {
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
 import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
+import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -40,26 +41,29 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatDecimal, formatMoney } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/cn";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = [
+const BASE_COLUMN_HEADERS = [
   "SKU",
   "Product",
   "Warehouse",
   "On hand",
+  "QC hold",
   "Committed",
   "Available",
   "Incoming",
   "Outgoing",
   "In transit",
 ] as const;
+const COST_COLUMN_HEADERS = ["Unit cost", "Value"] as const;
 const SORT_FIELDS = [
   { value: "sku", label: "SKU" },
   { value: "product_name", label: "Product" },
   { value: "warehouse_code", label: "Warehouse" },
   { value: "qty_on_hand", label: "On hand" },
+  { value: "qty_quality_hold", label: "QC hold" },
   { value: "qty_available", label: "Available" },
 ] as const;
 const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
@@ -67,6 +71,7 @@ const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
   Product: "product_name",
   Warehouse: "warehouse_code",
   "On hand": "qty_on_hand",
+  "QC hold": "qty_quality_hold",
   Available: "qty_available",
 };
 const ALL = "all";
@@ -114,8 +119,14 @@ function qtyCell(value: string, emphasizeNegative = false) {
 export function StockScreen() {
   const can = useCan();
   const { canRead, canUpdate } = useCrudPermissions(stockPermissions);
+  const canReadCost = can(stockPermissions.costRead);
   const canAdjust = can(stockAdjustmentPermissions.create);
   const canTransfer = can(stockTransferPermissions.create);
+  const tenantQuery = useCurrentTenant();
+  const currencyCode = tenantQuery.data?.default_currency ?? "";
+  const columnHeaders = canReadCost
+    ? [...BASE_COLUMN_HEADERS, ...COST_COLUMN_HEADERS]
+    : [...BASE_COLUMN_HEADERS];
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = extraFromFilters(filters);
@@ -138,7 +149,7 @@ export function StockScreen() {
   const categoriesQuery = useAllCategories();
   const [reordering, setReordering] = useState<StockBalance | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canAdjust, canTransfer);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const headers = tableHeaders(columnHeaders, showActions);
   const rows = stockQuery.data?.data ?? [];
   const meta = stockQuery.data?.meta;
   const warehouses = warehousesQuery.data ?? [];
@@ -294,11 +305,14 @@ export function StockScreen() {
               onSort={setParams}
               classNameByHeader={{
                 "On hand": "text-right",
+                "QC hold": "text-right",
                 Committed: "text-right",
                 Available: "text-right",
                 Incoming: "text-right",
                 Outgoing: "text-right",
                 "In transit": "text-right",
+                "Unit cost": "text-right",
+                Value: "text-right",
               }}
             />
           </TableRow>
@@ -332,7 +346,7 @@ export function StockScreen() {
             </TableRow>
           ) : (
             rows.map((row) => {
-              const belowReorder = qtyIsBelowReorder(row.qty_on_hand, row.reorder_level);
+              const belowReorder = qtyIsBelowReorder(row.qty_available, row.reorder_level);
               return (
                 <TableRow key={row.id}>
                   <TableCell className="font-mono text-sm">
@@ -350,11 +364,22 @@ export function StockScreen() {
                     ) : null}
                   </TableCell>
                   <TableCell className="text-right">{qtyCell(row.qty_on_hand, true)}</TableCell>
+                  <TableCell className="text-right">{qtyCell(row.qty_quality_hold)}</TableCell>
                   <TableCell className="text-right">{qtyCell(row.qty_reserved)}</TableCell>
                   <TableCell className="text-right">{qtyCell(row.qty_available, true)}</TableCell>
                   <TableCell className="text-right">{qtyCell(row.qty_incoming)}</TableCell>
                   <TableCell className="text-right">{qtyCell(row.qty_outgoing)}</TableCell>
                   <TableCell className="text-right">{qtyCell(row.qty_in_transit)}</TableCell>
+                  {canReadCost ? (
+                    <>
+                      <TableCell className="text-right tabular-nums">
+                        {formatMoney(row.unit_cost, currencyCode)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatMoney(row.stock_value, currencyCode)}
+                      </TableCell>
+                    </>
+                  ) : null}
                   {showActions ? (
                     <TableCell>
                       <DataTableRowActions

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { useAllCategories } from "@/modules/inventory-management/categories/queries";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
+import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { useStockMovements } from "@/modules/inventory-management/stock/queries";
 import {
   parseStockMovementSourceType,
@@ -17,6 +18,7 @@ import {
   stockMovementSourceLabel,
 } from "@/modules/inventory-management/stock/schemas";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
+import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -36,9 +38,11 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { cn } from "@/shared/lib/cn";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatDecimal, formatMoney } from "@/shared/lib/format";
+import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = ["SKU", "Product", "Warehouse", "Date", "Type", "Qty", "Source"] as const;
+const BASE_COLUMN_HEADERS = ["SKU", "Product", "Warehouse", "Date", "Type", "Qty", "Source"] as const;
+const COST_COLUMN_HEADERS = ["Unit cost", "Value"] as const;
 const SORT_FIELDS = [
   { value: "sku", label: "SKU" },
   { value: "product_name", label: "Product" },
@@ -96,6 +100,13 @@ function MovementSourceCell({ sourceType, sourceId }: { sourceType: string; sour
 }
 
 export function StockMovementsScreen() {
+  const can = useCan();
+  const canReadCost = can(stockPermissions.costRead);
+  const tenantQuery = useCurrentTenant();
+  const currencyCode = tenantQuery.data?.default_currency ?? "";
+  const columnHeaders = canReadCost
+    ? ["SKU", "Product", "Warehouse", "Date", "Type", "Qty", ...COST_COLUMN_HEADERS, "Source"]
+    : [...BASE_COLUMN_HEADERS];
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = extraFromFilters(filters);
@@ -308,12 +319,12 @@ export function StockMovementsScreen() {
         <TableHeader>
           <TableRow>
             <SortableHeads
-              headers={[...COLUMN_HEADERS]}
+              headers={columnHeaders}
               fieldByHeader={SORT_FIELD_BY_HEADER}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ Qty: "text-right" }}
+              classNameByHeader={{ Qty: "text-right", "Unit cost": "text-right", Value: "text-right" }}
             />
           </TableRow>
         </TableHeader>
@@ -321,14 +332,14 @@ export function StockMovementsScreen() {
           {movementsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={COLUMN_HEADERS.length}>
+                <TableCell colSpan={columnHeaders.length}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : movementsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={COLUMN_HEADERS.length}>
+              <TableCell colSpan={columnHeaders.length}>
                 <DataTableError
                   message={getErrorMessage(movementsQuery.error)}
                   onRetry={() => movementsQuery.refetch()}
@@ -337,7 +348,7 @@ export function StockMovementsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={COLUMN_HEADERS.length}>
+              <TableCell colSpan={columnHeaders.length}>
                 <DataTableEmpty
                   title="No stock movements"
                   message="Posted adjustments and transfers will appear here."
@@ -364,6 +375,16 @@ export function StockMovementsScreen() {
                 >
                   {formatDecimal(row.qty)}
                 </TableCell>
+                {canReadCost ? (
+                  <>
+                    <TableCell className="text-right tabular-nums">
+                      {formatMoney(row.unit_cost, currencyCode)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatMoney(row.value, currencyCode)}
+                    </TableCell>
+                  </>
+                ) : null}
                 <TableCell className="text-muted-foreground text-sm">
                   <MovementSourceCell sourceType={row.source_type} sourceId={row.source_id} />
                 </TableCell>

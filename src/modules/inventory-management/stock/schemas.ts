@@ -14,6 +14,8 @@ export const STOCK_MOVEMENT_TYPES = [
   "ADJUSTMENT",
   "DAMAGE",
   "OPENING_STOCK",
+  "QC_HOLD",
+  "QC_RELEASE",
 ] as const;
 export const StockMovementTypeSchema = z.enum(STOCK_MOVEMENT_TYPES);
 export type StockMovementType = z.infer<typeof StockMovementTypeSchema>;
@@ -30,6 +32,8 @@ export const STOCK_MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
   ADJUSTMENT: "Adjustment",
   DAMAGE: "Damage",
   OPENING_STOCK: "Opening stock",
+  QC_HOLD: "QC hold",
+  QC_RELEASE: "QC release",
 };
 
 export const StockBalanceSchema = z.object({
@@ -43,6 +47,7 @@ export const StockBalanceSchema = z.object({
   product_name: z.string(),
   qty_on_hand: DecimalStringSchema,
   qty_reserved: DecimalStringSchema,
+  qty_quality_hold: DecimalStringSchema,
   qty_available: DecimalStringSchema,
   qty_incoming: DecimalStringSchema,
   qty_outgoing: DecimalStringSchema,
@@ -52,6 +57,8 @@ export const StockBalanceSchema = z.object({
   last_movement_at: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  unit_cost: DecimalStringSchema.optional(),
+  stock_value: DecimalStringSchema.optional(),
 });
 export type StockBalance = z.infer<typeof StockBalanceSchema>;
 
@@ -78,8 +85,31 @@ export const StockMovementSchema = z.object({
   occurred_at: z.string(),
   notes: z.string().nullable(),
   created_at: z.string(),
+  unit_cost: DecimalStringSchema.optional(),
+  value: DecimalStringSchema.optional(),
+  is_estimated_cost: z.boolean().optional(),
 });
 export type StockMovement = z.infer<typeof StockMovementSchema>;
+
+export const StockCostLayerSchema = z.object({
+  id: z.string().uuid(),
+  warehouse_id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  source_type: z.string(),
+  source_id: z.string().uuid(),
+  source_line_id: z.string().uuid().nullable(),
+  document_date: z.string(),
+  qty_received: DecimalStringSchema,
+  qty_remaining: DecimalStringSchema,
+  unit_cost: DecimalStringSchema,
+  landed_unit_cost: DecimalStringSchema,
+  is_estimated: z.boolean(),
+  is_negative: z.boolean(),
+  created_at: z.string(),
+});
+export type StockCostLayer = z.infer<typeof StockCostLayerSchema>;
+
+export const StockCostLayerListSchema = z.array(StockCostLayerSchema);
 
 export const StockMovementListSchema = z.array(StockMovementSchema);
 
@@ -124,12 +154,19 @@ export type StockMovementListParams = {
   document_date_to?: string;
 };
 
-export const STOCK_MOVEMENT_SOURCE_TYPES = ["stock_adjustment", "stock_transfer"] as const;
+export const STOCK_MOVEMENT_SOURCE_TYPES = [
+  "stock_adjustment",
+  "stock_transfer",
+  "goods_receipt",
+  "quality_inspection",
+] as const;
 export type StockMovementSourceType = (typeof STOCK_MOVEMENT_SOURCE_TYPES)[number];
 
 export const STOCK_MOVEMENT_SOURCE_TYPE_LABELS: Record<StockMovementSourceType, string> = {
   stock_adjustment: "Stock adjustment",
   stock_transfer: "Stock transfer",
+  goods_receipt: "Goods receipt",
+  quality_inspection: "Quality inspection",
 };
 
 export function parseStockMovementType(value: string | undefined): StockMovementType | undefined {
@@ -157,6 +194,12 @@ export function stockMovementSourceHref(sourceType: string, sourceId: string): s
   if (sourceType === "stock_transfer") {
     return `/stock-transfers/${sourceId}`;
   }
+  if (sourceType === "goods_receipt") {
+    return `/goods-receipts/${sourceId}`;
+  }
+  if (sourceType === "quality_inspection") {
+    return `/quality-inspections/${sourceId}`;
+  }
   return null;
 }
 
@@ -167,14 +210,14 @@ export function qtyIsNegative(value: string): boolean {
   return trimmed.startsWith("-") && !ZERO_QTY.test(trimmed);
 }
 
-export function qtyIsBelowReorder(onHand: string, reorder: string | null): boolean {
+export function qtyIsBelowReorder(available: string, reorder: string | null): boolean {
   if (reorder == null || reorder === "") {
     return false;
   }
-  const hand = Number(onHand);
+  const qty = Number(available);
   const level = Number(reorder);
-  if (!Number.isFinite(hand) || !Number.isFinite(level)) {
+  if (!Number.isFinite(qty) || !Number.isFinite(level)) {
     return false;
   }
-  return hand < level;
+  return qty < level;
 }
