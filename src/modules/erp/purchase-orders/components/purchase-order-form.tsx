@@ -23,11 +23,9 @@ import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/q
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import {
-  emptyPurchaseOrderLine,
-  PurchaseOrderLinesEditor,
-} from "@/modules/erp/purchase-orders/components/purchase-order-lines-editor";
-import { PurchaseOrderTotalsPanel } from "@/modules/erp/purchase-orders/components/purchase-order-totals-panel";
+import { emptyDocumentLine } from "@/shared/components/document/schemas";
+import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
+import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import {
   useCreatePurchaseOrder,
   useUpdatePurchaseOrder,
@@ -124,7 +122,7 @@ function toLineInput(line: PurchaseOrderLineFormValues): PurchaseOrderLineInput 
 function toFormLines(purchaseOrder: PurchaseOrder | null): PurchaseOrderLineFormValues[] {
   const lines = purchaseOrder?.lines ?? [];
   if (lines.length === 0) {
-    return [emptyPurchaseOrderLine()];
+    return [emptyDocumentLine()];
   }
   return lines.map((line) => ({
     product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
@@ -725,9 +723,11 @@ export function PurchaseOrderForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <PurchaseOrderLinesEditor form={form} disabled={disabled} />
+          <DocumentLinesEditor form={form} disabled={disabled} productSide="purchase" />
         </div>
-        {purchaseOrder ? <PurchaseOrderTotalsPanel purchaseOrder={purchaseOrder} /> : null}
+        {purchaseOrder ? (
+          <DocumentTotalsPanel totals={purchaseOrder} currencies={currencies} />
+        ) : null}
         <div className="grid grid-cols-1 gap-3">
           <FormField
             control={form.control}

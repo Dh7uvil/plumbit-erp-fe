@@ -24,7 +24,7 @@ const LOGO_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 const EMPTY_LIST_PATHS = new Set([
-  "/api/v1/attachments",
+  "/api/v1/activity",
   "/api/v1/branches",
   "/api/v1/categories",
   "/api/v1/contacts",
@@ -55,6 +55,8 @@ let movements = [];
 let adjSeq = 0;
 let xferSeq = 0;
 let postReplays = new Map();
+let attachments = new Map();
+let attachmentSeq = 0;
 let tenantLogoUrl = null;
 let tenantState = {
   name: ORGANIZATION_NAME,
@@ -154,6 +156,8 @@ function resetErpState() {
   adjSeq = 0;
   xferSeq = 0;
   postReplays = new Map();
+  attachments = new Map();
+  attachmentSeq = 0;
   tenantState.sales_order_requires_approval = false;
   tenantState.purchase_order_requires_approval = false;
   tenantState.allow_negative_stock = false;
@@ -1293,6 +1297,9 @@ function me() {
       "erp.supplier.update",
       "erp.supplier.delete",
       "identity.attachment.read",
+      "identity.attachment.create",
+      "identity.attachment.update",
+      "identity.attachment.delete",
       "identity.branch.read",
       "identity.department.read",
       "identity.organization.read",
@@ -2600,6 +2607,86 @@ const server = http.createServer(async (req, res) => {
         const updated = buildTransfer(body, existing);
         transfers.set(updated.id, updated);
         ok(res, stockDocumentResponse(updated));
+        return;
+      }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/attachments") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const entityType = url.searchParams.get("entity_type");
+      const entityId = url.searchParams.get("entity_id");
+      const category = url.searchParams.get("category");
+      const rows = [...attachments.values()].filter((row) => {
+        if (entityType && row.entity_type !== entityType) {
+          return false;
+        }
+        if (entityId && row.entity_id !== entityId) {
+          return false;
+        }
+        if (category && row.category !== category) {
+          return false;
+        }
+        return true;
+      });
+      listOk(res, rows);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/attachments") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      await drain(req);
+      attachmentSeq += 1;
+      const id = `a1a1a1a1-a1a1-41a1-81a1-${String(attachmentSeq).padStart(12, "0")}`;
+      const row = {
+        id,
+        tenant_id: TENANT_ID,
+        entity_type: "QUOTATION",
+        entity_id: CUSTOMER_ID,
+        original_filename: "upload.bin",
+        content_type: "application/octet-stream",
+        size_bytes: 12,
+        category: "OTHER",
+        image_width: null,
+        image_height: null,
+        thumbnail_url: null,
+        created_by: USER_ID,
+        created_at: NOW,
+        updated_at: NOW,
+      };
+      attachments.set(id, row);
+      ok(res, row, 201);
+      return;
+    }
+
+    const attachmentDetail = url.pathname.match(/^\/api\/v1\/attachments\/([0-9a-f-]{36})$/i);
+    if (attachmentDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = attachments.get(attachmentDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, { ...existing, download_url: "https://example.test/file.bin" });
+        return;
+      }
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        existing.category = body.category ?? existing.category;
+        existing.updated_at = new Date().toISOString();
+        attachments.set(existing.id, existing);
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "DELETE") {
+        attachments.delete(existing.id);
+        ok(res, existing);
         return;
       }
     }

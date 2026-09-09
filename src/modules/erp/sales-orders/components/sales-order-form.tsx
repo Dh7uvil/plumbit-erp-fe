@@ -23,11 +23,9 @@ import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/q
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import {
-  emptySalesOrderLine,
-  SalesOrderLinesEditor,
-} from "@/modules/erp/sales-orders/components/sales-order-lines-editor";
-import { SalesOrderTotalsPanel } from "@/modules/erp/sales-orders/components/sales-order-totals-panel";
+import { emptyDocumentLine } from "@/shared/components/document/schemas";
+import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
+import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { useCreateSalesOrder, useUpdateSalesOrder } from "@/modules/erp/sales-orders/mutations";
 import { useSalesOrderComposeDefaults } from "@/modules/erp/sales-orders/queries";
 import {
@@ -128,7 +126,7 @@ function toLineInput(line: SalesOrderLineFormValues): SalesOrderLineInput {
 function toFormLines(salesOrder: SalesOrder | null): SalesOrderLineFormValues[] {
   const lines = salesOrder?.lines ?? [];
   if (lines.length === 0) {
-    return [emptySalesOrderLine()];
+    return [emptyDocumentLine()];
   }
   return lines.map((line) => ({
     product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
@@ -809,9 +807,9 @@ export function SalesOrderForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <SalesOrderLinesEditor form={form} disabled={disabled} />
+          <DocumentLinesEditor form={form} disabled={disabled} productSide="sales" />
         </div>
-        {salesOrder ? <SalesOrderTotalsPanel salesOrder={salesOrder} /> : null}
+        {salesOrder ? <DocumentTotalsPanel totals={salesOrder} currencies={currencies} /> : null}
         <div className="grid grid-cols-1 gap-3">
           <FormField
             control={form.control}

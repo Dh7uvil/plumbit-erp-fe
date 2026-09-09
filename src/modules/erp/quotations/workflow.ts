@@ -1,5 +1,6 @@
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
+import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
 export const QUOTATION_WORKFLOW_ACTIONS = [
   "submit",
@@ -16,88 +17,68 @@ export const QUOTATION_WORKFLOW_ACTIONS = [
 ] as const;
 export type QuotationWorkflowAction = (typeof QUOTATION_WORKFLOW_ACTIONS)[number];
 
-export const QUOTATION_ACTION_PERMISSION: Record<QuotationWorkflowAction, string> = {
-  submit: quotationPermissions.update,
-  approve: quotationPermissions.approve,
-  reject: quotationPermissions.approve,
-  reopen: quotationPermissions.update,
-  send: quotationPermissions.send,
-  accept: quotationPermissions.update,
-  decline: quotationPermissions.update,
-  convert: salesOrderPermissions.create,
-  cancel: quotationPermissions.update,
-  clone: quotationPermissions.create,
-  delete: quotationPermissions.delete,
-};
-
-export const QUOTATION_ACTION_LABELS: Record<QuotationWorkflowAction, string> = {
-  submit: "Submit",
-  approve: "Approve",
-  reject: "Reject",
-  reopen: "Reopen",
-  send: "Send",
-  accept: "Accept",
-  decline: "Decline",
-  convert: "Convert to sales order",
-  cancel: "Cancel",
-  clone: "Clone",
-  delete: "Delete",
-};
-
-const IRREVERSIBLE_ACTIONS = new Set<QuotationWorkflowAction>([
-  "approve",
-  "reject",
-  "send",
-  "accept",
-  "decline",
-  "convert",
-  "cancel",
-  "delete",
-]);
-
-export function isQuotationWorkflowAction(value: string): value is QuotationWorkflowAction {
-  return (QUOTATION_WORKFLOW_ACTIONS as readonly string[]).includes(value);
-}
-
-export function isIrreversibleQuotationAction(action: QuotationWorkflowAction): boolean {
-  return IRREVERSIBLE_ACTIONS.has(action);
-}
-
-export function quotationActionEffect(
-  action: QuotationWorkflowAction,
-  quoteNumber: string,
-): string {
-  switch (action) {
-    case "submit":
-      return `${quoteNumber} will be sent for approval.`;
-    case "approve":
-      return `${quoteNumber} will be marked approved and can then be sent to the customer.`;
-    case "reject":
-      return `${quoteNumber} will be returned to the salesperson.`;
-    case "reopen":
-      return `${quoteNumber} will be reopened as a draft.`;
-    case "send":
-      return `${quoteNumber} will be sent to the customer.`;
-    case "accept":
-      return `${quoteNumber} will be marked accepted.`;
-    case "decline":
-      return `${quoteNumber} will be marked declined.`;
-    case "convert":
-      return `${quoteNumber} will be converted to a sales order.`;
-    case "cancel":
-      return `${quoteNumber} will be cancelled and will no longer be active.`;
-    case "clone":
-      return `A new draft will be created from ${quoteNumber}.`;
-    case "delete":
-      return `${quoteNumber} will be removed. Only draft quotations can be deleted.`;
-  }
-}
-
-export function visibleQuotationActions(
-  availableActions: readonly string[],
-  can: (permission: string) => boolean,
-): QuotationWorkflowAction[] {
-  return availableActions
-    .filter(isQuotationWorkflowAction)
-    .filter((action) => can(QUOTATION_ACTION_PERMISSION[action]));
-}
+export const QUOTATION_ACTION_REGISTRY: DocumentActionSpec<QuotationWorkflowAction>[] = [
+  { action: "submit", label: "Submit", permission: quotationPermissions.update },
+  {
+    action: "approve",
+    label: "Approve",
+    permission: quotationPermissions.approve,
+    confirmCopy: (quoteNumber) =>
+      `${quoteNumber} will be marked approved and can then be sent to the customer.`,
+  },
+  {
+    action: "reject",
+    label: "Reject",
+    permission: quotationPermissions.approve,
+    variant: "destructive",
+    confirmCopy: (quoteNumber) => `${quoteNumber} will be returned to the salesperson.`,
+    reasonField: { placeholder: "Why this quotation is being rejected" },
+  },
+  { action: "reopen", label: "Reopen", permission: quotationPermissions.update },
+  {
+    action: "send",
+    label: "Send",
+    permission: quotationPermissions.send,
+    confirmCopy: (quoteNumber) => `${quoteNumber} will be sent to the customer.`,
+  },
+  {
+    action: "accept",
+    label: "Accept",
+    permission: quotationPermissions.update,
+    confirmCopy: (quoteNumber) => `${quoteNumber} will be marked accepted.`,
+  },
+  {
+    action: "decline",
+    label: "Decline",
+    permission: quotationPermissions.update,
+    variant: "destructive",
+    confirmCopy: (quoteNumber) => `${quoteNumber} will be marked declined.`,
+  },
+  {
+    action: "convert",
+    label: "Convert to sales order",
+    permission: salesOrderPermissions.create,
+    confirmCopy: (quoteNumber) => `${quoteNumber} will be converted to a sales order.`,
+  },
+  {
+    action: "cancel",
+    label: "Cancel",
+    permission: quotationPermissions.update,
+    variant: "destructive",
+    confirmCopy: (quoteNumber) => `${quoteNumber} will be cancelled and will no longer be active.`,
+  },
+  {
+    action: "clone",
+    label: "Clone",
+    permission: quotationPermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "delete",
+    label: "Delete",
+    permission: quotationPermissions.delete,
+    variant: "destructive",
+    confirmCopy: (quoteNumber) =>
+      `${quoteNumber} will be removed. Only draft quotations can be deleted.`,
+  },
+];

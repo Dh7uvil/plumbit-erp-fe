@@ -31,6 +31,22 @@ export const QUOTATION_STATUS_LABELS: Record<QuotationStatus, string> = {
   CONVERTED: "Converted",
 };
 
+export const QUOTATION_STATUS_VARIANTS: Record<
+  QuotationStatus,
+  "muted" | "warning" | "info" | "success" | "destructive" | "secondary"
+> = {
+  DRAFT: "muted",
+  PENDING_APPROVAL: "warning",
+  APPROVED: "info",
+  SENT: "info",
+  ACCEPTED: "success",
+  REJECTED: "destructive",
+  DECLINED: "destructive",
+  CANCELLED: "destructive",
+  EXPIRED: "destructive",
+  CONVERTED: "secondary",
+};
+
 export const PLACES_OF_SUPPLY = [
   "ABU_DHABI",
   "DUBAI",

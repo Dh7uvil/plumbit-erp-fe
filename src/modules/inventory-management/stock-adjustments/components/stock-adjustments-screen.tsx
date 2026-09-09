@@ -7,7 +7,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
-import { StockAdjustmentStatusBadge } from "@/modules/inventory-management/stock-adjustments/components/stock-adjustment-status-badge";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import {
   useCloneStockAdjustment,
   useDeleteStockAdjustment,
@@ -18,16 +19,14 @@ import {
   STOCK_ADJUSTMENT_REASON_LABELS,
   STOCK_ADJUSTMENT_REASONS,
   STOCK_DOCUMENT_STATUS_LABELS,
+  STOCK_DOCUMENT_STATUS_VARIANTS,
   STOCK_DOCUMENT_STATUSES,
   stockAdjustmentDisplayNumber,
   type StockAdjustment,
   type StockAdjustmentReason,
   type StockDocumentStatus,
 } from "@/modules/inventory-management/stock-adjustments/schemas";
-import {
-  STOCK_ADJUSTMENT_ACTION_LABELS,
-  stockAdjustmentActionEffect,
-} from "@/modules/inventory-management/stock-adjustments/workflow";
+import { STOCK_ADJUSTMENT_ACTION_REGISTRY } from "@/modules/inventory-management/stock-adjustments/workflow";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -399,7 +398,11 @@ export function StockAdjustmentsScreen() {
                   <TableCell>{warehouseLabelById.get(row.warehouse_id) ?? "—"}</TableCell>
                   <TableCell>{STOCK_ADJUSTMENT_REASON_LABELS[row.reason]}</TableCell>
                   <TableCell>
-                    <StockAdjustmentStatusBadge status={row.status} />
+                    <DocumentStatusBadge
+                      status={row.status}
+                      labels={STOCK_DOCUMENT_STATUS_LABELS}
+                      variants={STOCK_DOCUMENT_STATUS_VARIANTS}
+                    />
                   </TableCell>
                   {showActions ? (
                     <TableCell>
@@ -442,16 +445,15 @@ export function StockAdjustmentsScreen() {
       </DataTable>
       <ConfirmActionDialog
         open={Boolean(deleting)}
-        title={`${STOCK_ADJUSTMENT_ACTION_LABELS.delete} stock adjustment ${deleting ? (stockAdjustmentDisplayNumber(deleting) ?? "adjustment") : "adjustment"}`}
+        title={`${getDocumentAction(STOCK_ADJUSTMENT_ACTION_REGISTRY, "delete").label} stock adjustment ${deleting ? (stockAdjustmentDisplayNumber(deleting) ?? "adjustment") : "adjustment"}`}
         description={
           deleting
-            ? stockAdjustmentActionEffect(
-                "delete",
+            ? (getDocumentAction(STOCK_ADJUSTMENT_ACTION_REGISTRY, "delete").confirmCopy?.(
                 stockAdjustmentDisplayNumber(deleting) ?? "adjustment",
-              )
+              ) ?? "")
             : ""
         }
-        confirmLabel={STOCK_ADJUSTMENT_ACTION_LABELS.delete}
+        confirmLabel={getDocumentAction(STOCK_ADJUSTMENT_ACTION_REGISTRY, "delete").label}
         pending={deleteAdjustment.isPending}
         onOpenChange={(open) => {
           if (!open) {

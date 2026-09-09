@@ -23,11 +23,9 @@ import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/q
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import {
-  emptyQuotationLine,
-  QuotationLinesEditor,
-} from "@/modules/erp/quotations/components/quotation-lines-editor";
-import { QuotationTotalsPanel } from "@/modules/erp/quotations/components/quotation-totals-panel";
+import { emptyDocumentLine } from "@/shared/components/document/schemas";
+import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
+import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { useCreateQuotation, useUpdateQuotation } from "@/modules/erp/quotations/mutations";
 import { useQuotationComposeDefaults } from "@/modules/erp/quotations/queries";
 import {
@@ -124,7 +122,7 @@ function toLineInput(line: QuotationLineFormValues): QuotationLineInput {
 function toFormLines(quotation: Quotation | null): QuotationLineFormValues[] {
   const lines = quotation?.lines ?? [];
   if (lines.length === 0) {
-    return [emptyQuotationLine()];
+    return [emptyDocumentLine()];
   }
   return lines.map((line) => ({
     product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
@@ -749,9 +747,9 @@ export function QuotationForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <QuotationLinesEditor form={form} disabled={disabled} />
+          <DocumentLinesEditor form={form} disabled={disabled} productSide="sales" />
         </div>
-        {quotation ? <QuotationTotalsPanel quotation={quotation} /> : null}
+        {quotation ? <DocumentTotalsPanel totals={quotation} currencies={currencies} /> : null}
         <div className="grid grid-cols-1 gap-3">
           <FormField
             control={form.control}

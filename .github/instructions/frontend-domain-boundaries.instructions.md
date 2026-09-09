@@ -11,7 +11,7 @@ Convenience never outranks them.
 
 Document posting, lock, stock, VAT and e-invoicing UX:
 [erp-documents-and-workflows](erp-documents-and-workflows.instructions.md). Do not mock settings
-the tenant API does not expose ([administration-api-gaps.md](../../../docs/administration-api-gaps.md)).
+the tenant API does not expose.
 
 ## Architecture principles
 
@@ -151,8 +151,9 @@ Each module owns its slices, its API calls, its schemas, its query keys and its 
 ```text
 users-management        Identity (BE: app/auth/): Auth, Users, Roles, Permissions,
                         Tenants/org-settings, Branches, Departments, Employees (nested),
-                        Audit Logs. Attachments via identity.attachment.*.
-                        Planned: tenant operational settings (allow_negative_stock, lock dates).
+                        Audit Logs, Activity feed. Attachments via identity.attachment.*.
+                        Tenant `allow_negative_stock` is on `/tenants/current`. Lock dates are
+                        edited through `/period-lock`.
 erp                     Implemented: Quotations, Sales Orders, Purchase Orders, Currencies, Exchange Rates, Taxes,
                         Payment Terms, Terms Templates, Document Sequences, Suppliers, Period Lock.
                         Planned: Sales Invoices, Credit Notes, Customer Payments,
@@ -160,8 +161,9 @@ erp                     Implemented: Quotations, Sales Orders, Purchase Orders, 
                         Accounting (Accounts, Journals, Receivables, Payables),
                         Logistics (Imports, Exports, Shipments, Containers),
                         e-invoicing status UX on sales invoices and credit notes.
-inventory-management    Implemented: Units, Categories, Products, Price Lists, Warehouses.
-                        Planned: Stock, Transfers, Adjustments, GRN, Delivery Notes, Sales Returns.
+inventory-management    Implemented: Units, Categories, Products, Price Lists, Warehouses,
+                        Stock, Stock Transfers, Stock Adjustments.
+                        Planned: GRN, Delivery Notes, Sales Returns.
 crm                     Implemented: Customers, Contacts.
                         Planned: Leads, Opportunities, Activities.
 communication-service   Email, WhatsApp, Chat, Meetings (planned)

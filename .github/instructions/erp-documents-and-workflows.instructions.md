@@ -12,10 +12,9 @@ settings that expose operational / e-invoicing fields.
 The backend is the source of truth. This file is about **how to present** posting, lock, stock,
 VAT and e-invoicing — not how to reimplement them.
 
-Quotation workflow buttons that compute transitions from a local status table
-(`quotation-workflow-buttons.tsx` + `quotations/workflow.ts`) are the **anti-pattern**. Do not
-repeat it. New documents render `document.available_actions` only. When quotations gain that
-field, delete the local table.
+Document workflow buttons are driven by `available_actions` through
+`src/shared/components/document/` (`DocumentWorkflowButtons` + a per-slice registry in
+`workflow.ts`). Do not compute transitions from a local status table.
 
 ## Save vs Post
 
@@ -63,7 +62,7 @@ field, delete the local table.
 - Warehouse screens show negative on-hand when the tenant allows it.
 - Period-close UI shows `PERIOD_LOCK_BLOCKED_NEGATIVE_STOCK` and why the lock was refused.
 - `allow_negative_stock` is a tenant column. Show a control only after `GET /tenants/current`
-  includes it — same pattern as [administration-api-gaps.md](../../../docs/administration-api-gaps.md).
+  includes it.
 
 ## Tenant operational settings
 
