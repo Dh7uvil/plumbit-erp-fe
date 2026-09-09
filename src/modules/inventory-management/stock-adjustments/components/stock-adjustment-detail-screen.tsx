@@ -1,25 +1,30 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import {
+  StockWriteAlert,
+  isStockWriteAlertError,
+} from "@/modules/erp/period-lock/components/stock-write-alert";
 import { StockAdjustmentForm } from "@/modules/inventory-management/stock-adjustments/components/stock-adjustment-form";
-import { StockAdjustmentStatusBadge } from "@/modules/inventory-management/stock-adjustments/components/stock-adjustment-status-badge";
-import { StockAdjustmentWorkflowButtons } from "@/modules/inventory-management/stock-adjustments/components/stock-adjustment-workflow-buttons";
+import { useStockAdjustmentWorkflow } from "@/modules/inventory-management/stock-adjustments/hooks/use-stock-adjustment-workflow";
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
 import { useStockAdjustment } from "@/modules/inventory-management/stock-adjustments/queries";
-import { stockAdjustmentDisplayNumber } from "@/modules/inventory-management/stock-adjustments/schemas";
-import { getErrorMessage } from "@/shared/api/errors";
-import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
-import { DataTableError } from "@/shared/components/data-table/states";
 import {
-  RecordPageHeader,
-  type RecordPageMode,
-} from "@/shared/components/layout/record-page-header";
-import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Skeleton } from "@/shared/components/ui/skeleton";
+  STOCK_DOCUMENT_STATUS_LABELS,
+  STOCK_DOCUMENT_STATUS_VARIANTS,
+  stockAdjustmentDisplayNumber,
+  type StockAdjustment,
+} from "@/modules/inventory-management/stock-adjustments/schemas";
+import { STOCK_ADJUSTMENT_ACTION_REGISTRY } from "@/modules/inventory-management/stock-adjustments/workflow";
+import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
+import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function StockAdjustmentDetailScreen({
   adjustmentId,
@@ -43,68 +48,118 @@ export function StockAdjustmentDetailScreen({
     }
   }, [adjustment, isEdit, router, viewHref]);
 
-  if (adjustmentQuery.isLoading) {
+  if (adjustmentQuery.isLoading || adjustmentQuery.isError || !adjustment) {
     return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
-  if (adjustmentQuery.isError || !adjustment) {
-    return (
-      <div className="flex flex-col gap-3">
-        <DataTableError
-          message={
-            adjustmentQuery.error
-              ? getErrorMessage(adjustmentQuery.error)
-              : "Stock adjustment not found"
-          }
-          onRetry={() => adjustmentQuery.refetch()}
-        />
-        <Button type="button" variant="outline" asChild>
-          <Link href="/stock-adjustments">Back to adjustments</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const number = stockAdjustmentDisplayNumber(adjustment);
-
-  return (
-    <div className="flex flex-col gap-5">
-      <RecordPageHeader
-        title={number ?? "Stock adjustment"}
-        subtitle={number ? undefined : "Number not assigned yet"}
+      <DocumentRecordShell
+        isLoading={adjustmentQuery.isLoading}
+        isError={adjustmentQuery.isError || !adjustment}
+        error={adjustmentQuery.error}
+        notFoundMessage="Stock adjustment not found"
+        onRetry={() => adjustmentQuery.refetch()}
+        backHref="/stock-adjustments"
+        backLabel="Back to adjustments"
+        title="Stock adjustment"
         listHref="/stock-adjustments"
         viewHref={viewHref}
-        editHref={canEditDraft ? `${viewHref}/edit` : undefined}
-        canUpdate={canEditDraft}
+        canUpdate={false}
         mode={mode}
-        extraActions={
-          isEdit ? null : (
-            <>
-              <StockAdjustmentStatusBadge status={adjustment.status} />
-              <StockAdjustmentWorkflowButtons adjustment={adjustment} />
-            </>
-          )
-        }
+        formTitle="Stock adjustment"
+      >
+        {null}
+      </DocumentRecordShell>
+    );
+  }
+
+  return (
+    <StockAdjustmentDetailLoaded
+      adjustment={adjustment}
+      mode={mode}
+      canEditDraft={canEditDraft}
+      viewHref={viewHref}
+    />
+  );
+}
+
+function StockAdjustmentDetailLoaded({
+  adjustment,
+  mode,
+  canEditDraft,
+  viewHref,
+}: {
+  adjustment: StockAdjustment;
+  mode: RecordPageMode;
+  canEditDraft: boolean;
+  viewHref: string;
+}) {
+  const router = useRouter();
+  const isEdit = mode === "edit";
+  const number = stockAdjustmentDisplayNumber(adjustment);
+  const onAction = useStockAdjustmentWorkflow(adjustment);
+  const [writeError, setWriteError] = useState<unknown>(null);
+
+  return (
+    <DocumentRecordShell
+      isLoading={false}
+      isError={false}
+      notFoundMessage="Stock adjustment not found"
+      onRetry={() => undefined}
+      backHref="/stock-adjustments"
+      backLabel="Back to adjustments"
+      title={number ?? "Stock adjustment"}
+      subtitle={number ? undefined : "Number not assigned yet"}
+      listHref="/stock-adjustments"
+      viewHref={viewHref}
+      editHref={canEditDraft ? `${viewHref}/edit` : undefined}
+      canUpdate={canEditDraft}
+      mode={mode}
+      badges={
+        <DocumentStatusBadge
+          status={adjustment.status}
+          labels={STOCK_DOCUMENT_STATUS_LABELS}
+          variants={STOCK_DOCUMENT_STATUS_VARIANTS}
+        />
+      }
+      workflow={
+        <DocumentWorkflowButtons
+          availableActions={adjustment.available_actions}
+          registry={STOCK_ADJUSTMENT_ACTION_REGISTRY}
+          documentKind="stock adjustment"
+          documentLabel={number ?? "adjustment"}
+          extra={<StockWriteAlert periodLocked={adjustment.period_locked} error={writeError} />}
+          onError={(error) => {
+            if (isStockWriteAlertError(error)) {
+              setWriteError(error);
+              return true;
+            }
+            return false;
+          }}
+          onAction={async (action, extras) => {
+            setWriteError(null);
+            await onAction(action, extras);
+          }}
+        />
+      }
+      formTitle={isEdit ? "Edit stock adjustment" : "Stock adjustment"}
+      attachments={
+        <EntityAttachmentsPanel
+          entityType="STOCK_ADJUSTMENT"
+          entityId={adjustment.id}
+          parentPosted={adjustment.is_posted}
+        />
+      }
+      activity={
+        <ActivityFeed
+          entityType="stock_adjustment"
+          entityId={adjustment.id}
+          revision={adjustment.version}
+        />
+      }
+    >
+      <StockAdjustmentForm
+        adjustment={adjustment}
+        disabled={!isEdit}
+        onSuccess={() => router.push(viewHref)}
       />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {isEdit ? "Edit stock adjustment" : "Stock adjustment"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StockAdjustmentForm
-            adjustment={adjustment}
-            disabled={!isEdit}
-            onSuccess={() => router.push(viewHref)}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    </DocumentRecordShell>
   );
 }

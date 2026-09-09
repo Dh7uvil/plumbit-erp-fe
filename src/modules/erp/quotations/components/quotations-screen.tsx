@@ -8,12 +8,15 @@ import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { QuotationStatusBadge } from "@/modules/erp/quotations/components/quotation-status-badge";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { getDocumentAction } from "@/shared/components/document/workflow-registry";
+import { QUOTATION_ACTION_REGISTRY } from "@/modules/erp/quotations/workflow";
 import { useCloneQuotation, useDeleteQuotation } from "@/modules/erp/quotations/mutations";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import { useQuotations } from "@/modules/erp/quotations/queries";
 import {
   QUOTATION_STATUS_LABELS,
+  QUOTATION_STATUS_VARIANTS,
   QUOTATION_STATUSES,
   quotationDisplayNumber,
   type Quotation,
@@ -43,7 +46,6 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { quotationActionEffect, QUOTATION_ACTION_LABELS } from "@/modules/erp/quotations/workflow";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
@@ -314,7 +316,11 @@ export function QuotationsScreen() {
                   </TableCell>
                   <TableCell>{formatDate(quotation.quote_date)}</TableCell>
                   <TableCell>
-                    <QuotationStatusBadge status={quotation.status} />
+                    <DocumentStatusBadge
+                      status={quotation.status}
+                      labels={QUOTATION_STATUS_LABELS}
+                      variants={QUOTATION_STATUS_VARIANTS}
+                    />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatMoney(quotation.grand_total, currencyCode)}
@@ -360,13 +366,15 @@ export function QuotationsScreen() {
       </DataTable>
       <ConfirmActionDialog
         open={Boolean(deleting)}
-        title={`${QUOTATION_ACTION_LABELS.delete} quotation ${deleting ? (quotationDisplayNumber(deleting) ?? "quotation") : "quotation"}`}
+        title={`${getDocumentAction(QUOTATION_ACTION_REGISTRY, "delete").label} quotation ${deleting ? (quotationDisplayNumber(deleting) ?? "quotation") : "quotation"}`}
         description={
           deleting
-            ? quotationActionEffect("delete", quotationDisplayNumber(deleting) ?? "quotation")
+            ? (getDocumentAction(QUOTATION_ACTION_REGISTRY, "delete").confirmCopy?.(
+                quotationDisplayNumber(deleting) ?? "quotation",
+              ) ?? "")
             : ""
         }
-        confirmLabel={QUOTATION_ACTION_LABELS.delete}
+        confirmLabel={getDocumentAction(QUOTATION_ACTION_REGISTRY, "delete").label}
         pending={deleteQuotation.isPending}
         onOpenChange={(open) => {
           if (!open) {

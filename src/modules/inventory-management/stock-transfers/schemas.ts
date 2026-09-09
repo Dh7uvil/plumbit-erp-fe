@@ -13,6 +13,15 @@ export const STOCK_DOCUMENT_STATUS_LABELS: Record<StockDocumentStatus, string> =
   CANCELLED: "Cancelled",
 };
 
+export const STOCK_DOCUMENT_STATUS_VARIANTS: Record<
+  StockDocumentStatus,
+  "muted" | "success" | "destructive"
+> = {
+  DRAFT: "muted",
+  POSTED: "success",
+  CANCELLED: "destructive",
+};
+
 export const StockTransferLineSchema = z.object({
   id: z.string().uuid(),
   line_number: z.number().int(),

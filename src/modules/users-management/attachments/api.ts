@@ -4,6 +4,7 @@ import {
   AttachmentListSchema,
   AttachmentSchema,
   type Attachment,
+  type AttachmentCategory,
   type AttachmentDetail,
   type AttachmentEntityType,
   type AttachmentListParams,
@@ -22,12 +23,13 @@ export const attachmentsApi = {
         search: params.search,
         entity_type: params.entity_type,
         entity_id: params.entity_id,
+        category: params.category,
       },
     });
     return { data: AttachmentListSchema.parse(result.data), meta: result.meta };
   },
   listAll: (
-    params: Pick<AttachmentListParams, "entity_type" | "entity_id">,
+    params: Pick<AttachmentListParams, "entity_type" | "entity_id" | "category">,
   ): Promise<Attachment[]> =>
     fetchAllPages((page, pageSize) =>
       attachmentsApi.list({ page, page_size: pageSize, ...params }),
@@ -38,16 +40,28 @@ export const attachmentsApi = {
     entity_type: AttachmentEntityType;
     entity_id: string;
     file: File;
+    category?: AttachmentCategory | null;
   }): Promise<Attachment> => {
     if (values.file.size > MAX_ATTACHMENT_BYTES) {
-      throw new ApiError("VALIDATION_ERROR", getErrorMessage("VALIDATION_ERROR"), 400);
+      throw new ApiError("VALIDATION_ERROR", getErrorMessage("VALIDATION_ERROR"), 400, {
+        max_upload_size_mb: Math.round(MAX_ATTACHMENT_BYTES / (1024 * 1024)),
+        size_bytes: values.file.size,
+      });
     }
     const body = new FormData();
     body.set("entity_type", values.entity_type);
     body.set("entity_id", values.entity_id);
     body.set("file", values.file);
+    if (values.category) {
+      body.set("category", values.category);
+    }
     return AttachmentSchema.parse(await apiClient.postForm("/attachments", body));
   },
+  update: async (
+    id: string,
+    values: { category: AttachmentCategory | null },
+  ): Promise<Attachment> =>
+    AttachmentSchema.parse(await apiClient.patch(`/attachments/${id}`, values)),
   delete: async (id: string): Promise<Attachment> =>
     AttachmentSchema.parse(await apiClient.delete(`/attachments/${id}`)),
 };

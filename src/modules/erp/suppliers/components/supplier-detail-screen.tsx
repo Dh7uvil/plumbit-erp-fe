@@ -298,7 +298,7 @@ export function SupplierDetailScreen({
             </CardContent>
           </Card>
           <ContactsPanel customerId={supplier.id} />
-          <EntityAttachmentsPanel entityType="CUSTOMER" entityId={supplier.id} />
+          <EntityAttachmentsPanel entityType="SUPPLIER" entityId={supplier.id} />
         </>
       )}
       <Dialog

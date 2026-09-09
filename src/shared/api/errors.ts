@@ -160,6 +160,12 @@ export function getErrorMessage(codeOrError: unknown): string {
           : null;
     return appendDetailSentence(base, [reasonText, negativeStockBalanceFragment(details)]);
   }
+  if (code === "VALIDATION_ERROR") {
+    const maxMb = numberDetail(details, "max_upload_size_mb");
+    if (maxMb != null) {
+      return `Files must be ${maxMb} MB or smaller.`;
+    }
+  }
   return base;
 }
 

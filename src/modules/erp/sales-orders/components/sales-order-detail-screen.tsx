@@ -4,25 +4,28 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { FulfillmentStatusBadge } from "@/modules/erp/sales-orders/components/fulfillment-status-badge";
-import { BillingStatusBadge } from "@/modules/erp/sales-orders/components/sales-order-billing-status-badge";
+import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
-import { SalesOrderStatusBadge } from "@/modules/erp/sales-orders/components/sales-order-status-badge";
-import { SalesOrderWorkflowButtons } from "@/modules/erp/sales-orders/components/sales-order-workflow-buttons";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrder } from "@/modules/erp/sales-orders/queries";
-import { salesOrderDisplayNumber } from "@/modules/erp/sales-orders/schemas";
-import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
-import { getErrorMessage } from "@/shared/api/errors";
-import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
-import { DataTableError } from "@/shared/components/data-table/states";
 import {
-  RecordPageHeader,
-  type RecordPageMode,
-} from "@/shared/components/layout/record-page-header";
-import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Skeleton } from "@/shared/components/ui/skeleton";
+  BILLING_STATUS_LABELS,
+  BILLING_STATUS_VARIANTS,
+  FULFILLMENT_STATUS_LABELS,
+  FULFILLMENT_STATUS_VARIANTS,
+  SALES_ORDER_STATUS_LABELS,
+  SALES_ORDER_STATUS_VARIANTS,
+  salesOrderDisplayNumber,
+  type SalesOrder,
+} from "@/modules/erp/sales-orders/schemas";
+import { SALES_ORDER_ACTION_REGISTRY } from "@/modules/erp/sales-orders/workflow";
+import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
+import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function SalesOrderDetailScreen({
   salesOrderId,
@@ -46,79 +49,132 @@ export function SalesOrderDetailScreen({
     }
   }, [isEdit, salesOrder, router, viewHref]);
 
-  if (salesOrderQuery.isLoading) {
+  if (salesOrderQuery.isLoading || salesOrderQuery.isError || !salesOrder) {
     return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
-  if (salesOrderQuery.isError || !salesOrder) {
-    return (
-      <div className="flex flex-col gap-3">
-        <DataTableError
-          message={
-            salesOrderQuery.error ? getErrorMessage(salesOrderQuery.error) : "Sales order not found"
-          }
-          onRetry={() => salesOrderQuery.refetch()}
-        />
-        <Button type="button" variant="outline" asChild>
-          <Link href="/sales-orders">Back to sales orders</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const number = salesOrderDisplayNumber(salesOrder);
-
-  return (
-    <div className="flex flex-col gap-5">
-      <RecordPageHeader
-        title={number ?? "Sales order"}
-        subtitle={number ? undefined : "Number not assigned yet"}
+      <DocumentRecordShell
+        isLoading={salesOrderQuery.isLoading}
+        isError={salesOrderQuery.isError || !salesOrder}
+        error={salesOrderQuery.error}
+        notFoundMessage="Sales order not found"
+        onRetry={() => salesOrderQuery.refetch()}
+        backHref="/sales-orders"
+        backLabel="Back to sales orders"
+        title="Sales order"
         listHref="/sales-orders"
         viewHref={viewHref}
-        editHref={canEditDraft ? `${viewHref}/edit` : undefined}
-        canUpdate={canEditDraft}
+        canUpdate={false}
         mode={mode}
-        extraActions={
-          isEdit ? null : (
-            <>
-              <SalesOrderStatusBadge status={salesOrder.status} />
-              <FulfillmentStatusBadge status={salesOrder.fulfillment_status} />
-              <BillingStatusBadge status={salesOrder.billing_status} />
-              <SalesOrderWorkflowButtons salesOrder={salesOrder} />
-            </>
-          )
-        }
-      />
-      {salesOrder.source_quotation_id ? (
-        <p className="text-muted-foreground text-sm">
-          Converted from{" "}
-          <Link
-            href={`/quotations/${salesOrder.source_quotation_id}`}
-            className="text-foreground underline-offset-4 hover:underline"
-          >
-            quotation
-          </Link>
-          .
-        </p>
-      ) : null}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{isEdit ? "Edit sales order" : "Sales order"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SalesOrderForm
-            salesOrder={salesOrder}
-            disabled={!isEdit}
-            onSuccess={() => router.push(viewHref)}
+        formTitle="Sales order"
+      >
+        {null}
+      </DocumentRecordShell>
+    );
+  }
+
+  return (
+    <SalesOrderDetailLoaded
+      salesOrder={salesOrder}
+      mode={mode}
+      canEditDraft={canEditDraft}
+      viewHref={viewHref}
+    />
+  );
+}
+
+function SalesOrderDetailLoaded({
+  salesOrder,
+  mode,
+  canEditDraft,
+  viewHref,
+}: {
+  salesOrder: SalesOrder;
+  mode: RecordPageMode;
+  canEditDraft: boolean;
+  viewHref: string;
+}) {
+  const router = useRouter();
+  const isEdit = mode === "edit";
+  const number = salesOrderDisplayNumber(salesOrder);
+  const onAction = useSalesOrderWorkflow(salesOrder);
+
+  return (
+    <DocumentRecordShell
+      isLoading={false}
+      isError={false}
+      notFoundMessage="Sales order not found"
+      onRetry={() => undefined}
+      backHref="/sales-orders"
+      backLabel="Back to sales orders"
+      title={number ?? "Sales order"}
+      subtitle={number ? undefined : "Number not assigned yet"}
+      listHref="/sales-orders"
+      viewHref={viewHref}
+      editHref={canEditDraft ? `${viewHref}/edit` : undefined}
+      canUpdate={canEditDraft}
+      mode={mode}
+      badges={
+        <>
+          <DocumentStatusBadge
+            status={salesOrder.status}
+            labels={SALES_ORDER_STATUS_LABELS}
+            variants={SALES_ORDER_STATUS_VARIANTS}
           />
-        </CardContent>
-      </Card>
-      {isEdit ? null : <EntityAttachmentsPanel entityType="SALES_ORDER" entityId={salesOrder.id} />}
-    </div>
+          <DocumentStatusBadge
+            status={salesOrder.fulfillment_status}
+            labels={FULFILLMENT_STATUS_LABELS}
+            variants={FULFILLMENT_STATUS_VARIANTS}
+          />
+          <DocumentStatusBadge
+            status={salesOrder.billing_status}
+            labels={BILLING_STATUS_LABELS}
+            variants={BILLING_STATUS_VARIANTS}
+          />
+        </>
+      }
+      workflow={
+        <DocumentWorkflowButtons
+          availableActions={salesOrder.available_actions}
+          registry={SALES_ORDER_ACTION_REGISTRY}
+          documentKind="sales order"
+          documentLabel={number ?? "sales order"}
+          onAction={onAction}
+        />
+      }
+      banner={
+        salesOrder.source_quotation_id ? (
+          <p className="text-muted-foreground text-sm">
+            Converted from{" "}
+            <Link
+              href={`/quotations/${salesOrder.source_quotation_id}`}
+              className="text-foreground underline-offset-4 hover:underline"
+            >
+              quotation
+            </Link>
+            .
+          </p>
+        ) : null
+      }
+      formTitle={isEdit ? "Edit sales order" : "Sales order"}
+      attachments={
+        <EntityAttachmentsPanel
+          entityType="SALES_ORDER"
+          entityId={salesOrder.id}
+          parentPosted={salesOrder.is_posted}
+        />
+      }
+      activity={
+        <ActivityFeed
+          entityType="sales_order"
+          entityId={salesOrder.id}
+          revision={salesOrder.version}
+        />
+      }
+    >
+      <SalesOrderForm
+        salesOrder={salesOrder}
+        disabled={!isEdit}
+        onSuccess={() => router.push(viewHref)}
+      />
+    </DocumentRecordShell>
   );
 }

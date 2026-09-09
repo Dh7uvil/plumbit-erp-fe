@@ -8,18 +8,21 @@ import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { FulfillmentStatusBadge } from "@/modules/erp/sales-orders/components/fulfillment-status-badge";
-import { BillingStatusBadge } from "@/modules/erp/sales-orders/components/sales-order-billing-status-badge";
-import { SalesOrderStatusBadge } from "@/modules/erp/sales-orders/components/sales-order-status-badge";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { getDocumentAction } from "@/shared/components/document/workflow-registry";
+import { SALES_ORDER_ACTION_REGISTRY } from "@/modules/erp/sales-orders/workflow";
 import { useCloneSalesOrder, useDeleteSalesOrder } from "@/modules/erp/sales-orders/mutations";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrders } from "@/modules/erp/sales-orders/queries";
 import {
   BILLING_STATUS_LABELS,
+  BILLING_STATUS_VARIANTS,
   BILLING_STATUSES,
   FULFILLMENT_STATUS_LABELS,
+  FULFILLMENT_STATUS_VARIANTS,
   FULFILLMENT_STATUSES,
   SALES_ORDER_STATUS_LABELS,
+  SALES_ORDER_STATUS_VARIANTS,
   SALES_ORDER_STATUSES,
   salesOrderDisplayNumber,
   type BillingStatus,
@@ -52,10 +55,6 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
-import {
-  salesOrderActionEffect,
-  SALES_ORDER_ACTION_LABELS,
-} from "@/modules/erp/sales-orders/workflow";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
@@ -427,9 +426,21 @@ export function SalesOrdersScreen() {
                   <TableCell>{formatDate(salesOrder.order_date)}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1">
-                      <SalesOrderStatusBadge status={salesOrder.status} />
-                      <FulfillmentStatusBadge status={salesOrder.fulfillment_status} />
-                      <BillingStatusBadge status={salesOrder.billing_status} />
+                      <DocumentStatusBadge
+                        status={salesOrder.status}
+                        labels={SALES_ORDER_STATUS_LABELS}
+                        variants={SALES_ORDER_STATUS_VARIANTS}
+                      />
+                      <DocumentStatusBadge
+                        status={salesOrder.fulfillment_status}
+                        labels={FULFILLMENT_STATUS_LABELS}
+                        variants={FULFILLMENT_STATUS_VARIANTS}
+                      />
+                      <DocumentStatusBadge
+                        status={salesOrder.billing_status}
+                        labels={BILLING_STATUS_LABELS}
+                        variants={BILLING_STATUS_VARIANTS}
+                      />
                     </div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -476,13 +487,15 @@ export function SalesOrdersScreen() {
       </DataTable>
       <ConfirmActionDialog
         open={Boolean(deleting)}
-        title={`${SALES_ORDER_ACTION_LABELS.delete} sales order ${deleting ? (salesOrderDisplayNumber(deleting) ?? "sales order") : "sales order"}`}
+        title={`${getDocumentAction(SALES_ORDER_ACTION_REGISTRY, "delete").label} sales order ${deleting ? (salesOrderDisplayNumber(deleting) ?? "sales order") : "sales order"}`}
         description={
           deleting
-            ? salesOrderActionEffect("delete", salesOrderDisplayNumber(deleting) ?? "sales order")
+            ? (getDocumentAction(SALES_ORDER_ACTION_REGISTRY, "delete").confirmCopy?.(
+                salesOrderDisplayNumber(deleting) ?? "sales order",
+              ) ?? "")
             : ""
         }
-        confirmLabel={SALES_ORDER_ACTION_LABELS.delete}
+        confirmLabel={getDocumentAction(SALES_ORDER_ACTION_REGISTRY, "delete").label}
         pending={deleteSalesOrder.isPending}
         onOpenChange={(open) => {
           if (!open) {

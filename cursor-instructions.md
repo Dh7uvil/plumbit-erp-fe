@@ -18,10 +18,9 @@ or disabling a field is a usability affordance. The backend is the source of bus
 only security boundary, and this codebase is written on the assumption that a user will try to go
 around the UI.
 
-Screens without a live API stay omitted or empty. Follow
-[docs/administration-api-gaps.md](docs/administration-api-gaps.md) — do not mock ERP settings
-or e-invoicing fields that the API does not expose. Period lock is edited through
-`/period-lock`, not by inventing dates on the tenant form.
+Screens without a live API stay omitted or empty. Do not mock ERP settings or e-invoicing
+fields that the API does not expose. Period lock is edited through `/period-lock`, not by
+inventing dates on the tenant form.
 
 ## Architecture
 
@@ -55,9 +54,9 @@ src/
 │   │                             implemented: customers, contacts
 │   │                             planned: leads, opportunities, activities
 │   ├── inventory-management/
-│   │                             implemented: units, categories, products, price-lists, warehouses
-│   │                             planned: stock, stock-transfers, stock-adjustments,
-│   │                             goods-receipts (GRN), delivery-notes, sales-returns
+│   │                             implemented: units, categories, products, price-lists, warehouses,
+│   │                             stock, stock-transfers, stock-adjustments
+│   │                             planned: goods-receipts (GRN), delivery-notes, sales-returns
 │   ├── erp/
 │   │                             implemented: currencies, exchange-rates, taxes, payment-terms,
 │   │                             terms-templates, document-sequences, suppliers, quotations,

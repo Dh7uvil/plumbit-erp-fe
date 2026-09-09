@@ -8,9 +8,9 @@ import { toast } from "sonner";
 
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { BillingStatusBadge } from "@/modules/erp/purchase-orders/components/purchase-order-billing-status-badge";
-import { PurchaseOrderStatusBadge } from "@/modules/erp/purchase-orders/components/purchase-order-status-badge";
-import { ReceiptStatusBadge } from "@/modules/erp/purchase-orders/components/receipt-status-badge";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { getDocumentAction } from "@/shared/components/document/workflow-registry";
+import { PURCHASE_ORDER_ACTION_REGISTRY } from "@/modules/erp/purchase-orders/workflow";
 import {
   useClonePurchaseOrder,
   useDeletePurchaseOrder,
@@ -19,10 +19,13 @@ import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissi
 import { usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
 import {
   BILLING_STATUS_LABELS,
+  BILLING_STATUS_VARIANTS,
   BILLING_STATUSES,
   RECEIPT_STATUS_LABELS,
+  RECEIPT_STATUS_VARIANTS,
   RECEIPT_STATUSES,
   PURCHASE_ORDER_STATUS_LABELS,
+  PURCHASE_ORDER_STATUS_VARIANTS,
   PURCHASE_ORDER_STATUSES,
   purchaseOrderDisplayNumber,
   type BillingStatus,
@@ -55,10 +58,6 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
-import {
-  purchaseOrderActionEffect,
-  PURCHASE_ORDER_ACTION_LABELS,
-} from "@/modules/erp/purchase-orders/workflow";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
@@ -430,9 +429,21 @@ export function PurchaseOrdersScreen() {
                   <TableCell>{formatDate(purchaseOrder.order_date)}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1">
-                      <PurchaseOrderStatusBadge status={purchaseOrder.status} />
-                      <ReceiptStatusBadge status={purchaseOrder.receipt_status} />
-                      <BillingStatusBadge status={purchaseOrder.billing_status} />
+                      <DocumentStatusBadge
+                        status={purchaseOrder.status}
+                        labels={PURCHASE_ORDER_STATUS_LABELS}
+                        variants={PURCHASE_ORDER_STATUS_VARIANTS}
+                      />
+                      <DocumentStatusBadge
+                        status={purchaseOrder.receipt_status}
+                        labels={RECEIPT_STATUS_LABELS}
+                        variants={RECEIPT_STATUS_VARIANTS}
+                      />
+                      <DocumentStatusBadge
+                        status={purchaseOrder.billing_status}
+                        labels={BILLING_STATUS_LABELS}
+                        variants={BILLING_STATUS_VARIANTS}
+                      />
                     </div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -479,16 +490,15 @@ export function PurchaseOrdersScreen() {
       </DataTable>
       <ConfirmActionDialog
         open={Boolean(deleting)}
-        title={`${PURCHASE_ORDER_ACTION_LABELS.delete} purchase order ${deleting ? (purchaseOrderDisplayNumber(deleting) ?? "purchase order") : "purchase order"}`}
+        title={`${getDocumentAction(PURCHASE_ORDER_ACTION_REGISTRY, "delete").label} purchase order ${deleting ? (purchaseOrderDisplayNumber(deleting) ?? "purchase order") : "purchase order"}`}
         description={
           deleting
-            ? purchaseOrderActionEffect(
-                "delete",
+            ? (getDocumentAction(PURCHASE_ORDER_ACTION_REGISTRY, "delete").confirmCopy?.(
                 purchaseOrderDisplayNumber(deleting) ?? "purchase order",
-              )
+              ) ?? "")
             : ""
         }
-        confirmLabel={PURCHASE_ORDER_ACTION_LABELS.delete}
+        confirmLabel={getDocumentAction(PURCHASE_ORDER_ACTION_REGISTRY, "delete").label}
         pending={deletePurchaseOrder.isPending}
         onOpenChange={(open) => {
           if (!open) {

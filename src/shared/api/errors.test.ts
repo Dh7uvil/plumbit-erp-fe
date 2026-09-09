@@ -13,6 +13,20 @@ describe("getErrorMessage", () => {
     expect(getErrorMessage("PERIOD_LOCKED")).toBe(
       "This date falls in a locked period and cannot be changed.",
     );
+    expect(getErrorMessage("FINANCIAL_TRANSACTION_LOCKED")).toBe(
+      "This record is posted and can no longer be changed.",
+    );
+  });
+
+  it("surfaces the server upload size limit", () => {
+    expect(
+      getErrorMessage(
+        new ApiError("VALIDATION_ERROR", "ignored", 400, {
+          max_upload_size_mb: 25,
+          size_bytes: 30 * 1024 * 1024,
+        }),
+      ),
+    ).toBe("Files must be 25 MB or smaller.");
   });
 
   it("appends warehouse and qty from insufficient-stock details", () => {

@@ -25,6 +25,19 @@ export const SALES_ORDER_STATUS_LABELS: Record<SalesOrderStatus, string> = {
   CANCELLED: "Cancelled",
 };
 
+export const SALES_ORDER_STATUS_VARIANTS: Record<
+  SalesOrderStatus,
+  "muted" | "warning" | "info" | "success" | "destructive" | "secondary"
+> = {
+  DRAFT: "muted",
+  PENDING_APPROVAL: "warning",
+  APPROVED: "info",
+  CONFIRMED: "success",
+  REJECTED: "destructive",
+  CANCELLED: "destructive",
+  CLOSED: "secondary",
+};
+
 export const FULFILLMENT_STATUSES = ["NOT_DELIVERED", "PARTIALLY_DELIVERED", "DELIVERED"] as const;
 export const FulfillmentStatusSchema = z.enum(FULFILLMENT_STATUSES);
 export type FulfillmentStatus = z.infer<typeof FulfillmentStatusSchema>;
@@ -35,6 +48,15 @@ export const FULFILLMENT_STATUS_LABELS: Record<FulfillmentStatus, string> = {
   DELIVERED: "Delivered",
 };
 
+export const FULFILLMENT_STATUS_VARIANTS: Record<
+  FulfillmentStatus,
+  "muted" | "warning" | "success"
+> = {
+  NOT_DELIVERED: "muted",
+  PARTIALLY_DELIVERED: "warning",
+  DELIVERED: "success",
+};
+
 export const BILLING_STATUSES = ["NOT_INVOICED", "PARTIALLY_INVOICED", "INVOICED"] as const;
 export const BillingStatusSchema = z.enum(BILLING_STATUSES);
 export type BillingStatus = z.infer<typeof BillingStatusSchema>;
@@ -43,6 +65,12 @@ export const BILLING_STATUS_LABELS: Record<BillingStatus, string> = {
   NOT_INVOICED: "Not invoiced",
   PARTIALLY_INVOICED: "Partially invoiced",
   INVOICED: "Invoiced",
+};
+
+export const BILLING_STATUS_VARIANTS: Record<BillingStatus, "muted" | "warning" | "success"> = {
+  NOT_INVOICED: "muted",
+  PARTIALLY_INVOICED: "warning",
+  INVOICED: "success",
 };
 
 export const PLACES_OF_SUPPLY = [

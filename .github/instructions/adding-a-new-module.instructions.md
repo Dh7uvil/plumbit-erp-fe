@@ -33,7 +33,7 @@ Everything belongs to exactly one of them.
 
 | Module                  | Owns                                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users-management`      | Identity (BE `app/auth/`): **implemented** auth, users, roles, permissions, tenants/org-settings, branches, departments, employees (nested), audit-logs. **Planned:** tenant operational settings.                                                                                                                                                               |
+| `users-management`      | Identity (BE `app/auth/`): **implemented** auth, users, roles, permissions, tenants/org-settings, branches, departments, employees (nested), audit-logs, activity. Attachments via `identity.attachment.*`. Tenant `allow_negative_stock` is on `/tenants/current`; lock dates are edited through `/period-lock`.                                                |
 | `erp`                   | **Implemented:** quotations, sales-orders, purchase-orders, currencies, exchange-rates, taxes, payment-terms, terms-templates, document-sequences, suppliers, period-lock. **Planned:** sales-invoices, credit-notes, customer-payments, purchase-invoices, debit-notes, supplier-payments, accounting (COA, journals, AR, AP), logistics, einvoicing status UX. |
 | `inventory-management`  | **Implemented:** units, categories, products, price-lists, warehouses, stock (balances + `/stock-movements`), stock-transfers, stock-adjustments. **Planned:** goods-receipts, delivery-notes, sales-returns.                                                                                                                                                    |
 | `crm`                   | **Implemented:** customers, contacts. **Planned:** leads, opportunities, activities.                                                                                                                                                                                                                                                                             |
@@ -68,6 +68,7 @@ plumbit-erp-fe/
 │   ├── modules/                      one folder per top-level module, slices inside
 │   │   ├── users-management/         auth/ users/ roles/ permissions/ tenants/
 │   │   │                             organization-settings/ branches/ departments/ audit-logs/
+│   │   │                             activity/ attachments/
 │   │   ├── erp/
 │   │   │   ├── quotations/  currencies/  exchange-rates/  suppliers/  period-lock/
 │   │   │   ├── accounting/  taxes/ payment-terms/ terms-templates/ document-sequences/
@@ -85,7 +86,7 @@ plumbit-erp-fe/
 │   ├── shared/                       shared building blocks — no module business logic
 │   │   ├── api/                      client.ts envelope.ts errors.ts query-client.ts
 │   │   ├── auth/                     session.ts permissions.ts use-crud-permissions.ts guards.tsx
-│   │   ├── components/               ui/ (shadcn primitives) data-table/ form/ layout/ feedback/
+│   │   ├── components/               ui/ (shadcn primitives) data-table/ form/ layout/ feedback/ document/
 │   │   ├── hooks/                    use-table-params.ts use-debounced-value.ts
 │   │   ├── lib/                      format.ts cn.ts search-params.ts
 │   │   ├── providers/                query-provider.tsx session-provider.tsx theme-provider.tsx
@@ -96,7 +97,7 @@ plumbit-erp-fe/
 │
 ├── e2e/                              Playwright specs for critical flows
 ├── public/
-├── docs/                             administration-api-gaps.md (do not invent screens without an API)
+├── docs/                             OpenAPI snapshots synced from the backend
 │
 ├── .env.example  .gitignore  Dockerfile
 ├── next.config.ts  tsconfig.json  eslint.config.mjs  package.json  README.md
@@ -181,8 +182,7 @@ hardcode a link that the current user may not be allowed to open.
 ```
 
 Hiding a link is a usability decision, not a security one — the backend still enforces access.
-Register nav **only** for slices with a live API. Feature-flag or omit unimplemented slices (same
-rule as [administration-api-gaps.md](../../../docs/administration-api-gaps.md)).
+Register nav **only** for slices with a live API. Feature-flag or omit unimplemented slices.
 
 ## Render flow
 

@@ -7,7 +7,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
-import { StockTransferStatusBadge } from "@/modules/inventory-management/stock-transfers/components/stock-transfer-status-badge";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import {
   useCloneStockTransfer,
   useDeleteStockTransfer,
@@ -16,15 +17,13 @@ import { stockTransferPermissions } from "@/modules/inventory-management/stock-t
 import { useStockTransfers } from "@/modules/inventory-management/stock-transfers/queries";
 import {
   STOCK_DOCUMENT_STATUS_LABELS,
+  STOCK_DOCUMENT_STATUS_VARIANTS,
   STOCK_DOCUMENT_STATUSES,
   stockTransferDisplayNumber,
   type StockDocumentStatus,
   type StockTransfer,
 } from "@/modules/inventory-management/stock-transfers/schemas";
-import {
-  STOCK_TRANSFER_ACTION_LABELS,
-  stockTransferActionEffect,
-} from "@/modules/inventory-management/stock-transfers/workflow";
+import { STOCK_TRANSFER_ACTION_REGISTRY } from "@/modules/inventory-management/stock-transfers/workflow";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -390,7 +389,11 @@ export function StockTransfersScreen() {
                   <TableCell>{warehouseLabelById.get(row.from_warehouse_id) ?? "—"}</TableCell>
                   <TableCell>{warehouseLabelById.get(row.to_warehouse_id) ?? "—"}</TableCell>
                   <TableCell>
-                    <StockTransferStatusBadge status={row.status} />
+                    <DocumentStatusBadge
+                      status={row.status}
+                      labels={STOCK_DOCUMENT_STATUS_LABELS}
+                      variants={STOCK_DOCUMENT_STATUS_VARIANTS}
+                    />
                   </TableCell>
                   {showActions ? (
                     <TableCell>
@@ -433,16 +436,15 @@ export function StockTransfersScreen() {
       </DataTable>
       <ConfirmActionDialog
         open={Boolean(deleting)}
-        title={`${STOCK_TRANSFER_ACTION_LABELS.delete} stock transfer ${deleting ? (stockTransferDisplayNumber(deleting) ?? "transfer") : "transfer"}`}
+        title={`${getDocumentAction(STOCK_TRANSFER_ACTION_REGISTRY, "delete").label} stock transfer ${deleting ? (stockTransferDisplayNumber(deleting) ?? "transfer") : "transfer"}`}
         description={
           deleting
-            ? stockTransferActionEffect(
-                "delete",
+            ? (getDocumentAction(STOCK_TRANSFER_ACTION_REGISTRY, "delete").confirmCopy?.(
                 stockTransferDisplayNumber(deleting) ?? "transfer",
-              )
+              ) ?? "")
             : ""
         }
-        confirmLabel={STOCK_TRANSFER_ACTION_LABELS.delete}
+        confirmLabel={getDocumentAction(STOCK_TRANSFER_ACTION_REGISTRY, "delete").label}
         pending={deleteTransfer.isPending}
         onOpenChange={(open) => {
           if (!open) {

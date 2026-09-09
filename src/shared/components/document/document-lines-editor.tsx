@@ -2,18 +2,20 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
-import { useFieldArray } from "react-hook-form";
+import {
+  type ArrayPath,
+  type FieldArray,
+  type FieldValues,
+  type Path,
+  type PathValue,
+  type UseFormReturn,
+  useFieldArray,
+} from "react-hook-form";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { TaxFormDialog } from "@/modules/erp/accounting/taxes/components/tax-form-dialog";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
-import type {
-  PurchaseOrderFormValues,
-  PurchaseOrderLineFormValues,
-} from "@/modules/erp/purchase-orders/schemas";
-import { DISCOUNT_TYPE_LABELS, DISCOUNT_TYPES } from "@/modules/erp/purchase-orders/schemas";
 import { ProductFormDialog } from "@/modules/inventory-management/products/components/product-form-dialog";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
@@ -21,6 +23,11 @@ import type { Product } from "@/modules/inventory-management/products/schemas";
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
+import {
+  DISCOUNT_TYPE_LABELS,
+  DISCOUNT_TYPES,
+  emptyDocumentLine,
+} from "@/shared/components/document/schemas";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
@@ -53,25 +60,21 @@ const LINE_HEADERS = [
   "",
 ] as const;
 
-export function emptyPurchaseOrderLine(): PurchaseOrderLineFormValues {
-  return {
-    product_id: OPTIONAL_SELECT_NONE,
-    description: "",
-    quantity: "1",
-    unit_id: OPTIONAL_SELECT_NONE,
-    rate: "",
-    discount_type: OPTIONAL_SELECT_NONE,
-    discount_value: "",
-    tax_id: OPTIONAL_SELECT_NONE,
-  };
+function linePath<TFieldValues extends FieldValues>(
+  index: number,
+  field: string,
+): Path<TFieldValues> {
+  return `lines.${index}.${field}` as Path<TFieldValues>;
 }
 
-export function PurchaseOrderLinesEditor({
+export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   form,
   disabled,
+  productSide,
 }: {
-  form: UseFormReturn<PurchaseOrderFormValues>;
+  form: UseFormReturn<TFieldValues>;
   disabled: boolean;
+  productSide: "sales" | "purchase";
 }) {
   const can = useCan();
   const productsQuery = useAllProducts();
@@ -79,7 +82,7 @@ export function PurchaseOrderLinesEditor({
   const taxesQuery = useAllTaxes();
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "lines",
+    name: "lines" as ArrayPath<TFieldValues>,
   });
   const [lineCreate, setLineCreate] = useState<{
     type: "product" | "unit" | "tax";
@@ -93,16 +96,36 @@ export function PurchaseOrderLinesEditor({
     index: number,
     product: Pick<
       Product,
-      "name" | "purchase_description" | "purchase_rate" | "unit_id" | "tax_id"
+      | "name"
+      | "sales_description"
+      | "purchase_description"
+      | "selling_rate"
+      | "purchase_rate"
+      | "unit_id"
+      | "tax_id"
     >,
   ) {
+    const description =
+      productSide === "purchase"
+        ? product.purchase_description?.trim() || product.name
+        : product.sales_description?.trim() || product.name;
+    const rate = productSide === "purchase" ? product.purchase_rate : product.selling_rate;
     form.setValue(
-      `lines.${index}.description`,
-      product.purchase_description?.trim() || product.name,
+      linePath<TFieldValues>(index, "description"),
+      description as PathValue<TFieldValues, Path<TFieldValues>>,
     );
-    form.setValue(`lines.${index}.rate`, product.purchase_rate ?? "");
-    form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
-    form.setValue(`lines.${index}.tax_id`, product.tax_id ?? OPTIONAL_SELECT_NONE);
+    form.setValue(
+      linePath<TFieldValues>(index, "rate"),
+      (rate ?? "") as PathValue<TFieldValues, Path<TFieldValues>>,
+    );
+    form.setValue(
+      linePath<TFieldValues>(index, "unit_id"),
+      (product.unit_id ?? OPTIONAL_SELECT_NONE) as PathValue<TFieldValues, Path<TFieldValues>>,
+    );
+    form.setValue(
+      linePath<TFieldValues>(index, "tax_id"),
+      (product.tax_id ?? OPTIONAL_SELECT_NONE) as PathValue<TFieldValues, Path<TFieldValues>>,
+    );
   }
 
   function applyProduct(index: number, productId: string) {
@@ -137,12 +160,12 @@ export function PurchaseOrderLinesEditor({
                   <TableCell className="min-w-48 align-top">
                     <FormField
                       control={form.control}
-                      name={`lines.${index}.product_id`}
+                      name={linePath<TFieldValues>(index, "product_id")}
                       render={({ field: productField }) => (
                         <FormItem>
                           <MasterSelect
                             compact
-                            value={productField.value}
+                            value={String(productField.value ?? OPTIONAL_SELECT_NONE)}
                             onValueChange={(value) => {
                               productField.onChange(value);
                               if (value !== OPTIONAL_SELECT_NONE) {
@@ -174,7 +197,7 @@ export function PurchaseOrderLinesEditor({
                   <TableCell className="min-w-56 align-top">
                     <FormField
                       control={form.control}
-                      name={`lines.${index}.description`}
+                      name={linePath<TFieldValues>(index, "description")}
                       render={({ field: descriptionField }) => (
                         <FormItem>
                           <FormControl>
@@ -192,7 +215,7 @@ export function PurchaseOrderLinesEditor({
                   <TableCell className="w-24 align-top">
                     <FormField
                       control={form.control}
-                      name={`lines.${index}.quantity`}
+                      name={linePath<TFieldValues>(index, "quantity")}
                       render={({ field: quantityField }) => (
                         <FormItem>
                           <FormControl>
@@ -212,12 +235,12 @@ export function PurchaseOrderLinesEditor({
                   <TableCell className="min-w-32 align-top">
                     <FormField
                       control={form.control}
-                      name={`lines.${index}.unit_id`}
+                      name={linePath<TFieldValues>(index, "unit_id")}
                       render={({ field: unitField }) => (
                         <FormItem>
                           <MasterSelect
                             compact
-                            value={unitField.value}
+                            value={String(unitField.value ?? OPTIONAL_SELECT_NONE)}
                             onValueChange={unitField.onChange}
                             disabled={disabled || unitsQuery.isLoading}
                             placeholder="None"
@@ -244,7 +267,7 @@ export function PurchaseOrderLinesEditor({
                   <TableCell className="w-28 align-top">
                     <FormField
                       control={form.control}
-                      name={`lines.${index}.rate`}
+                      name={linePath<TFieldValues>(index, "rate")}
                       render={({ field: rateField }) => (
                         <FormItem>
                           <FormControl>
@@ -264,11 +287,11 @@ export function PurchaseOrderLinesEditor({
                   <TableCell className="min-w-36 align-top">
                     <FormField
                       control={form.control}
-                      name={`lines.${index}.discount_type`}
+                      name={linePath<TFieldValues>(index, "discount_type")}
                       render={({ field: typeField }) => (
                         <FormItem>
                           <Select
-                            value={typeField.value}
+                            value={String(typeField.value ?? OPTIONAL_SELECT_NONE)}
                             onValueChange={typeField.onChange}
                             disabled={disabled}
                           >
@@ -294,7 +317,7 @@ export function PurchaseOrderLinesEditor({
                   <TableCell className="w-28 align-top">
                     <FormField
                       control={form.control}
-                      name={`lines.${index}.discount_value`}
+                      name={linePath<TFieldValues>(index, "discount_value")}
                       render={({ field: discountField }) => (
                         <FormItem>
                           <FormControl>
@@ -313,12 +336,12 @@ export function PurchaseOrderLinesEditor({
                   <TableCell className="min-w-36 align-top">
                     <FormField
                       control={form.control}
-                      name={`lines.${index}.tax_id`}
+                      name={linePath<TFieldValues>(index, "tax_id")}
                       render={({ field: taxField }) => (
                         <FormItem>
                           <MasterSelect
                             compact
-                            value={taxField.value}
+                            value={String(taxField.value ?? OPTIONAL_SELECT_NONE)}
                             onValueChange={taxField.onChange}
                             disabled={disabled || taxesQuery.isLoading}
                             placeholder="None"
@@ -367,7 +390,9 @@ export function PurchaseOrderLinesEditor({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => append(emptyPurchaseOrderLine())}
+          onClick={() =>
+            append(emptyDocumentLine() as FieldArray<TFieldValues, ArrayPath<TFieldValues>>)
+          }
         >
           <Plus className="size-3.5" />
           Add line
@@ -381,7 +406,10 @@ export function PurchaseOrderLinesEditor({
           if (lineCreate?.type !== "product") {
             return;
           }
-          form.setValue(`lines.${lineCreate.index}.product_id`, entity.id);
+          form.setValue(
+            linePath<TFieldValues>(lineCreate.index, "product_id"),
+            entity.id as PathValue<TFieldValues, Path<TFieldValues>>,
+          );
           applyProductValues(lineCreate.index, entity);
         }}
         onOpenChange={(open) => {
@@ -397,7 +425,10 @@ export function PurchaseOrderLinesEditor({
           if (lineCreate?.type !== "unit") {
             return;
           }
-          form.setValue(`lines.${lineCreate.index}.unit_id`, entity.id);
+          form.setValue(
+            linePath<TFieldValues>(lineCreate.index, "unit_id"),
+            entity.id as PathValue<TFieldValues, Path<TFieldValues>>,
+          );
         }}
         onOpenChange={(open) => {
           if (!open) {
@@ -413,7 +444,10 @@ export function PurchaseOrderLinesEditor({
           if (lineCreate?.type !== "tax") {
             return;
           }
-          form.setValue(`lines.${lineCreate.index}.tax_id`, entity.id);
+          form.setValue(
+            linePath<TFieldValues>(lineCreate.index, "tax_id"),
+            entity.id as PathValue<TFieldValues, Path<TFieldValues>>,
+          );
         }}
         onOpenChange={(open) => {
           if (!open) {
