@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
+import { SupplierProductsPanel } from "@/modules/erp/supplier-products/components/supplier-products-panel";
 import { SupplierForm } from "@/modules/erp/suppliers/components/supplier-form";
 import { useAddSupplierAddress, useDeleteSupplierAddress } from "@/modules/erp/suppliers/mutations";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
@@ -298,6 +299,7 @@ export function SupplierDetailScreen({
             </CardContent>
           </Card>
           <ContactsPanel customerId={supplier.id} />
+          <SupplierProductsPanel supplierId={supplier.id} />
           <EntityAttachmentsPanel entityType="SUPPLIER" entityId={supplier.id} />
         </>
       )}

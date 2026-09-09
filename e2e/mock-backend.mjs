@@ -48,6 +48,7 @@ let salesOrders = new Map();
 let soSeq = 0;
 let purchaseOrders = new Map();
 let poSeq = 0;
+let supplierProducts = new Map();
 let adjustments = new Map();
 let transfers = new Map();
 let balances = new Map();
@@ -149,6 +150,7 @@ function resetErpState() {
   soSeq = 0;
   purchaseOrders = new Map();
   poSeq = 0;
+  supplierProducts = new Map();
   adjustments = new Map();
   transfers = new Map();
   balances = new Map();
@@ -379,6 +381,101 @@ function supplier() {
   };
 }
 
+function mappedProductFields(productId) {
+  if (productId === PRODUCT_ID) {
+    const product = productRow();
+    return {
+      product_id: product.id,
+      product_sku: product.sku,
+      product_name: product.name,
+      is_mapped: true,
+    };
+  }
+  if (productId) {
+    return {
+      product_id: productId,
+      product_sku: null,
+      product_name: null,
+      is_mapped: true,
+    };
+  }
+  return {
+    product_id: null,
+    product_sku: null,
+    product_name: null,
+    is_mapped: false,
+  };
+}
+
+function toSupplierProduct(body, existing = null) {
+  const id = existing?.id ?? crypto.randomUUID();
+  const now = new Date().toISOString();
+  const productId =
+    body.product_id === undefined ? (existing?.product_id ?? null) : (body.product_id ?? null);
+  const mapped = mappedProductFields(productId);
+  const supplierId = body.supplier_id ?? existing?.supplier_id ?? SUPPLIER_ID;
+  const party = supplier();
+  return {
+    id,
+    tenant_id: TENANT_ID,
+    supplier_id: supplierId,
+    supplier_name: supplierId === SUPPLIER_ID ? party.name : null,
+    ...mapped,
+    supplier_sku: body.supplier_sku ?? existing?.supplier_sku ?? "",
+    supplier_item_name: body.supplier_item_name ?? existing?.supplier_item_name ?? "",
+    supplier_description:
+      body.supplier_description === undefined
+        ? (existing?.supplier_description ?? null)
+        : body.supplier_description,
+    price: body.price === undefined ? (existing?.price ?? null) : body.price,
+    currency_id: body.currency_id ?? existing?.currency_id ?? CURRENCY_ID,
+    currency_code: "AED",
+    price_updated_at: existing?.price_updated_at ?? (body.price ? now : null),
+    is_preferred: body.is_preferred ?? existing?.is_preferred ?? false,
+    is_preferred_supplier: body.is_preferred_supplier ?? existing?.is_preferred_supplier ?? false,
+    notes: body.notes === undefined ? (existing?.notes ?? null) : body.notes,
+    is_active: body.is_active ?? existing?.is_active ?? true,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function filterSupplierProducts(searchParams) {
+  let rows = [...supplierProducts.values()];
+  const supplierId = searchParams.get("supplier_id");
+  const productId = searchParams.get("product_id");
+  const mapped = searchParams.get("mapped");
+  const isActive = searchParams.get("is_active");
+  const search = (searchParams.get("search") ?? searchParams.get("q") ?? "").trim().toLowerCase();
+  if (supplierId) {
+    rows = rows.filter((row) => row.supplier_id === supplierId);
+  }
+  if (productId) {
+    rows = rows.filter((row) => row.product_id === productId);
+  }
+  if (mapped === "true") {
+    rows = rows.filter((row) => row.is_mapped);
+  }
+  if (mapped === "false") {
+    rows = rows.filter((row) => !row.is_mapped);
+  }
+  if (isActive === "true") {
+    rows = rows.filter((row) => row.is_active);
+  }
+  if (isActive === "false") {
+    rows = rows.filter((row) => !row.is_active);
+  }
+  if (search) {
+    rows = rows.filter(
+      (row) =>
+        row.supplier_sku.toLowerCase().includes(search) ||
+        row.supplier_item_name.toLowerCase().includes(search) ||
+        (row.supplier_description ?? "").toLowerCase().includes(search),
+    );
+  }
+  return rows;
+}
+
 function salesOrderAvailableActions(status) {
   const requiresApproval = tenantState.sales_order_requires_approval;
   switch (status) {
@@ -493,10 +590,15 @@ function buildPurchaseOrderLines(inputLines) {
   return (inputLines ?? []).map((line, index) => {
     const quantity = line.quantity ?? "1";
     const rate = line.rate ?? "0";
+    const catalog = line.supplier_product_id
+      ? supplierProducts.get(line.supplier_product_id)
+      : null;
     return {
       id: crypto.randomUUID(),
       line_number: index + 1,
-      product_id: line.product_id ?? null,
+      product_id: line.product_id ?? catalog?.product_id ?? null,
+      supplier_product_id: line.supplier_product_id ?? null,
+      supplier_sku: line.supplier_sku ?? catalog?.supplier_sku ?? null,
       description: line.description ?? "",
       quantity: String(quantity),
       unit_id: line.unit_id ?? null,
@@ -1296,6 +1398,11 @@ function me() {
       "erp.supplier.create",
       "erp.supplier.update",
       "erp.supplier.delete",
+      "erp.supplier_product.read",
+      "erp.supplier_product.create",
+      "erp.supplier_product.update",
+      "erp.supplier_product.delete",
+      "erp.supplier_product.link",
       "identity.attachment.read",
       "identity.attachment.create",
       "identity.attachment.update",
@@ -1629,6 +1736,147 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       listOk(res, [currency()]);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/supplier-products/resolve") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const supplierId = url.searchParams.get("supplier_id");
+      const sku = (url.searchParams.get("supplier_sku") ?? "").trim().toUpperCase();
+      const match = [...supplierProducts.values()].find(
+        (row) => row.supplier_id === supplierId && row.supplier_sku.trim().toUpperCase() === sku,
+      );
+      if (!match) {
+        ok(res, {
+          supplier_sku: url.searchParams.get("supplier_sku"),
+          status: "UNKNOWN_SKU",
+          supplier_product_id: null,
+          product_id: null,
+          product_sku: null,
+          product_name: null,
+        });
+        return;
+      }
+      ok(res, {
+        supplier_sku: match.supplier_sku,
+        status: match.is_mapped ? "MAPPED" : "UNMAPPED",
+        supplier_product_id: match.id,
+        product_id: match.product_id,
+        product_sku: match.product_sku,
+        product_name: match.product_name,
+      });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/supplier-products/resolve") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const skus = body.supplier_skus ?? [];
+      ok(
+        res,
+        skus.map((supplierSku) => {
+          const normalized = String(supplierSku).trim().toUpperCase();
+          const match = [...supplierProducts.values()].find(
+            (row) =>
+              row.supplier_id === body.supplier_id &&
+              row.supplier_sku.trim().toUpperCase() === normalized,
+          );
+          if (!match) {
+            return {
+              supplier_sku: supplierSku,
+              status: "UNKNOWN_SKU",
+              supplier_product_id: null,
+              product_id: null,
+              product_sku: null,
+              product_name: null,
+            };
+          }
+          return {
+            supplier_sku: match.supplier_sku,
+            status: match.is_mapped ? "MAPPED" : "UNMAPPED",
+            supplier_product_id: match.id,
+            product_id: match.product_id,
+            product_sku: match.product_sku,
+            product_name: match.product_name,
+          };
+        }),
+      );
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/supplier-products") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, filterSupplierProducts(url.searchParams));
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/supplier-products") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const row = toSupplierProduct(body);
+      supplierProducts.set(row.id, row);
+      ok(res, row, 201);
+      return;
+    }
+
+    const supplierProductLink = url.pathname.match(
+      /^\/api\/v1\/supplier-products\/([0-9a-f-]{36})\/(link|unlink)$/i,
+    );
+    if (req.method === "POST" && supplierProductLink) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = supplierProducts.get(supplierProductLink[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const body = supplierProductLink[2] === "link" ? await readBody(req) : {};
+      const row = toSupplierProduct(
+        supplierProductLink[2] === "link" ? { product_id: body.product_id } : { product_id: null },
+        existing,
+      );
+      supplierProducts.set(row.id, row);
+      ok(res, row);
+      return;
+    }
+
+    const supplierProductDetail = url.pathname.match(
+      /^\/api\/v1\/supplier-products\/([0-9a-f-]{36})$/i,
+    );
+    if (
+      supplierProductDetail &&
+      (req.method === "GET" || req.method === "PATCH" || req.method === "DELETE")
+    ) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = supplierProducts.get(supplierProductDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "DELETE") {
+        supplierProducts.delete(supplierProductDetail[1]);
+        ok(res, existing);
+        return;
+      }
+      const body = await readBody(req);
+      const row = toSupplierProduct(body, existing);
+      supplierProducts.set(row.id, row);
+      ok(res, row);
       return;
     }
 

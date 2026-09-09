@@ -34,7 +34,7 @@ Everything belongs to exactly one of them.
 | Module                  | Owns                                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `users-management`      | Identity (BE `app/auth/`): **implemented** auth, users, roles, permissions, tenants/org-settings, branches, departments, employees (nested), audit-logs, activity. Attachments via `identity.attachment.*`. Tenant `allow_negative_stock` is on `/tenants/current`; lock dates are edited through `/period-lock`.                                                |
-| `erp`                   | **Implemented:** quotations, sales-orders, purchase-orders, currencies, exchange-rates, taxes, payment-terms, terms-templates, document-sequences, suppliers, period-lock. **Planned:** sales-invoices, credit-notes, customer-payments, purchase-invoices, debit-notes, supplier-payments, accounting (COA, journals, AR, AP), logistics, einvoicing status UX. |
+| `erp`                   | **Implemented:** quotations, sales-orders, purchase-orders, currencies, exchange-rates, taxes, payment-terms, terms-templates, document-sequences, suppliers, supplier-products, period-lock. **Planned:** sales-invoices, credit-notes, customer-payments, purchase-invoices, debit-notes, supplier-payments, accounting (COA, journals, AR, AP), logistics, einvoicing status UX. |
 | `inventory-management`  | **Implemented:** units, categories, products, price-lists, warehouses, stock (balances + `/stock-movements`), stock-transfers, stock-adjustments. **Planned:** goods-receipts, delivery-notes, sales-returns.                                                                                                                                                    |
 | `crm`                   | **Implemented:** customers, contacts. **Planned:** leads, opportunities, activities.                                                                                                                                                                                                                                                                             |
 | `communication-service` | email, whatsapp, chat, meetings (planned)                                                                                                                                                                                                                                                                                                                        |
@@ -70,7 +70,7 @@ plumbit-erp-fe/
 │   │   │                             organization-settings/ branches/ departments/ audit-logs/
 │   │   │                             activity/ attachments/
 │   │   ├── erp/
-│   │   │   ├── quotations/  currencies/  exchange-rates/  suppliers/  period-lock/
+│   │   │   ├── quotations/  currencies/  exchange-rates/  suppliers/  supplier-products/  period-lock/
 │   │   │   ├── accounting/  taxes/ payment-terms/ terms-templates/ document-sequences/
 │   │   │   ├── sales-orders/ purchase-orders/
 │   │   │   ├── sales-invoices/ credit-notes/ customer-payments/   (planned)
@@ -124,6 +124,7 @@ src/modules/erp/
 ├── quotations/           api.ts schemas.ts queries.ts mutations.ts permissions.ts components/
 ├── sales-orders/         (same shape)
 ├── purchase-orders/      (same shape)
+├── supplier-products/    (same shape)
 └── purchase-invoices/    (planned)
 ```
 

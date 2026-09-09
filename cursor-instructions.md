@@ -60,7 +60,7 @@ src/
 │   ├── erp/
 │   │                             implemented: currencies, exchange-rates, taxes, payment-terms,
 │   │                             terms-templates, document-sequences, suppliers, quotations,
-│   │                             period-lock, sales-orders, purchase-orders
+│   │                             period-lock, sales-orders, purchase-orders, supplier-products
 │   │                             planned: sales-invoices, credit-notes,
 │   │                             customer-payments, purchase-invoices,
 │   │                             debit-notes, supplier-payments, accounting (COA, journals, AR, AP),

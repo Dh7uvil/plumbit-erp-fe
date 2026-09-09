@@ -109,6 +109,7 @@ function optionalPlaceOfSupply(value: string): PlaceOfSupply | null {
 function toLineInput(line: PurchaseOrderLineFormValues): PurchaseOrderLineInput {
   return {
     product_id: optionalUuid(line.product_id),
+    supplier_product_id: optionalUuid(line.supplier_product_id),
     description: emptyToNull(line.description),
     quantity: line.quantity.trim(),
     unit_id: optionalUuid(line.unit_id),
@@ -126,6 +127,8 @@ function toFormLines(purchaseOrder: PurchaseOrder | null): PurchaseOrderLineForm
   }
   return lines.map((line) => ({
     product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
+    supplier_product_id: line.supplier_product_id ?? OPTIONAL_SELECT_NONE,
+    supplier_sku: line.supplier_sku ?? "",
     description: line.description ?? "",
     quantity: line.quantity,
     unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
@@ -251,6 +254,7 @@ export function PurchaseOrderForm({
 
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
   const selectedSupplierId = optionalUuid(supplierId);
+  const previousCatalogSupplierId = useRef(selectedSupplierId);
   const composeQuery = usePurchaseOrderComposeDefaults(isEdit ? null : selectedSupplierId);
   const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
   const taxTreatment = useWatch({ control: form.control, name: "tax_treatment" });
@@ -265,6 +269,18 @@ export function PurchaseOrderForm({
   const branches = branchesQuery.data ?? [];
   const warehouses = warehousesQuery.data ?? [];
   const templates = useMemo(() => termsTemplatesQuery.data ?? [], [termsTemplatesQuery.data]);
+
+  useEffect(() => {
+    if (previousCatalogSupplierId.current === selectedSupplierId) {
+      return;
+    }
+    previousCatalogSupplierId.current = selectedSupplierId;
+    const lines = form.getValues("lines");
+    lines.forEach((_, index) => {
+      form.setValue(`lines.${index}.supplier_product_id`, OPTIONAL_SELECT_NONE);
+      form.setValue(`lines.${index}.supplier_sku`, "");
+    });
+  }, [form, selectedSupplierId]);
 
   useEffect(() => {
     const defaults = composeQuery.data;
@@ -723,7 +739,12 @@ export function PurchaseOrderForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor form={form} disabled={disabled} productSide="purchase" />
+          <DocumentLinesEditor
+            form={form}
+            disabled={disabled}
+            productSide="purchase"
+            supplierCatalog={{ supplierId: selectedSupplierId }}
+          />
         </div>
         {purchaseOrder ? (
           <DocumentTotalsPanel totals={purchaseOrder} currencies={currencies} />

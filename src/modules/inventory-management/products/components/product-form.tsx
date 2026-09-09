@@ -113,12 +113,14 @@ function toUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
 
 export function ProductForm({
   product,
+  initialValues,
   disabled = false,
   onSuccess,
   showCancel = false,
   onCancel,
 }: {
   product: Product | null;
+  initialValues?: Partial<ProductFormValues>;
   disabled?: boolean;
   onSuccess?: (entity: Product) => void;
   showCancel?: boolean;
@@ -136,7 +138,9 @@ export function ProductForm({
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(ProductFormSchema),
-    values: toFormValues(product),
+    ...(product
+      ? { values: toFormValues(product) }
+      : { defaultValues: { ...toFormValues(null), ...initialValues } }),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
 

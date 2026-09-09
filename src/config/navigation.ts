@@ -39,6 +39,7 @@ import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
+import { supplierProductPermissions } from "@/modules/erp/supplier-products/permissions";
 import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
 import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
@@ -108,6 +109,12 @@ export const navigation: NavigationGroup[] = [
         href: "/suppliers",
         permission: supplierPermissions.read,
         icon: Truck,
+      },
+      {
+        label: "Supplier catalog",
+        href: "/supplier-products",
+        permission: supplierProductPermissions.read,
+        icon: Boxes,
       },
     ],
   },
