@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { PurchaseOrderForm } from "@/modules/erp/purchase-orders/components/purchase-order-form";
 import { usePurchaseOrderWorkflow } from "@/modules/erp/purchase-orders/hooks/use-purchase-order-workflow";
@@ -18,13 +19,22 @@ import {
   purchaseOrderDisplayNumber,
   type PurchaseOrder,
 } from "@/modules/erp/purchase-orders/schemas";
-import { PURCHASE_ORDER_ACTION_REGISTRY } from "@/modules/erp/purchase-orders/workflow";
+import { PURCHASE_ORDER_ACTION_REGISTRY, type PurchaseOrderWorkflowAction } from "@/modules/erp/purchase-orders/workflow";
+import { useCreateGoodsReceiptFromPurchaseOrder } from "@/modules/inventory-management/goods-receipts/mutations";
+import {
+  StockWriteAlert,
+  isStockWriteAlertError,
+} from "@/modules/erp/period-lock/components/stock-write-alert";
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
+import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
-import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import {
+  DocumentWorkflowButtons,
+  type DocumentWorkflowExtras,
+} from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function PurchaseOrderDetailScreen({
@@ -96,6 +106,35 @@ function PurchaseOrderDetailLoaded({
   const isEdit = mode === "edit";
   const number = purchaseOrderDisplayNumber(purchaseOrder);
   const onAction = usePurchaseOrderWorkflow(purchaseOrder);
+  const createFromPo = useCreateGoodsReceiptFromPurchaseOrder();
+  const [writeError, setWriteError] = useState<unknown>(null);
+  const workflowActions =
+    purchaseOrder.available_actions.includes("create_goods_receipt") ||
+    purchaseOrder.status !== "ISSUED" ||
+    purchaseOrder.receipt_status === "RECEIVED"
+      ? purchaseOrder.available_actions
+      : [...purchaseOrder.available_actions, "create_goods_receipt"];
+
+  async function handleAction(action: PurchaseOrderWorkflowAction, extras: DocumentWorkflowExtras) {
+    if (action === "create_goods_receipt") {
+      setWriteError(null);
+      try {
+        const receipt = await createFromPo.mutateAsync({
+          purchase_order_id: purchaseOrder.id,
+        });
+        toast.success("Goods receipt created");
+        router.push(`/goods-receipts/${receipt.id}`);
+      } catch (error) {
+        if (isStockWriteAlertError(error)) {
+          setWriteError(error);
+          return;
+        }
+        toast.error(getErrorMessage(error));
+      }
+      return;
+    }
+    await onAction(action, extras);
+  }
 
   return (
     <DocumentRecordShell
@@ -133,11 +172,12 @@ function PurchaseOrderDetailLoaded({
       }
       workflow={
         <DocumentWorkflowButtons
-          availableActions={purchaseOrder.available_actions}
+          availableActions={workflowActions}
           registry={PURCHASE_ORDER_ACTION_REGISTRY}
           documentKind="purchase order"
           documentLabel={number ?? "purchase order"}
-          onAction={onAction}
+          extra={<StockWriteAlert error={writeError} />}
+          onAction={handleAction}
         />
       }
       banner={

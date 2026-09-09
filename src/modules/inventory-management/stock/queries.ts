@@ -13,6 +13,7 @@ export const stockKeys = {
   all: ["stock"] as const,
   list: (params: StockListParams) => [...stockKeys.all, "list", params] as const,
   movements: (params: StockMovementListParams) => [...stockKeys.all, "movements", params] as const,
+  layers: (balanceId: string) => [...stockKeys.all, "layers", balanceId] as const,
 };
 
 export function useStock(params: StockListParams, enabled = true) {
@@ -30,5 +31,13 @@ export function useStockMovements(params: StockMovementListParams, enabled = tru
     queryFn: () => stockApi.listMovements(params),
     placeholderData: keepPreviousData,
     enabled,
+  });
+}
+
+export function useStockLayers(balanceId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(stockKeys.layers(balanceId ?? "")),
+    queryFn: () => stockApi.listLayers(balanceId!),
+    enabled: Boolean(balanceId) && enabled,
   });
 }

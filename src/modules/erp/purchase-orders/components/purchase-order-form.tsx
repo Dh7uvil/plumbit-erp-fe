@@ -76,6 +76,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { formatDecimal } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -746,6 +747,30 @@ export function PurchaseOrderForm({
             supplierCatalog={{ supplierId: selectedSupplierId }}
           />
         </div>
+        {purchaseOrder && purchaseOrder.lines.length > 0 ? (
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full caption-bottom text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="px-3 py-2 text-left font-medium">Line</th>
+                  <th className="px-3 py-2 text-right font-medium">Ordered</th>
+                  <th className="px-3 py-2 text-right font-medium">Received</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchaseOrder.lines.map((line) => (
+                  <tr key={line.id} className="border-b last:border-0">
+                    <td className="px-3 py-2">{line.description || `Line ${line.line_number}`}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatDecimal(line.quantity)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatDecimal(line.qty_received)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
         {purchaseOrder ? (
           <DocumentTotalsPanel totals={purchaseOrder} currencies={currencies} />
         ) : null}

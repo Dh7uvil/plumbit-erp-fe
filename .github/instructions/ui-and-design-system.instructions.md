@@ -92,6 +92,9 @@ Stock movements    search + warehouse            More: product, category, moveme
                                                  source_id, document dates
 Stock adjustments  search + status + warehouse   More: reason, branch, product, document dates
 Stock transfers    search + status + from wh     More: to warehouse, branch, product, document dates
+Goods receipts     search + status + supplier    More: warehouse, purchase order, qc_status, product,
+                                                 document dates
+Quality inspections search + status + GRN        More: inspection dates
 ```
 
 ```text

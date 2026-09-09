@@ -68,11 +68,28 @@ const BASE_LINE_HEADERS = [
   "",
 ] as const;
 
+const RECEIVE_LINE_HEADERS = [
+  "Product",
+  "Supplier SKU",
+  "Description",
+  "Qty",
+  "Unit",
+  "Rate",
+  "Net wt",
+  "Gross wt",
+  "",
+] as const;
+
 export type SupplierCatalogProps = {
   supplierId: string | null;
 };
 
-function lineHeaders(showSupplierSku: boolean): readonly string[] {
+export type DocumentLinesMode = "standard" | "receive";
+
+function lineHeaders(showSupplierSku: boolean, mode: DocumentLinesMode): readonly string[] {
+  if (mode === "receive") {
+    return RECEIVE_LINE_HEADERS;
+  }
   if (!showSupplierSku) {
     return BASE_LINE_HEADERS;
   }
@@ -158,11 +175,13 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   disabled,
   productSide,
   supplierCatalog,
+  lineMode = "standard",
 }: {
   form: UseFormReturn<TFieldValues>;
   disabled: boolean;
   productSide: "sales" | "purchase";
   supplierCatalog?: SupplierCatalogProps;
+  lineMode?: DocumentLinesMode;
 }) {
   const can = useCan();
   const productsQuery = useAllProducts();
@@ -187,7 +206,9 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const units = unitsQuery.data ?? [];
   const taxes = taxesQuery.data ?? [];
   const catalog = catalogQuery.data ?? [];
-  const headers = lineHeaders(Boolean(supplierCatalog));
+  const isReceive = lineMode === "receive";
+  const showSupplierSku = Boolean(supplierCatalog) || isReceive;
+  const headers = lineHeaders(showSupplierSku, lineMode);
   const rawCurrencyId = useWatch({
     control: form.control,
     name: "currency_id" as Path<TFieldValues>,
@@ -342,7 +363,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       />
                     ) : null}
                   </TableCell>
-                  {supplierCatalog ? (
+                  {showSupplierSku ? (
                     <TableCell className="min-w-48 align-top">
                       {disabled ? (
                         <FormField
@@ -490,6 +511,51 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
+                  {isReceive ? (
+                    <>
+                      <TableCell className="w-28 align-top">
+                        <FormField
+                          control={form.control}
+                          name={linePath<TFieldValues>(index, "net_weight")}
+                          render={({ field: weightField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  inputMode="decimal"
+                                  className="text-right"
+                                  disabled={disabled}
+                                  aria-label={`Line ${index + 1} net weight`}
+                                  {...weightField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell className="w-28 align-top">
+                        <FormField
+                          control={form.control}
+                          name={linePath<TFieldValues>(index, "gross_weight")}
+                          render={({ field: weightField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  inputMode="decimal"
+                                  className="text-right"
+                                  disabled={disabled}
+                                  aria-label={`Line ${index + 1} gross weight`}
+                                  {...weightField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
                   <TableCell className="min-w-36 align-top">
                     <FormField
                       control={form.control}
@@ -571,6 +637,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
+                    </>
+                  )}
                   <TableCell className="align-top">
                     {disabled ? null : (
                       <Button

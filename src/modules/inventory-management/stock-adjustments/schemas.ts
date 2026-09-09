@@ -48,6 +48,7 @@ export const StockAdjustmentLineSchema = z.object({
   qty_counted: NullableDecimalStringSchema,
   qty_booked: NullableDecimalStringSchema,
   qty_delta: NullableDecimalStringSchema,
+  unit_cost: NullableDecimalStringSchema,
   notes: z.string().nullable(),
 });
 export type StockAdjustmentLine = z.infer<typeof StockAdjustmentLineSchema>;
@@ -85,6 +86,7 @@ export const StockAdjustmentLineInputSchema = z.object({
   unit_id: z.string().uuid().nullable().optional(),
   qty_delta: NullableDecimalStringSchema.optional(),
   qty_counted: NullableDecimalStringSchema.optional(),
+  unit_cost: NullableDecimalStringSchema.optional(),
   notes: z.string().nullable().optional(),
 });
 export type StockAdjustmentLineInput = z.infer<typeof StockAdjustmentLineInputSchema>;
@@ -117,6 +119,7 @@ export const StockAdjustmentLineFormSchema = z.object({
   unit_id: z.string(),
   qty_delta: z.string(),
   qty_counted: z.string(),
+  unit_cost: z.string(),
   notes: z.string(),
 });
 export type StockAdjustmentLineFormValues = z.infer<typeof StockAdjustmentLineFormSchema>;
@@ -133,6 +136,7 @@ export function isBlankAdjustmentLine(line: StockAdjustmentLineFormValues): bool
     !hasProductId(line.product_id) &&
     !line.qty_delta.trim() &&
     !line.qty_counted.trim() &&
+    !line.unit_cost.trim() &&
     !line.notes.trim()
   );
 }

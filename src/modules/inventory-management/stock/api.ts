@@ -2,9 +2,11 @@ import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
   StockBalanceListSchema,
   StockBalanceSchema,
+  StockCostLayerListSchema,
   StockMovementListSchema,
   StockReorderUpdateSchema,
   type StockBalance,
+  type StockCostLayer,
   type StockListParams,
   type StockMovement,
   type StockMovementListParams,
@@ -57,4 +59,6 @@ export const stockApi = {
     StockBalanceSchema.parse(
       await apiClient.patch(`/stock/${balanceId}/reorder`, StockReorderUpdateSchema.parse(values)),
     ),
+  listLayers: async (balanceId: string): Promise<StockCostLayer[]> =>
+    StockCostLayerListSchema.parse(await apiClient.get(`/stock/${balanceId}/layers`)),
 };

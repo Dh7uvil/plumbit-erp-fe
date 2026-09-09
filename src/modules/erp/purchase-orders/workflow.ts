@@ -1,4 +1,5 @@
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
+import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
 export const PURCHASE_ORDER_WORKFLOW_ACTIONS = [
@@ -11,6 +12,7 @@ export const PURCHASE_ORDER_WORKFLOW_ACTIONS = [
   "cancel",
   "clone",
   "delete",
+  "create_goods_receipt",
 ] as const;
 export type PurchaseOrderWorkflowAction = (typeof PURCHASE_ORDER_WORKFLOW_ACTIONS)[number];
 
@@ -67,5 +69,11 @@ export const PURCHASE_ORDER_ACTION_REGISTRY: DocumentActionSpec<PurchaseOrderWor
     variant: "destructive",
     confirmCopy: (documentNumber) =>
       `${documentNumber} will be removed. Only draft purchase orders can be deleted.`,
+  },
+  {
+    action: "create_goods_receipt",
+    label: "Create goods receipt",
+    permission: goodsReceiptPermissions.create,
+    variant: "outline",
   },
 ];

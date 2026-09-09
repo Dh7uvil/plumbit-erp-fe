@@ -84,6 +84,7 @@ function toLineInput(
     unit_id: optionalUuid(line.unit_id),
     qty_delta: reason === "COUNT" ? null : emptyToNull(line.qty_delta),
     qty_counted: reason === "COUNT" ? emptyToNull(line.qty_counted) : null,
+    unit_cost: emptyToNull(line.unit_cost),
     notes: emptyToNull(line.notes),
   };
 }
@@ -105,6 +106,7 @@ function toFormLines(
     unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
     qty_delta: line.qty_delta ?? "",
     qty_counted: line.qty_counted ?? "",
+    unit_cost: line.unit_cost ?? "",
     notes: line.notes ?? "",
   }));
 }

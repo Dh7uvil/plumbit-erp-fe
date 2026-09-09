@@ -10,6 +10,7 @@ const CUSTOMER_ID = "55555555-5555-4555-8555-555555555555";
 const SUPPLIER_ID = "14141414-1414-4141-8141-141414141414";
 const UNIT_ID = "88888888-8888-4888-8888-888888888888";
 const PRODUCT_ID = "99999999-9999-4999-8999-999999999999";
+const QC_PRODUCT_ID = "aaaa9999-9999-4999-8999-999999999aaa";
 const WAREHOUSE_MAIN_ID = "12121212-1212-4121-8121-121212121212";
 const WAREHOUSE_SITE_ID = "13131313-1313-4131-8131-131313131313";
 const EMAIL = "ada@plumbit.com";
@@ -51,10 +52,14 @@ let poSeq = 0;
 let supplierProducts = new Map();
 let adjustments = new Map();
 let transfers = new Map();
+let goodsReceipts = new Map();
+let qualityInspections = new Map();
 let balances = new Map();
 let movements = [];
 let adjSeq = 0;
 let xferSeq = 0;
+let grnSeq = 0;
+let qiSeq = 0;
 let postReplays = new Map();
 let attachments = new Map();
 let attachmentSeq = 0;
@@ -68,6 +73,10 @@ let tenantState = {
   sales_order_requires_approval: false,
   purchase_order_requires_approval: false,
   allow_negative_stock: false,
+  costing_method: "FIFO",
+  allow_over_receipt: false,
+  over_receipt_tolerance_pct: null,
+  qc_required_default: false,
   lock_date: null,
   hard_lock_date: null,
   lock_reason: null,
@@ -153,16 +162,24 @@ function resetErpState() {
   supplierProducts = new Map();
   adjustments = new Map();
   transfers = new Map();
+  goodsReceipts = new Map();
+  qualityInspections = new Map();
   balances = new Map();
   movements = [];
   adjSeq = 0;
   xferSeq = 0;
+  grnSeq = 0;
+  qiSeq = 0;
   postReplays = new Map();
   attachments = new Map();
   attachmentSeq = 0;
   tenantState.sales_order_requires_approval = false;
   tenantState.purchase_order_requires_approval = false;
   tenantState.allow_negative_stock = false;
+  tenantState.costing_method = "FIFO";
+  tenantState.allow_over_receipt = false;
+  tenantState.over_receipt_tolerance_pct = null;
+  tenantState.qc_required_default = false;
   tenantState.lock_date = null;
   tenantState.hard_lock_date = null;
   tenantState.lock_reason = null;
@@ -351,6 +368,7 @@ function productRow() {
     tax_id: null,
     hs_code: null,
     track_inventory: true,
+    requires_qc: false,
     is_active: true,
     created_at: NOW,
     updated_at: NOW,
@@ -498,7 +516,7 @@ function salesOrderAvailableActions(status) {
   }
 }
 
-function purchaseOrderAvailableActions(status) {
+function purchaseOrderAvailableActions(status, receiptStatus) {
   const requiresApproval = tenantState.purchase_order_requires_approval;
   switch (status) {
     case "DRAFT":
@@ -512,7 +530,9 @@ function purchaseOrderAvailableActions(status) {
     case "REJECTED":
       return ["reopen", "cancel", "clone"];
     case "ISSUED":
-      return ["close", "cancel", "clone"];
+      return receiptStatus === "RECEIVED"
+        ? ["close", "cancel", "clone"]
+        : ["close", "cancel", "clone", "create_goods_receipt"];
     case "CLOSED":
       return ["reopen", "clone"];
     default:
@@ -543,7 +563,7 @@ function applySalesOrderStatus(order, status) {
 function applyPurchaseOrderStatus(order, status) {
   order.status = status;
   order.version = (order.version ?? 1) + 1;
-  order.available_actions = purchaseOrderAvailableActions(status);
+  order.available_actions = purchaseOrderAvailableActions(status, order.receipt_status);
   order.updated_at = new Date().toISOString();
   if (status === "ISSUED") {
     order.issued_at = order.updated_at;
@@ -739,7 +759,7 @@ function buildPurchaseOrder(body, existing = null) {
     cancelled_at: existing?.cancelled_at ?? null,
     cancelled_by: existing?.cancelled_by ?? null,
     cancel_reason: body.reason ?? existing?.cancel_reason ?? null,
-    available_actions: purchaseOrderAvailableActions(status),
+    available_actions: purchaseOrderAvailableActions(status, existing?.receipt_status),
     lines,
     created_at: existing?.created_at ?? now,
     updated_at: now,
@@ -819,7 +839,7 @@ function balanceKey(warehouseId, productId) {
 
 function emptyBalance(warehouseId, productId) {
   const warehouse = warehouseById(warehouseId);
-  const product = productRow();
+  const product = productById(productId);
   return {
     id: crypto.randomUUID(),
     tenant_id: TENANT_ID,
@@ -831,6 +851,7 @@ function emptyBalance(warehouseId, productId) {
     product_name: product.name,
     qty_on_hand: "0",
     qty_reserved: "0",
+    qty_quality_hold: "0",
     qty_available: "0",
     qty_incoming: "0",
     qty_outgoing: "0",
@@ -849,7 +870,10 @@ function getBalance(warehouseId, productId) {
     balances.set(key, emptyBalance(warehouseId, productId));
   }
   const row = balances.get(key);
-  row.qty_available = qtyString(qtyNumber(row.qty_on_hand) - qtyNumber(row.qty_reserved));
+  row.qty_quality_hold = row.qty_quality_hold ?? "0";
+  row.qty_available = qtyString(
+    qtyNumber(row.qty_on_hand) - qtyNumber(row.qty_reserved) - qtyNumber(row.qty_quality_hold),
+  );
   return row;
 }
 
@@ -866,7 +890,10 @@ function applyMovement({
 }) {
   const delta = qtyNumber(qty);
   const balance = getBalance(warehouseId, productId);
-  const available = qtyNumber(balance.qty_on_hand) - qtyNumber(balance.qty_reserved);
+  const available =
+    qtyNumber(balance.qty_on_hand) -
+    qtyNumber(balance.qty_reserved) -
+    qtyNumber(balance.qty_quality_hold ?? 0);
   if (delta < 0 && available + delta < 0 && !tenantState.allow_negative_stock) {
     const err = new Error("INSUFFICIENT");
     err.details = {
@@ -881,7 +908,9 @@ function applyMovement({
   const before = qtyNumber(balance.qty_on_hand);
   const after = before + delta;
   balance.qty_on_hand = qtyString(after);
-  balance.qty_available = qtyString(after - qtyNumber(balance.qty_reserved));
+  balance.qty_available = qtyString(
+    after - qtyNumber(balance.qty_reserved) - qtyNumber(balance.qty_quality_hold ?? 0),
+  );
   balance.last_movement_at = new Date().toISOString();
   balance.updated_at = balance.last_movement_at;
   const movement = {
@@ -912,6 +941,395 @@ function applyMovement({
 
 function draftActions() {
   return ["post", "cancel", "clone", "delete"];
+}
+
+function goodsReceiptActions(document) {
+  if (document.status === "DRAFT") {
+    return ["post", "cancel", "delete"];
+  }
+  if (document.status === "POSTED") {
+    const actions = ["cancel"];
+    if (document.qc_status === "PENDING" || document.qc_status === "PARTIAL") {
+      actions.push("create_inspection");
+    }
+    return actions;
+  }
+  return [];
+}
+
+function qualityInspectionActions(status) {
+  if (status === "DRAFT") {
+    return ["approve", "cancel", "delete"];
+  }
+  return [];
+}
+
+function productRequiresQc(productId) {
+  return productById(productId).requires_qc === true;
+}
+
+function productById(productId) {
+  if (productId === QC_PRODUCT_ID) {
+    return qcProductRow();
+  }
+  return productRow();
+}
+
+function qcProductRow() {
+  return {
+    ...productRow(),
+    id: QC_PRODUCT_ID,
+    sku: "PIPE-QC",
+    name: "QC copper pipe",
+    requires_qc: true,
+  };
+}
+
+function buildGoodsReceiptLines(inputLines) {
+  return (inputLines ?? []).map((line, index) => ({
+    id: line.id ?? crypto.randomUUID(),
+    line_number: index + 1,
+    purchase_order_line_id: line.purchase_order_line_id ?? null,
+    product_id: line.product_id ?? PRODUCT_ID,
+    supplier_product_id: line.supplier_product_id ?? null,
+    supplier_sku: line.supplier_sku ?? null,
+    description: line.description ?? "",
+    quantity: String(line.quantity ?? "1"),
+    unit_id: line.unit_id ?? UNIT_ID,
+    rate: String(line.rate ?? "0"),
+    net_weight: line.net_weight ?? null,
+    gross_weight: line.gross_weight ?? null,
+    qty_accepted: line.qty_accepted ?? "0",
+    qty_rejected: line.qty_rejected ?? "0",
+    qty_on_hold: line.qty_on_hold ?? "0",
+  }));
+}
+
+function buildGoodsReceipt(body, existing = null) {
+  grnSeq += existing ? 0 : 1;
+  const now = new Date().toISOString();
+  const documentNumber = existing?.document_number ?? `GRN-${String(grnSeq).padStart(4, "0")}`;
+  const lines = buildGoodsReceiptLines(body.lines ?? existing?.lines ?? []);
+  const status = existing?.status ?? "DRAFT";
+  const document = {
+    id: existing?.id ?? crypto.randomUUID(),
+    tenant_id: TENANT_ID,
+    document_number: documentNumber,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    is_posted: status === "POSTED",
+    document_date: body.document_date ?? existing?.document_date ?? NOW.slice(0, 10),
+    supplier_id: body.supplier_id ?? existing?.supplier_id ?? SUPPLIER_ID,
+    warehouse_id: body.warehouse_id ?? existing?.warehouse_id ?? WAREHOUSE_MAIN_ID,
+    purchase_order_id:
+      body.purchase_order_id === undefined
+        ? (existing?.purchase_order_id ?? null)
+        : body.purchase_order_id,
+    branch_id: body.branch_id ?? existing?.branch_id ?? null,
+    tax_treatment: existing?.tax_treatment ?? "UNREGISTERED",
+    place_of_supply: existing?.place_of_supply ?? "DUBAI",
+    currency_id: body.currency_id ?? existing?.currency_id ?? CURRENCY_ID,
+    base_currency_id: existing?.base_currency_id ?? CURRENCY_ID,
+    exchange_rate: existing?.exchange_rate ?? "1",
+    supplier_invoice_number:
+      body.supplier_invoice_number ?? existing?.supplier_invoice_number ?? null,
+    delivery_challan_number:
+      body.delivery_challan_number ?? existing?.delivery_challan_number ?? null,
+    bill_of_entry_number: body.bill_of_entry_number ?? existing?.bill_of_entry_number ?? null,
+    bill_of_entry_date: body.bill_of_entry_date ?? existing?.bill_of_entry_date ?? null,
+    container_number: body.container_number ?? existing?.container_number ?? null,
+    bl_number: body.bl_number ?? existing?.bl_number ?? null,
+    notes: body.notes ?? existing?.notes ?? null,
+    qc_status: existing?.qc_status ?? "NOT_REQUIRED",
+    posted_at: existing?.posted_at ?? null,
+    posted_by: existing?.posted_by ?? null,
+    cancelled_at: existing?.cancelled_at ?? null,
+    cancelled_by: existing?.cancelled_by ?? null,
+    cancel_reason: existing?.cancel_reason ?? null,
+    available_actions: goodsReceiptActions({ status, qc_status: existing?.qc_status ?? "NOT_REQUIRED" }),
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+  document.available_actions = goodsReceiptActions(document);
+  return document;
+}
+
+function createGoodsReceiptFromPurchaseOrder(body) {
+  const order = purchaseOrders.get(body.purchase_order_id);
+  if (!order) {
+    const err = new Error("NOT_FOUND");
+    throw err;
+  }
+  const outstanding = (order.lines ?? []).filter(
+    (line) => qtyNumber(line.quantity) - qtyNumber(line.qty_received) > 0,
+  );
+  const lines = outstanding.map((line) => ({
+    purchase_order_line_id: line.id,
+    product_id: line.product_id ?? PRODUCT_ID,
+    supplier_product_id: line.supplier_product_id ?? null,
+    supplier_sku: line.supplier_sku ?? null,
+    description: line.description,
+    quantity: qtyString(qtyNumber(line.quantity) - qtyNumber(line.qty_received)),
+    unit_id: line.unit_id ?? UNIT_ID,
+    rate: line.rate,
+  }));
+  return buildGoodsReceipt({
+    supplier_id: order.supplier_id,
+    warehouse_id: body.warehouse_id ?? order.warehouse_id ?? WAREHOUSE_MAIN_ID,
+    document_date: body.document_date ?? NOW.slice(0, 10),
+    purchase_order_id: order.id,
+    notes: body.notes ?? null,
+    lines,
+  });
+}
+
+function refreshPoReceipt(order) {
+  const lines = order.lines ?? [];
+  const total = lines.reduce((sum, line) => sum + qtyNumber(line.quantity), 0);
+  const received = lines.reduce((sum, line) => sum + qtyNumber(line.qty_received), 0);
+  if (received <= 0) {
+    order.receipt_status = "NOT_RECEIVED";
+  } else if (received + 0.0001 >= total) {
+    order.receipt_status = "RECEIVED";
+  } else {
+    order.receipt_status = "PARTIALLY_RECEIVED";
+  }
+  order.available_actions = purchaseOrderAvailableActions(order.status, order.receipt_status);
+}
+
+function postGoodsReceipt(document) {
+  const needsQc = document.lines.some((line) => productRequiresQc(line.product_id));
+  const postedLines = document.lines.map((line) => {
+    const hold = productRequiresQc(line.product_id) ? line.quantity : "0";
+    if (line.product_id) {
+      applyMovement({
+        warehouseId: document.warehouse_id,
+        productId: line.product_id,
+        qty: line.quantity,
+        movementType: "PURCHASE",
+        sourceType: "goods_receipt",
+        sourceId: document.id,
+        sourceLineId: line.id,
+        documentDate: document.document_date,
+      });
+      if (productRequiresQc(line.product_id)) {
+        const balance = getBalance(document.warehouse_id, line.product_id);
+        balance.qty_quality_hold = qtyString(qtyNumber(balance.qty_quality_hold) + qtyNumber(line.quantity));
+        getBalance(document.warehouse_id, line.product_id);
+      }
+    }
+    return { ...line, qty_on_hold: hold, qty_accepted: "0", qty_rejected: "0" };
+  });
+  if (document.purchase_order_id) {
+    const order = purchaseOrders.get(document.purchase_order_id);
+    if (order) {
+      for (const line of postedLines) {
+        if (!line.purchase_order_line_id) {
+          continue;
+        }
+        const poLine = order.lines.find((item) => item.id === line.purchase_order_line_id);
+        if (poLine) {
+          poLine.qty_received = qtyString(qtyNumber(poLine.qty_received) + qtyNumber(line.quantity));
+        }
+      }
+      refreshPoReceipt(order);
+      purchaseOrders.set(order.id, order);
+    }
+  }
+  const now = new Date().toISOString();
+  const posted = {
+    ...document,
+    status: "POSTED",
+    is_posted: true,
+    version: document.version + 1,
+    posted_at: now,
+    posted_by: USER_ID,
+    qc_status: needsQc ? "PENDING" : "NOT_REQUIRED",
+    lines: postedLines,
+    updated_at: now,
+  };
+  posted.available_actions = goodsReceiptActions(posted);
+  if (needsQc) {
+    const inspection = buildQualityInspection({
+      goods_receipt_id: posted.id,
+      lines: postedLines
+        .filter((line) => qtyNumber(line.qty_on_hold) > 0)
+        .map((line) => ({
+          goods_receipt_line_id: line.id,
+          qty_inspected: line.qty_on_hold,
+          qty_accepted: line.qty_on_hold,
+          qty_rejected: "0",
+          qty_rework: "0",
+        })),
+    });
+    qualityInspections.set(inspection.id, inspection);
+  }
+  return posted;
+}
+
+function cancelPostedGoodsReceipt(document) {
+  const approved = [...qualityInspections.values()].some(
+    (row) => row.goods_receipt_id === document.id && row.status === "APPROVED",
+  );
+  if (approved) {
+    const err = new Error("GRN_CANNOT_CANCEL");
+    throw err;
+  }
+  for (const line of document.lines) {
+    if (!line.product_id) {
+      continue;
+    }
+    applyMovement({
+      warehouseId: document.warehouse_id,
+      productId: line.product_id,
+      qty: `-${line.quantity}`,
+      movementType: "PURCHASE",
+      sourceType: "goods_receipt",
+      sourceId: document.id,
+      sourceLineId: line.id,
+      documentDate: document.document_date,
+    });
+    if (qtyNumber(line.qty_on_hold) > 0) {
+      const balance = getBalance(document.warehouse_id, line.product_id);
+      balance.qty_quality_hold = qtyString(
+        Math.max(0, qtyNumber(balance.qty_quality_hold) - qtyNumber(line.qty_on_hold)),
+      );
+      getBalance(document.warehouse_id, line.product_id);
+    }
+  }
+  if (document.purchase_order_id) {
+    const order = purchaseOrders.get(document.purchase_order_id);
+    if (order) {
+      for (const line of document.lines) {
+        if (!line.purchase_order_line_id) {
+          continue;
+        }
+        const poLine = order.lines.find((item) => item.id === line.purchase_order_line_id);
+        if (poLine) {
+          poLine.qty_received = qtyString(
+            Math.max(0, qtyNumber(poLine.qty_received) - qtyNumber(line.quantity)),
+          );
+        }
+      }
+      refreshPoReceipt(order);
+      purchaseOrders.set(order.id, order);
+    }
+  }
+  for (const inspection of qualityInspections.values()) {
+    if (inspection.goods_receipt_id === document.id && inspection.status === "DRAFT") {
+      inspection.status = "CANCELLED";
+      inspection.available_actions = [];
+      inspection.version += 1;
+    }
+  }
+  const now = new Date().toISOString();
+  return {
+    ...document,
+    status: "CANCELLED",
+    is_posted: false,
+    version: document.version + 1,
+    cancelled_at: now,
+    cancelled_by: USER_ID,
+    available_actions: [],
+    updated_at: now,
+  };
+}
+
+function buildQualityInspection(body, existing = null) {
+  qiSeq += existing ? 0 : 1;
+  const now = new Date().toISOString();
+  const documentNumber = existing?.document_number ?? `QCR-${String(qiSeq).padStart(4, "0")}`;
+  const lines = (body.lines ?? existing?.lines ?? []).map((line, index) => ({
+    id: line.id ?? crypto.randomUUID(),
+    line_number: index + 1,
+    goods_receipt_line_id: line.goods_receipt_line_id,
+    qty_inspected: String(line.qty_inspected ?? "0"),
+    qty_accepted: String(line.qty_accepted ?? "0"),
+    qty_rejected: String(line.qty_rejected ?? "0"),
+    qty_rework: String(line.qty_rework ?? "0"),
+    disposition: line.disposition ?? null,
+    notes: line.notes ?? null,
+  }));
+  const status = existing?.status ?? "DRAFT";
+  return {
+    id: existing?.id ?? crypto.randomUUID(),
+    tenant_id: TENANT_ID,
+    document_number: documentNumber,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    goods_receipt_id: body.goods_receipt_id ?? existing?.goods_receipt_id,
+    inspection_date: body.inspection_date ?? existing?.inspection_date ?? NOW.slice(0, 10),
+    inspector_user_id: body.inspector_user_id ?? existing?.inspector_user_id ?? null,
+    notes: body.notes ?? existing?.notes ?? null,
+    approved_at: existing?.approved_at ?? null,
+    approved_by: existing?.approved_by ?? null,
+    cancelled_at: existing?.cancelled_at ?? null,
+    cancelled_by: existing?.cancelled_by ?? null,
+    cancel_reason: existing?.cancel_reason ?? null,
+    available_actions: qualityInspectionActions(status),
+    period_locked: false,
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function approveQualityInspection(inspection) {
+  const receipt = goodsReceipts.get(inspection.goods_receipt_id);
+  if (!receipt) {
+    const err = new Error("NOT_FOUND");
+    throw err;
+  }
+  for (const line of inspection.lines) {
+    const accepted = qtyNumber(line.qty_accepted);
+    const rejected = qtyNumber(line.qty_rejected);
+    const rework = qtyNumber(line.qty_rework);
+    const inspected = qtyNumber(line.qty_inspected);
+    if (Math.abs(accepted + rejected + rework - inspected) > 0.0001) {
+      const err = new Error("QUALITY_QTY_MISMATCH");
+      throw err;
+    }
+    const receiptLine = receipt.lines.find((item) => item.id === line.goods_receipt_line_id);
+    if (!receiptLine?.product_id) {
+      continue;
+    }
+    const balance = getBalance(receipt.warehouse_id, receiptLine.product_id);
+    const release = accepted + rejected;
+    balance.qty_quality_hold = qtyString(Math.max(0, qtyNumber(balance.qty_quality_hold) - release));
+    receiptLine.qty_on_hold = qtyString(Math.max(0, qtyNumber(receiptLine.qty_on_hold) - release));
+    receiptLine.qty_accepted = qtyString(qtyNumber(receiptLine.qty_accepted) + accepted);
+    receiptLine.qty_rejected = qtyString(qtyNumber(receiptLine.qty_rejected) + rejected);
+    if (rejected > 0) {
+      applyMovement({
+        warehouseId: receipt.warehouse_id,
+        productId: receiptLine.product_id,
+        qty: `-${qtyString(rejected)}`,
+        movementType: line.disposition === "RETURN_TO_SUPPLIER" ? "RETURN_OUT" : "DAMAGE",
+        sourceType: "quality_inspection",
+        sourceId: inspection.id,
+        sourceLineId: line.id,
+        documentDate: inspection.inspection_date,
+      });
+    } else {
+      getBalance(receipt.warehouse_id, receiptLine.product_id);
+    }
+  }
+  const remainingHold = receipt.lines.some((line) => qtyNumber(line.qty_on_hold) > 0);
+  receipt.qc_status = remainingHold ? "PARTIAL" : "CLEARED";
+  receipt.available_actions = goodsReceiptActions(receipt);
+  receipt.version += 1;
+  goodsReceipts.set(receipt.id, receipt);
+  const now = new Date().toISOString();
+  return {
+    ...inspection,
+    status: "APPROVED",
+    version: inspection.version + 1,
+    approved_at: now,
+    approved_by: USER_ID,
+    available_actions: [],
+    updated_at: now,
+  };
 }
 
 function todayIsoDate() {
@@ -1005,6 +1423,17 @@ function unpostedDocumentsOnOrBefore(cutoff) {
       rows.push({
         id: document.id,
         document_type: "stock_transfer",
+        document_number: document.document_number,
+        document_date: document.document_date,
+        status: document.status,
+      });
+    }
+  }
+  for (const document of goodsReceipts.values()) {
+    if (document.status === "DRAFT" && document.document_date <= cutoff) {
+      rows.push({
+        id: document.id,
+        document_type: "goods_receipt",
         document_number: document.document_number,
         document_date: document.document_date,
         status: document.status,
@@ -1263,6 +1692,10 @@ function currentTenant() {
     sales_order_requires_approval: tenantState.sales_order_requires_approval,
     purchase_order_requires_approval: tenantState.purchase_order_requires_approval,
     allow_negative_stock: tenantState.allow_negative_stock,
+    costing_method: tenantState.costing_method,
+    allow_over_receipt: tenantState.allow_over_receipt,
+    over_receipt_tolerance_pct: tenantState.over_receipt_tolerance_pct,
+    qc_required_default: tenantState.qc_required_default,
     lock_date: tenantState.lock_date,
     hard_lock_date: tenantState.hard_lock_date,
     headquarters: null,
@@ -1364,6 +1797,16 @@ function me() {
       "inventory.stock_transfer.update",
       "inventory.stock_transfer.delete",
       "inventory.stock_transfer.post",
+      "inventory.cost.read",
+      "inventory.goods_receipt.read",
+      "inventory.goods_receipt.create",
+      "inventory.goods_receipt.update",
+      "inventory.goods_receipt.delete",
+      "inventory.goods_receipt.post",
+      "inventory.quality_inspection.read",
+      "inventory.quality_inspection.create",
+      "inventory.quality_inspection.update",
+      "inventory.quality_inspection.approve",
       "crm.customer.read",
       "crm.customer.create",
       "crm.customer.update",
@@ -1657,6 +2100,15 @@ const server = http.createServer(async (req, res) => {
           : {}),
         ...(body.allow_negative_stock !== undefined
           ? { allow_negative_stock: body.allow_negative_stock }
+          : {}),
+        ...(body.allow_over_receipt !== undefined
+          ? { allow_over_receipt: body.allow_over_receipt }
+          : {}),
+        ...(body.over_receipt_tolerance_pct !== undefined
+          ? { over_receipt_tolerance_pct: body.over_receipt_tolerance_pct }
+          : {}),
+        ...(body.qc_required_default !== undefined
+          ? { qc_required_default: body.qc_required_default }
           : {}),
       };
       ok(res, currentTenant());
@@ -2420,7 +2872,7 @@ const server = http.createServer(async (req, res) => {
       if (unauthorized(req, res)) {
         return;
       }
-      listOk(res, [productRow()]);
+      listOk(res, [productRow(), qcProductRow()]);
       return;
     }
 
@@ -2429,11 +2881,12 @@ const server = http.createServer(async (req, res) => {
       if (unauthorized(req, res)) {
         return;
       }
-      if (productDetail[1] !== PRODUCT_ID) {
+      const product = productById(productDetail[1]);
+      if (product.id !== productDetail[1]) {
         fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
         return;
       }
-      ok(res, productRow());
+      ok(res, product);
       return;
     }
 
@@ -2456,7 +2909,10 @@ const server = http.createServer(async (req, res) => {
       const belowReorder = url.searchParams.get("below_reorder") === "true";
       const search = url.searchParams.get("search") ?? "";
       let rows = [...balances.values()].map((row) => {
-        row.qty_available = qtyString(qtyNumber(row.qty_on_hand) - qtyNumber(row.qty_reserved));
+        row.qty_quality_hold = row.qty_quality_hold ?? "0";
+        row.qty_available = qtyString(
+          qtyNumber(row.qty_on_hand) - qtyNumber(row.qty_reserved) - qtyNumber(row.qty_quality_hold),
+        );
         return row;
       });
       if (warehouseId) {
@@ -2546,6 +3002,15 @@ const server = http.createServer(async (req, res) => {
         row.reorder_qty = body.reorder_qty;
       }
       ok(res, row);
+      return;
+    }
+
+    const layersMatch = url.pathname.match(/^\/api\/v1\/stock\/([0-9a-f-]{36})\/layers$/i);
+    if (req.method === "GET" && layersMatch) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, []);
       return;
     }
 
@@ -2857,6 +3322,294 @@ const server = http.createServer(async (req, res) => {
         ok(res, stockDocumentResponse(updated));
         return;
       }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/goods-receipts") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const status = url.searchParams.get("status");
+      const supplierId = url.searchParams.get("supplier_id");
+      const warehouseId = url.searchParams.get("warehouse_id");
+      const purchaseOrderId = url.searchParams.get("purchase_order_id");
+      const qcStatus = url.searchParams.get("qc_status");
+      const productId = url.searchParams.get("product_id");
+      const dateFrom = url.searchParams.get("document_date_from");
+      const dateTo = url.searchParams.get("document_date_to");
+      const search = url.searchParams.get("search") ?? "";
+      const rows = [...goodsReceipts.values()].filter((row) => {
+        if (status && row.status !== status) {
+          return false;
+        }
+        if (supplierId && row.supplier_id !== supplierId) {
+          return false;
+        }
+        if (warehouseId && row.warehouse_id !== warehouseId) {
+          return false;
+        }
+        if (purchaseOrderId && row.purchase_order_id !== purchaseOrderId) {
+          return false;
+        }
+        if (qcStatus && row.qc_status !== qcStatus) {
+          return false;
+        }
+        if (!hasLineProduct(row, productId)) {
+          return false;
+        }
+        if (!inDocumentDateRange(row.document_date, dateFrom, dateTo)) {
+          return false;
+        }
+        return includesSearch([row.document_number, row.notes, row.supplier_invoice_number], search);
+      });
+      listOk(res, rows.map(stockDocumentResponse));
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/goods-receipts/from-purchase-order") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      try {
+        const document = createGoodsReceiptFromPurchaseOrder(body);
+        goodsReceipts.set(document.id, document);
+        ok(res, stockDocumentResponse(document), 201);
+      } catch (error) {
+        if (error.message === "NOT_FOUND") {
+          fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+          return;
+        }
+        throw error;
+      }
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/goods-receipts") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const documentDate = body.document_date ?? NOW.slice(0, 10);
+      if (rejectIfPeriodLocked(res, documentDate)) {
+        return;
+      }
+      const document = buildGoodsReceipt(body);
+      goodsReceipts.set(document.id, document);
+      ok(res, stockDocumentResponse(document), 201);
+      return;
+    }
+
+    const goodsReceiptAction = url.pathname.match(
+      /^\/api\/v1\/goods-receipts\/([0-9a-f-]{36})\/(post|cancel)$/i,
+    );
+    if (req.method === "POST" && goodsReceiptAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const document = goodsReceipts.get(goodsReceiptAction[1]);
+      if (!document) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (isStale(req, document.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      const action = goodsReceiptAction[2];
+      if (action === "post") {
+        const replayed = replayPost(req);
+        if (replayed) {
+          ok(res, stockDocumentResponse(replayed));
+          return;
+        }
+        if (document.status === "POSTED") {
+          ok(res, stockDocumentResponse(document));
+          return;
+        }
+        if (rejectIfPeriodLocked(res, document.document_date)) {
+          return;
+        }
+        const posted = postGoodsReceipt(document);
+        goodsReceipts.set(posted.id, posted);
+        storePost(req, posted);
+        ok(res, stockDocumentResponse(posted));
+        return;
+      }
+      if (action === "cancel") {
+        const body = await readBody(req);
+        if (document.status === "DRAFT") {
+          document.status = "CANCELLED";
+          document.available_actions = [];
+          document.cancel_reason = body.reason ?? null;
+          document.cancelled_at = new Date().toISOString();
+          document.version += 1;
+          goodsReceipts.set(document.id, document);
+          ok(res, stockDocumentResponse(document));
+          return;
+        }
+        try {
+          const cancelled = cancelPostedGoodsReceipt(document);
+          cancelled.cancel_reason = body.reason ?? null;
+          goodsReceipts.set(cancelled.id, cancelled);
+          ok(res, stockDocumentResponse(cancelled));
+        } catch (error) {
+          if (error.message === "GRN_CANNOT_CANCEL") {
+            fail(res, 409, "GRN_CANNOT_CANCEL", "Cannot cancel");
+            return;
+          }
+          throw error;
+        }
+        return;
+      }
+    }
+
+    const goodsReceiptDetail = url.pathname.match(/^\/api\/v1\/goods-receipts\/([0-9a-f-]{36})$/i);
+    if (
+      goodsReceiptDetail &&
+      (req.method === "GET" || req.method === "PATCH" || req.method === "DELETE")
+    ) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = goodsReceipts.get(goodsReceiptDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, stockDocumentResponse(existing));
+        return;
+      }
+      if (isStale(req, existing.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (req.method === "DELETE") {
+        goodsReceipts.delete(goodsReceiptDetail[1]);
+        ok(res, stockDocumentResponse(existing));
+        return;
+      }
+      const body = await readBody(req);
+      const documentDate = body.document_date ?? existing.document_date;
+      if (rejectIfPeriodLocked(res, documentDate)) {
+        return;
+      }
+      const updated = buildGoodsReceipt(body, existing);
+      goodsReceipts.set(updated.id, updated);
+      ok(res, stockDocumentResponse(updated));
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/quality-inspections") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const status = url.searchParams.get("status");
+      const goodsReceiptId = url.searchParams.get("goods_receipt_id");
+      const dateFrom = url.searchParams.get("inspection_date_from");
+      const dateTo = url.searchParams.get("inspection_date_to");
+      const search = url.searchParams.get("search") ?? "";
+      const rows = [...qualityInspections.values()].filter((row) => {
+        if (status && row.status !== status) {
+          return false;
+        }
+        if (goodsReceiptId && row.goods_receipt_id !== goodsReceiptId) {
+          return false;
+        }
+        if (!inDocumentDateRange(row.inspection_date, dateFrom, dateTo)) {
+          return false;
+        }
+        return includesSearch([row.document_number, row.notes], search);
+      });
+      listOk(res, rows);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/quality-inspections") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const document = buildQualityInspection(body);
+      qualityInspections.set(document.id, document);
+      ok(res, document, 201);
+      return;
+    }
+
+    const qualityInspectionAction = url.pathname.match(
+      /^\/api\/v1\/quality-inspections\/([0-9a-f-]{36})\/(approve|cancel)$/i,
+    );
+    if (req.method === "POST" && qualityInspectionAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const document = qualityInspections.get(qualityInspectionAction[1]);
+      if (!document) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (isStale(req, document.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (qualityInspectionAction[2] === "approve") {
+        try {
+          const approved = approveQualityInspection(document);
+          qualityInspections.set(approved.id, approved);
+          ok(res, approved);
+        } catch (error) {
+          if (error.message === "QUALITY_QTY_MISMATCH") {
+            fail(res, 409, "QUALITY_QTY_MISMATCH", "Quantities do not add up");
+            return;
+          }
+          throw error;
+        }
+        return;
+      }
+      const body = await readBody(req);
+      document.status = "CANCELLED";
+      document.available_actions = [];
+      document.cancel_reason = body.reason ?? null;
+      document.cancelled_at = new Date().toISOString();
+      document.version += 1;
+      qualityInspections.set(document.id, document);
+      ok(res, document);
+      return;
+    }
+
+    const qualityInspectionDetail = url.pathname.match(
+      /^\/api\/v1\/quality-inspections\/([0-9a-f-]{36})$/i,
+    );
+    if (
+      qualityInspectionDetail &&
+      (req.method === "GET" || req.method === "PATCH" || req.method === "DELETE")
+    ) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = qualityInspections.get(qualityInspectionDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (isStale(req, existing.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (req.method === "DELETE") {
+        qualityInspections.delete(qualityInspectionDetail[1]);
+        ok(res, existing);
+        return;
+      }
+      const body = await readBody(req);
+      const updated = buildQualityInspection(body, existing);
+      qualityInspections.set(updated.id, updated);
+      ok(res, updated);
+      return;
     }
 
     if (req.method === "GET" && url.pathname === "/api/v1/attachments") {
