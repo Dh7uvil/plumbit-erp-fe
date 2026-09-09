@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -138,6 +139,20 @@ function PurchaseOrderDetailLoaded({
           documentLabel={number ?? "purchase order"}
           onAction={onAction}
         />
+      }
+      banner={
+        purchaseOrder.source_sales_order_id ? (
+          <p className="text-muted-foreground text-sm">
+            Raised for{" "}
+            <Link
+              href={`/sales-orders/${purchaseOrder.source_sales_order_id}`}
+              className="text-foreground underline-offset-4 hover:underline"
+            >
+              sales order
+            </Link>
+            .
+          </p>
+        ) : null
       }
       formTitle={isEdit ? "Edit purchase order" : "Purchase order"}
       attachments={

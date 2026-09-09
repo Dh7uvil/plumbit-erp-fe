@@ -36,6 +36,7 @@ import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templat
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
+import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
@@ -91,6 +92,12 @@ export const navigation: NavigationGroup[] = [
         href: "/quotations",
         permission: quotationPermissions.read,
         icon: ShoppingCart,
+      },
+      {
+        label: "Proforma invoices",
+        href: "/proforma-invoices",
+        permission: proformaInvoicePermissions.read,
+        icon: FileText,
       },
       {
         label: "Sales orders",

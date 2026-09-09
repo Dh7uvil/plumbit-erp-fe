@@ -3,6 +3,7 @@ import { publicEnv } from "@/config/env.public";
 import { reportError } from "@/integrations/error-reporting/report";
 import { parseEnvelope, parseListMeta, type ListResponse } from "@/shared/api/envelope";
 import { ApiError, getErrorMessage, isApiError } from "@/shared/api/errors";
+import { randomUuid } from "@/shared/lib/uuid";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -119,7 +120,7 @@ async function request<T>(path: string, config: InternalConfig, hasRetried = fal
 
   headers.set("Accept", "application/json");
   if (!headers.has("x-request-id")) {
-    headers.set("x-request-id", crypto.randomUUID());
+    headers.set("x-request-id", randomUuid());
   }
   if (config.body !== undefined && !(config.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -213,7 +214,7 @@ async function requestList<T>(
 
   headers.set("Accept", "application/json");
   if (!headers.has("x-request-id")) {
-    headers.set("x-request-id", crypto.randomUUID());
+    headers.set("x-request-id", randomUuid());
   }
 
   let response: Response;

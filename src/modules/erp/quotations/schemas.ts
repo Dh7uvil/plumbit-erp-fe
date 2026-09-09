@@ -150,6 +150,9 @@ export const QuotationSchema = z.object({
   converted_at: z.string().nullable(),
   converted_document_type: z.string().nullable(),
   converted_document_id: z.string().uuid().nullable(),
+  revision_number: z.number().int().optional().default(0),
+  revision_count: z.number().int().optional().default(0),
+  display_number: z.string().optional(),
   available_actions: z.array(z.string()).default([]),
   lines: z.array(QuotationLineSchema).optional().default([]),
   created_at: z.string(),
@@ -241,6 +244,57 @@ export const ConvertToSalesOrderRequestSchema = z.object({
 });
 export type ConvertToSalesOrderRequest = z.infer<typeof ConvertToSalesOrderRequestSchema>;
 
+export const INCOTERMS = [
+  "EXW",
+  "FCA",
+  "FAS",
+  "FOB",
+  "CFR",
+  "CIF",
+  "CPT",
+  "CIP",
+  "DAP",
+  "DPU",
+  "DDP",
+] as const;
+export const IncotermSchema = z.enum(INCOTERMS);
+export type Incoterm = z.infer<typeof IncotermSchema>;
+
+export const ConvertToProformaInvoiceRequestSchema = z.object({
+  proforma_date: z.string().nullable().optional(),
+  valid_until: z.string().nullable().optional(),
+  incoterm: IncotermSchema.nullable().optional(),
+  incoterm_place: z.string().max(120).nullable().optional(),
+  version: z.number().int().optional(),
+});
+export type ConvertToProformaInvoiceRequest = z.infer<typeof ConvertToProformaInvoiceRequestSchema>;
+
+export const ReviseQuotationRequestSchema = z.object({
+  revision_reason: z.string().min(1).max(2000),
+  version: z.number().int().optional(),
+});
+export type ReviseQuotationRequest = z.infer<typeof ReviseQuotationRequestSchema>;
+
+export const QuotationRevisionListItemSchema = z.object({
+  id: z.string().uuid(),
+  revision_number: z.number().int(),
+  quote_number: z.string(),
+  status_at_revision: z.string(),
+  revision_reason: z.string(),
+  revised_at: z.string(),
+  revised_by: z.string().uuid().nullable(),
+  grand_total: MoneySchema.nullable().optional().default(null),
+});
+export type QuotationRevisionListItem = z.infer<typeof QuotationRevisionListItemSchema>;
+
+export const QuotationRevisionListSchema = z.array(QuotationRevisionListItemSchema);
+
+export const QuotationRevisionSchema = QuotationRevisionListItemSchema.extend({
+  header: z.record(z.string(), z.unknown()),
+  lines: z.array(z.unknown()),
+});
+export type QuotationRevision = z.infer<typeof QuotationRevisionSchema>;
+
 export const QuotationLineFormSchema = z.object({
   product_id: z.string(),
   description: z.string(),
@@ -326,8 +380,16 @@ export type QuotationListParams = {
 };
 
 export function quotationDisplayNumber(
-  quotation: Pick<Quotation, "quote_number"> & { document_number?: string },
+  quotation: Pick<Quotation, "quote_number"> & {
+    document_number?: string;
+    display_number?: string;
+  },
 ): string | null {
-  const value = (quotation.quote_number || quotation.document_number || "").trim();
+  const value = (
+    quotation.display_number ||
+    quotation.quote_number ||
+    quotation.document_number ||
+    ""
+  ).trim();
   return value ? value : null;
 }

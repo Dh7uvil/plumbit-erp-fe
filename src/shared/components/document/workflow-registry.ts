@@ -9,6 +9,7 @@ export type DocumentActionSpec<TAction extends string = string> = {
   reasonField?: {
     label?: string;
     placeholder: string;
+    required?: boolean;
   };
 };
 

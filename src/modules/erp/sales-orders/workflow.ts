@@ -8,6 +8,7 @@ export const SALES_ORDER_WORKFLOW_ACTIONS = [
   "reopen",
   "confirm",
   "close",
+  "acknowledge",
   "cancel",
   "clone",
   "delete",
@@ -44,6 +45,13 @@ export const SALES_ORDER_ACTION_REGISTRY: DocumentActionSpec<SalesOrderWorkflowA
     label: "Close",
     permission: salesOrderPermissions.close,
     confirmCopy: (documentNumber) => `${documentNumber} will be closed.`,
+  },
+  {
+    action: "acknowledge",
+    label: "Acknowledge",
+    permission: salesOrderPermissions.acknowledge,
+    confirmCopy: (documentNumber) =>
+      `Acknowledgement of ${documentNumber} is recorded against the customer's PO. This does not change the order status.`,
   },
   {
     action: "cancel",

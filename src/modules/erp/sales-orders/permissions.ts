@@ -6,4 +6,5 @@ export const salesOrderPermissions = {
   approve: "erp.sales_order.approve",
   confirm: "erp.sales_order.confirm",
   close: "erp.sales_order.close",
+  acknowledge: "erp.sales_order.acknowledge",
 } as const;

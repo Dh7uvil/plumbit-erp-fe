@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const tokens = await authBackendApi.changePassword(body);
     const remember = await readRememberFlag();
     const response = bffSuccess();
-    applyTokenCookies(response, tokens, remember);
+    applyTokenCookies(response, tokens, remember, request);
     return response;
   } catch (error) {
     return bffError(error);

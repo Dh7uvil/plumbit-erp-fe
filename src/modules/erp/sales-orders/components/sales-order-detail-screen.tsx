@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
+import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sales-order-coverage-card";
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrder } from "@/modules/erp/sales-orders/queries";
@@ -26,6 +27,7 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { formatDate, formatDateTime } from "@/shared/lib/format";
 
 export function SalesOrderDetailScreen({
   salesOrderId,
@@ -141,25 +143,56 @@ function SalesOrderDetailLoaded({
         />
       }
       banner={
-        salesOrder.source_quotation_id ? (
-          <p className="text-muted-foreground text-sm">
-            Converted from{" "}
-            <Link
-              href={`/quotations/${salesOrder.source_quotation_id}`}
-              className="text-foreground underline-offset-4 hover:underline"
-            >
-              quotation
-            </Link>
-            .
-          </p>
-        ) : null
+        <div className="flex flex-col gap-1">
+          {salesOrder.customer_po_number ? (
+            <p className="text-sm">
+              Customer PO {salesOrder.customer_po_number}
+              {salesOrder.customer_po_date ? ` dated ${formatDate(salesOrder.customer_po_date)}` : ""}
+              {salesOrder.acknowledged_at
+                ? `. Acknowledged on ${formatDateTime(salesOrder.acknowledged_at)}`
+                : ""}
+              .
+            </p>
+          ) : salesOrder.acknowledged_at ? (
+            <p className="text-muted-foreground text-sm">
+              Acknowledged on {formatDateTime(salesOrder.acknowledged_at)}.
+            </p>
+          ) : null}
+          {salesOrder.source_quotation_id || salesOrder.source_proforma_invoice_id ? (
+            <p className="text-muted-foreground text-sm">
+              Converted from{" "}
+              {salesOrder.source_proforma_invoice_id ? (
+                <Link
+                  href={`/proforma-invoices/${salesOrder.source_proforma_invoice_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  proforma invoice
+                </Link>
+              ) : null}
+              {salesOrder.source_quotation_id && salesOrder.source_proforma_invoice_id
+                ? " · "
+                : null}
+              {salesOrder.source_quotation_id ? (
+                <Link
+                  href={`/quotations/${salesOrder.source_quotation_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  quotation
+                </Link>
+              ) : null}
+              .
+            </p>
+          ) : null}
+        </div>
       }
       formTitle={isEdit ? "Edit sales order" : "Sales order"}
+      panels={<SalesOrderCoverageCard salesOrder={salesOrder} />}
       attachments={
         <EntityAttachmentsPanel
           entityType="SALES_ORDER"
           entityId={salesOrder.id}
           parentPosted={salesOrder.is_posted}
+          defaultCategory="CUSTOMER_PO"
         />
       }
       activity={

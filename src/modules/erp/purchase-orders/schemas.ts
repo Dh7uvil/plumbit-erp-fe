@@ -134,6 +134,7 @@ export const PurchaseOrderLineSchema = z.object({
   amount: MoneySchema,
   qty_received: DecimalStringSchema,
   qty_billed: DecimalStringSchema,
+  source_sales_order_line_id: z.string().uuid().nullable().optional().default(null),
 });
 export type PurchaseOrderLine = z.infer<typeof PurchaseOrderLineSchema>;
 
@@ -182,6 +183,7 @@ export const PurchaseOrderSchema = z.object({
   cancelled_at: z.string().nullable(),
   cancelled_by: z.string().uuid().nullable(),
   cancel_reason: z.string().nullable(),
+  source_sales_order_id: z.string().uuid().nullable().optional().default(null),
   available_actions: z.array(z.string()).default([]),
   lines: z.array(PurchaseOrderLineSchema).optional().default([]),
   created_at: z.string(),
@@ -358,6 +360,7 @@ export type PurchaseOrderListParams = {
   branch_id?: string;
   warehouse_id?: string;
   currency_id?: string;
+  source_sales_order_id?: string;
 };
 
 export function purchaseOrderDisplayNumber(

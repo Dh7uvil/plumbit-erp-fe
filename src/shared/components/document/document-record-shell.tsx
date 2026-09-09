@@ -33,6 +33,7 @@ export function DocumentRecordShell({
   banner,
   formTitle,
   children,
+  panels,
   attachments,
   activity,
 }: {
@@ -55,6 +56,7 @@ export function DocumentRecordShell({
   banner?: ReactNode;
   formTitle: string;
   children: ReactNode;
+  panels?: ReactNode;
   attachments?: ReactNode;
   activity?: ReactNode;
 }) {
@@ -105,6 +107,7 @@ export function DocumentRecordShell({
         </CardHeader>
         <CardContent>{children}</CardContent>
       </Card>
+      {panels}
       {attachments}
       {activity}
     </div>

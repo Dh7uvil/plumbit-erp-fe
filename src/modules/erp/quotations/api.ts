@@ -1,21 +1,29 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  ConvertToProformaInvoiceRequestSchema,
   ConvertToSalesOrderRequestSchema,
   QuotationComposeDefaultsSchema,
   QuotationCreateRequestSchema,
   QuotationListSchema,
+  QuotationRevisionListSchema,
+  QuotationRevisionSchema,
   QuotationSchema,
   QuotationUpdateRequestSchema,
+  ReviseQuotationRequestSchema,
+  type ConvertToProformaInvoiceRequest,
   type ConvertToSalesOrderRequest,
   type Quotation,
   type QuotationComposeDefaults,
   type QuotationCreateRequest,
   type QuotationListParams,
+  type QuotationRevision,
+  type QuotationRevisionListItem,
   type QuotationUpdateRequest,
 } from "@/modules/erp/quotations/schemas";
+import { ProformaInvoiceSchema, type ProformaInvoice } from "@/modules/erp/proforma-invoices/schemas";
 import { SalesOrderSchema, type SalesOrder } from "@/modules/erp/sales-orders/schemas";
 import { apiClient } from "@/shared/api/client";
-import { ifMatchHeaders } from "@/shared/api/concurrency";
+import { ifMatchHeaders, postDocumentHeaders } from "@/shared/api/concurrency";
 import type { ListResponse } from "@/shared/api/envelope";
 
 export type QuotationWriteOptions = {
@@ -129,8 +137,42 @@ export const quotationsApi = {
           ...(options.values ?? {}),
           version: options.version,
         }),
+        { headers: postDocumentHeaders(options.version) },
+      ),
+    ),
+  convertToProformaInvoice: async (
+    id: string,
+    options: QuotationWriteOptions & { values?: ConvertToProformaInvoiceRequest },
+  ): Promise<ProformaInvoice> =>
+    ProformaInvoiceSchema.parse(
+      await apiClient.post(
+        `/quotations/${id}/convert-to-proforma-invoice`,
+        ConvertToProformaInvoiceRequestSchema.parse({
+          ...(options.values ?? {}),
+          version: options.version,
+        }),
         { headers: ifMatchHeaders(options.version) },
       ),
+    ),
+  revise: async (
+    id: string,
+    options: QuotationWriteOptions & { revision_reason: string },
+  ): Promise<Quotation> =>
+    QuotationSchema.parse(
+      await apiClient.post(
+        `/quotations/${id}/revise`,
+        ReviseQuotationRequestSchema.parse({
+          revision_reason: options.revision_reason,
+          version: options.version,
+        }),
+        { headers: ifMatchHeaders(options.version) },
+      ),
+    ),
+  listRevisions: async (id: string): Promise<QuotationRevisionListItem[]> =>
+    QuotationRevisionListSchema.parse(await apiClient.get(`/quotations/${id}/revisions`)),
+  getRevision: async (id: string, revisionNumber: number): Promise<QuotationRevision> =>
+    QuotationRevisionSchema.parse(
+      await apiClient.get(`/quotations/${id}/revisions/${revisionNumber}`),
     ),
   delete: async (id: string, options: QuotationWriteOptions): Promise<Quotation> =>
     QuotationSchema.parse(

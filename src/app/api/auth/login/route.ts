@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       password: body.password,
     });
     const response = bffSuccess();
-    applyTokenCookies(response, tokens, body.remember_me);
+    applyTokenCookies(response, tokens, body.remember_me, request);
     return response;
   } catch (error) {
     return bffError(error);

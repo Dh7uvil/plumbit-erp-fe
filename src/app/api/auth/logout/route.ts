@@ -2,7 +2,7 @@ import { authBackendApi } from "@/modules/users-management/auth/backend-api";
 import { bffSuccess } from "@/app/api/auth/_lib/responses";
 import { clearTokenCookies, readAccessToken, readRefreshToken } from "@/shared/auth/cookies";
 
-export async function POST() {
+export async function POST(request: Request) {
   const refreshToken = await readRefreshToken();
   const accessToken = await readAccessToken();
 
@@ -15,6 +15,6 @@ export async function POST() {
   }
 
   const response = bffSuccess();
-  clearTokenCookies(response);
+  clearTokenCookies(response, request);
   return response;
 }
