@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { quotationsApi } from "@/modules/erp/quotations/api";
 import { quotationKeys } from "@/modules/erp/quotations/queries";
+import { proformaInvoiceKeys } from "@/modules/erp/proforma-invoices/queries";
 import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { isApiError } from "@/shared/api/errors";
 
@@ -138,6 +139,45 @@ export function useConvertQuotationToSalesOrder() {
     onSuccess: async (_data, { id }) => {
       await invalidateQuotations(queryClient, id);
       await queryClient.invalidateQueries({ queryKey: salesOrderKeys.all });
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}
+
+export function useConvertQuotationToProformaInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      values,
+    }: QuotationWriteVars & {
+      values?: Parameters<typeof quotationsApi.convertToProformaInvoice>[1]["values"];
+    }) => quotationsApi.convertToProformaInvoice(id, { version, values }),
+    onSuccess: async (_data, { id }) => {
+      await invalidateQuotations(queryClient, id);
+      await queryClient.invalidateQueries({ queryKey: proformaInvoiceKeys.all });
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}
+
+export function useReviseQuotation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      revision_reason,
+    }: QuotationWriteVars & { revision_reason: string }) =>
+      quotationsApi.revise(id, { version, revision_reason }),
+    onSuccess: async (_data, { id }) => {
+      await invalidateQuotations(queryClient, id);
+      await queryClient.invalidateQueries({ queryKey: quotationKeys.revisions(id) });
     },
     onError: async (error, { id }) => {
       await refetchIfStale(queryClient, error, id);

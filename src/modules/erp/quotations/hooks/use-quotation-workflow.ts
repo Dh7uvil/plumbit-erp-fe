@@ -13,6 +13,7 @@ import {
   useDeleteQuotation,
   useRejectQuotation,
   useReopenQuotation,
+  useReviseQuotation,
   useSendQuotation,
   useSubmitQuotation,
 } from "@/modules/erp/quotations/mutations";
@@ -32,6 +33,7 @@ export function useQuotationWorkflow(quotation: Quotation) {
   const cancelQuotation = useCancelQuotation();
   const cloneQuotation = useCloneQuotation();
   const convertQuotation = useConvertQuotationToSalesOrder();
+  const reviseQuotation = useReviseQuotation();
   const deleteQuotation = useDeleteQuotation();
   const write = { id: quotation.id, version: quotation.version };
 
@@ -60,6 +62,13 @@ export function useQuotationWorkflow(quotation: Quotation) {
     } else if (action === "cancel") {
       await cancelQuotation.mutateAsync(write);
       toast.success("Quotation cancelled");
+    } else if (action === "revise") {
+      if (!extras.reason) {
+        throw new Error("A revision reason is required");
+      }
+      await reviseQuotation.mutateAsync({ ...write, revision_reason: extras.reason });
+      toast.success("Revision created");
+      router.push(`/quotations/${quotation.id}/edit`);
     } else if (action === "clone") {
       const cloned = await cloneQuotation.mutateAsync(quotation.id);
       toast.success("Quotation cloned");

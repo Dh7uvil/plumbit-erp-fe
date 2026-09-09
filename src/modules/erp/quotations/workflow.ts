@@ -1,3 +1,4 @@
+import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
@@ -10,6 +11,8 @@ export const QUOTATION_WORKFLOW_ACTIONS = [
   "send",
   "accept",
   "decline",
+  "revise",
+  "create_proforma",
   "convert",
   "cancel",
   "clone",
@@ -53,6 +56,24 @@ export const QUOTATION_ACTION_REGISTRY: DocumentActionSpec<QuotationWorkflowActi
     permission: quotationPermissions.update,
     variant: "destructive",
     confirmCopy: (quoteNumber) => `${quoteNumber} will be marked declined.`,
+  },
+  {
+    action: "revise",
+    label: "Revise",
+    permission: quotationPermissions.revise,
+    variant: "outline",
+    confirmCopy: (quoteNumber) =>
+      `${quoteNumber} will return to draft so you can edit it. The current version is kept in revision history.`,
+    reasonField: {
+      label: "Reason for revision",
+      placeholder: "Why this quotation is being revised",
+      required: true,
+    },
+  },
+  {
+    action: "create_proforma",
+    label: "Create proforma invoice",
+    permission: proformaInvoicePermissions.create,
   },
   {
     action: "convert",

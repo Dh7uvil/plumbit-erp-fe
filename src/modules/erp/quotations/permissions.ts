@@ -5,4 +5,5 @@ export const quotationPermissions = {
   delete: "erp.quotation.delete",
   approve: "erp.quotation.approve",
   send: "erp.quotation.send",
+  revise: "erp.quotation.revise",
 } as const;

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const DOCUMENT_TYPES = [
   "QUOTATION",
+  "PROFORMA_INVOICE",
   "SALES_ORDER",
   "DELIVERY_NOTE",
   "SALES_INVOICE",
@@ -16,6 +17,7 @@ export type DocumentType = z.infer<typeof DocumentTypeSchema>;
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   QUOTATION: "Quotation",
+  PROFORMA_INVOICE: "Proforma invoice",
   SALES_ORDER: "Sales order",
   DELIVERY_NOTE: "Delivery note",
   SALES_INVOICE: "Sales invoice",

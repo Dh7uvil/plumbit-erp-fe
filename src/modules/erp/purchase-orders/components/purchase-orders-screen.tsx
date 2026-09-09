@@ -129,6 +129,7 @@ export function PurchaseOrdersScreen() {
     branch_id: filters.branch_id,
     warehouse_id: filters.warehouse_id,
     currency_id: filters.currency_id,
+    source_sales_order_id: filters.source_sales_order_id,
   });
   const suppliersQuery = useAllSuppliers();
   const currenciesQuery = useAllCurrencies();
@@ -344,7 +345,12 @@ export function PurchaseOrdersScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
-        {search || filters.status || filters.supplier_id || extraCount > 0 || sort_by ? (
+        {search ||
+        filters.status ||
+        filters.supplier_id ||
+        filters.source_sales_order_id ||
+        extraCount > 0 ||
+        sort_by ? (
           <Button
             type="button"
             variant="ghost"
@@ -362,6 +368,7 @@ export function PurchaseOrdersScreen() {
                   branch_id: null,
                   warehouse_id: null,
                   currency_id: null,
+                  source_sales_order_id: null,
                 },
               })
             }
@@ -370,6 +377,18 @@ export function PurchaseOrdersScreen() {
           </Button>
         ) : null}
       </DataTableToolbar>
+      {filters.source_sales_order_id ? (
+        <p className="text-muted-foreground text-sm">
+          Showing purchase orders raised for{" "}
+          <Link
+            href={`/sales-orders/${filters.source_sales_order_id}`}
+            className="text-foreground underline-offset-4 hover:underline"
+          >
+            sales order
+          </Link>
+          .
+        </p>
+      ) : null}
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

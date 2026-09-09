@@ -30,7 +30,7 @@ test.describe("sales orders", () => {
     await page.goto("/sales-orders/new");
     await expect(page.getByRole("heading", { name: "New sales order" })).toBeVisible();
 
-    await page.getByLabel("Customer").click();
+    await page.getByLabel("Customer", { exact: true }).click();
     await page.getByRole("menuitem", { name: "Acme Trading" }).click();
     await expect(page.getByText("Loading customer defaults…")).toBeHidden();
 

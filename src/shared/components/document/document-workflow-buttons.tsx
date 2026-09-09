@@ -45,10 +45,17 @@ export function DocumentWorkflowButtons<TAction extends string>({
   const actions = visibleActions(availableActions, registry, can);
   const pending = Boolean(running);
 
+  const reasonRequired = Boolean(confirming?.reasonField?.required);
+  const confirmDisabled = reasonRequired && !reason.trim();
+
   async function runAction(spec: DocumentActionSpec<TAction>) {
+    const trimmed = reason.trim();
+    if (spec.reasonField?.required && !trimmed) {
+      return;
+    }
     setRunning(spec.action);
     try {
-      await onAction(spec.action, { reason: reason.trim() ? reason.trim() : null });
+      await onAction(spec.action, { reason: trimmed ? trimmed : null });
       setConfirming(null);
       setReason("");
     } catch (error) {
@@ -112,6 +119,7 @@ export function DocumentWorkflowButtons<TAction extends string>({
         }
         confirmLabel={confirming?.label ?? "Confirm"}
         pending={pending}
+        confirmDisabled={confirmDisabled}
         variant={confirming?.variant === "destructive" ? "destructive" : "default"}
         onOpenChange={(open) => {
           if (!open) {

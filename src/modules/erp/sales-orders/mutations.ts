@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { purchaseOrderKeys } from "@/modules/erp/purchase-orders/queries";
 import { salesOrdersApi } from "@/modules/erp/sales-orders/api";
 import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { isApiError } from "@/shared/api/errors";
@@ -129,6 +130,29 @@ export function useCloneSalesOrder() {
     mutationFn: salesOrdersApi.clone,
     onSuccess: async () => {
       await invalidateSalesOrders(queryClient);
+    },
+  });
+}
+
+export function useAcknowledgeSalesOrder() {
+  return useSalesOrderVersionMutation(salesOrdersApi.acknowledge);
+}
+
+export function useCreatePurchaseOrdersFromSalesOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      values,
+    }: {
+      id: string;
+      values: Parameters<typeof salesOrdersApi.createPurchaseOrders>[1];
+    }) => salesOrdersApi.createPurchaseOrders(id, values),
+    onSuccess: async (_data, { id }) => {
+      await invalidateSalesOrders(queryClient, id);
+      await queryClient.invalidateQueries({ queryKey: salesOrderKeys.coverage(id) });
+      await queryClient.invalidateQueries({ queryKey: salesOrderKeys.purchaseOrderPlan(id) });
+      await queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.all });
     },
   });
 }

@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { documentTypeLabel } from "@/modules/erp/accounting/document-sequences/schemas";
+import { CreateProformaInvoiceDialog } from "@/modules/erp/quotations/components/create-proforma-invoice-dialog";
 import { QuotationForm } from "@/modules/erp/quotations/components/quotation-form";
+import { QuotationRevisionsPanel } from "@/modules/erp/quotations/components/quotation-revisions-panel";
 import { useQuotationWorkflow } from "@/modules/erp/quotations/hooks/use-quotation-workflow";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import { useQuotation } from "@/modules/erp/quotations/queries";
@@ -15,13 +17,17 @@ import {
   quotationDisplayNumber,
   type Quotation,
 } from "@/modules/erp/quotations/schemas";
+import type { QuotationWorkflowAction } from "@/modules/erp/quotations/workflow";
 import { QUOTATION_ACTION_REGISTRY } from "@/modules/erp/quotations/workflow";
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
-import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import {
+  DocumentWorkflowButtons,
+  type DocumentWorkflowExtras,
+} from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { formatDateTime } from "@/shared/lib/format";
 
@@ -94,6 +100,15 @@ function QuotationDetailLoaded({
   const isEdit = mode === "edit";
   const number = quotationDisplayNumber(quotation);
   const onAction = useQuotationWorkflow(quotation);
+  const [createPfiOpen, setCreatePfiOpen] = useState(false);
+
+  async function handleAction(action: QuotationWorkflowAction, extras: DocumentWorkflowExtras) {
+    if (action === "create_proforma") {
+      setCreatePfiOpen(true);
+      return;
+    }
+    await onAction(action, extras);
+  }
 
   return (
     <DocumentRecordShell
@@ -123,7 +138,7 @@ function QuotationDetailLoaded({
           registry={QUOTATION_ACTION_REGISTRY}
           documentKind="quotation"
           documentLabel={number ?? "quotation"}
-          onAction={onAction}
+          onAction={handleAction}
         />
       }
       banner={
@@ -151,6 +166,7 @@ function QuotationDetailLoaded({
         ) : null
       }
       formTitle={isEdit ? "Edit quotation" : "Quotation"}
+      panels={<QuotationRevisionsPanel quotation={quotation} />}
       attachments={
         <EntityAttachmentsPanel
           entityType="QUOTATION"
@@ -166,6 +182,11 @@ function QuotationDetailLoaded({
         quotation={quotation}
         disabled={!isEdit}
         onSuccess={() => router.push(viewHref)}
+      />
+      <CreateProformaInvoiceDialog
+        quotation={quotation}
+        open={createPfiOpen}
+        onOpenChange={setCreatePfiOpen}
       />
     </DocumentRecordShell>
   );

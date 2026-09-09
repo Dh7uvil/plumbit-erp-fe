@@ -3,7 +3,7 @@ import { bffError, bffSuccess } from "@/app/api/auth/_lib/responses";
 import { applyTokenCookies, readRememberFlag, readRefreshToken } from "@/shared/auth/cookies";
 import { ApiError } from "@/shared/api/errors";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const refreshToken = await readRefreshToken();
     if (!refreshToken) {
@@ -12,7 +12,7 @@ export async function POST() {
     const tokens = await authBackendApi.refresh(refreshToken);
     const remember = await readRememberFlag();
     const response = bffSuccess();
-    applyTokenCookies(response, tokens, remember);
+    applyTokenCookies(response, tokens, remember, request);
     return response;
   } catch (error) {
     return bffError(error);

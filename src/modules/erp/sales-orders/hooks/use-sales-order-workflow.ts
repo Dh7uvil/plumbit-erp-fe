@@ -10,6 +10,7 @@ import {
   useCloseSalesOrder,
   useConfirmSalesOrder,
   useDeleteSalesOrder,
+  useAcknowledgeSalesOrder,
   useRejectSalesOrder,
   useReopenSalesOrder,
   useSubmitSalesOrder,
@@ -26,6 +27,7 @@ export function useSalesOrderWorkflow(salesOrder: SalesOrder) {
   const reopenSalesOrder = useReopenSalesOrder();
   const confirmSalesOrder = useConfirmSalesOrder();
   const closeSalesOrder = useCloseSalesOrder();
+  const acknowledgeSalesOrder = useAcknowledgeSalesOrder();
   const cancelSalesOrder = useCancelSalesOrder();
   const cloneSalesOrder = useCloneSalesOrder();
   const deleteSalesOrder = useDeleteSalesOrder();
@@ -50,6 +52,9 @@ export function useSalesOrderWorkflow(salesOrder: SalesOrder) {
     } else if (action === "close") {
       await closeSalesOrder.mutateAsync(write);
       toast.success("Sales order closed");
+    } else if (action === "acknowledge") {
+      await acknowledgeSalesOrder.mutateAsync(write);
+      toast.success("Sales order acknowledged");
     } else if (action === "cancel") {
       await cancelSalesOrder.mutateAsync({ ...write, reason: extras.reason });
       toast.success("Sales order cancelled");

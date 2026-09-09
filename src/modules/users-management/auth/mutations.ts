@@ -14,7 +14,11 @@ export function useLogin() {
     mutationFn: authApi.login,
     onSuccess: async () => {
       await queryClient.invalidateQueries();
-      await queryClient.fetchQuery({ queryKey: authKeys.me(), queryFn: authApi.me });
+      try {
+        await queryClient.fetchQuery({ queryKey: authKeys.me(), queryFn: authApi.me });
+      } catch {
+        // The httpOnly cookie is the session; the app layout will resolve /auth/me.
+      }
       router.refresh();
     },
   });

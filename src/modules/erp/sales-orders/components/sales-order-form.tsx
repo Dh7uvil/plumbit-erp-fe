@@ -27,7 +27,7 @@ import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { useCreateSalesOrder, useUpdateSalesOrder } from "@/modules/erp/sales-orders/mutations";
-import { useSalesOrderComposeDefaults } from "@/modules/erp/sales-orders/queries";
+import { useCustomerPoDuplicates, useSalesOrderComposeDefaults } from "@/modules/erp/sales-orders/queries";
 import {
   DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
@@ -63,6 +63,7 @@ import { Button } from "@/shared/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -149,6 +150,8 @@ function toFormValues(salesOrder: SalesOrder | null): SalesOrderFormValues {
     order_date: salesOrder?.order_date ?? todayIsoDate(),
     expected_shipment_date: salesOrder?.expected_shipment_date ?? "",
     reference_number: salesOrder?.reference_number ?? "",
+    customer_po_number: salesOrder?.customer_po_number ?? "",
+    customer_po_date: salesOrder?.customer_po_date ?? "",
     currency_id: salesOrder?.currency_id ?? OPTIONAL_SELECT_NONE,
     price_list_id: salesOrder?.price_list_id ?? OPTIONAL_SELECT_NONE,
     payment_terms_id: salesOrder?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
@@ -178,6 +181,8 @@ function toCreateRequest(values: SalesOrderFormValues): SalesOrderCreateRequest 
     order_date: emptyToNull(values.order_date),
     expected_shipment_date: emptyToNull(values.expected_shipment_date),
     reference_number: emptyToNull(values.reference_number),
+    customer_po_number: emptyToNull(values.customer_po_number),
+    customer_po_date: emptyToNull(values.customer_po_date),
     currency_id: optionalUuid(values.currency_id),
     price_list_id: optionalUuid(values.price_list_id),
     payment_terms_id: optionalUuid(values.payment_terms_id),
@@ -203,6 +208,8 @@ function toUpdateRequest(values: SalesOrderFormValues): SalesOrderUpdateRequest 
     order_date: created.order_date,
     expected_shipment_date: created.expected_shipment_date,
     reference_number: created.reference_number,
+    customer_po_number: created.customer_po_number,
+    customer_po_date: created.customer_po_date,
     currency_id: created.currency_id,
     price_list_id: created.price_list_id,
     payment_terms_id: created.payment_terms_id,
@@ -268,6 +275,12 @@ export function SalesOrderForm({
   const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
   const taxTreatment = useWatch({ control: form.control, name: "tax_treatment" });
   const customerTrn = useWatch({ control: form.control, name: "customer_trn" });
+  const [poCheckNumber, setPoCheckNumber] = useState(salesOrder?.customer_po_number?.trim() ?? "");
+  const duplicatesQuery = useCustomerPoDuplicates({
+    customer_id: selectedCustomerId,
+    customer_po_number: poCheckNumber,
+    exclude_id: salesOrder?.id,
+  });
 
   const customers = customersQuery.data ?? [];
   const contacts = (contactsQuery.data ?? []).filter(
@@ -486,13 +499,59 @@ export function SalesOrderForm({
           />
           <FormField
             control={form.control}
+            name="customer_po_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Customer PO number</FormLabel>
+                <FormControl>
+                  <Input
+                    maxLength={60}
+                    disabled={disabled}
+                    {...field}
+                    onBlur={(event) => {
+                      field.onBlur();
+                      setPoCheckNumber(event.target.value.trim());
+                    }}
+                  />
+                </FormControl>
+                {duplicatesQuery.data && duplicatesQuery.data.length > 0 ? (
+                  <p className="text-amber-700 text-sm dark:text-amber-400">
+                    This customer already has this PO on{" "}
+                    {duplicatesQuery.data
+                      .map((row) => row.document_number)
+                      .join(", ")}
+                    . You can still save.
+                  </p>
+                ) : null}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="customer_po_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Customer PO date</FormLabel>
+                <FormControl>
+                  <Input type="date" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="reference_number"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Reference number</FormLabel>
+                <FormLabel>Internal reference</FormLabel>
                 <FormControl>
                   <Input maxLength={60} disabled={disabled} {...field} />
                 </FormControl>
+                <FormDescription>
+                  Internal note only. The customer PO number is captured separately.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

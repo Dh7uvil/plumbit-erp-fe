@@ -21,6 +21,7 @@ export function ConfirmActionDialog({
   extra,
   confirmLabel = "Confirm",
   pending = false,
+  confirmDisabled = false,
   variant = "destructive",
   onOpenChange,
   onConfirm,
@@ -31,6 +32,7 @@ export function ConfirmActionDialog({
   extra?: ReactNode;
   confirmLabel?: string;
   pending?: boolean;
+  confirmDisabled?: boolean;
   variant?: "destructive" | "default";
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
@@ -45,7 +47,12 @@ export function ConfirmActionDialog({
         {extra}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
-          <Button type="button" variant={variant} disabled={pending} onClick={() => onConfirm()}>
+          <Button
+            type="button"
+            variant={variant}
+            disabled={pending || confirmDisabled}
+            onClick={() => onConfirm()}
+          >
             {pending ? <Loader2 className="size-4 animate-spin" /> : null}
             {confirmLabel}
           </Button>

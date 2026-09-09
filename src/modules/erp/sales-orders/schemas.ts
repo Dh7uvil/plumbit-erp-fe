@@ -180,6 +180,9 @@ export const SalesOrderSchema = z.object({
   fulfillment_status: FulfillmentStatusSchema,
   billing_status: BillingStatusSchema,
   source_quotation_id: z.string().uuid().nullable(),
+  source_proforma_invoice_id: z.string().uuid().nullable().optional().default(null),
+  customer_po_number: z.string().nullable().optional().default(null),
+  customer_po_date: z.string().nullable().optional().default(null),
   confirmed_at: z.string().nullable(),
   confirmed_by: z.string().uuid().nullable(),
   closed_at: z.string().nullable(),
@@ -187,6 +190,8 @@ export const SalesOrderSchema = z.object({
   cancelled_at: z.string().nullable(),
   cancelled_by: z.string().uuid().nullable(),
   cancel_reason: z.string().nullable(),
+  acknowledged_at: z.string().nullable().optional().default(null),
+  acknowledged_by: z.string().uuid().nullable().optional().default(null),
   available_actions: z.array(z.string()).default([]),
   lines: z.array(SalesOrderLineSchema).optional().default([]),
   created_at: z.string(),
@@ -234,6 +239,8 @@ export const SalesOrderCreateRequestSchema = z.object({
   order_date: z.string().nullable().optional(),
   expected_shipment_date: z.string().nullable().optional(),
   reference_number: z.string().max(60).nullable().optional(),
+  customer_po_number: z.string().max(60).nullable().optional(),
+  customer_po_date: z.string().nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
   price_list_id: z.string().uuid().nullable().optional(),
   payment_terms_id: z.string().uuid().nullable().optional(),
@@ -257,6 +264,8 @@ export const SalesOrderUpdateRequestSchema = z.object({
   order_date: z.string().nullable().optional(),
   expected_shipment_date: z.string().nullable().optional(),
   reference_number: z.string().max(60).nullable().optional(),
+  customer_po_number: z.string().max(60).nullable().optional(),
+  customer_po_date: z.string().nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
   price_list_id: z.string().uuid().nullable().optional(),
   payment_terms_id: z.string().uuid().nullable().optional(),
@@ -306,6 +315,8 @@ export const SalesOrderFormSchema = z
     order_date: z.string(),
     expected_shipment_date: z.string(),
     reference_number: z.string().max(60),
+    customer_po_number: z.string().max(60),
+    customer_po_date: z.string(),
     currency_id: z.string(),
     price_list_id: z.string(),
     payment_terms_id: z.string(),
@@ -362,7 +373,104 @@ export type SalesOrderListParams = {
   currency_id?: string;
   salesperson_id?: string;
   source_quotation_id?: string;
+  source_proforma_invoice_id?: string;
 };
+
+export const CustomerPoDuplicateSchema = z.object({
+  id: z.string().uuid(),
+  document_number: z.string(),
+  customer_po_number: z.string().nullable(),
+  customer_po_date: z.string().nullable(),
+  status: SalesOrderStatusSchema,
+});
+export type CustomerPoDuplicate = z.infer<typeof CustomerPoDuplicateSchema>;
+
+export const CustomerPoDuplicateListSchema = z.array(CustomerPoDuplicateSchema);
+
+export const CoveragePurchaseOrderRefSchema = z.object({
+  id: z.string().uuid(),
+  document_number: z.string(),
+  status: z.string(),
+  quantity: DecimalStringSchema,
+  qty_received: DecimalStringSchema,
+});
+export type CoveragePurchaseOrderRef = z.infer<typeof CoveragePurchaseOrderRefSchema>;
+
+export const SalesOrderCoverageLineSchema = z.object({
+  sales_order_line_id: z.string().uuid(),
+  product_id: z.string().uuid().nullable(),
+  description: z.string(),
+  quantity: DecimalStringSchema,
+  qty_covered: DecimalStringSchema,
+  qty_uncovered: DecimalStringSchema,
+  qty_received: DecimalStringSchema,
+  purchase_orders: z.array(CoveragePurchaseOrderRefSchema).default([]),
+});
+export type SalesOrderCoverageLine = z.infer<typeof SalesOrderCoverageLineSchema>;
+
+export const SalesOrderCoverageSchema = z.object({
+  sales_order_id: z.string().uuid(),
+  lines: z.array(SalesOrderCoverageLineSchema).default([]),
+});
+export type SalesOrderCoverage = z.infer<typeof SalesOrderCoverageSchema>;
+
+export const PurchaseOrderPlanLineSchema = z.object({
+  sales_order_line_id: z.string().uuid(),
+  product_id: z.string().uuid().nullable(),
+  description: z.string(),
+  qty_uncovered: DecimalStringSchema,
+  supplier_product_id: z.string().uuid().nullable().optional().default(null),
+  supplier_sku: z.string().nullable().optional().default(null),
+  catalog_price: MoneySchema.nullable().optional().default(null),
+  catalog_currency_id: z.string().uuid().nullable().optional().default(null),
+});
+export type PurchaseOrderPlanLine = z.infer<typeof PurchaseOrderPlanLineSchema>;
+
+export const PurchaseOrderPlanGroupSchema = z.object({
+  supplier_id: z.string().uuid(),
+  supplier_name: z.string(),
+  currency_id: z.string().uuid(),
+  lines: z.array(PurchaseOrderPlanLineSchema).default([]),
+});
+export type PurchaseOrderPlanGroup = z.infer<typeof PurchaseOrderPlanGroupSchema>;
+
+export const PurchaseOrderPlanSchema = z.object({
+  groups: z.array(PurchaseOrderPlanGroupSchema).default([]),
+  unassigned: z.array(PurchaseOrderPlanLineSchema).default([]),
+});
+export type PurchaseOrderPlan = z.infer<typeof PurchaseOrderPlanSchema>;
+
+export const PurchaseOrderFromSalesOrderLineSchema = z.object({
+  sales_order_line_id: z.string().uuid(),
+  quantity: DecimalStringSchema,
+  rate: MoneySchema.nullable().optional(),
+  supplier_product_id: z.string().uuid().nullable().optional(),
+});
+export type PurchaseOrderFromSalesOrderLine = z.infer<typeof PurchaseOrderFromSalesOrderLineSchema>;
+
+export const PurchaseOrderFromSalesOrderGroupSchema = z.object({
+  supplier_id: z.string().uuid(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  expected_delivery_date: z.string().nullable().optional(),
+  currency_id: z.string().uuid().nullable().optional(),
+  lines: z.array(PurchaseOrderFromSalesOrderLineSchema),
+});
+export type PurchaseOrderFromSalesOrderGroup = z.infer<
+  typeof PurchaseOrderFromSalesOrderGroupSchema
+>;
+
+export const PurchaseOrderFromSalesOrderRequestSchema = z.object({
+  groups: z.array(PurchaseOrderFromSalesOrderGroupSchema),
+  allow_overcommit: z.boolean().optional(),
+});
+export type PurchaseOrderFromSalesOrderRequest = z.infer<
+  typeof PurchaseOrderFromSalesOrderRequestSchema
+>;
+
+export function isQtyUncovered(qtyUncovered: string): boolean {
+  const parsed = Number(qtyUncovered);
+  return Number.isFinite(parsed) && parsed > 0;
+}
 
 export function salesOrderDisplayNumber(order: Pick<SalesOrder, "document_number">): string | null {
   const value = (order.document_number || "").trim();

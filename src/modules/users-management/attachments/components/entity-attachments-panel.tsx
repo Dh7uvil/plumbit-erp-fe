@@ -84,10 +84,12 @@ export function EntityAttachmentsPanel({
   entityType,
   entityId,
   parentPosted = false,
+  defaultCategory = "OTHER",
 }: {
   entityType: AttachmentEntityType;
   entityId: string;
   parentPosted?: boolean;
+  defaultCategory?: AttachmentCategory;
 }) {
   const can = useCan();
   const canRead = can(attachmentPermissions.read);
@@ -96,7 +98,7 @@ export function EntityAttachmentsPanel({
   const createAttachment = useCreateAttachment();
   const updateAttachment = useUpdateAttachment();
   const deleteAttachment = useDeleteAttachment();
-  const [uploadCategory, setUploadCategory] = useState<AttachmentCategory>("OTHER");
+  const [uploadCategory, setUploadCategory] = useState<AttachmentCategory>(defaultCategory);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);

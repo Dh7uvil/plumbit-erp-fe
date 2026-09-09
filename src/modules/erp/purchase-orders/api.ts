@@ -41,6 +41,7 @@ export const purchaseOrdersApi = {
         branch_id: params.branch_id,
         warehouse_id: params.warehouse_id,
         currency_id: params.currency_id,
+        source_sales_order_id: params.source_sales_order_id,
       },
     });
     return { data: PurchaseOrderListSchema.parse(result.data), meta: result.meta };
