@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { ProductSuppliersPanel } from "@/modules/erp/supplier-products/components/product-suppliers-panel";
 import { ProductForm } from "@/modules/inventory-management/products/components/product-form";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useProduct } from "@/modules/inventory-management/products/queries";
@@ -78,7 +79,12 @@ export function ProductDetailScreen({
           />
         </CardContent>
       </Card>
-      {isEdit ? null : <EntityAttachmentsPanel entityType="PRODUCT" entityId={product.id} />}
+      {isEdit ? null : (
+        <>
+          <ProductSuppliersPanel productId={product.id} />
+          <EntityAttachmentsPanel entityType="PRODUCT" entityId={product.id} />
+        </>
+      )}
     </div>
   );
 }

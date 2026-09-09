@@ -2,7 +2,7 @@
 
 import { ProductForm } from "@/modules/inventory-management/products/components/product-form";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
-import type { Product } from "@/modules/inventory-management/products/schemas";
+import type { Product, ProductFormValues } from "@/modules/inventory-management/products/schemas";
 import {
   formDialogTitle,
   resolveFormDialogMode,
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/compo
 export function ProductFormDialog({
   open,
   product,
+  initialValues,
   onOpenChange,
   onCreated,
   nested = false,
@@ -20,6 +21,7 @@ export function ProductFormDialog({
 }: {
   open: boolean;
   product: Product | null;
+  initialValues?: Partial<ProductFormValues>;
   onOpenChange: (open: boolean) => void;
   onCreated?: (entity: Product) => void;
   nested?: boolean;
@@ -41,7 +43,9 @@ export function ProductFormDialog({
           <DialogTitle>{formDialogTitle("Product", mode)}</DialogTitle>
         </DialogHeader>
         <ProductForm
+          key={`${open}-${product?.id ?? "create"}-${initialValues?.name ?? ""}`}
           product={product}
+          initialValues={initialValues}
           disabled={readOnly}
           showCancel
           onCancel={() => onOpenChange(false)}

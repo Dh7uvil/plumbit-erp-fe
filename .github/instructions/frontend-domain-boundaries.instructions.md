@@ -155,7 +155,7 @@ users-management        Identity (BE: app/auth/): Auth, Users, Roles, Permission
                         Tenant `allow_negative_stock` is on `/tenants/current`. Lock dates are
                         edited through `/period-lock`.
 erp                     Implemented: Quotations, Sales Orders, Purchase Orders, Currencies, Exchange Rates, Taxes,
-                        Payment Terms, Terms Templates, Document Sequences, Suppliers, Period Lock.
+                        Payment Terms, Terms Templates, Document Sequences, Suppliers, Supplier Products, Period Lock.
                         Planned: Sales Invoices, Credit Notes, Customer Payments,
                         Purchase Invoices, Debit Notes, Supplier Payments,
                         Accounting (Accounts, Journals, Receivables, Payables),

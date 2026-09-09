@@ -119,6 +119,8 @@ export const PurchaseOrderLineSchema = z.object({
   id: z.string().uuid(),
   line_number: z.number().int(),
   product_id: z.string().uuid().nullable(),
+  supplier_product_id: z.string().uuid().nullable().optional().default(null),
+  supplier_sku: z.string().nullable().optional().default(null),
   description: z.string(),
   quantity: DecimalStringSchema,
   unit_id: z.string().uuid().nullable(),
@@ -207,6 +209,7 @@ export type PurchaseOrderComposeDefaults = z.infer<typeof PurchaseOrderComposeDe
 
 export const PurchaseOrderLineInputSchema = z.object({
   product_id: z.string().uuid().nullable().optional(),
+  supplier_product_id: z.string().uuid().nullable().optional(),
   description: z.string().nullable().optional(),
   quantity: DecimalStringSchema,
   unit_id: z.string().uuid().nullable().optional(),
@@ -262,6 +265,8 @@ export type PurchaseOrderUpdateRequest = z.infer<typeof PurchaseOrderUpdateReque
 
 export const PurchaseOrderLineFormSchema = z.object({
   product_id: z.string(),
+  supplier_product_id: z.string(),
+  supplier_sku: z.string(),
   description: z.string(),
   quantity: z.string(),
   unit_id: z.string(),
@@ -278,8 +283,16 @@ function hasProductId(value: string): boolean {
   return Boolean(value) && value !== OPTIONAL_SELECT_NONE;
 }
 
+function hasCatalogId(value: string): boolean {
+  return Boolean(value) && value !== OPTIONAL_SELECT_NONE;
+}
+
 export function isBlankPurchaseOrderLine(line: PurchaseOrderLineFormValues): boolean {
-  return !hasProductId(line.product_id) && !line.description.trim();
+  return (
+    !hasProductId(line.product_id) &&
+    !hasCatalogId(line.supplier_product_id) &&
+    !line.description.trim()
+  );
 }
 
 export const PurchaseOrderFormSchema = z

@@ -28,6 +28,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   INSUFFICIENT_STOCK: "There is not enough stock to complete this action.",
   PERIOD_LOCKED: "This date falls in a locked period and cannot be changed.",
   PERIOD_LOCK_BLOCKED_NEGATIVE_STOCK: "The period cannot be locked while stock is negative.",
+  SUPPLIER_SKU_NOT_MAPPED: "This supplier SKU is not mapped to a product.",
   DRAFT_DOCUMENT_NOT_POSTED: "This document is still a draft and has not been posted.",
   DOCUMENT_STALE: "This document changed since you opened it. Reload and try again.",
   IDEMPOTENCY_CONFLICT: "This request was already processed. Refresh to see the latest result.",

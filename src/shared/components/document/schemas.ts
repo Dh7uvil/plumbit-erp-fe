@@ -52,6 +52,8 @@ export const DISCOUNT_TYPE_LABELS: Record<(typeof DISCOUNT_TYPES)[number], strin
 
 export const DocumentLineFormSchema = z.object({
   product_id: z.string(),
+  supplier_product_id: z.string(),
+  supplier_sku: z.string(),
   description: z.string(),
   quantity: z.string(),
   unit_id: z.string(),
@@ -65,6 +67,8 @@ export type DocumentLineFormValues = z.infer<typeof DocumentLineFormSchema>;
 export function emptyDocumentLine(): DocumentLineFormValues {
   return {
     product_id: OPTIONAL_SELECT_NONE,
+    supplier_product_id: OPTIONAL_SELECT_NONE,
+    supplier_sku: "",
     description: "",
     quantity: "1",
     unit_id: OPTIONAL_SELECT_NONE,
