@@ -118,6 +118,15 @@ export const TAX_TREATMENT_LABELS: Record<TaxTreatment, string> = {
   EXEMPT: "Exempt",
 };
 
+export const ReservationShortfallSchema = z.object({
+  sales_order_line_id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  requested: DecimalStringSchema,
+  reserved: DecimalStringSchema,
+  shortfall: DecimalStringSchema,
+});
+export type ReservationShortfall = z.infer<typeof ReservationShortfallSchema>;
+
 export const SalesOrderLineSchema = z.object({
   id: z.string().uuid(),
   line_number: z.number().int(),
@@ -134,6 +143,8 @@ export const SalesOrderLineSchema = z.object({
   tax_amount: MoneySchema,
   amount: MoneySchema,
   qty_delivered: DecimalStringSchema,
+  qty_returned: DecimalStringSchema.optional().default("0"),
+  qty_reserved: DecimalStringSchema.optional().default("0"),
   qty_invoiced: DecimalStringSchema,
   source_quotation_line_id: z.string().uuid().nullable(),
 });
@@ -194,6 +205,7 @@ export const SalesOrderSchema = z.object({
   acknowledged_by: z.string().uuid().nullable().optional().default(null),
   available_actions: z.array(z.string()).default([]),
   lines: z.array(SalesOrderLineSchema).optional().default([]),
+  reservation_shortfalls: z.array(ReservationShortfallSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -404,6 +416,9 @@ export const SalesOrderCoverageLineSchema = z.object({
   qty_covered: DecimalStringSchema,
   qty_uncovered: DecimalStringSchema,
   qty_received: DecimalStringSchema,
+  qty_reserved: DecimalStringSchema.optional().default("0"),
+  qty_delivered: DecimalStringSchema.optional().default("0"),
+  qty_returned: DecimalStringSchema.optional().default("0"),
   purchase_orders: z.array(CoveragePurchaseOrderRefSchema).default([]),
 });
 export type SalesOrderCoverageLine = z.infer<typeof SalesOrderCoverageLineSchema>;
@@ -475,4 +490,53 @@ export function isQtyUncovered(qtyUncovered: string): boolean {
 export function salesOrderDisplayNumber(order: Pick<SalesOrder, "document_number">): string | null {
   const value = (order.document_number || "").trim();
   return value ? value : null;
+}
+
+export const DeliverableLineSchema = z.object({
+  sales_order_line_id: z.string().uuid(),
+  product_id: z.string().uuid().nullable(),
+  description: z.string(),
+  unit_id: z.string().uuid().nullable(),
+  rate: DecimalStringSchema,
+  quantity: DecimalStringSchema,
+  qty_delivered: DecimalStringSchema,
+  qty_returned: DecimalStringSchema,
+  qty_reserved: DecimalStringSchema,
+  outstanding: DecimalStringSchema,
+});
+export type DeliverableLine = z.infer<typeof DeliverableLineSchema>;
+export const DeliverableLineListSchema = z.array(DeliverableLineSchema);
+
+export const PackableLineSchema = z.object({
+  sales_order_line_id: z.string().uuid(),
+  product_id: z.string().uuid().nullable(),
+  description: z.string(),
+  unit_id: z.string().uuid().nullable(),
+  quantity: DecimalStringSchema,
+  qty_packed: DecimalStringSchema,
+  outstanding: DecimalStringSchema,
+});
+export type PackableLine = z.infer<typeof PackableLineSchema>;
+export const PackableLineListSchema = z.array(PackableLineSchema);
+
+export const OrderTrackerRowSchema = z.object({
+  stage: z.string(),
+  document_type: z.string(),
+  document_number: z.string().nullable().optional().default(null),
+  document_id: z.string().uuid().nullable().optional().default(null),
+  status: z.string(),
+  document_date: z.string().nullable().optional().default(null),
+  quantity_summary: z.string().nullable().optional().default(null),
+});
+export type OrderTrackerRow = z.infer<typeof OrderTrackerRowSchema>;
+
+export const OrderTrackerSchema = z.object({
+  sales_order_id: z.string().uuid(),
+  rows: z.array(OrderTrackerRowSchema).default([]),
+});
+export type OrderTracker = z.infer<typeof OrderTrackerSchema>;
+
+export function hasReservationShortfall(shortfall: string): boolean {
+  const parsed = Number(shortfall);
+  return Number.isFinite(parsed) && parsed > 0;
 }

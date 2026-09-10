@@ -5,14 +5,22 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { purchaseOrderKeys } from "@/modules/erp/purchase-orders/queries";
 import { salesOrdersApi } from "@/modules/erp/sales-orders/api";
 import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
+import { stockKeys } from "@/modules/inventory-management/stock/queries";
 import { isApiError } from "@/shared/api/errors";
 
 type SalesOrderWriteVars = { id: string; version: number };
 
-async function invalidateSalesOrders(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
+async function invalidateSalesOrders(
+  queryClient: ReturnType<typeof useQueryClient>,
+  id?: string,
+  stockMoved = false,
+) {
   await queryClient.invalidateQueries({ queryKey: salesOrderKeys.all });
   if (id) {
     await queryClient.invalidateQueries({ queryKey: salesOrderKeys.detail(id) });
+  }
+  if (stockMoved) {
+    await queryClient.invalidateQueries({ queryKey: stockKeys.all });
   }
 }
 
@@ -63,12 +71,13 @@ function useSalesOrderVersionMutation(
     id: string,
     options: { version: number },
   ) => ReturnType<typeof salesOrdersApi.submit>,
+  stockMoved = false,
 ) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, version }: SalesOrderWriteVars) => mutationFn(id, { version }),
     onSuccess: async (_data, { id }) => {
-      await invalidateSalesOrders(queryClient, id);
+      await invalidateSalesOrders(queryClient, id, stockMoved);
     },
     onError: async (error, { id }) => {
       await refetchIfStale(queryClient, error, id);
@@ -99,15 +108,15 @@ export function useRejectSalesOrder() {
 }
 
 export function useReopenSalesOrder() {
-  return useSalesOrderVersionMutation(salesOrdersApi.reopen);
+  return useSalesOrderVersionMutation(salesOrdersApi.reopen, true);
 }
 
 export function useConfirmSalesOrder() {
-  return useSalesOrderVersionMutation(salesOrdersApi.confirm);
+  return useSalesOrderVersionMutation(salesOrdersApi.confirm, true);
 }
 
 export function useCloseSalesOrder() {
-  return useSalesOrderVersionMutation(salesOrdersApi.close);
+  return useSalesOrderVersionMutation(salesOrdersApi.close, true);
 }
 
 export function useCancelSalesOrder() {
@@ -116,7 +125,7 @@ export function useCancelSalesOrder() {
     mutationFn: ({ id, version, reason }: SalesOrderWriteVars & { reason?: string | null }) =>
       salesOrdersApi.cancel(id, { version, reason }),
     onSuccess: async (_data, { id }) => {
-      await invalidateSalesOrders(queryClient, id);
+      await invalidateSalesOrders(queryClient, id, true);
     },
     onError: async (error, { id }) => {
       await refetchIfStale(queryClient, error, id);

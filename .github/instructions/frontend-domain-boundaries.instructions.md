@@ -163,8 +163,8 @@ erp                     Implemented: Quotations, Sales Orders, Purchase Orders, 
                         e-invoicing status UX on sales invoices and credit notes.
 inventory-management    Implemented: Units, Categories, Products, Price Lists, Warehouses,
                         Stock, Stock Transfers, Stock Adjustments, Goods Receipts,
-                        Quality Inspections.
-                        Planned: Delivery Notes, Sales Returns.
+                        Quality Inspections, Delivery Notes, Packages, Shipments,
+                        Sales Returns.
 crm                     Implemented: Customers, Contacts.
                         Planned: Leads, Opportunities, Activities.
 communication-service   Email, WhatsApp, Chat, Meetings (planned)

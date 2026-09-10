@@ -10,6 +10,11 @@ import { toast } from "sonner";
 
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
 import { CustomerForm } from "@/modules/crm/customers/components/customer-form";
+import {
+  CustomerSalesHistoryCard,
+  CustomerSoldItemsCard,
+} from "@/modules/inventory-management/history/components/trading-history-cards";
+import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { useAddCustomerAddress, useDeleteCustomerAddress } from "@/modules/crm/customers/mutations";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { useCustomer } from "@/modules/crm/customers/queries";
@@ -298,7 +303,10 @@ export function CustomerDetailScreen({
             </CardContent>
           </Card>
           <ContactsPanel customerId={customer.id} />
+          <CustomerSoldItemsCard customerId={customer.id} />
+          <CustomerSalesHistoryCard customerId={customer.id} />
           <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />
+          <ActivityFeed entityType="customer" entityId={customer.id} />
         </>
       )}
       <Dialog

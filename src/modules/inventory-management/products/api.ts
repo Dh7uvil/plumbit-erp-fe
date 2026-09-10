@@ -1,5 +1,12 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  TradingHistoryLineListSchema,
+  TradingPartyAggregateListSchema,
+  type TradingHistoryLine,
+  type TradingHistoryListParams,
+  type TradingPartyAggregate,
+} from "@/modules/inventory-management/history/schemas";
+import {
   ProductCreateRequestSchema,
   ProductListSchema,
   ProductSchema,
@@ -45,4 +52,40 @@ export const productsApi = {
     ),
   delete: async (id: string): Promise<Product> =>
     ProductSchema.parse(await apiClient.delete(`/products/${id}`)),
+  listCustomers: async (id: string): Promise<ListResponse<TradingPartyAggregate[]>> => {
+    const result = await apiClient.getList<unknown>(`/products/${id}/customers`);
+    return { data: TradingPartyAggregateListSchema.parse(result.data), meta: result.meta };
+  },
+  listSalesHistory: async (
+    id: string,
+    params: TradingHistoryListParams = {},
+  ): Promise<ListResponse<TradingHistoryLine[]>> => {
+    const result = await apiClient.getList<unknown>(`/products/${id}/sales-history`, {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        party_id: params.party_id,
+        warehouse_id: params.warehouse_id,
+        document_date_from: params.document_date_from,
+        document_date_to: params.document_date_to,
+      },
+    });
+    return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
+  },
+  listPurchaseHistory: async (
+    id: string,
+    params: TradingHistoryListParams = {},
+  ): Promise<ListResponse<TradingHistoryLine[]>> => {
+    const result = await apiClient.getList<unknown>(`/products/${id}/purchase-history`, {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        party_id: params.party_id,
+        warehouse_id: params.warehouse_id,
+        document_date_from: params.document_date_from,
+        document_date_to: params.document_date_to,
+      },
+    });
+    return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
+  },
 };

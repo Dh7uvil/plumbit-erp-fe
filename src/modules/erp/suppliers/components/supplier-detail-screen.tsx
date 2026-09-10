@@ -10,7 +10,9 @@ import { toast } from "sonner";
 
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
+import { SupplierPurchaseHistoryCard } from "@/modules/inventory-management/history/components/trading-history-cards";
 import { SupplierProductsPanel } from "@/modules/erp/supplier-products/components/supplier-products-panel";
+import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { SupplierForm } from "@/modules/erp/suppliers/components/supplier-form";
 import { useAddSupplierAddress, useDeleteSupplierAddress } from "@/modules/erp/suppliers/mutations";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
@@ -300,7 +302,9 @@ export function SupplierDetailScreen({
           </Card>
           <ContactsPanel customerId={supplier.id} />
           <SupplierProductsPanel supplierId={supplier.id} />
+          <SupplierPurchaseHistoryCard supplierId={supplier.id} />
           <EntityAttachmentsPanel entityType="SUPPLIER" entityId={supplier.id} />
+          <ActivityFeed entityType="supplier" entityId={supplier.id} />
         </>
       )}
       <Dialog

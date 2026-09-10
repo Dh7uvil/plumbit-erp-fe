@@ -55,8 +55,9 @@ src/
 │   │                             planned: leads, opportunities, activities
 │   ├── inventory-management/
 │   │                             implemented: units, categories, products, price-lists, warehouses,
-│   │                             stock, stock-transfers, stock-adjustments
-│   │                             planned: goods-receipts (GRN), delivery-notes, sales-returns
+│   │                             stock, stock-transfers, stock-adjustments, goods-receipts,
+│   │                             quality-inspections, delivery-notes, packages, shipments,
+│   │                             sales-returns
 │   ├── erp/
 │   │                             implemented: currencies, exchange-rates, taxes, payment-terms,
 │   │                             terms-templates, document-sequences, suppliers, quotations,
@@ -78,8 +79,8 @@ hyphenated plural resources (`src/modules/erp/purchase-invoices/` → `/purchase
 `/api/v1/purchase-invoices`). Keep `/credit-notes`, `/debit-notes`, `/customer-payments`,
 `/supplier-payments`, `/delivery-notes` unique.
 
-Document-number prefixes (backend-generated): `QUO`, `SO`, `DN` (delivery), `INV`, `CN`, `PO`,
-`GRN`, `BILL`, `SDN` (debit notes).
+Document-number prefixes (backend-generated): `QUO`, `SO`, `DN` (delivery), `PKG`, `SHP`, `SR`,
+`INV`, `CN`, `PO`, `GRN`, `BILL`, `SDN` (debit notes).
 
 ## Detailed instruction files
 

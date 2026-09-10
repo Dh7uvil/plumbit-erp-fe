@@ -4,9 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { ProductSuppliersPanel } from "@/modules/erp/supplier-products/components/product-suppliers-panel";
+import {
+  ProductCustomersCard,
+  ProductPurchaseHistoryCard,
+  ProductSalesHistoryCard,
+} from "@/modules/inventory-management/history/components/trading-history-cards";
 import { ProductForm } from "@/modules/inventory-management/products/components/product-form";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useProduct } from "@/modules/inventory-management/products/queries";
+import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -82,7 +88,11 @@ export function ProductDetailScreen({
       {isEdit ? null : (
         <>
           <ProductSuppliersPanel productId={product.id} />
+          <ProductCustomersCard productId={product.id} />
+          <ProductSalesHistoryCard productId={product.id} />
+          <ProductPurchaseHistoryCard productId={product.id} />
           <EntityAttachmentsPanel entityType="PRODUCT" entityId={product.id} />
+          <ActivityFeed entityType="product" entityId={product.id} />
         </>
       )}
     </div>
