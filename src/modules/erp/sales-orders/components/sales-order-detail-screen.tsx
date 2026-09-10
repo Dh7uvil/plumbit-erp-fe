@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import { CreateInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-invoices/components/create-from-sales-order-dialog";
+import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 
 import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
 import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sales-order-coverage-card";
@@ -28,7 +31,9 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { Button } from "@/shared/components/ui/button";
 import { formatDate, formatDateTime } from "@/shared/lib/format";
+import { useCan } from "@/shared/providers/session-provider";
 
 export function SalesOrderDetailScreen({
   salesOrderId,
@@ -96,9 +101,14 @@ function SalesOrderDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
+  const can = useCan();
   const isEdit = mode === "edit";
   const number = salesOrderDisplayNumber(salesOrder);
   const onAction = useSalesOrderWorkflow(salesOrder);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const canCreateInvoice =
+    (salesOrder.status === "CONFIRMED" || salesOrder.status === "CLOSED") &&
+    can(salesInvoicePermissions.create);
 
   return (
     <DocumentRecordShell
@@ -135,13 +145,20 @@ function SalesOrderDetailLoaded({
         </>
       }
       workflow={
-        <DocumentWorkflowButtons
-          availableActions={salesOrder.available_actions}
-          registry={SALES_ORDER_ACTION_REGISTRY}
-          documentKind="sales order"
-          documentLabel={number ?? "sales order"}
-          onAction={onAction}
-        />
+        <div className="flex flex-col items-end gap-2">
+          {canCreateInvoice ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => setInvoiceOpen(true)}>
+              Create invoice
+            </Button>
+          ) : null}
+          <DocumentWorkflowButtons
+            availableActions={salesOrder.available_actions}
+            registry={SALES_ORDER_ACTION_REGISTRY}
+            documentKind="sales order"
+            documentLabel={number ?? "sales order"}
+            onAction={onAction}
+          />
+        </div>
       }
       banner={
         <div className="flex flex-col gap-1">
@@ -213,6 +230,11 @@ function SalesOrderDetailLoaded({
         salesOrder={salesOrder}
         disabled={!isEdit}
         onSuccess={() => router.push(viewHref)}
+      />
+      <CreateInvoiceFromSalesOrderDialog
+        salesOrderId={salesOrder.id}
+        open={invoiceOpen}
+        onOpenChange={setInvoiceOpen}
       />
     </DocumentRecordShell>
   );

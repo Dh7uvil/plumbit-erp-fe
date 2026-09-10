@@ -27,6 +27,7 @@ const ORDER_TRACKER_STAGES = [
   { key: "PACKAGE", label: "Packages" },
   { key: "DELIVERY_NOTE", label: "Delivery notes" },
   { key: "SHIPMENT", label: "Shipments" },
+  { key: "SALES_INVOICE", label: "Sales invoices" },
   { key: "SALES_RETURN", label: "Sales returns" },
 ] as const;
 
@@ -39,7 +40,11 @@ const TRACKER_HREF: Record<string, (id: string) => string> = {
   PACKAGE: (id) => `/packages/${id}`,
   DELIVERY_NOTE: (id) => `/delivery-notes/${id}`,
   SHIPMENT: (id) => `/shipments/${id}`,
+  SALES_INVOICE: (id) => `/sales-invoices/${id}`,
   SALES_RETURN: (id) => `/sales-returns/${id}`,
+  PURCHASE_INVOICE: (id) => `/purchase-invoices/${id}`,
+  CREDIT_NOTE: (id) => `/credit-notes/${id}`,
+  DEBIT_NOTE: (id) => `/debit-notes/${id}`,
 };
 
 function normalizeType(value: string): string {

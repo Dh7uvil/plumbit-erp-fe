@@ -29,10 +29,14 @@ import type { Product } from "@/modules/inventory-management/products/schemas";
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
+import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
 import {
   DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
+  EXPENSE_CATEGORIES,
+  EXPENSE_CATEGORY_LABELS,
   emptyDocumentLine,
+  emptyExpenseDocumentLine,
 } from "@/shared/components/document/schemas";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
@@ -80,13 +84,18 @@ const RECEIVE_LINE_HEADERS = [
   "",
 ] as const;
 
+const EXPENSE_LINE_HEADERS = ["Account", "Category", "Description", "Amount", "Tax", ""] as const;
+
 export type SupplierCatalogProps = {
   supplierId: string | null;
 };
 
-export type DocumentLinesMode = "standard" | "receive";
+export type DocumentLinesMode = "standard" | "receive" | "expense";
 
 function lineHeaders(showSupplierSku: boolean, mode: DocumentLinesMode): readonly string[] {
+  if (mode === "expense") {
+    return EXPENSE_LINE_HEADERS;
+  }
   if (mode === "receive") {
     return RECEIVE_LINE_HEADERS;
   }
@@ -187,6 +196,10 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const productsQuery = useAllProducts();
   const unitsQuery = useAllUnits();
   const taxesQuery = useAllTaxes();
+  const accountsQuery = useAllAccounts(
+    { is_group: false, is_active: true },
+    lineMode === "expense",
+  );
   const supplierId = supplierCatalog?.supplierId ?? null;
   const catalogQuery = useAllSupplierProducts(
     { supplier_id: supplierId ?? undefined, is_active: true },
@@ -205,8 +218,10 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const products = productsQuery.data ?? [];
   const units = unitsQuery.data ?? [];
   const taxes = taxesQuery.data ?? [];
+  const accounts = accountsQuery.data ?? [];
   const catalog = catalogQuery.data ?? [];
   const isReceive = lineMode === "receive";
+  const isExpense = lineMode === "expense";
   const showSupplierSku = Boolean(supplierCatalog) || isReceive;
   const headers = lineHeaders(showSupplierSku, lineMode);
   const rawCurrencyId = useWatch({
@@ -318,7 +333,151 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                 </TableCell>
               </TableRow>
             ) : (
-              fields.map((field, index) => (
+              fields.map((field, index) =>
+                isExpense ? (
+                  <TableRow key={field.id}>
+                    <TableCell className="min-w-48 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "expense_account_id")}
+                        render={({ field: accountField }) => (
+                          <FormItem>
+                            <MasterSelect
+                              compact
+                              value={String(accountField.value ?? OPTIONAL_SELECT_NONE)}
+                              onValueChange={accountField.onChange}
+                              disabled={disabled || accountsQuery.isLoading}
+                              placeholder="Select account"
+                              searchPlaceholder="Search account…"
+                              options={[
+                                { value: OPTIONAL_SELECT_NONE, label: "Select account" },
+                                ...accounts.map((account) => ({
+                                  value: account.id,
+                                  label: `${account.code} — ${account.name}`,
+                                })),
+                              ]}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="min-w-36 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "expense_category")}
+                        render={({ field: categoryField }) => (
+                          <FormItem>
+                            <Select
+                              value={String(categoryField.value ?? OPTIONAL_SELECT_NONE)}
+                              onValueChange={categoryField.onChange}
+                              disabled={disabled}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="None" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
+                                {EXPENSE_CATEGORIES.map((category) => (
+                                  <SelectItem key={category} value={category}>
+                                    {EXPENSE_CATEGORY_LABELS[category]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="min-w-56 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "description")}
+                        render={({ field: descriptionField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                disabled={disabled}
+                                aria-label={`Line ${index + 1} description`}
+                                {...descriptionField}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="w-28 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "rate")}
+                        render={({ field: rateField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                inputMode="decimal"
+                                className="text-right"
+                                disabled={disabled}
+                                aria-label={`Line ${index + 1} amount`}
+                                {...rateField}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="min-w-36 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "tax_id")}
+                        render={({ field: taxField }) => (
+                          <FormItem>
+                            <MasterSelect
+                              compact
+                              value={String(taxField.value ?? OPTIONAL_SELECT_NONE)}
+                              onValueChange={taxField.onChange}
+                              disabled={disabled || taxesQuery.isLoading}
+                              placeholder="None"
+                              searchPlaceholder="Search tax…"
+                              createLabel="Create tax"
+                              onCreate={
+                                can(taxPermissions.create)
+                                  ? () => setLineCreate({ type: "tax", index })
+                                  : undefined
+                              }
+                              options={[
+                                { value: OPTIONAL_SELECT_NONE, label: "None" },
+                                ...taxes.map((tax) => ({
+                                  value: tax.id,
+                                  label: tax.name,
+                                })),
+                              ]}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {disabled ? null : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive size-7"
+                          aria-label="Remove line"
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ) : (
                 <TableRow key={field.id}>
                   <TableCell className="min-w-48 align-top">
                     <FormField
@@ -654,7 +813,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                     )}
                   </TableCell>
                 </TableRow>
-              ))
+                ),
+              )
             )}
           </TableBody>
         </table>
@@ -665,7 +825,12 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
           variant="outline"
           size="sm"
           onClick={() =>
-            append(emptyDocumentLine() as FieldArray<TFieldValues, ArrayPath<TFieldValues>>)
+            append(
+              (isExpense ? emptyExpenseDocumentLine() : emptyDocumentLine()) as FieldArray<
+                TFieldValues,
+                ArrayPath<TFieldValues>
+              >,
+            )
           }
         >
           <Plus className="size-3.5" />

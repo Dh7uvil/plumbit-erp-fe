@@ -16,7 +16,7 @@ export const GOODS_RECEIPT_ACTION_REGISTRY: DocumentActionSpec<GoodsReceiptWorkf
     label: "Post",
     permission: goodsReceiptPermissions.post,
     confirmCopy: (documentNumber) =>
-      `Posting ${documentNumber}: stock and cost layers will move. AP will not.`,
+      `Posting ${documentNumber}: stock and cost layers will move, and the general ledger will debit inventory and credit goods received not invoiced. AP will not.`,
   },
   {
     action: "cancel",
@@ -24,7 +24,7 @@ export const GOODS_RECEIPT_ACTION_REGISTRY: DocumentActionSpec<GoodsReceiptWorkf
     permission: goodsReceiptPermissions.update,
     variant: "destructive",
     confirmCopy: (documentNumber) =>
-      `${documentNumber} will be cancelled. If it is posted, stock and cost layers will reverse when the API allows it. AP will not.`,
+      `${documentNumber} will be cancelled. If it is posted, stock, cost layers, and the related general ledger entry will reverse when the API allows it. AP will not.`,
     reasonField: { placeholder: "Why this goods receipt is being cancelled" },
   },
   {

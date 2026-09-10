@@ -1,11 +1,16 @@
 import {
   AccountStatementSchema,
+  ExportEvidenceExceptionSchema,
   GeneralLedgerSchema,
+  InvoicedNotDispatchedSchema,
   TrialBalanceSchema,
   type AccountStatement,
   type AccountStatementParams,
+  type ExportEvidenceException,
+  type ExportEvidenceExceptionParams,
   type GeneralLedger,
   type GeneralLedgerParams,
+  type InvoicedNotDispatched,
   type TrialBalance,
   type TrialBalanceParams,
 } from "@/modules/erp/accounting/reports/schemas";
@@ -46,4 +51,14 @@ export const reportsApi = {
         },
       }),
     ),
+  exportEvidenceExceptions: async (
+    params: ExportEvidenceExceptionParams = {},
+  ): Promise<ExportEvidenceException> =>
+    ExportEvidenceExceptionSchema.parse(
+      await apiClient.get("/reports/export-evidence-exceptions", {
+        params: { as_of: params.as_of },
+      }),
+    ),
+  invoicedNotDispatched: async (): Promise<InvoicedNotDispatched> =>
+    InvoicedNotDispatchedSchema.parse(await apiClient.get("/reports/invoiced-not-dispatched")),
 };

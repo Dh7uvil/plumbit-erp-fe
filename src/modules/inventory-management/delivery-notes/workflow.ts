@@ -11,7 +11,7 @@ export const DELIVERY_NOTE_ACTION_REGISTRY: DocumentActionSpec<DeliveryNoteWorkf
     label: "Post",
     permission: deliveryNotePermissions.post,
     confirmCopy: (documentNumber) =>
-      `Posting ${documentNumber}: reserved stock will be released, stock will move out, and cost will be consumed. AR will not.`,
+      `Posting ${documentNumber}: reserved stock will be released, stock will move out, cost will be consumed, and the general ledger will debit COGS and credit inventory. AR will not.`,
   },
   {
     action: "cancel",
@@ -19,7 +19,7 @@ export const DELIVERY_NOTE_ACTION_REGISTRY: DocumentActionSpec<DeliveryNoteWorkf
     permission: deliveryNotePermissions.update,
     variant: "destructive",
     confirmCopy: (documentNumber) =>
-      `${documentNumber} will be cancelled. If it is posted, stock and original cost will reverse when the API allows it.`,
+      `${documentNumber} will be cancelled. If it is posted, stock, original cost, and the related general ledger entry will reverse when the API allows it.`,
     reasonField: { placeholder: "Why this delivery note is being cancelled" },
   },
   {

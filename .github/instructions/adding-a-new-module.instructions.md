@@ -34,7 +34,7 @@ Everything belongs to exactly one of them.
 | Module                  | Owns                                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `users-management`      | Identity (BE `app/auth/`): **implemented** auth, users, roles, permissions, tenants/org-settings, branches, departments, employees (nested), audit-logs, activity. Attachments via `identity.attachment.*`. Tenant `allow_negative_stock` is on `/tenants/current`; lock dates are edited through `/period-lock`.                                                |
-| `erp`                   | **Implemented:** quotations, sales-orders, purchase-orders, currencies, exchange-rates (dialog-only; no `GET /{id}`), taxes, payment-terms, terms-templates, document-sequences, suppliers, supplier-products, period-lock, accounting/accounts (COA), accounting/journals, accounting/opening-balances, accounting/reports (trial balance, general ledger, account statement). **Planned:** sales-invoices, credit-notes, customer-payments, purchase-invoices, debit-notes, supplier-payments, logistics, einvoicing status UX. |
+| `erp`                   | **Implemented:** quotations, sales-orders, purchase-orders, currencies, exchange-rates (dialog-only; no `GET /{id}`), taxes, payment-terms, terms-templates, document-sequences, suppliers, supplier-products, period-lock, accounting/accounts (COA), accounting/journals, accounting/opening-balances, accounting/reports (trial balance, general ledger, account statement, export-evidence-exceptions, invoiced-not-dispatched), sales-invoices, purchase-invoices, credit-notes, debit-notes. **Planned:** customer-payments, supplier-payments, logistics, einvoicing status UX. |
 | `inventory-management`  | **Implemented:** units, categories, products, price-lists, warehouses, stock (balances + `/stock-movements`), stock-transfers, stock-adjustments, goods-receipts, quality-inspections, delivery-notes, packages, shipments, sales-returns. **Planned:** none for Stage E outbound.                                                                                                                                                    |
 | `crm`                   | **Implemented:** customers, contacts. **Planned:** leads, opportunities, activities.                                                                                                                                                                                                                                                                             |
 | `communication-service` | email, whatsapp, chat, meetings (planned)                                                                                                                                                                                                                                                                                                                        |
@@ -74,8 +74,9 @@ plumbit-erp-fe/
 │   │   │   ├── accounting/  taxes/ payment-terms/ terms-templates/ document-sequences/
 │   │   │   │                accounts/ journals/ opening-balances/ reports/
 │   │   │   ├── sales-orders/ purchase-orders/
-│   │   │   ├── sales-invoices/ credit-notes/ customer-payments/   (planned)
-│   │   │   ├── purchase-invoices/ debit-notes/ supplier-payments/  (planned)
+│   │   │   ├── sales-invoices/ credit-notes/
+│   │   │   ├── purchase-invoices/ debit-notes/
+│   │   │   ├── customer-payments/ supplier-payments/  (planned)
 │   │   │   └── logistics/   (planned)
 │   │   ├── inventory-management/     units/ categories/ products/ price-lists/ warehouses/
 │   │   │                             stock (balances + movements list)/ stock-transfers/ stock-adjustments/
@@ -128,7 +129,7 @@ src/modules/erp/
 ├── sales-orders/         (same shape)
 ├── purchase-orders/      (same shape)
 ├── supplier-products/    (same shape)
-└── purchase-invoices/    (planned)
+└── purchase-invoices/    implemented
 ```
 
 Keep each slice self-contained. A slice that only has a table and a form does not need every

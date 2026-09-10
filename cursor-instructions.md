@@ -62,10 +62,10 @@ src/
 │   │                             implemented: currencies, exchange-rates, taxes, payment-terms,
 │   │                             terms-templates, document-sequences, suppliers, quotations,
 │   │                             period-lock, sales-orders, purchase-orders, supplier-products,
-│   │                             accounting (COA, journals, opening-balances, ledger reports)
-│   │                             planned: sales-invoices, credit-notes,
-│   │                             customer-payments, purchase-invoices,
-│   │                             debit-notes, supplier-payments,
+│   │                             accounting (COA, journals, opening-balances, ledger reports,
+│   │                             export-evidence-exceptions, invoiced-not-dispatched),
+│   │                             sales-invoices, purchase-invoices, credit-notes, debit-notes
+│   │                             planned: customer-payments, supplier-payments,
 │   │                             logistics, einvoicing status UX on invoices and credit notes
 │   ├── communication-service/    planned: email, whatsapp, chat, meetings
 │   └── notifications-service/    planned: notifications, templates, delivery

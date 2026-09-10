@@ -108,6 +108,50 @@ export type AccountStatementParams = {
   to: string;
 };
 
+export const ExportEvidenceExceptionLineSchema = z.object({
+  sales_invoice_id: z.string().uuid(),
+  document_number: z.string(),
+  invoice_date: z.string(),
+  customer_id: z.string().uuid(),
+  customer_name: z.string(),
+  grand_total: DecimalStringSchema,
+  days_elapsed: z.number().int(),
+  window_days: z.number().int(),
+  overdue: z.boolean(),
+});
+export type ExportEvidenceExceptionLine = z.infer<typeof ExportEvidenceExceptionLineSchema>;
+
+export const ExportEvidenceExceptionSchema = z.object({
+  as_of: z.string(),
+  window_days: z.number().int(),
+  lines: z.array(ExportEvidenceExceptionLineSchema).default([]),
+});
+export type ExportEvidenceException = z.infer<typeof ExportEvidenceExceptionSchema>;
+
+export const InvoicedNotDispatchedLineSchema = z.object({
+  sales_invoice_id: z.string().uuid(),
+  sales_invoice_line_id: z.string().uuid(),
+  document_number: z.string(),
+  invoice_date: z.string(),
+  customer_id: z.string().uuid(),
+  customer_name: z.string(),
+  product_id: z.string().uuid().nullable(),
+  description: z.string(),
+  quantity: DecimalStringSchema,
+  amount: DecimalStringSchema,
+  cogs_status: z.string(),
+});
+export type InvoicedNotDispatchedLine = z.infer<typeof InvoicedNotDispatchedLineSchema>;
+
+export const InvoicedNotDispatchedSchema = z.object({
+  lines: z.array(InvoicedNotDispatchedLineSchema).default([]),
+});
+export type InvoicedNotDispatched = z.infer<typeof InvoicedNotDispatchedSchema>;
+
+export type ExportEvidenceExceptionParams = {
+  as_of?: string;
+};
+
 const SOURCE_HREFS: Record<string, (id: string) => string> = {
   journal_entry: (id) => `/journals/${id}`,
   quotation: (id) => `/quotations/${id}`,
@@ -118,6 +162,10 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   package: (id) => `/packages/${id}`,
   shipment: (id) => `/shipments/${id}`,
   sales_return: (id) => `/sales-returns/${id}`,
+  sales_invoice: (id) => `/sales-invoices/${id}`,
+  purchase_invoice: (id) => `/purchase-invoices/${id}`,
+  credit_note: (id) => `/credit-notes/${id}`,
+  debit_note: (id) => `/debit-notes/${id}`,
   stock_transfer: (id) => `/stock-transfers/${id}`,
   stock_adjustment: (id) => `/stock-adjustments/${id}`,
   opening_balance: (id) => `/journals/${id}`,

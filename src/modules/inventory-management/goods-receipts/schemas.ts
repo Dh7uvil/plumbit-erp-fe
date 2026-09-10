@@ -70,6 +70,7 @@ export const GoodsReceiptLineSchema = z.object({
   qty_accepted: DecimalStringSchema,
   qty_rejected: DecimalStringSchema,
   qty_on_hold: DecimalStringSchema,
+  qty_billed: DecimalStringSchema.optional().default("0"),
 });
 export type GoodsReceiptLine = z.infer<typeof GoodsReceiptLineSchema>;
 
@@ -105,6 +106,7 @@ export const GoodsReceiptSchema = z.object({
   cancel_reason: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),
   period_locked: z.boolean().default(false),
+  journal_entry_id: z.string().uuid().nullable().optional().default(null),
   lines: z.array(GoodsReceiptLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

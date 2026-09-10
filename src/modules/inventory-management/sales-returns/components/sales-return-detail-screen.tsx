@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { CreateCreditNoteDialog } from "@/modules/erp/credit-notes/components/create-from-source-dialog";
+import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import {
   StockWriteAlert,
   isStockWriteAlertError,
@@ -23,9 +25,12 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { Button } from "@/shared/components/ui/button";
+import { useCan } from "@/shared/providers/session-provider";
 
 export function SalesReturnDetailScreen({
   returnId,
@@ -88,10 +93,13 @@ function SalesReturnDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
+  const can = useCan();
   const isEdit = mode === "edit";
   const number = salesReturnDisplayNumber(doc);
   const onAction = useSalesReturnWorkflow(doc);
   const [writeError, setWriteError] = useState<unknown>(null);
+  const [creditOpen, setCreditOpen] = useState(false);
+  const canCreateCredit = doc.status === "POSTED" && can(creditNotePermissions.create);
 
   return (
     <DocumentRecordShell
@@ -115,24 +123,31 @@ function SalesReturnDetailLoaded({
         />
       }
       workflow={
-        <DocumentWorkflowButtons
-          availableActions={doc.available_actions}
-          registry={SALES_RETURN_ACTION_REGISTRY}
-          documentKind="sales return"
-          documentLabel={number ?? "sales return"}
-          extra={<StockWriteAlert periodLocked={doc.period_locked} error={writeError} />}
-          onError={(error) => {
-            if (isStockWriteAlertError(error)) {
-              setWriteError(error);
-              return true;
-            }
-            return false;
-          }}
-          onAction={async (action, extras) => {
-            setWriteError(null);
-            await onAction(action, extras);
-          }}
-        />
+        <div className="flex flex-col items-end gap-2">
+          {canCreateCredit ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => setCreditOpen(true)}>
+              Create credit note
+            </Button>
+          ) : null}
+          <DocumentWorkflowButtons
+            availableActions={doc.available_actions}
+            registry={SALES_RETURN_ACTION_REGISTRY}
+            documentKind="sales return"
+            documentLabel={number ?? "sales return"}
+            extra={<StockWriteAlert periodLocked={doc.period_locked} error={writeError} />}
+            onError={(error) => {
+              if (isStockWriteAlertError(error)) {
+                setWriteError(error);
+                return true;
+              }
+              return false;
+            }}
+            onAction={async (action, extras) => {
+              setWriteError(null);
+              await onAction(action, extras);
+            }}
+          />
+        </div>
       }
       banner={
         <p className="text-muted-foreground text-sm">
@@ -154,6 +169,7 @@ function SalesReturnDetailLoaded({
         </p>
       }
       formTitle={isEdit ? "Edit sales return" : "Sales return"}
+      panels={<DocumentLedgerCard journalEntryId={doc.journal_entry_id} />}
       attachments={
         <EntityAttachmentsPanel
           entityType="SALES_RETURN"
@@ -167,6 +183,11 @@ function SalesReturnDetailLoaded({
       }
     >
       <SalesReturnForm doc={doc} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
+      <CreateCreditNoteDialog
+        open={creditOpen}
+        onOpenChange={setCreditOpen}
+        salesReturnId={doc.id}
+      />
     </DocumentRecordShell>
   );
 }
