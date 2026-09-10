@@ -21,6 +21,7 @@ import { useAllWarehouses } from "@/modules/inventory-management/warehouses/quer
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
@@ -261,26 +262,18 @@ export function StockMovementsScreen() {
               placeholder="Document UUID"
             />
           </FilterField>
-          <FilterField label="From date" htmlFor="movement-filter-from">
-            <Input
-              id="movement-filter-from"
-              type="date"
-              value={draftExtra.documentDateFrom}
-              onChange={(event) =>
-                setDraftExtra((current) => ({ ...current, documentDateFrom: event.target.value }))
-              }
-            />
-          </FilterField>
-          <FilterField label="To date" htmlFor="movement-filter-to">
-            <Input
-              id="movement-filter-to"
-              type="date"
-              value={draftExtra.documentDateTo}
-              onChange={(event) =>
-                setDraftExtra((current) => ({ ...current, documentDateTo: event.target.value }))
-              }
-            />
-          </FilterField>
+          <DateRangeFilter
+            fromId="movement-filter-from"
+            toId="movement-filter-to"
+            from={draftExtra.documentDateFrom}
+            to={draftExtra.documentDateTo}
+            onFromChange={(value) =>
+              setDraftExtra((current) => ({ ...current, documentDateFrom: value }))
+            }
+            onToChange={(value) =>
+              setDraftExtra((current) => ({ ...current, documentDateTo: value }))
+            }
+          />
         </MoreFiltersDialog>
         <SortDialog
           fields={[...SORT_FIELDS]}

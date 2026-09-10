@@ -61,10 +61,11 @@ src/
 │   ├── erp/
 │   │                             implemented: currencies, exchange-rates, taxes, payment-terms,
 │   │                             terms-templates, document-sequences, suppliers, quotations,
-│   │                             period-lock, sales-orders, purchase-orders, supplier-products
+│   │                             period-lock, sales-orders, purchase-orders, supplier-products,
+│   │                             accounting (COA, journals, opening-balances, ledger reports)
 │   │                             planned: sales-invoices, credit-notes,
 │   │                             customer-payments, purchase-invoices,
-│   │                             debit-notes, supplier-payments, accounting (COA, journals, AR, AP),
+│   │                             debit-notes, supplier-payments,
 │   │                             logistics, einvoicing status UX on invoices and credit notes
 │   ├── communication-service/    planned: email, whatsapp, chat, meetings
 │   └── notifications-service/    planned: notifications, templates, delivery
@@ -80,7 +81,10 @@ hyphenated plural resources (`src/modules/erp/purchase-invoices/` → `/purchase
 `/supplier-payments`, `/delivery-notes` unique.
 
 Document-number prefixes (backend-generated): `QUO`, `SO`, `DN` (delivery), `PKG`, `SHP`, `SR`,
-`INV`, `CN`, `PO`, `GRN`, `BILL`, `SDN` (debit notes).
+`INV`, `CN`, `PO`, `GRN`, `BILL`, `SDN` (debit notes), `JV` (journals).
+
+Exchange rates stay dialog-based (create/edit in a modal). The OpenAPI contract has no
+`GET /exchange-rates/{id}`, so there is no detail or `/edit` route for that slice.
 
 ## Detailed instruction files
 

@@ -29,6 +29,7 @@ import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
@@ -47,7 +48,6 @@ import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -285,26 +285,18 @@ export function StockTransfersScreen() {
               ]}
             />
           </FilterField>
-          <FilterField label="From date" htmlFor="transfer-filter-from">
-            <Input
-              id="transfer-filter-from"
-              type="date"
-              value={draftExtra.documentDateFrom}
-              onChange={(event) =>
-                setDraftExtra((current) => ({ ...current, documentDateFrom: event.target.value }))
-              }
-            />
-          </FilterField>
-          <FilterField label="To date" htmlFor="transfer-filter-to-date">
-            <Input
-              id="transfer-filter-to-date"
-              type="date"
-              value={draftExtra.documentDateTo}
-              onChange={(event) =>
-                setDraftExtra((current) => ({ ...current, documentDateTo: event.target.value }))
-              }
-            />
-          </FilterField>
+          <DateRangeFilter
+            fromId="transfer-filter-from"
+            toId="transfer-filter-to-date"
+            from={draftExtra.documentDateFrom}
+            to={draftExtra.documentDateTo}
+            onFromChange={(value) =>
+              setDraftExtra((current) => ({ ...current, documentDateFrom: value }))
+            }
+            onToChange={(value) =>
+              setDraftExtra((current) => ({ ...current, documentDateTo: value }))
+            }
+          />
         </MoreFiltersDialog>
         <SortDialog
           fields={[...SORT_FIELDS]}

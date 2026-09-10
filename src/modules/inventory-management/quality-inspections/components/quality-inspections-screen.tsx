@@ -22,6 +22,7 @@ import { QUALITY_INSPECTION_ACTION_REGISTRY } from "@/modules/inventory-manageme
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
@@ -42,7 +43,6 @@ import { getDocumentAction } from "@/shared/components/document/workflow-registr
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -189,29 +189,18 @@ export function QualityInspectionsScreen() {
           }
           onClearDraft={() => setDraftExtra(EMPTY_EXTRA)}
         >
-          <FilterField label="From date" htmlFor="qi-filter-from">
-            <Input
-              id="qi-filter-from"
-              type="date"
-              value={draftExtra.inspectionDateFrom}
-              onChange={(event) =>
-                setDraftExtra((current) => ({
-                  ...current,
-                  inspectionDateFrom: event.target.value,
-                }))
-              }
-            />
-          </FilterField>
-          <FilterField label="To date" htmlFor="qi-filter-to">
-            <Input
-              id="qi-filter-to"
-              type="date"
-              value={draftExtra.inspectionDateTo}
-              onChange={(event) =>
-                setDraftExtra((current) => ({ ...current, inspectionDateTo: event.target.value }))
-              }
-            />
-          </FilterField>
+          <DateRangeFilter
+            fromId="qi-filter-from"
+            toId="qi-filter-to"
+            from={draftExtra.inspectionDateFrom}
+            to={draftExtra.inspectionDateTo}
+            onFromChange={(value) =>
+              setDraftExtra((current) => ({ ...current, inspectionDateFrom: value }))
+            }
+            onToChange={(value) =>
+              setDraftExtra((current) => ({ ...current, inspectionDateTo: value }))
+            }
+          />
         </MoreFiltersDialog>
         <SortDialog
           fields={[...SORT_FIELDS]}
