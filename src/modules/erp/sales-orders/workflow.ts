@@ -38,7 +38,7 @@ export const SALES_ORDER_ACTION_REGISTRY: DocumentActionSpec<SalesOrderWorkflowA
     label: "Confirm",
     permission: salesOrderPermissions.confirm,
     confirmCopy: (documentNumber) =>
-      `${documentNumber} will be confirmed. This does not move stock or post to the ledger.`,
+      `${documentNumber} will be confirmed. Available stock will be reserved. A shortfall will be reported and will not block confirmation.`,
   },
   {
     action: "close",

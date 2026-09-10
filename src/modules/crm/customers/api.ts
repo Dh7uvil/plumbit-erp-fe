@@ -14,6 +14,13 @@ import {
   type CustomerListParams,
   type CustomerUpdateRequest,
 } from "@/modules/crm/customers/schemas";
+import {
+  TradingHistoryLineListSchema,
+  TradingProductAggregateListSchema,
+  type TradingHistoryLine,
+  type TradingHistoryListParams,
+  type TradingProductAggregate,
+} from "@/modules/inventory-management/history/schemas";
 import { emptyToNull, toAddressPayload } from "@/modules/users-management/tenants/schemas";
 import { apiClient } from "@/shared/api/client";
 import type { ListResponse } from "@/shared/api/envelope";
@@ -108,4 +115,25 @@ export const customersApi = {
     CustomerExtraAddressSchema.parse(
       await apiClient.delete(`/customers/${id}/addresses/${extraId}`),
     ),
+  listProducts: async (id: string): Promise<ListResponse<TradingProductAggregate[]>> => {
+    const result = await apiClient.getList<unknown>(`/customers/${id}/products`);
+    return { data: TradingProductAggregateListSchema.parse(result.data), meta: result.meta };
+  },
+  listSalesHistory: async (
+    id: string,
+    params: TradingHistoryListParams = {},
+  ): Promise<ListResponse<TradingHistoryLine[]>> => {
+    const result = await apiClient.getList<unknown>(`/customers/${id}/sales-history`, {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        party_id: params.party_id,
+        product_id: params.product_id,
+        warehouse_id: params.warehouse_id,
+        document_date_from: params.document_date_from,
+        document_date_to: params.document_date_to,
+      },
+    });
+    return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
+  },
 };

@@ -26,6 +26,8 @@ import {
   Warehouse,
   ClipboardCheck,
   PackageCheck,
+  RotateCcw,
+  Ship,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,8 +49,12 @@ import { categoryPermissions } from "@/modules/inventory-management/categories/p
 import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
+import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
+import { packagePermissions } from "@/modules/inventory-management/packages/permissions";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
+import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
+import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
 import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
@@ -187,6 +193,30 @@ export const navigation: NavigationGroup[] = [
         href: "/quality-inspections",
         permission: qualityInspectionPermissions.read,
         icon: ClipboardCheck,
+      },
+      {
+        label: "Delivery notes",
+        href: "/delivery-notes",
+        permission: deliveryNotePermissions.read,
+        icon: Truck,
+      },
+      {
+        label: "Packages",
+        href: "/packages",
+        permission: packagePermissions.read,
+        icon: Package,
+      },
+      {
+        label: "Shipments",
+        href: "/shipments",
+        permission: shipmentPermissions.read,
+        icon: Ship,
+      },
+      {
+        label: "Sales returns",
+        href: "/sales-returns",
+        permission: salesReturnPermissions.read,
+        icon: RotateCcw,
       },
     ],
   },

@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
 import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sales-order-coverage-card";
+import { SalesOrderTrackerCard } from "@/modules/erp/sales-orders/components/sales-order-tracker-card";
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrder } from "@/modules/erp/sales-orders/queries";
@@ -186,7 +187,12 @@ function SalesOrderDetailLoaded({
         </div>
       }
       formTitle={isEdit ? "Edit sales order" : "Sales order"}
-      panels={<SalesOrderCoverageCard salesOrder={salesOrder} />}
+      panels={
+        <>
+          <SalesOrderCoverageCard salesOrder={salesOrder} />
+          <SalesOrderTrackerCard salesOrderId={salesOrder.id} />
+        </>
+      }
       attachments={
         <EntityAttachmentsPanel
           entityType="SALES_ORDER"

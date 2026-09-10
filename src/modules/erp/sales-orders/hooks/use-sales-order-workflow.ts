@@ -47,8 +47,17 @@ export function useSalesOrderWorkflow(salesOrder: SalesOrder) {
       await reopenSalesOrder.mutateAsync(write);
       toast.success("Sales order reopened");
     } else if (action === "confirm") {
-      await confirmSalesOrder.mutateAsync(write);
-      toast.success("Sales order confirmed");
+      const confirmed = await confirmSalesOrder.mutateAsync(write);
+      const shortfalls = confirmed.reservation_shortfalls.filter(
+        (row) => Number(row.shortfall) > 0,
+      );
+      if (shortfalls.length > 0) {
+        toast.warning(
+          `Sales order confirmed with ${shortfalls.length} stock shortfall${shortfalls.length === 1 ? "" : "s"}.`,
+        );
+      } else {
+        toast.success("Sales order confirmed");
+      }
     } else if (action === "close") {
       await closeSalesOrder.mutateAsync(write);
       toast.success("Sales order closed");

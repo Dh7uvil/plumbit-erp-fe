@@ -17,8 +17,8 @@ export const AttachmentEntityTypeSchema = z.enum([
   "QUALITY_INSPECTION",
   "PACKAGE",
   "SHIPMENT",
-  "SALES_INVOICE",
-  "PURCHASE_INVOICE",
+  "DELIVERY_NOTE",
+  "SALES_RETURN",
 ]);
 export type AttachmentEntityType = z.infer<typeof AttachmentEntityTypeSchema>;
 
@@ -32,6 +32,10 @@ export const ATTACHMENT_CATEGORIES = [
   "CUSTOMER_PO",
   "SUPPLIER_INVOICE",
   "TRADE_LICENCE",
+  "POD",
+  "RETURN_PHOTO",
+  "PACKING_LIST",
+  "DISPATCH_PHOTO",
   "OTHER",
 ] as const;
 export const AttachmentCategorySchema = z.enum(ATTACHMENT_CATEGORIES);
@@ -47,6 +51,10 @@ export const ATTACHMENT_CATEGORY_LABELS: Record<AttachmentCategory, string> = {
   CUSTOMER_PO: "Customer POs",
   SUPPLIER_INVOICE: "Supplier invoices",
   TRADE_LICENCE: "Trade licences",
+  POD: "Proof of delivery",
+  RETURN_PHOTO: "Return photos",
+  PACKING_LIST: "Packing lists",
+  DISPATCH_PHOTO: "Dispatch photos",
   OTHER: "Other",
 };
 
@@ -54,6 +62,9 @@ export const IMAGE_ATTACHMENT_CATEGORIES = new Set<AttachmentCategory>([
   "QC_PHOTO",
   "LOADING_PHOTO",
   "SEAL_PHOTO",
+  "RETURN_PHOTO",
+  "DISPATCH_PHOTO",
+  "POD",
 ]);
 
 export const AttachmentSchema = z.object({

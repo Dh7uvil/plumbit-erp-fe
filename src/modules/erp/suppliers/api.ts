@@ -1,5 +1,10 @@
 import { DEFAULT_PAGE_SIZE, OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
+  TradingHistoryLineListSchema,
+  type TradingHistoryLine,
+  type TradingHistoryListParams,
+} from "@/modules/inventory-management/history/schemas";
+import {
   SupplierCreateRequestSchema,
   SupplierExtraAddressCreateRequestSchema,
   SupplierExtraAddressSchema,
@@ -108,4 +113,21 @@ export const suppliersApi = {
     SupplierExtraAddressSchema.parse(
       await apiClient.delete(`/suppliers/${id}/addresses/${extraId}`),
     ),
+  listPurchaseHistory: async (
+    id: string,
+    params: TradingHistoryListParams = {},
+  ): Promise<ListResponse<TradingHistoryLine[]>> => {
+    const result = await apiClient.getList<unknown>(`/suppliers/${id}/purchase-history`, {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        party_id: params.party_id,
+        product_id: params.product_id,
+        warehouse_id: params.warehouse_id,
+        document_date_from: params.document_date_from,
+        document_date_to: params.document_date_to,
+      },
+    });
+    return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
+  },
 };

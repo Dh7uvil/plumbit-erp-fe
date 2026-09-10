@@ -16,6 +16,9 @@ export const salesOrderKeys = {
     [...salesOrderKeys.all, "customer-po", customerId, poNumber, excludeId ?? ""] as const,
   coverage: (id: string) => [...salesOrderKeys.all, "coverage", id] as const,
   purchaseOrderPlan: (id: string) => [...salesOrderKeys.all, "po-plan", id] as const,
+  deliverableLines: (id: string) => [...salesOrderKeys.all, "deliverable-lines", id] as const,
+  packableLines: (id: string) => [...salesOrderKeys.all, "packable-lines", id] as const,
+  tracker: (id: string) => [...salesOrderKeys.all, "tracker", id] as const,
 };
 
 export function useSalesOrders(params: SalesOrderListParams) {
@@ -72,6 +75,30 @@ export function useSalesOrderPurchaseOrderPlan(id: string | null, enabled = true
   return useQuery({
     queryKey: useTenantQueryKey(salesOrderKeys.purchaseOrderPlan(id ?? "")),
     queryFn: () => salesOrdersApi.getPurchaseOrderPlan(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useSalesOrderDeliverableLines(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(salesOrderKeys.deliverableLines(id ?? "")),
+    queryFn: () => salesOrdersApi.getDeliverableLines(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useSalesOrderPackableLines(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(salesOrderKeys.packableLines(id ?? "")),
+    queryFn: () => salesOrdersApi.getPackableLines(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useSalesOrderTracker(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(salesOrderKeys.tracker(id ?? "")),
+    queryFn: () => salesOrdersApi.getTracker(id!),
     enabled: Boolean(id) && enabled,
   });
 }

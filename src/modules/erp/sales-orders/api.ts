@@ -1,6 +1,9 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
   CustomerPoDuplicateListSchema,
+  DeliverableLineListSchema,
+  OrderTrackerSchema,
+  PackableLineListSchema,
   PurchaseOrderFromSalesOrderRequestSchema,
   PurchaseOrderPlanSchema,
   SalesOrderComposeDefaultsSchema,
@@ -10,6 +13,9 @@ import {
   SalesOrderSchema,
   SalesOrderUpdateRequestSchema,
   type CustomerPoDuplicate,
+  type DeliverableLine,
+  type OrderTracker,
+  type PackableLine,
   type PurchaseOrderFromSalesOrderRequest,
   type PurchaseOrderPlan,
   type SalesOrder,
@@ -154,6 +160,12 @@ export const salesOrdersApi = {
     PurchaseOrderPlanSchema.parse(await apiClient.get(`/sales-orders/${id}/purchase-order-plan`)),
   getCoverage: async (id: string): Promise<SalesOrderCoverage> =>
     SalesOrderCoverageSchema.parse(await apiClient.get(`/sales-orders/${id}/coverage`)),
+  getDeliverableLines: async (id: string): Promise<DeliverableLine[]> =>
+    DeliverableLineListSchema.parse(await apiClient.get(`/sales-orders/${id}/deliverable-lines`)),
+  getPackableLines: async (id: string): Promise<PackableLine[]> =>
+    PackableLineListSchema.parse(await apiClient.get(`/sales-orders/${id}/packable-lines`)),
+  getTracker: async (id: string): Promise<OrderTracker> =>
+    OrderTrackerSchema.parse(await apiClient.get(`/sales-orders/${id}/tracker`)),
   createPurchaseOrders: async (
     id: string,
     values: PurchaseOrderFromSalesOrderRequest,

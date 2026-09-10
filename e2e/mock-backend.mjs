@@ -54,12 +54,20 @@ let adjustments = new Map();
 let transfers = new Map();
 let goodsReceipts = new Map();
 let qualityInspections = new Map();
+let deliveryNotes = new Map();
+let packages = new Map();
+let shipments = new Map();
+let salesReturns = new Map();
 let balances = new Map();
 let movements = [];
 let adjSeq = 0;
 let xferSeq = 0;
 let grnSeq = 0;
 let qiSeq = 0;
+let dnSeq = 0;
+let pkgSeq = 0;
+let shpSeq = 0;
+let srSeq = 0;
 let postReplays = new Map();
 let attachments = new Map();
 let attachmentSeq = 0;
@@ -540,7 +548,61 @@ function purchaseOrderAvailableActions(status, receiptStatus) {
   }
 }
 
+function adjustReserved(warehouseId, productId, qty) {
+  const balance = getBalance(warehouseId, productId);
+  const next = Math.max(0, qtyNumber(balance.qty_reserved) + qtyNumber(qty));
+  balance.qty_reserved = qtyString(next);
+  balance.qty_available = qtyString(
+    qtyNumber(balance.qty_on_hand) - next - qtyNumber(balance.qty_quality_hold ?? 0),
+  );
+  balance.updated_at = new Date().toISOString();
+}
+
+function applySalesOrderReservations(order, mode) {
+  const warehouseId = order.warehouse_id ?? WAREHOUSE_MAIN_ID;
+  const shortfalls = [];
+  for (const line of order.lines ?? []) {
+    if (!line.product_id) {
+      continue;
+    }
+    const current = qtyNumber(line.qty_reserved ?? 0);
+    if (mode === "release") {
+      if (current > 0) {
+        adjustReserved(warehouseId, line.product_id, -current);
+      }
+      line.qty_reserved = "0";
+      continue;
+    }
+    const requested = Math.max(0, qtyNumber(line.quantity) - qtyNumber(line.qty_delivered ?? 0));
+    const delta = requested - current;
+    if (delta < 0) {
+      adjustReserved(warehouseId, line.product_id, delta);
+      line.qty_reserved = qtyString(requested);
+    } else if (delta > 0) {
+      const available = qtyNumber(getBalance(warehouseId, line.product_id).qty_available);
+      const add = Math.min(delta, Math.max(available, 0));
+      if (add > 0) {
+        adjustReserved(warehouseId, line.product_id, add);
+      }
+      line.qty_reserved = qtyString(current + add);
+    }
+    const reserved = qtyNumber(line.qty_reserved ?? 0);
+    const shortfall = requested - reserved;
+    if (shortfall > 0) {
+      shortfalls.push({
+        sales_order_line_id: line.id,
+        product_id: line.product_id,
+        requested: qtyString(requested),
+        reserved: qtyString(reserved),
+        shortfall: qtyString(shortfall),
+      });
+    }
+  }
+  order.reservation_shortfalls = shortfalls;
+}
+
 function applySalesOrderStatus(order, status) {
+  const previous = order.status;
   order.status = status;
   order.version = (order.version ?? 1) + 1;
   order.available_actions = salesOrderAvailableActions(status);
@@ -548,14 +610,23 @@ function applySalesOrderStatus(order, status) {
   if (status === "CONFIRMED") {
     order.confirmed_at = order.updated_at;
     order.confirmed_by = USER_ID;
+    if (previous !== "CONFIRMED") {
+      applySalesOrderReservations(order, "reserve");
+    }
   }
   if (status === "CLOSED") {
     order.closed_at = order.updated_at;
     order.closed_by = USER_ID;
+    if (previous === "CONFIRMED") {
+      applySalesOrderReservations(order, "release");
+    }
   }
   if (status === "CANCELLED") {
     order.cancelled_at = order.updated_at;
     order.cancelled_by = USER_ID;
+    if (previous === "CONFIRMED") {
+      applySalesOrderReservations(order, "release");
+    }
   }
   return order;
 }
@@ -600,6 +671,8 @@ function buildSalesOrderLines(inputLines) {
       tax_amount: "0",
       amount: moneyProduct(quantity, rate),
       qty_delivered: line.qty_delivered ?? "0",
+      qty_returned: line.qty_returned ?? "0",
+      qty_reserved: line.qty_reserved ?? "0",
       qty_invoiced: line.qty_invoiced ?? "0",
       source_quotation_line_id: line.source_quotation_line_id ?? null,
     };
@@ -700,6 +773,7 @@ function buildSalesOrder(body, existing = null, extras = {}) {
     cancel_reason: body.reason ?? existing?.cancel_reason ?? null,
     available_actions: salesOrderAvailableActions(status),
     lines,
+    reservation_shortfalls: existing?.reservation_shortfalls ?? [],
     created_at: existing?.created_at ?? now,
     updated_at: now,
   };
@@ -962,6 +1036,455 @@ function qualityInspectionActions(status) {
     return ["approve", "cancel", "delete"];
   }
   return [];
+}
+
+function deliveryNoteActions(status) {
+  if (status === "DRAFT") {
+    return ["post", "cancel", "delete"];
+  }
+  if (status === "POSTED") {
+    return ["cancel", "create_return"];
+  }
+  return [];
+}
+
+function packageActions(status) {
+  if (status === "DRAFT") {
+    return ["pack", "cancel", "delete", "print"];
+  }
+  if (status === "PACKED") {
+    return ["cancel", "print"];
+  }
+  return ["print"];
+}
+
+function shipmentActions(status) {
+  if (status === "DRAFT") {
+    return ["dispatch", "cancel", "delete"];
+  }
+  if (status === "DISPATCHED") {
+    return ["arrive", "cancel", "tracking"];
+  }
+  if (status === "IN_TRANSIT" || status === "ARRIVED") {
+    return ["close", "tracking"];
+  }
+  return [];
+}
+
+function salesReturnActions(status) {
+  if (status === "DRAFT") {
+    return ["post", "cancel", "delete"];
+  }
+  if (status === "POSTED") {
+    return ["cancel"];
+  }
+  return [];
+}
+
+function packedQtyForLine(salesOrderLineId) {
+  let packed = 0;
+  for (const pkg of packages.values()) {
+    if (pkg.status === "CANCELLED") {
+      continue;
+    }
+    for (const line of pkg.lines ?? []) {
+      if (line.sales_order_line_id === salesOrderLineId) {
+        packed += qtyNumber(line.quantity);
+      }
+    }
+  }
+  return packed;
+}
+
+function salesOrderCoverage(order) {
+  return {
+    sales_order_id: order.id,
+    lines: (order.lines ?? []).map((line) => {
+      const quantity = qtyNumber(line.quantity);
+      const reserved = qtyNumber(line.qty_reserved ?? 0);
+      const delivered = qtyNumber(line.qty_delivered ?? 0);
+      const returned = qtyNumber(line.qty_returned ?? 0);
+      return {
+        sales_order_line_id: line.id,
+        product_id: line.product_id ?? null,
+        description: line.description ?? "",
+        quantity: qtyString(quantity),
+        qty_covered: "0",
+        qty_uncovered: qtyString(quantity),
+        qty_received: "0",
+        qty_reserved: qtyString(reserved),
+        qty_delivered: qtyString(delivered),
+        qty_returned: qtyString(returned),
+        purchase_orders: [],
+      };
+    }),
+  };
+}
+
+function salesOrderDeliverableLines(order) {
+  return (order.lines ?? []).map((line) => {
+    const quantity = qtyNumber(line.quantity);
+    const delivered = qtyNumber(line.qty_delivered ?? 0);
+    const returned = qtyNumber(line.qty_returned ?? 0);
+    const outstanding = Math.max(0, quantity - delivered + returned);
+    return {
+      sales_order_line_id: line.id,
+      product_id: line.product_id ?? null,
+      description: line.description ?? "",
+      unit_id: line.unit_id ?? null,
+      rate: String(line.rate ?? "0"),
+      quantity: qtyString(quantity),
+      qty_delivered: qtyString(delivered),
+      qty_returned: qtyString(returned),
+      qty_reserved: qtyString(line.qty_reserved ?? 0),
+      outstanding: qtyString(outstanding),
+    };
+  });
+}
+
+function salesOrderPackableLines(order) {
+  return (order.lines ?? []).map((line) => {
+    const quantity = qtyNumber(line.quantity);
+    const packed = packedQtyForLine(line.id);
+    return {
+      sales_order_line_id: line.id,
+      product_id: line.product_id ?? null,
+      description: line.description ?? "",
+      unit_id: line.unit_id ?? null,
+      quantity: qtyString(quantity),
+      qty_packed: qtyString(packed),
+      outstanding: qtyString(Math.max(0, quantity - packed)),
+    };
+  });
+}
+
+function salesOrderTracker(order) {
+  const rows = [
+    {
+      stage: "SALES_ORDER",
+      document_type: "SALES_ORDER",
+      document_number: order.document_number,
+      document_id: order.id,
+      status: order.status,
+      document_date: order.order_date ?? order.document_date ?? null,
+      quantity_summary: null,
+    },
+  ];
+  for (const note of deliveryNotes.values()) {
+    if (note.sales_order_id === order.id) {
+      rows.push({
+        stage: "DELIVERY_NOTE",
+        document_type: "DELIVERY_NOTE",
+        document_number: note.document_number,
+        document_id: note.id,
+        status: note.status,
+        document_date: note.document_date,
+        quantity_summary: null,
+      });
+    }
+  }
+  for (const pkg of packages.values()) {
+    if (pkg.sales_order_id === order.id) {
+      rows.push({
+        stage: "PACKAGE",
+        document_type: "PACKAGE",
+        document_number: pkg.document_number,
+        document_id: pkg.id,
+        status: pkg.status,
+        document_date: null,
+        quantity_summary: null,
+      });
+    }
+  }
+  return { sales_order_id: order.id, rows };
+}
+
+function buildDeliveryNote(body, existing = null) {
+  dnSeq += existing ? 0 : 1;
+  const id = existing?.id ?? crypto.randomUUID();
+  const now = new Date().toISOString();
+  const order = salesOrders.get(body.sales_order_id ?? existing?.sales_order_id);
+  const lines = (body.lines ?? existing?.lines ?? []).map((line, index) => ({
+    id: line.id ?? crypto.randomUUID(),
+    line_number: index + 1,
+    sales_order_line_id: line.sales_order_line_id,
+    product_id: line.product_id ?? null,
+    description: line.description ?? "",
+    quantity: String(line.quantity ?? "0"),
+    unit_id: line.unit_id ?? null,
+    rate: String(line.rate ?? "0"),
+  }));
+  const status = existing?.status ?? "DRAFT";
+  return {
+    id,
+    tenant_id: TENANT_ID,
+    document_number: existing?.document_number ?? `DN-${String(dnSeq).padStart(4, "0")}`,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    is_posted: status === "POSTED",
+    document_date: body.document_date ?? existing?.document_date ?? NOW.slice(0, 10),
+    sales_order_id: body.sales_order_id ?? existing?.sales_order_id,
+    customer_id: existing?.customer_id ?? order?.customer_id ?? CUSTOMER_ID,
+    warehouse_id: body.warehouse_id ?? existing?.warehouse_id ?? order?.warehouse_id ?? WAREHOUSE_MAIN_ID,
+    branch_id: body.branch_id ?? existing?.branch_id ?? null,
+    shipment_id: existing?.shipment_id ?? null,
+    tax_treatment: existing?.tax_treatment ?? order?.tax_treatment ?? "UNREGISTERED",
+    place_of_supply: existing?.place_of_supply ?? order?.place_of_supply ?? "DUBAI",
+    currency_id: body.currency_id ?? existing?.currency_id ?? order?.currency_id ?? CURRENCY_ID,
+    base_currency_id: existing?.base_currency_id ?? CURRENCY_ID,
+    exchange_rate: existing?.exchange_rate ?? "1",
+    vehicle_number: body.vehicle_number ?? existing?.vehicle_number ?? null,
+    driver_name: body.driver_name ?? existing?.driver_name ?? null,
+    driver_contact: body.driver_contact ?? existing?.driver_contact ?? null,
+    notes: body.notes ?? existing?.notes ?? null,
+    posted_at: existing?.posted_at ?? null,
+    posted_by: existing?.posted_by ?? null,
+    cancelled_at: existing?.cancelled_at ?? null,
+    cancelled_by: existing?.cancelled_by ?? null,
+    cancel_reason: body.reason ?? existing?.cancel_reason ?? null,
+    available_actions: deliveryNoteActions(status),
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function postDeliveryNote(document) {
+  const order = salesOrders.get(document.sales_order_id);
+  for (const line of document.lines ?? []) {
+    if (!line.product_id) {
+      continue;
+    }
+    const qty = qtyNumber(line.quantity);
+    const soLine = order?.lines.find((row) => row.id === line.sales_order_line_id);
+    const reserved = qtyNumber(soLine?.qty_reserved ?? 0);
+    const release = Math.min(reserved, qty);
+    if (release > 0 && soLine) {
+      adjustReserved(document.warehouse_id, line.product_id, -release);
+      soLine.qty_reserved = qtyString(reserved - release);
+    }
+    applyMovement({
+      warehouseId: document.warehouse_id,
+      productId: line.product_id,
+      qty: -qty,
+      movementType: "SALE",
+      sourceType: "delivery_note",
+      sourceId: document.id,
+      sourceLineId: line.id,
+      documentDate: document.document_date,
+    });
+    if (soLine) {
+      soLine.qty_delivered = qtyString(qtyNumber(soLine.qty_delivered ?? 0) + qty);
+    }
+  }
+  if (order) {
+    salesOrders.set(order.id, order);
+  }
+  const now = new Date().toISOString();
+  document.status = "POSTED";
+  document.is_posted = true;
+  document.posted_at = now;
+  document.posted_by = USER_ID;
+  document.version += 1;
+  document.updated_at = now;
+  document.available_actions = deliveryNoteActions("POSTED");
+  return document;
+}
+
+function buildPackage(body, existing = null) {
+  pkgSeq += existing ? 0 : 1;
+  const id = existing?.id ?? crypto.randomUUID();
+  const now = new Date().toISOString();
+  const status = existing?.status ?? "DRAFT";
+  const lines = (body.lines ?? existing?.lines ?? []).map((line, index) => ({
+    id: line.id ?? crypto.randomUUID(),
+    line_number: index + 1,
+    sales_order_line_id: line.sales_order_line_id,
+    product_id: line.product_id ?? null,
+    quantity: String(line.quantity ?? "0"),
+    unit_id: line.unit_id ?? null,
+  }));
+  return {
+    id,
+    tenant_id: TENANT_ID,
+    document_number: existing?.document_number ?? `PKG-${String(pkgSeq).padStart(4, "0")}`,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    sales_order_id: body.sales_order_id ?? existing?.sales_order_id,
+    delivery_note_id: body.delivery_note_id ?? existing?.delivery_note_id ?? null,
+    package_number: body.package_number ?? existing?.package_number ?? null,
+    length: body.length ?? existing?.length ?? null,
+    width: body.width ?? existing?.width ?? null,
+    height: body.height ?? existing?.height ?? null,
+    dimension_unit: body.dimension_unit ?? existing?.dimension_unit ?? "cm",
+    gross_weight: body.gross_weight ?? existing?.gross_weight ?? null,
+    net_weight: body.net_weight ?? existing?.net_weight ?? null,
+    weight_unit: body.weight_unit ?? existing?.weight_unit ?? null,
+    shipping_marks: body.shipping_marks ?? existing?.shipping_marks ?? null,
+    notes: body.notes ?? existing?.notes ?? null,
+    available_actions: packageActions(status),
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function buildShipment(body, existing = null) {
+  shpSeq += existing ? 0 : 1;
+  const id = existing?.id ?? crypto.randomUUID();
+  const now = new Date().toISOString();
+  const status = existing?.status ?? "DRAFT";
+  return {
+    id,
+    tenant_id: TENANT_ID,
+    document_number: existing?.document_number ?? `SHP-${String(shpSeq).padStart(4, "0")}`,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    shipment_type: body.shipment_type ?? existing?.shipment_type ?? "DOMESTIC",
+    transport_mode: body.transport_mode ?? existing?.transport_mode ?? "ROAD",
+    incoterm: body.incoterm ?? existing?.incoterm ?? null,
+    container_number: body.container_number ?? existing?.container_number ?? null,
+    seal_number: body.seal_number ?? existing?.seal_number ?? null,
+    carrier_name: body.carrier_name ?? existing?.carrier_name ?? null,
+    vessel_or_flight_no: body.vessel_or_flight_no ?? existing?.vessel_or_flight_no ?? null,
+    voyage_number: body.voyage_number ?? existing?.voyage_number ?? null,
+    bl_awb_number: body.bl_awb_number ?? existing?.bl_awb_number ?? null,
+    bl_awb_date: body.bl_awb_date ?? existing?.bl_awb_date ?? null,
+    freight_forwarder_id: body.freight_forwarder_id ?? existing?.freight_forwarder_id ?? null,
+    port_of_loading: body.port_of_loading ?? existing?.port_of_loading ?? null,
+    port_of_discharge: body.port_of_discharge ?? existing?.port_of_discharge ?? null,
+    etd: body.etd ?? existing?.etd ?? null,
+    eta: body.eta ?? existing?.eta ?? null,
+    actual_departure_date: body.actual_departure_date ?? existing?.actual_departure_date ?? null,
+    actual_arrival_date: body.actual_arrival_date ?? existing?.actual_arrival_date ?? null,
+    gross_weight: body.gross_weight ?? existing?.gross_weight ?? null,
+    net_weight: body.net_weight ?? existing?.net_weight ?? null,
+    total_packages: body.total_packages ?? existing?.total_packages ?? null,
+    notes: body.notes ?? existing?.notes ?? null,
+    available_actions: shipmentActions(status),
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function buildSalesReturn(body, existing = null) {
+  srSeq += existing ? 0 : 1;
+  const id = existing?.id ?? crypto.randomUUID();
+  const now = new Date().toISOString();
+  const note = deliveryNotes.get(body.delivery_note_id ?? existing?.delivery_note_id);
+  const status = existing?.status ?? "DRAFT";
+  const lines = (body.lines ?? existing?.lines ?? []).map((line, index) => ({
+    id: line.id ?? crypto.randomUUID(),
+    line_number: index + 1,
+    delivery_note_line_id: line.delivery_note_line_id,
+    product_id: line.product_id ?? null,
+    quantity: String(line.quantity ?? "0"),
+    unit_id: line.unit_id ?? null,
+    rate: String(line.rate ?? "0"),
+    disposition: line.disposition ?? "RESTOCK",
+    notes: line.notes ?? null,
+  }));
+  return {
+    id,
+    tenant_id: TENANT_ID,
+    document_number: existing?.document_number ?? `SR-${String(srSeq).padStart(4, "0")}`,
+    status,
+    version: existing ? existing.version + 1 : 1,
+    is_posted: status === "POSTED",
+    document_date: body.document_date ?? existing?.document_date ?? NOW.slice(0, 10),
+    delivery_note_id: body.delivery_note_id ?? existing?.delivery_note_id,
+    sales_order_id: existing?.sales_order_id ?? note?.sales_order_id,
+    customer_id: existing?.customer_id ?? note?.customer_id ?? CUSTOMER_ID,
+    warehouse_id: existing?.warehouse_id ?? note?.warehouse_id ?? WAREHOUSE_MAIN_ID,
+    reason_code: body.reason_code ?? existing?.reason_code ?? "OTHER",
+    notes: body.notes ?? existing?.notes ?? null,
+    posted_at: existing?.posted_at ?? null,
+    posted_by: existing?.posted_by ?? null,
+    cancelled_at: existing?.cancelled_at ?? null,
+    cancelled_by: existing?.cancelled_by ?? null,
+    cancel_reason: body.reason ?? existing?.cancel_reason ?? null,
+    available_actions: salesReturnActions(status),
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function postSalesReturn(document) {
+  const order = salesOrders.get(document.sales_order_id);
+  for (const line of document.lines ?? []) {
+    if (!line.product_id) {
+      continue;
+    }
+    const qty = qtyNumber(line.quantity);
+    if (line.disposition === "QC_HOLD") {
+      applyMovement({
+        warehouseId: document.warehouse_id,
+        productId: line.product_id,
+        qty,
+        movementType: "RETURN_IN",
+        sourceType: "sales_return",
+        sourceId: document.id,
+        sourceLineId: line.id,
+        documentDate: document.document_date,
+      });
+      const balance = getBalance(document.warehouse_id, line.product_id);
+      balance.qty_quality_hold = qtyString(qtyNumber(balance.qty_quality_hold) + qty);
+      getBalance(document.warehouse_id, line.product_id);
+    } else if (line.disposition === "SCRAP") {
+      applyMovement({
+        warehouseId: document.warehouse_id,
+        productId: line.product_id,
+        qty,
+        movementType: "RETURN_IN",
+        sourceType: "sales_return",
+        sourceId: document.id,
+        sourceLineId: line.id,
+        documentDate: document.document_date,
+      });
+      applyMovement({
+        warehouseId: document.warehouse_id,
+        productId: line.product_id,
+        qty: -qty,
+        movementType: "DAMAGE",
+        sourceType: "sales_return",
+        sourceId: document.id,
+        sourceLineId: line.id,
+        documentDate: document.document_date,
+      });
+    } else {
+      applyMovement({
+        warehouseId: document.warehouse_id,
+        productId: line.product_id,
+        qty,
+        movementType: "RETURN_IN",
+        sourceType: "sales_return",
+        sourceId: document.id,
+        sourceLineId: line.id,
+        documentDate: document.document_date,
+      });
+    }
+    const soLine = order?.lines.find((row) => {
+      const note = deliveryNotes.get(document.delivery_note_id);
+      const dnLine = note?.lines.find((item) => item.id === line.delivery_note_line_id);
+      return dnLine && row.id === dnLine.sales_order_line_id;
+    });
+    if (soLine) {
+      soLine.qty_returned = qtyString(qtyNumber(soLine.qty_returned ?? 0) + qty);
+    }
+  }
+  if (order) {
+    salesOrders.set(order.id, order);
+  }
+  const now = new Date().toISOString();
+  document.status = "POSTED";
+  document.is_posted = true;
+  document.posted_at = now;
+  document.posted_by = USER_ID;
+  document.version += 1;
+  document.updated_at = now;
+  document.available_actions = salesReturnActions("POSTED");
+  return document;
 }
 
 function productRequiresQc(productId) {
@@ -1440,6 +1963,39 @@ function unpostedDocumentsOnOrBefore(cutoff) {
       });
     }
   }
+  for (const document of qualityInspections.values()) {
+    if (document.status === "DRAFT" && document.inspection_date <= cutoff) {
+      rows.push({
+        id: document.id,
+        document_type: "quality_inspection",
+        document_number: document.document_number,
+        document_date: document.inspection_date,
+        status: document.status,
+      });
+    }
+  }
+  for (const document of deliveryNotes.values()) {
+    if (document.status === "DRAFT" && document.document_date <= cutoff) {
+      rows.push({
+        id: document.id,
+        document_type: "delivery_note",
+        document_number: document.document_number,
+        document_date: document.document_date,
+        status: document.status,
+      });
+    }
+  }
+  for (const document of salesReturns.values()) {
+    if (document.status === "DRAFT" && document.document_date <= cutoff) {
+      rows.push({
+        id: document.id,
+        document_type: "sales_return",
+        document_number: document.document_number,
+        document_date: document.document_date,
+        status: document.status,
+      });
+    }
+  }
   return rows;
 }
 
@@ -1807,6 +2363,29 @@ function me() {
       "inventory.quality_inspection.create",
       "inventory.quality_inspection.update",
       "inventory.quality_inspection.approve",
+      "inventory.delivery_note.read",
+      "inventory.delivery_note.create",
+      "inventory.delivery_note.update",
+      "inventory.delivery_note.delete",
+      "inventory.delivery_note.post",
+      "inventory.package.read",
+      "inventory.package.create",
+      "inventory.package.update",
+      "inventory.package.delete",
+      "inventory.shipment.read",
+      "inventory.shipment.create",
+      "inventory.shipment.update",
+      "inventory.shipment.delete",
+      "inventory.shipment.dispatch",
+      "inventory.shipment.close",
+      "inventory.sales_return.read",
+      "inventory.sales_return.create",
+      "inventory.sales_return.update",
+      "inventory.sales_return.delete",
+      "inventory.sales_return.post",
+      "inventory.product.history",
+      "crm.customer.history",
+      "erp.supplier.history",
       "crm.customer.read",
       "crm.customer.create",
       "crm.customer.update",
@@ -2661,6 +3240,35 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    const salesOrderExtra = url.pathname.match(
+      /^\/api\/v1\/sales-orders\/([0-9a-f-]{36})\/(coverage|tracker|deliverable-lines|packable-lines)$/i,
+    );
+    if (req.method === "GET" && salesOrderExtra) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const order = salesOrders.get(salesOrderExtra[1]);
+      if (!order) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const extra = salesOrderExtra[2];
+      if (extra === "coverage") {
+        ok(res, salesOrderCoverage(order));
+        return;
+      }
+      if (extra === "tracker") {
+        ok(res, salesOrderTracker(order));
+        return;
+      }
+      if (extra === "deliverable-lines") {
+        ok(res, salesOrderDeliverableLines(order));
+        return;
+      }
+      ok(res, salesOrderPackableLines(order));
+      return;
+    }
+
     const salesOrderDetail = url.pathname.match(/^\/api\/v1\/sales-orders\/([0-9a-f-]{36})$/i);
     if (
       salesOrderDetail &&
@@ -2873,6 +3481,39 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       listOk(res, [productRow(), qcProductRow()]);
+      return;
+    }
+
+    const productHistory = url.pathname.match(
+      /^\/api\/v1\/products\/([0-9a-f-]{36})\/(customers|sales-history|purchase-history)$/i,
+    );
+    if (req.method === "GET" && productHistory) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, []);
+      return;
+    }
+
+    const customerHistory = url.pathname.match(
+      /^\/api\/v1\/customers\/([0-9a-f-]{36})\/(products|sales-history)$/i,
+    );
+    if (req.method === "GET" && customerHistory) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, []);
+      return;
+    }
+
+    const supplierHistory = url.pathname.match(
+      /^\/api\/v1\/suppliers\/([0-9a-f-]{36})\/purchase-history$/i,
+    );
+    if (req.method === "GET" && supplierHistory) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, []);
       return;
     }
 
@@ -3688,6 +4329,535 @@ const server = http.createServer(async (req, res) => {
       if (req.method === "DELETE") {
         attachments.delete(existing.id);
         ok(res, existing);
+        return;
+      }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/delivery-notes") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const status = url.searchParams.get("status");
+      const salesOrderId = url.searchParams.get("sales_order_id");
+      const shipmentId = url.searchParams.get("shipment_id");
+      const unshipped = url.searchParams.get("unshipped");
+      const search = (url.searchParams.get("search") ?? "").toLowerCase();
+      const rows = [...deliveryNotes.values()].filter((row) => {
+        if (status && row.status !== status) {
+          return false;
+        }
+        if (salesOrderId && row.sales_order_id !== salesOrderId) {
+          return false;
+        }
+        if (shipmentId && row.shipment_id !== shipmentId) {
+          return false;
+        }
+        if (unshipped === "true" && row.shipment_id) {
+          return false;
+        }
+        if (search && !String(row.document_number).toLowerCase().includes(search)) {
+          return false;
+        }
+        return true;
+      });
+      listOk(res, rows);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/delivery-notes/from-sales-order") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const order = salesOrders.get(body.sales_order_id);
+      if (!order) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const lines = salesOrderDeliverableLines(order)
+        .filter((line) => qtyNumber(line.outstanding) > 0)
+        .map((line) => ({
+          sales_order_line_id: line.sales_order_line_id,
+          product_id: line.product_id,
+          description: line.description,
+          quantity: line.outstanding,
+          unit_id: line.unit_id,
+          rate: line.rate,
+        }));
+      const document = buildDeliveryNote({
+        ...body,
+        warehouse_id: body.warehouse_id ?? order.warehouse_id ?? WAREHOUSE_MAIN_ID,
+        lines,
+      });
+      deliveryNotes.set(document.id, document);
+      ok(res, stockDocumentResponse(document), 201);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/delivery-notes") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const document = buildDeliveryNote(body);
+      deliveryNotes.set(document.id, document);
+      ok(res, stockDocumentResponse(document), 201);
+      return;
+    }
+
+    const deliveryNotePackage = url.pathname.match(
+      /^\/api\/v1\/delivery-notes\/([0-9a-f-]{36})\/packages(?:\/([0-9a-f-]{36}))?$/i,
+    );
+    if (deliveryNotePackage) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const note = deliveryNotes.get(deliveryNotePackage[1]);
+      if (!note) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "POST") {
+        const body = await readBody(req);
+        const pkg = packages.get(body.package_id);
+        if (!pkg) {
+          fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+          return;
+        }
+        pkg.delivery_note_id = note.id;
+        pkg.updated_at = new Date().toISOString();
+        packages.set(pkg.id, pkg);
+        ok(res, stockDocumentResponse(note));
+        return;
+      }
+      if (req.method === "DELETE" && deliveryNotePackage[2]) {
+        const pkg = packages.get(deliveryNotePackage[2]);
+        if (pkg) {
+          pkg.delivery_note_id = null;
+          pkg.updated_at = new Date().toISOString();
+          packages.set(pkg.id, pkg);
+        }
+        ok(res, stockDocumentResponse(note));
+        return;
+      }
+    }
+
+    const deliveryNoteAction = url.pathname.match(
+      /^\/api\/v1\/delivery-notes\/([0-9a-f-]{36})\/(post|cancel)$/i,
+    );
+    if (req.method === "POST" && deliveryNoteAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const document = deliveryNotes.get(deliveryNoteAction[1]);
+      if (!document) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (isStale(req, document.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (deliveryNoteAction[2] === "post") {
+        try {
+          const posted = postDeliveryNote(document);
+          deliveryNotes.set(posted.id, posted);
+          ok(res, stockDocumentResponse(posted));
+        } catch (error) {
+          if (error.message === "INSUFFICIENT") {
+            fail(res, 409, "INVENTORY_INSUFFICIENT_STOCK", "Insufficient stock", error.details);
+            return;
+          }
+          throw error;
+        }
+        return;
+      }
+      const body = await readBody(req);
+      document.status = "CANCELLED";
+      document.available_actions = [];
+      document.cancel_reason = body.reason ?? null;
+      document.cancelled_at = new Date().toISOString();
+      document.version += 1;
+      deliveryNotes.set(document.id, document);
+      ok(res, stockDocumentResponse(document));
+      return;
+    }
+
+    const deliveryNoteDetail = url.pathname.match(/^\/api\/v1\/delivery-notes\/([0-9a-f-]{36})$/i);
+    if (deliveryNoteDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = deliveryNotes.get(deliveryNoteDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, stockDocumentResponse(existing));
+        return;
+      }
+      if (isStale(req, existing.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (req.method === "DELETE") {
+        deliveryNotes.delete(deliveryNoteDetail[1]);
+        ok(res, stockDocumentResponse(existing));
+        return;
+      }
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        const updated = buildDeliveryNote(body, existing);
+        deliveryNotes.set(updated.id, updated);
+        ok(res, stockDocumentResponse(updated));
+        return;
+      }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/packages") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const status = url.searchParams.get("status");
+      const salesOrderId = url.searchParams.get("sales_order_id");
+      const deliveryNoteId = url.searchParams.get("delivery_note_id");
+      const rows = [...packages.values()].filter((row) => {
+        if (status && row.status !== status) {
+          return false;
+        }
+        if (salesOrderId && row.sales_order_id !== salesOrderId) {
+          return false;
+        }
+        if (deliveryNoteId && row.delivery_note_id !== deliveryNoteId) {
+          return false;
+        }
+        return true;
+      });
+      listOk(res, rows);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/packages") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const document = buildPackage(body);
+      packages.set(document.id, document);
+      ok(res, document, 201);
+      return;
+    }
+
+    const packageAction = url.pathname.match(/^\/api\/v1\/packages\/([0-9a-f-]{36})\/(pack|cancel)$/i);
+    if (req.method === "POST" && packageAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const document = packages.get(packageAction[1]);
+      if (!document) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (isStale(req, document.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      document.status = packageAction[2] === "pack" ? "PACKED" : "CANCELLED";
+      document.version += 1;
+      document.updated_at = new Date().toISOString();
+      document.available_actions = packageActions(document.status);
+      packages.set(document.id, document);
+      ok(res, document);
+      return;
+    }
+
+    const packageDetail = url.pathname.match(/^\/api\/v1\/packages\/([0-9a-f-]{36})$/i);
+    if (packageDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = packages.get(packageDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (isStale(req, existing.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (req.method === "DELETE") {
+        packages.delete(packageDetail[1]);
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        const updated = buildPackage(body, existing);
+        packages.set(updated.id, updated);
+        ok(res, updated);
+        return;
+      }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/shipments") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const status = url.searchParams.get("status");
+      const shipmentType = url.searchParams.get("shipment_type");
+      const rows = [...shipments.values()].filter((row) => {
+        if (status && row.status !== status) {
+          return false;
+        }
+        if (shipmentType && row.shipment_type !== shipmentType) {
+          return false;
+        }
+        return true;
+      });
+      listOk(res, rows);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/shipments") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const document = buildShipment(body);
+      shipments.set(document.id, document);
+      ok(res, document, 201);
+      return;
+    }
+
+    const shipmentNotes = url.pathname.match(
+      /^\/api\/v1\/shipments\/([0-9a-f-]{36})\/delivery-notes(?:\/([0-9a-f-]{36}))?$/i,
+    );
+    if (shipmentNotes) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const shipment = shipments.get(shipmentNotes[1]);
+      if (!shipment) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "POST") {
+        const body = await readBody(req);
+        for (const noteId of body.delivery_note_ids ?? []) {
+          const note = deliveryNotes.get(noteId);
+          if (note) {
+            note.shipment_id = shipment.id;
+            note.updated_at = new Date().toISOString();
+            deliveryNotes.set(note.id, note);
+          }
+        }
+        ok(res, shipment);
+        return;
+      }
+      if (req.method === "DELETE" && shipmentNotes[2]) {
+        const note = deliveryNotes.get(shipmentNotes[2]);
+        if (note) {
+          note.shipment_id = null;
+          note.updated_at = new Date().toISOString();
+          deliveryNotes.set(note.id, note);
+        }
+        ok(res, shipment);
+        return;
+      }
+    }
+
+    const shipmentAction = url.pathname.match(
+      /^\/api\/v1\/shipments\/([0-9a-f-]{36})\/(dispatch|arrive|close|cancel)$/i,
+    );
+    if (req.method === "POST" && shipmentAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const document = shipments.get(shipmentAction[1]);
+      if (!document) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (isStale(req, document.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      const nextStatus = {
+        dispatch: "DISPATCHED",
+        arrive: "ARRIVED",
+        close: "CLOSED",
+        cancel: "CANCELLED",
+      }[shipmentAction[2]];
+      document.status = nextStatus;
+      document.version += 1;
+      document.updated_at = new Date().toISOString();
+      document.available_actions = shipmentActions(document.status);
+      shipments.set(document.id, document);
+      ok(res, document);
+      return;
+    }
+
+    const shipmentTracking = url.pathname.match(/^\/api\/v1\/shipments\/([0-9a-f-]{36})\/tracking$/i);
+    if (req.method === "PATCH" && shipmentTracking) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const document = shipments.get(shipmentTracking[1]);
+      if (!document) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (isStale(req, document.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      const body = await readBody(req);
+      Object.assign(document, {
+        carrier_name: body.carrier_name ?? document.carrier_name,
+        vessel_or_flight_no: body.vessel_or_flight_no ?? document.vessel_or_flight_no,
+        voyage_number: body.voyage_number ?? document.voyage_number,
+        bl_awb_number: body.bl_awb_number ?? document.bl_awb_number,
+        bl_awb_date: body.bl_awb_date ?? document.bl_awb_date,
+        etd: body.etd ?? document.etd,
+        eta: body.eta ?? document.eta,
+        actual_departure_date: body.actual_departure_date ?? document.actual_departure_date,
+        actual_arrival_date: body.actual_arrival_date ?? document.actual_arrival_date,
+      });
+      document.version += 1;
+      document.updated_at = new Date().toISOString();
+      shipments.set(document.id, document);
+      ok(res, document);
+      return;
+    }
+
+    const shipmentDetail = url.pathname.match(/^\/api\/v1\/shipments\/([0-9a-f-]{36})$/i);
+    if (shipmentDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = shipments.get(shipmentDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (isStale(req, existing.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (req.method === "DELETE") {
+        shipments.delete(shipmentDetail[1]);
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        const updated = buildShipment(body, existing);
+        shipments.set(updated.id, updated);
+        ok(res, updated);
+        return;
+      }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/sales-returns") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const status = url.searchParams.get("status");
+      const deliveryNoteId = url.searchParams.get("delivery_note_id");
+      const rows = [...salesReturns.values()].filter((row) => {
+        if (status && row.status !== status) {
+          return false;
+        }
+        if (deliveryNoteId && row.delivery_note_id !== deliveryNoteId) {
+          return false;
+        }
+        return true;
+      });
+      listOk(res, rows);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/sales-returns") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const document = buildSalesReturn(body);
+      salesReturns.set(document.id, document);
+      ok(res, stockDocumentResponse(document), 201);
+      return;
+    }
+
+    const salesReturnAction = url.pathname.match(
+      /^\/api\/v1\/sales-returns\/([0-9a-f-]{36})\/(post|cancel)$/i,
+    );
+    if (req.method === "POST" && salesReturnAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const document = salesReturns.get(salesReturnAction[1]);
+      if (!document) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (isStale(req, document.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (salesReturnAction[2] === "post") {
+        const posted = postSalesReturn(document);
+        salesReturns.set(posted.id, posted);
+        ok(res, stockDocumentResponse(posted));
+        return;
+      }
+      const body = await readBody(req);
+      document.status = "CANCELLED";
+      document.available_actions = [];
+      document.cancel_reason = body.reason ?? null;
+      document.cancelled_at = new Date().toISOString();
+      document.version += 1;
+      salesReturns.set(document.id, document);
+      ok(res, stockDocumentResponse(document));
+      return;
+    }
+
+    const salesReturnDetail = url.pathname.match(/^\/api\/v1\/sales-returns\/([0-9a-f-]{36})$/i);
+    if (salesReturnDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = salesReturns.get(salesReturnDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, stockDocumentResponse(existing));
+        return;
+      }
+      if (isStale(req, existing.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (req.method === "DELETE") {
+        salesReturns.delete(salesReturnDetail[1]);
+        ok(res, stockDocumentResponse(existing));
+        return;
+      }
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        const updated = buildSalesReturn(body, existing);
+        salesReturns.set(updated.id, updated);
+        ok(res, stockDocumentResponse(updated));
         return;
       }
     }
