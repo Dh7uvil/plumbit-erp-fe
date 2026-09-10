@@ -13,6 +13,40 @@ const PRODUCT_ID = "99999999-9999-4999-8999-999999999999";
 const QC_PRODUCT_ID = "aaaa9999-9999-4999-8999-999999999aaa";
 const WAREHOUSE_MAIN_ID = "12121212-1212-4121-8121-121212121212";
 const WAREHOUSE_SITE_ID = "13131313-1313-4131-8131-131313131313";
+const ACCOUNT_ASSETS_GROUP_ID = "a1000001-0000-4000-8000-000000000006";
+const ACCOUNT_CASH_ID = "a1000001-0000-4000-8000-000000000001";
+const ACCOUNT_BANK_ID = "a1000001-0000-4000-8000-000000000002";
+const ACCOUNT_AR_ID = "a1000001-0000-4000-8000-000000000003";
+const ACCOUNT_AP_ID = "a1000001-0000-4000-8000-000000000004";
+const ACCOUNT_EQUITY_ID = "a1000001-0000-4000-8000-000000000005";
+const SEEDED_JOURNAL_ID = "a2000001-0000-4000-8000-000000000001";
+const ACCOUNT_SYSTEM_ROLES = [
+  "ACCOUNTS_RECEIVABLE",
+  "ACCOUNTS_PAYABLE",
+  "SALES_REVENUE",
+  "SALES_RETURNS",
+  "PURCHASES",
+  "INVENTORY",
+  "COGS",
+  "INVENTORY_ADJUSTMENT",
+  "STOCK_SCRAP",
+  "VAT_OUTPUT",
+  "VAT_INPUT",
+  "VAT_RCM_OUTPUT",
+  "VAT_RCM_INPUT",
+  "CUSTOMS_DUTY",
+  "FREIGHT_IN",
+  "PURCHASE_PRICE_VARIANCE",
+  "ADVANCE_FROM_CUSTOMER",
+  "ADVANCE_TO_SUPPLIER",
+  "FX_GAIN_LOSS",
+  "ROUND_OFF",
+  "RETAINED_EARNINGS",
+  "OPENING_BALANCE_EQUITY",
+  "CASH_ON_HAND",
+  "BANK",
+  "SUSPENSE",
+];
 const EMAIL = "ada@plumbit.com";
 const PASSWORD = "correct-horse";
 const LIMITED_EMAIL = "reader@plumbit.com";
@@ -58,6 +92,18 @@ let deliveryNotes = new Map();
 let packages = new Map();
 let shipments = new Map();
 let salesReturns = new Map();
+let accounts = new Map();
+let journals = new Map();
+let jvSeq = 0;
+let openingBalanceState = {
+  committed: false,
+  books_start_date: null,
+  hard_lock_date: null,
+  journal_entry_id: null,
+  document_number: null,
+  committed_at: null,
+  can_reset: false,
+};
 let balances = new Map();
 let movements = [];
 let adjSeq = 0;
@@ -89,6 +135,9 @@ let tenantState = {
   hard_lock_date: null,
   lock_reason: null,
   hard_lock_reason: null,
+  fiscal_year_start_month: 1,
+  fiscal_year_start_day: 1,
+  books_start_date: null,
 };
 
 function json(res, status, body) {
@@ -192,6 +241,10 @@ function resetErpState() {
   tenantState.hard_lock_date = null;
   tenantState.lock_reason = null;
   tenantState.hard_lock_reason = null;
+  tenantState.fiscal_year_start_month = 1;
+  tenantState.fiscal_year_start_day = 1;
+  tenantState.books_start_date = null;
+  seedLedger();
 }
 
 function currency() {
@@ -2229,6 +2282,554 @@ function postTransfer(document) {
   };
 }
 
+function money4(value) {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) ? amount.toFixed(4) : "0.0000";
+}
+
+function journalActions(status) {
+  if (status === "DRAFT") {
+    return ["post", "cancel", "delete"];
+  }
+  if (status === "POSTED") {
+    return ["reverse"];
+  }
+  return [];
+}
+
+function makeAccount(fields) {
+  return {
+    id: fields.id,
+    tenant_id: TENANT_ID,
+    code: fields.code,
+    name: fields.name,
+    description: fields.description ?? null,
+    account_type: fields.account_type,
+    account_subtype: fields.account_subtype,
+    parent_id: fields.parent_id ?? null,
+    depth: fields.parent_id ? 1 : 0,
+    is_group: Boolean(fields.is_group),
+    is_system: Boolean(fields.is_system),
+    system_role: fields.system_role ?? null,
+    currency_id: fields.currency_id ?? null,
+    is_active: fields.is_active ?? true,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}
+
+function emptyOpeningState() {
+  return {
+    committed: false,
+    books_start_date: null,
+    hard_lock_date: null,
+    journal_entry_id: null,
+    document_number: null,
+    committed_at: null,
+    can_reset: false,
+  };
+}
+
+function seedLedger() {
+  accounts = new Map();
+  journals = new Map();
+  jvSeq = 0;
+  openingBalanceState = emptyOpeningState();
+  const rows = [
+    makeAccount({
+      id: ACCOUNT_ASSETS_GROUP_ID,
+      code: "1000",
+      name: "Assets",
+      account_type: "ASSET",
+      account_subtype: "OTHER_CURRENT_ASSET",
+      is_group: true,
+      is_system: true,
+    }),
+    makeAccount({
+      id: ACCOUNT_CASH_ID,
+      code: "1010",
+      name: "Cash on hand",
+      account_type: "ASSET",
+      account_subtype: "CASH",
+      parent_id: ACCOUNT_ASSETS_GROUP_ID,
+      is_system: true,
+      system_role: "CASH_ON_HAND",
+    }),
+    makeAccount({
+      id: ACCOUNT_BANK_ID,
+      code: "1020",
+      name: "Bank",
+      account_type: "ASSET",
+      account_subtype: "BANK",
+      parent_id: ACCOUNT_ASSETS_GROUP_ID,
+      is_system: true,
+      system_role: "BANK",
+    }),
+    makeAccount({
+      id: ACCOUNT_AR_ID,
+      code: "1100",
+      name: "Accounts receivable",
+      account_type: "ASSET",
+      account_subtype: "ACCOUNTS_RECEIVABLE",
+      parent_id: ACCOUNT_ASSETS_GROUP_ID,
+      is_system: true,
+      system_role: "ACCOUNTS_RECEIVABLE",
+    }),
+    makeAccount({
+      id: ACCOUNT_AP_ID,
+      code: "2000",
+      name: "Accounts payable",
+      account_type: "LIABILITY",
+      account_subtype: "ACCOUNTS_PAYABLE",
+      is_system: true,
+      system_role: "ACCOUNTS_PAYABLE",
+    }),
+    makeAccount({
+      id: ACCOUNT_EQUITY_ID,
+      code: "3000",
+      name: "Opening balance equity",
+      account_type: "EQUITY",
+      account_subtype: "EQUITY",
+      is_system: true,
+      system_role: "OPENING_BALANCE_EQUITY",
+    }),
+  ];
+  for (const row of rows) {
+    accounts.set(row.id, row);
+  }
+  const posted = buildJournal(
+    {
+      entry_date: "2026-01-15",
+      currency_id: CURRENCY_ID,
+      exchange_rate: "1",
+      narration: "Seeded cash",
+      lines: [
+        { account_id: ACCOUNT_CASH_ID, debit: "1000.0000", credit: "0.0000" },
+        { account_id: ACCOUNT_EQUITY_ID, debit: "0.0000", credit: "1000.0000" },
+      ],
+    },
+    null,
+    { id: SEEDED_JOURNAL_ID, status: "POSTED", journal_type: "MANUAL" },
+  );
+  journals.set(posted.id, posted);
+}
+
+function accountTree() {
+  const nodes = [...accounts.values()].map((row) => ({ ...row, children: [] }));
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const roots = [];
+  for (const node of nodes) {
+    if (node.parent_id && byId.has(node.parent_id)) {
+      byId.get(node.parent_id).children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
+}
+
+function systemRoleMappings() {
+  return ACCOUNT_SYSTEM_ROLES.map((role) => {
+    const account = [...accounts.values()].find((row) => row.system_role === role);
+    return {
+      role,
+      account_id: account?.id ?? null,
+      account_code: account?.code ?? null,
+      account_name: account?.name ?? null,
+    };
+  });
+}
+
+function buildJournal(body, existing = null, overrides = {}) {
+  if (!existing) {
+    jvSeq += 1;
+  }
+  const now = new Date().toISOString();
+  const lines = (body.lines ?? existing?.lines ?? []).map((line, index) => ({
+    id: line.id ?? crypto.randomUUID(),
+    line_number: index + 1,
+    account_id: line.account_id,
+    debit: money4(line.debit),
+    credit: money4(line.credit),
+    debit_base: money4(line.debit_base ?? line.debit),
+    credit_base: money4(line.credit_base ?? line.credit),
+    currency_id: line.currency_id ?? body.currency_id ?? existing?.currency_id ?? CURRENCY_ID,
+    exchange_rate: money4(
+      line.exchange_rate ?? body.exchange_rate ?? existing?.exchange_rate ?? "1",
+    ),
+    party_type: line.party_type ?? null,
+    party_id: line.party_id ?? null,
+    due_date: line.due_date ?? null,
+    external_reference: line.external_reference ?? null,
+    tax_id: line.tax_id ?? null,
+    branch_id: line.branch_id ?? body.branch_id ?? existing?.branch_id ?? null,
+    description: line.description ?? null,
+  }));
+  const totalDebit = money4(lines.reduce((sum, line) => sum + Number(line.debit_base), 0));
+  const totalCredit = money4(lines.reduce((sum, line) => sum + Number(line.credit_base), 0));
+  const status = overrides.status ?? existing?.status ?? "DRAFT";
+  const isPosted = status === "POSTED";
+  return {
+    id: overrides.id ?? existing?.id ?? crypto.randomUUID(),
+    tenant_id: TENANT_ID,
+    document_number: existing?.document_number ?? `JV-${String(jvSeq).padStart(4, "0")}`,
+    entry_date: body.entry_date ?? existing?.entry_date ?? "2026-01-15",
+    status,
+    version: existing ? existing.version + 1 : 1,
+    is_posted: isPosted,
+    journal_type: overrides.journal_type ?? existing?.journal_type ?? "MANUAL",
+    source_type: overrides.source_type ?? existing?.source_type ?? null,
+    source_id: overrides.source_id ?? existing?.source_id ?? null,
+    reversal_of_id: overrides.reversal_of_id ?? existing?.reversal_of_id ?? null,
+    reversed_by_id: overrides.reversed_by_id ?? existing?.reversed_by_id ?? null,
+    currency_id: body.currency_id ?? existing?.currency_id ?? CURRENCY_ID,
+    exchange_rate: money4(body.exchange_rate ?? existing?.exchange_rate ?? "1"),
+    branch_id: body.branch_id === undefined ? (existing?.branch_id ?? null) : body.branch_id,
+    narration: body.narration === undefined ? (existing?.narration ?? null) : body.narration,
+    reference: body.reference === undefined ? (existing?.reference ?? null) : body.reference,
+    posted_at: isPosted ? (existing?.posted_at ?? now) : null,
+    posted_by: isPosted ? (existing?.posted_by ?? USER_ID) : null,
+    total_debit_base: totalDebit,
+    total_credit_base: totalCredit,
+    available_actions: journalActions(status),
+    period_locked: false,
+    lines,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function refuseJournalPost(document) {
+  if (Number(document.total_debit_base) !== Number(document.total_credit_base)) {
+    return "JOURNAL_UNBALANCED";
+  }
+  for (const line of document.lines) {
+    const hasDebit = Number(line.debit) !== 0;
+    const hasCredit = Number(line.credit) !== 0;
+    if (hasDebit === hasCredit) {
+      return "JOURNAL_LINE_INVALID";
+    }
+    const account = accounts.get(line.account_id);
+    if (!account || account.is_group) {
+      return "ACCOUNT_NOT_POSTABLE";
+    }
+  }
+  return null;
+}
+
+function postJournal(document) {
+  const now = new Date().toISOString();
+  return {
+    ...document,
+    status: "POSTED",
+    is_posted: true,
+    version: document.version + 1,
+    posted_at: now,
+    posted_by: USER_ID,
+    available_actions: journalActions("POSTED"),
+    updated_at: now,
+  };
+}
+
+function reverseJournal(document) {
+  const reversed = buildJournal(
+    {
+      entry_date: document.entry_date,
+      currency_id: document.currency_id,
+      exchange_rate: document.exchange_rate,
+      narration: `Reversal of ${document.document_number}`,
+      branch_id: document.branch_id,
+      lines: document.lines.map((line) => ({
+        ...line,
+        id: crypto.randomUUID(),
+        debit: line.credit,
+        credit: line.debit,
+        debit_base: line.credit_base,
+        credit_base: line.debit_base,
+      })),
+    },
+    null,
+    { status: "POSTED", journal_type: "REVERSAL", reversal_of_id: document.id },
+  );
+  const original = {
+    ...document,
+    reversed_by_id: reversed.id,
+    version: document.version + 1,
+    available_actions: [],
+    updated_at: new Date().toISOString(),
+  };
+  return { original, reversed };
+}
+
+function trialBalanceReport(from, to, includeZero) {
+  const buckets = new Map();
+  for (const account of accounts.values()) {
+    if (account.is_group) {
+      continue;
+    }
+    buckets.set(account.id, {
+      account,
+      opening_debit: 0,
+      opening_credit: 0,
+      period_debit: 0,
+      period_credit: 0,
+    });
+  }
+  for (const journal of journals.values()) {
+    if (journal.status !== "POSTED") {
+      continue;
+    }
+    const before = Boolean(from && journal.entry_date < from);
+    const inPeriod = inDocumentDateRange(journal.entry_date, from, to);
+    for (const line of journal.lines) {
+      const bucket = buckets.get(line.account_id);
+      if (!bucket) {
+        continue;
+      }
+      if (before) {
+        bucket.opening_debit += Number(line.debit_base);
+        bucket.opening_credit += Number(line.credit_base);
+      } else if (inPeriod) {
+        bucket.period_debit += Number(line.debit_base);
+        bucket.period_credit += Number(line.credit_base);
+      }
+    }
+  }
+  const totals = {
+    opening_debit: 0,
+    opening_credit: 0,
+    period_debit: 0,
+    period_credit: 0,
+    closing_debit: 0,
+    closing_credit: 0,
+  };
+  const lines = [];
+  for (const bucket of buckets.values()) {
+    const closingDebit = bucket.opening_debit + bucket.period_debit;
+    const closingCredit = bucket.opening_credit + bucket.period_credit;
+    const hasActivity =
+      bucket.opening_debit !== 0 ||
+      bucket.opening_credit !== 0 ||
+      bucket.period_debit !== 0 ||
+      bucket.period_credit !== 0;
+    if (!includeZero && !hasActivity) {
+      continue;
+    }
+    lines.push({
+      account_id: bucket.account.id,
+      account_code: bucket.account.code,
+      account_name: bucket.account.name,
+      account_type: bucket.account.account_type,
+      is_group: bucket.account.is_group,
+      opening_debit: money4(bucket.opening_debit),
+      opening_credit: money4(bucket.opening_credit),
+      period_debit: money4(bucket.period_debit),
+      period_credit: money4(bucket.period_credit),
+      closing_debit: money4(closingDebit),
+      closing_credit: money4(closingCredit),
+    });
+    totals.opening_debit += bucket.opening_debit;
+    totals.opening_credit += bucket.opening_credit;
+    totals.period_debit += bucket.period_debit;
+    totals.period_credit += bucket.period_credit;
+    totals.closing_debit += closingDebit;
+    totals.closing_credit += closingCredit;
+  }
+  lines.sort((left, right) => left.account_code.localeCompare(right.account_code));
+  return {
+    from_date: from,
+    to_date: to,
+    is_balanced: money4(totals.closing_debit) === money4(totals.closing_credit),
+    total_opening_debit: money4(totals.opening_debit),
+    total_opening_credit: money4(totals.opening_credit),
+    total_period_debit: money4(totals.period_debit),
+    total_period_credit: money4(totals.period_credit),
+    total_closing_debit: money4(totals.closing_debit),
+    total_closing_credit: money4(totals.closing_credit),
+    lines,
+  };
+}
+
+function generalLedgerReport(accountId, from, to) {
+  const account = accounts.get(accountId);
+  if (!account) {
+    return null;
+  }
+  const rows = [];
+  for (const journal of journals.values()) {
+    if (journal.status !== "POSTED") {
+      continue;
+    }
+    for (const line of journal.lines) {
+      if (line.account_id !== accountId) {
+        continue;
+      }
+      rows.push({ journal, line });
+    }
+  }
+  rows.sort((left, right) => {
+    if (left.journal.entry_date === right.journal.entry_date) {
+      return left.line.line_number - right.line.line_number;
+    }
+    return left.journal.entry_date < right.journal.entry_date ? -1 : 1;
+  });
+  let running = 0;
+  let opening = 0;
+  const lines = [];
+  for (const row of rows) {
+    const delta = Number(row.line.debit_base) - Number(row.line.credit_base);
+    if (from && row.journal.entry_date < from) {
+      opening += delta;
+      running = opening;
+      continue;
+    }
+    if (!inDocumentDateRange(row.journal.entry_date, from, to)) {
+      continue;
+    }
+    running += delta;
+    lines.push({
+      journal_entry_id: row.journal.id,
+      journal_entry_line_id: row.line.id,
+      document_number: row.journal.document_number,
+      entry_date: row.journal.entry_date,
+      source_type: row.journal.source_type,
+      source_id: row.journal.source_id,
+      account_id: accountId,
+      debit: row.line.debit,
+      credit: row.line.credit,
+      debit_base: row.line.debit_base,
+      credit_base: row.line.credit_base,
+      running_balance: money4(running),
+      party_id: row.line.party_id,
+      description: row.line.description,
+      narration: row.journal.narration,
+    });
+  }
+  return {
+    account_id: account.id,
+    account_code: account.code,
+    account_name: account.name,
+    from_date: from,
+    to_date: to,
+    opening_balance: money4(opening),
+    closing_balance: money4(running),
+    lines,
+  };
+}
+
+function accountStatementReport(partyType, partyId, from, to) {
+  const rows = [];
+  for (const journal of journals.values()) {
+    if (journal.status !== "POSTED") {
+      continue;
+    }
+    for (const line of journal.lines) {
+      if (line.party_id !== partyId || (partyType && line.party_type !== partyType)) {
+        continue;
+      }
+      rows.push({ journal, line });
+    }
+  }
+  rows.sort((left, right) =>
+    left.journal.entry_date < right.journal.entry_date ? -1 : 1,
+  );
+  let running = 0;
+  let opening = 0;
+  const lines = [];
+  for (const row of rows) {
+    const delta = Number(row.line.debit_base) - Number(row.line.credit_base);
+    if (from && row.journal.entry_date < from) {
+      opening += delta;
+      running = opening;
+      continue;
+    }
+    if (!inDocumentDateRange(row.journal.entry_date, from, to)) {
+      continue;
+    }
+    running += delta;
+    lines.push({
+      journal_entry_id: row.journal.id,
+      document_number: row.journal.document_number,
+      entry_date: row.journal.entry_date,
+      due_date: row.line.due_date,
+      external_reference: row.line.external_reference,
+      debit: row.line.debit,
+      credit: row.line.credit,
+      running_balance: money4(running),
+      description: row.line.description,
+    });
+  }
+  return {
+    party_type: partyType,
+    party_id: partyId,
+    from_date: from,
+    to_date: to,
+    opening_balance: money4(opening),
+    closing_balance: money4(running),
+    lines,
+  };
+}
+
+function previewOpeningBalances(body) {
+  const booksStart = body.books_start_date;
+  const lines = [];
+  let totalDebit = 0;
+  let totalCredit = 0;
+  for (const line of body.gl_lines ?? []) {
+    const account = accounts.get(line.account_id);
+    if (!account) {
+      continue;
+    }
+    const debit = Number(line.debit ?? 0);
+    const credit = Number(line.credit ?? 0);
+    totalDebit += debit;
+    totalCredit += credit;
+    lines.push({
+      account_id: account.id,
+      account_code: account.code,
+      account_name: account.name,
+      debit: money4(debit),
+      credit: money4(credit),
+      party_id: null,
+      due_date: null,
+      external_reference: null,
+      description: line.description ?? null,
+    });
+  }
+  const difference = totalDebit - totalCredit;
+  if (difference !== 0) {
+    const equity = accounts.get(ACCOUNT_EQUITY_ID);
+    lines.push({
+      account_id: equity.id,
+      account_code: equity.code,
+      account_name: equity.name,
+      debit: difference < 0 ? money4(-difference) : "0.0000",
+      credit: difference > 0 ? money4(difference) : "0.0000",
+      party_id: null,
+      due_date: null,
+      external_reference: null,
+      description: "Opening balance equity",
+    });
+    if (difference > 0) {
+      totalCredit += difference;
+    } else {
+      totalDebit += -difference;
+    }
+  }
+  const entryDate = booksStart ? new Date(`${booksStart}T00:00:00.000Z`) : new Date(NOW);
+  entryDate.setUTCDate(entryDate.getUTCDate() - 1);
+  return {
+    books_start_date: booksStart,
+    entry_date: entryDate.toISOString().slice(0, 10),
+    opening_balance_equity_account_id: ACCOUNT_EQUITY_ID,
+    difference: money4(difference),
+    total_debit: money4(totalDebit),
+    total_credit: money4(totalCredit),
+    inventory_value: "0.0000",
+    lines,
+  };
+}
+
 function currentTenant() {
   return {
     id: TENANT_ID,
@@ -2242,6 +2843,9 @@ function currentTenant() {
     phone: null,
     founded: null,
     fiscal_year_start: null,
+    fiscal_year_start_month: tenantState.fiscal_year_start_month,
+    fiscal_year_start_day: tenantState.fiscal_year_start_day,
+    books_start_date: tenantState.books_start_date,
     default_currency: tenantState.default_currency,
     default_currency_id: tenantState.default_currency_id,
     quotation_requires_approval: tenantState.quotation_requires_approval,
@@ -2425,6 +3029,18 @@ function me() {
       "erp.supplier_product.update",
       "erp.supplier_product.delete",
       "erp.supplier_product.link",
+      "erp.account.read",
+      "erp.account.create",
+      "erp.account.update",
+      "erp.account.delete",
+      "erp.journal_entry.read",
+      "erp.journal_entry.create",
+      "erp.journal_entry.update",
+      "erp.journal_entry.delete",
+      "erp.journal_entry.post",
+      "erp.journal_entry.reverse",
+      "erp.opening_balance.manage",
+      "erp.report.ledger",
       "identity.attachment.read",
       "identity.attachment.create",
       "identity.attachment.update",
@@ -2689,6 +3305,13 @@ const server = http.createServer(async (req, res) => {
         ...(body.qc_required_default !== undefined
           ? { qc_required_default: body.qc_required_default }
           : {}),
+        ...(body.fiscal_year_start_month !== undefined
+          ? { fiscal_year_start_month: body.fiscal_year_start_month }
+          : {}),
+        ...(body.fiscal_year_start_day !== undefined
+          ? { fiscal_year_start_day: body.fiscal_year_start_day }
+          : {}),
+        ...(body.books_start_date !== undefined ? { books_start_date: body.books_start_date } : {}),
       };
       ok(res, currentTenant());
       return;
@@ -4860,6 +5483,390 @@ const server = http.createServer(async (req, res) => {
         ok(res, stockDocumentResponse(updated));
         return;
       }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/accounts/tree") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, accountTree());
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/accounts/system-roles") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, systemRoleMappings());
+      return;
+    }
+
+    const systemRolePut = url.pathname.match(/^\/api\/v1\/accounts\/system-roles\/([A-Z0-9_]+)$/i);
+    if (req.method === "PUT" && systemRolePut) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const role = systemRolePut[1];
+      const body = await readBody(req);
+      const account = accounts.get(body.account_id);
+      if (!account) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      for (const row of accounts.values()) {
+        if (row.system_role === role) {
+          row.system_role = null;
+        }
+      }
+      account.system_role = role;
+      accounts.set(account.id, account);
+      ok(res, {
+        role,
+        account_id: account.id,
+        account_code: account.code,
+        account_name: account.name,
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/accounts") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const search = url.searchParams.get("search") ?? "";
+      const accountType = url.searchParams.get("account_type");
+      const accountSubtype = url.searchParams.get("account_subtype");
+      const isGroup = url.searchParams.get("is_group");
+      const isActive = url.searchParams.get("is_active");
+      const rows = [...accounts.values()].filter((row) => {
+        if (accountType && row.account_type !== accountType) {
+          return false;
+        }
+        if (accountSubtype && row.account_subtype !== accountSubtype) {
+          return false;
+        }
+        if (isGroup === "true" && !row.is_group) {
+          return false;
+        }
+        if (isGroup === "false" && row.is_group) {
+          return false;
+        }
+        if (isActive === "true" && !row.is_active) {
+          return false;
+        }
+        if (isActive === "false" && row.is_active) {
+          return false;
+        }
+        return includesSearch([row.code, row.name], search);
+      });
+      listOk(res, rows);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/accounts") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const created = makeAccount({
+        id: crypto.randomUUID(),
+        code: body.code,
+        name: body.name,
+        description: body.description,
+        account_type: body.account_type,
+        account_subtype: body.account_subtype,
+        parent_id: body.parent_id ?? null,
+        is_group: body.is_group,
+        currency_id: body.currency_id,
+      });
+      accounts.set(created.id, created);
+      ok(res, created, 201);
+      return;
+    }
+
+    const accountDetail = url.pathname.match(/^\/api\/v1\/accounts\/([0-9a-f-]{36})$/i);
+    if (accountDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = accounts.get(accountDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "DELETE") {
+        if (existing.is_system) {
+          fail(res, 409, "VALIDATION_ERROR", "System accounts cannot be deleted");
+          return;
+        }
+        accounts.delete(existing.id);
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        const updated = {
+          ...existing,
+          ...(body.code !== undefined && !existing.is_system ? { code: body.code } : {}),
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.description !== undefined ? { description: body.description } : {}),
+          ...(body.account_type !== undefined ? { account_type: body.account_type } : {}),
+          ...(body.account_subtype !== undefined ? { account_subtype: body.account_subtype } : {}),
+          ...(body.parent_id !== undefined ? { parent_id: body.parent_id } : {}),
+          ...(body.is_group !== undefined ? { is_group: body.is_group } : {}),
+          ...(body.is_active !== undefined ? { is_active: body.is_active } : {}),
+          ...(body.currency_id !== undefined ? { currency_id: body.currency_id } : {}),
+          updated_at: new Date().toISOString(),
+        };
+        accounts.set(updated.id, updated);
+        ok(res, updated);
+        return;
+      }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/journals") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const search = url.searchParams.get("search") ?? "";
+      const status = url.searchParams.get("status");
+      const journalType = url.searchParams.get("journal_type");
+      const dateFrom = url.searchParams.get("entry_date_from");
+      const dateTo = url.searchParams.get("entry_date_to");
+      const rows = [...journals.values()].filter((row) => {
+        if (status && row.status !== status) {
+          return false;
+        }
+        if (journalType && row.journal_type !== journalType) {
+          return false;
+        }
+        if (!inDocumentDateRange(row.entry_date, dateFrom, dateTo)) {
+          return false;
+        }
+        return includesSearch([row.document_number, row.narration, row.reference], search);
+      });
+      listOk(res, rows);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/journals") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const created = buildJournal(body);
+      journals.set(created.id, created);
+      ok(res, created, 201);
+      return;
+    }
+
+    const journalAction = url.pathname.match(
+      /^\/api\/v1\/journals\/([0-9a-f-]{36})\/(post|cancel|reverse)$/i,
+    );
+    if (req.method === "POST" && journalAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const document = journals.get(journalAction[1]);
+      if (!document) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (isStale(req, document.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      const replayed = replayPost(req);
+      if (replayed) {
+        ok(res, replayed);
+        return;
+      }
+      if (journalAction[2] === "post") {
+        const refusal = refuseJournalPost(document);
+        if (refusal) {
+          fail(res, 422, refusal, refusal);
+          return;
+        }
+        const posted = postJournal(document);
+        journals.set(posted.id, posted);
+        storePost(req, posted);
+        ok(res, posted);
+        return;
+      }
+      if (journalAction[2] === "cancel") {
+        const body = await readBody(req);
+        const cancelled = {
+          ...document,
+          status: "CANCELLED",
+          available_actions: [],
+          version: document.version + 1,
+          updated_at: new Date().toISOString(),
+          cancel_reason: body.reason ?? null,
+        };
+        journals.set(cancelled.id, cancelled);
+        ok(res, cancelled);
+        return;
+      }
+      const { original, reversed } = reverseJournal(document);
+      journals.set(original.id, original);
+      journals.set(reversed.id, reversed);
+      storePost(req, reversed);
+      ok(res, reversed);
+      return;
+    }
+
+    const journalDetail = url.pathname.match(/^\/api\/v1\/journals\/([0-9a-f-]{36})$/i);
+    if (journalDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const existing = journals.get(journalDetail[1]);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (req.method === "GET") {
+        ok(res, existing);
+        return;
+      }
+      if (isStale(req, existing.version)) {
+        fail(res, 409, "DOCUMENT_STALE", "Stale");
+        return;
+      }
+      if (req.method === "DELETE") {
+        journals.delete(existing.id);
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        const updated = buildJournal(body, existing);
+        journals.set(updated.id, updated);
+        ok(res, updated);
+        return;
+      }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/opening-balances") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, openingBalanceState);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/opening-balances/preview") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      ok(res, previewOpeningBalances(body));
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/opening-balances/commit") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const replayed = replayPost(req);
+      if (replayed) {
+        ok(res, replayed);
+        return;
+      }
+      const body = await readBody(req);
+      const preview = previewOpeningBalances(body);
+      const committedJournal = buildJournal(
+        {
+          entry_date: preview.entry_date,
+          currency_id: CURRENCY_ID,
+          exchange_rate: "1",
+          narration: "Opening balances",
+          lines: preview.lines.map((line) => ({
+            account_id: line.account_id,
+            debit: line.debit,
+            credit: line.credit,
+            description: line.description,
+          })),
+        },
+        null,
+        { status: "POSTED", journal_type: "OPENING_BALANCE" },
+      );
+      journals.set(committedJournal.id, committedJournal);
+      tenantState.books_start_date = body.books_start_date;
+      tenantState.hard_lock_date = preview.entry_date;
+      openingBalanceState = {
+        committed: true,
+        books_start_date: body.books_start_date,
+        hard_lock_date: preview.entry_date,
+        journal_entry_id: committedJournal.id,
+        document_number: committedJournal.document_number,
+        committed_at: new Date().toISOString(),
+        can_reset: true,
+      };
+      storePost(req, openingBalanceState);
+      ok(res, openingBalanceState);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/opening-balances/reset") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      if (!openingBalanceState.can_reset) {
+        fail(res, 409, "VALIDATION_ERROR", "Opening balances cannot be reset");
+        return;
+      }
+      if (openingBalanceState.journal_entry_id) {
+        journals.delete(openingBalanceState.journal_entry_id);
+      }
+      tenantState.books_start_date = null;
+      tenantState.hard_lock_date = null;
+      openingBalanceState = emptyOpeningState();
+      ok(res, openingBalanceState);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/reports/trial-balance") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const from = url.searchParams.get("from") ?? url.searchParams.get("from_date");
+      const to = url.searchParams.get("to") ?? url.searchParams.get("to_date");
+      const includeZero = url.searchParams.get("include_zero") === "true";
+      ok(res, trialBalanceReport(from, to, includeZero));
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/reports/general-ledger") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const accountId = url.searchParams.get("account_id");
+      const from = url.searchParams.get("from") ?? url.searchParams.get("from_date");
+      const to = url.searchParams.get("to") ?? url.searchParams.get("to_date");
+      const report = generalLedgerReport(accountId, from, to);
+      if (!report) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      ok(res, report);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/reports/account-statement") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const partyType = url.searchParams.get("party_type");
+      const partyId = url.searchParams.get("party_id");
+      const from = url.searchParams.get("from") ?? url.searchParams.get("from_date");
+      const to = url.searchParams.get("to") ?? url.searchParams.get("to_date");
+      ok(res, accountStatementReport(partyType, partyId, from, to));
+      return;
     }
 
     if (req.method === "GET" && EMPTY_LIST_PATHS.has(url.pathname)) {

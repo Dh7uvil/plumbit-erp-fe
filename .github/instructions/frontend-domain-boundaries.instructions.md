@@ -267,9 +267,14 @@ and the UI never guesses or interpolates a missing rate.
 
 Percentages, quantities and tax figures follow the same rule — display what the backend calculated
 rather than recalculating a total the user might compare against an invoice. Never recalculate VAT,
-tax or exchange in the browser. Show tax treatment, place of supply (emirate) and TRN when the
+tax or exchange in the browser. Ledger reports (trial balance, general ledger, account statement)
+render totals, running balances and the `is_balanced` flag from the API; the client never sums
+posted lines. Show tax treatment, place of supply (emirate) and TRN when the
 document carries them. On `EXCHANGE_RATE_MISSING` or `PERIOD_LOCKED`, surface the mapped error;
 do not invent a rate or a lock date.
+
+Exchange rates stay on the list + dialog slice. There is no `GET /exchange-rates/{id}` in OpenAPI,
+so do not add a detail or `/edit` route for that master.
 
 ## 11. Workflow status
 

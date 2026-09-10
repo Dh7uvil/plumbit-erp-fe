@@ -41,6 +41,15 @@ const ERROR_MESSAGES: Record<string, string> = {
   EINVOICE_REJECTED: "The e-invoice was rejected. Review the message and issue a credit note.",
   EINVOICE_ASP_UNAVAILABLE: "The e-invoicing service is unavailable. Please try again later.",
   EINVOICE_ALREADY_EXCHANGED: "This e-invoice has already been exchanged and cannot be changed.",
+  ACCOUNT_ROLE_UNMAPPED: "A required system account is not mapped. Map it before posting.",
+  ACCOUNT_NOT_POSTABLE: "This account cannot be posted to. Choose a postable account.",
+  JOURNAL_LINE_INVALID: "Each journal line must have either a debit or a credit, not both.",
+  JOURNAL_UNBALANCED: "Journal debit and credit totals must match.",
+  PARTY_REQUIRED_FOR_CONTROL_ACCOUNT: "A party is required when posting to an AR or AP control account.",
+  FISCAL_YEAR_LOCKED:
+    "The fiscal year start cannot change after document numbers have been issued.",
+  OPENING_STOCK_VALUE_MISMATCH:
+    "Opening inventory must equal the sum of opening stock cost layers.",
   INTEGRATION_ERROR: "An external service is unavailable. Please try again later.",
   NETWORK_ERROR: "Unable to reach the server. Check your connection and try again.",
   INTERNAL_ERROR: "Something went wrong. Please try again.",
@@ -164,6 +173,14 @@ export function getErrorMessage(codeOrError: unknown): string {
           ? "Negative stock is not allowed."
           : null;
     return appendDetailSentence(base, [reasonText, negativeStockBalanceFragment(details)]);
+  }
+  if (code === "FISCAL_YEAR_LOCKED") {
+    const requiresOverride = details.requires_override === true;
+    const requiresAck = details.requires_acknowledgement === true;
+    return appendDetailSentence(base, [
+      requiresOverride ? "An override permission is required." : null,
+      requiresAck ? "Confirm the change to continue." : null,
+    ]);
   }
   if (code === "VALIDATION_ERROR") {
     const maxMb = numberDetail(details, "max_upload_size_mb");

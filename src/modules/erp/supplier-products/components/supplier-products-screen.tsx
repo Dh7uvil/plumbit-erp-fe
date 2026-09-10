@@ -118,8 +118,6 @@ export function SupplierProductsScreen() {
   const deleteRow = useDeleteSupplierProduct();
   const unlinkRow = useUnlinkSupplierProduct();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<SupplierProduct | null>(null);
-  const [forceReadOnly, setForceReadOnly] = useState(false);
   const [linking, setLinking] = useState<SupplierProduct | null>(null);
   const [deleting, setDeleting] = useState<SupplierProduct | null>(null);
   const [unlinking, setUnlinking] = useState<SupplierProduct | null>(null);
@@ -130,20 +128,6 @@ export function SupplierProductsScreen() {
   const suppliers = suppliersQuery.data ?? [];
 
   function openCreate() {
-    setEditing(null);
-    setForceReadOnly(false);
-    setFormOpen(true);
-  }
-
-  function openView(row: SupplierProduct) {
-    setEditing(row);
-    setForceReadOnly(true);
-    setFormOpen(true);
-  }
-
-  function openEdit(row: SupplierProduct) {
-    setEditing(row);
-    setForceReadOnly(false);
     setFormOpen(true);
   }
 
@@ -305,8 +289,14 @@ export function SupplierProductsScreen() {
                     {row.supplier_name ?? "—"}
                   </RecordLink>
                 </TableCell>
-                <TableCell className="font-mono text-sm">{row.supplier_sku}</TableCell>
-                <TableCell>{row.supplier_item_name}</TableCell>
+                <TableCell className="font-mono text-sm">
+                  <RecordLink href={`/supplier-products/${row.id}`}>{row.supplier_sku}</RecordLink>
+                </TableCell>
+                <TableCell>
+                  <RecordLink href={`/supplier-products/${row.id}`}>
+                    {row.supplier_item_name}
+                  </RecordLink>
+                </TableCell>
                 <TableCell>
                   <MappedProductCell row={row} />
                 </TableCell>
@@ -323,8 +313,8 @@ export function SupplierProductsScreen() {
                   <TableCell>
                     <DataTableRowActions
                       entityName={row.supplier_sku}
-                      onView={canRead ? () => openView(row) : undefined}
-                      onEdit={canUpdate ? () => openEdit(row) : undefined}
+                      viewHref={canRead ? `/supplier-products/${row.id}` : undefined}
+                      editHref={canUpdate ? `/supplier-products/${row.id}/edit` : undefined}
                       onDelete={canDelete ? () => setDeleting(row) : undefined}
                       extra={
                         canLink ? (
@@ -363,15 +353,8 @@ export function SupplierProductsScreen() {
       </DataTable>
       <SupplierProductFormDialog
         open={formOpen}
-        supplierProduct={editing}
-        forceReadOnly={forceReadOnly}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditing(null);
-            setForceReadOnly(false);
-          }
-        }}
+        supplierProduct={null}
+        onOpenChange={setFormOpen}
       />
       <LinkProductDialog
         open={Boolean(linking)}

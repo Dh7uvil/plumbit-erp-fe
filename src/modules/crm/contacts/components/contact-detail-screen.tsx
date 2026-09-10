@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ContactForm } from "@/modules/crm/contacts/components/contact-form";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useContact } from "@/modules/crm/contacts/queries";
+import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -77,7 +78,12 @@ export function ContactDetailScreen({
           />
         </CardContent>
       </Card>
-      {isEdit ? null : <EntityAttachmentsPanel entityType="CONTACT" entityId={contact.id} />}
+      {isEdit ? null : (
+        <>
+          <EntityAttachmentsPanel entityType="CONTACT" entityId={contact.id} />
+          <ActivityFeed entityType="contact" entityId={contact.id} />
+        </>
+      )}
     </div>
   );
 }

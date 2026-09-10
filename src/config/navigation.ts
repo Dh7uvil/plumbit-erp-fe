@@ -8,12 +8,16 @@ import {
   FileText,
   FolderTree,
   History,
+  Landmark,
   LayoutDashboard,
   ListOrdered,
   Lock,
+  NotebookPen,
   Package,
   Percent,
   Ruler,
+  Scale,
+  ScrollText,
   Settings,
   Shield,
   ShoppingBag,
@@ -25,6 +29,8 @@ import {
   Wallet,
   Warehouse,
   ClipboardCheck,
+  CircleDollarSign,
+  FileSpreadsheet,
   PackageCheck,
   RotateCcw,
   Ship,
@@ -33,8 +39,12 @@ import {
 
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
+import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
+import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
+import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
+import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
@@ -217,6 +227,47 @@ export const navigation: NavigationGroup[] = [
         href: "/sales-returns",
         permission: salesReturnPermissions.read,
         icon: RotateCcw,
+      },
+    ],
+  },
+  {
+    label: "Accounting",
+    items: [
+      {
+        label: "Chart of accounts",
+        href: "/accounts",
+        permission: accountPermissions.read,
+        icon: Landmark,
+      },
+      {
+        label: "Journals",
+        href: "/journals",
+        permission: journalPermissions.read,
+        icon: NotebookPen,
+      },
+      {
+        label: "Opening balances",
+        href: "/opening-balances",
+        permission: openingBalancePermissions.manage,
+        icon: CircleDollarSign,
+      },
+      {
+        label: "Trial balance",
+        href: "/reports/trial-balance",
+        permission: reportPermissions.ledger,
+        icon: Scale,
+      },
+      {
+        label: "General ledger",
+        href: "/reports/general-ledger",
+        permission: reportPermissions.ledger,
+        icon: ScrollText,
+      },
+      {
+        label: "Account statement",
+        href: "/reports/account-statement",
+        permission: reportPermissions.ledger,
+        icon: FileSpreadsheet,
       },
     ],
   },

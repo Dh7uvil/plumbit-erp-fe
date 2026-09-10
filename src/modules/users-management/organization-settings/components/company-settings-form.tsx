@@ -11,6 +11,7 @@ import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import type { Currency } from "@/modules/erp/currencies/schemas";
+import { periodLockPermissions } from "@/modules/erp/period-lock/permissions";
 import { CompanyLogoCard } from "@/modules/users-management/organization-settings/components/company-logo-card";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
 import { useUpdateCurrentTenant } from "@/modules/users-management/tenants/mutations";
@@ -25,7 +26,7 @@ import {
   type TenantCurrent,
   type TenantCurrentUpdate,
 } from "@/modules/users-management/tenants/schemas";
-import { getErrorMessage } from "@/shared/api/errors";
+import { getErrorMessage, isApiError } from "@/shared/api/errors";
 import { DataTableError } from "@/shared/components/data-table/states";
 import { AddressFields } from "@/shared/components/form/address-fields";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -42,6 +43,13 @@ import {
 } from "@/shared/components/ui/form";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useIsClient } from "@/shared/hooks/use-is-client";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
@@ -67,8 +75,25 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   over_receipt_tolerance_pct: "",
   qc_required_default: false,
   timezone: "",
-  fiscal_year_start: "",
+  fiscal_year_start_month: 1,
+  fiscal_year_start_day: 1,
+  books_start_date: "",
 };
+
+const FISCAL_MONTHS = [
+  { value: 1, label: "January" },
+  { value: 2, label: "February" },
+  { value: 3, label: "March" },
+  { value: 4, label: "April" },
+  { value: 5, label: "May" },
+  { value: 6, label: "June" },
+  { value: 7, label: "July" },
+  { value: 8, label: "August" },
+  { value: 9, label: "September" },
+  { value: 10, label: "October" },
+  { value: 11, label: "November" },
+  { value: 12, label: "December" },
+] as const;
 
 const EMPTY_CURRENCIES: Currency[] = [];
 
@@ -82,6 +107,8 @@ type CompanyTextFieldPath = Exclude<
   | "costing_method"
   | "allow_over_receipt"
   | "qc_required_default"
+  | "fiscal_year_start_month"
+  | "fiscal_year_start_day"
 >;
 
 function toCurrencyCode(code: string | null | undefined): string | null {
@@ -133,7 +160,9 @@ function toFormValues(
     over_receipt_tolerance_pct: tenant.over_receipt_tolerance_pct ?? "",
     qc_required_default: tenant.qc_required_default,
     timezone: tenant.timezone ?? "",
-    fiscal_year_start: tenant.fiscal_year_start ?? "",
+    fiscal_year_start_month: tenant.fiscal_year_start_month,
+    fiscal_year_start_day: tenant.fiscal_year_start_day,
+    books_start_date: tenant.books_start_date ?? "",
   };
 }
 
@@ -212,13 +241,14 @@ function toCompanyPayload(values: CompanySettingsFormValues): TenantCurrentUpdat
 function toRegionalPayload(
   values: CompanySettingsFormValues,
   currencyCode: string | null,
+  original: CompanySettingsFormValues,
+  acknowledgeFiscalYearChange: boolean,
 ): TenantCurrentUpdate {
   const selectedId = values.default_currency_id;
   const currencyId = !selectedId || selectedId === OPTIONAL_SELECT_NONE ? null : selectedId;
   const timezone = emptyToNull(values.timezone);
-  return {
+  const payload: TenantCurrentUpdate = {
     ...(timezone ? { timezone } : {}),
-    fiscal_year_start: emptyToNull(values.fiscal_year_start),
     default_currency: toCurrencyCode(currencyCode ?? values.default_currency),
     default_currency_id: currencyId,
     quotation_requires_approval: values.quotation_requires_approval,
@@ -229,6 +259,20 @@ function toRegionalPayload(
     over_receipt_tolerance_pct: emptyToNull(values.over_receipt_tolerance_pct),
     qc_required_default: values.qc_required_default,
   };
+  if (
+    values.fiscal_year_start_month !== original.fiscal_year_start_month ||
+    values.fiscal_year_start_day !== original.fiscal_year_start_day
+  ) {
+    payload.fiscal_year_start_month = values.fiscal_year_start_month;
+    payload.fiscal_year_start_day = values.fiscal_year_start_day;
+  }
+  if (values.books_start_date !== original.books_start_date) {
+    payload.books_start_date = emptyToNull(values.books_start_date);
+  }
+  if (acknowledgeFiscalYearChange) {
+    payload.acknowledge_fiscal_year_change = true;
+  }
+  return payload;
 }
 
 function EditSaveActions({
@@ -306,11 +350,14 @@ export function CompanySettingsForm() {
   const can = useCan();
   const canUpdate = can(organizationSettingsPermissions.update);
   const canReadCurrencies = can(currencyPermissions.read);
+  const canOverrideFiscalYear = can(periodLockPermissions.override);
   const tenantQuery = useCurrentTenant();
   const currenciesQuery = useAllCurrencies(canReadCurrencies);
   const updateTenant = useUpdateCurrentTenant();
   const isClient = useIsClient();
   const [formError, setFormError] = useState<string | null>(null);
+  const [fiscalYearLocked, setFiscalYearLocked] = useState(false);
+  const [acknowledgeFiscalYearChange, setAcknowledgeFiscalYearChange] = useState(false);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isEditingRegional, setIsEditingRegional] = useState(false);
   const [currencyDraft, setCurrencyDraft] = useState(OPTIONAL_SELECT_NONE);
@@ -348,10 +395,15 @@ export function CompanySettingsForm() {
       setCurrencyDraft(saved.default_currency_id);
       setIsEditingCompany(false);
       setIsEditingRegional(false);
+      setFiscalYearLocked(false);
+      setAcknowledgeFiscalYearChange(false);
       toast.success("Company settings saved");
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {
         return;
+      }
+      if (isApiError(error) && error.code === "FISCAL_YEAR_LOCKED") {
+        setFiscalYearLocked(true);
       }
       setFormError(getErrorMessage(error));
     }
@@ -394,10 +446,14 @@ export function CompanySettingsForm() {
         over_receipt_tolerance_pct: original.over_receipt_tolerance_pct,
         qc_required_default: original.qc_required_default,
         timezone: original.timezone,
-        fiscal_year_start: original.fiscal_year_start,
+        fiscal_year_start_month: original.fiscal_year_start_month,
+        fiscal_year_start_day: original.fiscal_year_start_day,
+        books_start_date: original.books_start_date,
       });
       setCurrencyDraft(original.default_currency_id);
     }
+    setFiscalYearLocked(false);
+    setAcknowledgeFiscalYearChange(false);
     setIsEditingRegional(false);
   }
 
@@ -416,6 +472,9 @@ export function CompanySettingsForm() {
   }
 
   function saveRegional() {
+    if (!tenant) {
+      return;
+    }
     const selected = currencies.find((currency) => currency.id === currencyDraft);
     const values = {
       ...form.getValues(),
@@ -424,7 +483,14 @@ export function CompanySettingsForm() {
     };
     form.setValue("default_currency_id", values.default_currency_id);
     form.setValue("default_currency", values.default_currency);
-    void submitUpdate(toRegionalPayload(values, selected?.code ?? null));
+    void submitUpdate(
+      toRegionalPayload(
+        values,
+        selected?.code ?? null,
+        toFormValues(tenant, currencies),
+        acknowledgeFiscalYearChange,
+      ),
+    );
   }
 
   if (!isClient || tenantQuery.isLoading) {
@@ -577,6 +643,8 @@ export function CompanySettingsForm() {
                     variant="outline"
                     onClick={() => {
                       setFormError(null);
+                      setFiscalYearLocked(false);
+                      setAcknowledgeFiscalYearChange(false);
                       setCurrencyDraft(
                         currencySelectValue(
                           form.getValues("default_currency_id"),
@@ -669,12 +737,73 @@ export function CompanySettingsForm() {
                 </SettingsFieldItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="fiscal_year_start_month"
+              render={({ field }) => (
+                <SettingsFieldItem label="Fiscal year start month">
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    disabled={!canUpdate || !isEditingRegional}
+                  >
+                    <SelectTrigger aria-label="Fiscal year start month">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FISCAL_MONTHS.map((month) => (
+                        <SelectItem key={month.value} value={String(month.value)}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </SettingsFieldItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fiscal_year_start_day"
+              render={({ field }) => (
+                <SettingsFieldItem label="Fiscal year start day">
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    disabled={!canUpdate || !isEditingRegional}
+                  >
+                    <SelectTrigger aria-label="Fiscal year start day">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
+                        <SelectItem key={day} value={String(day)}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </SettingsFieldItem>
+              )}
+            />
             <TextField
               control={form.control}
-              name="fiscal_year_start"
-              label="Fiscal year start"
+              name="books_start_date"
+              label="Books start date"
+              type="date"
               disabled={!canUpdate || !isEditingRegional}
             />
+            {fiscalYearLocked && canOverrideFiscalYear ? (
+              <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                <Checkbox
+                  checked={acknowledgeFiscalYearChange}
+                  disabled={!isEditingRegional}
+                  onCheckedChange={(checked) => setAcknowledgeFiscalYearChange(checked === true)}
+                />
+                <FormLabel className="text-muted-foreground text-xs font-medium">
+                  I understand this changes document numbering. Continue anyway.
+                </FormLabel>
+              </FormItem>
+            ) : null}
             <FormField
               control={form.control}
               name="quotation_requires_approval"

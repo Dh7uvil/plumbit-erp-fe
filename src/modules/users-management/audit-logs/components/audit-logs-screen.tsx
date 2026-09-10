@@ -18,6 +18,7 @@ import { useAllUsers } from "@/modules/users-management/users/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
@@ -37,7 +38,6 @@ import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
-import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -375,26 +375,16 @@ export function AuditLogsScreen() {
               />
             </FilterField>
           ) : null}
-          <FilterField label="From date" htmlFor="audit-filter-from">
-            <Input
-              id="audit-filter-from"
-              type="date"
-              value={draftExtra.dateFrom}
-              onChange={(event) =>
-                setDraftExtra((current) => ({ ...current, dateFrom: event.target.value }))
-              }
-            />
-          </FilterField>
-          <FilterField label="To date" htmlFor="audit-filter-to">
-            <Input
-              id="audit-filter-to"
-              type="date"
-              value={draftExtra.dateTo}
-              onChange={(event) =>
-                setDraftExtra((current) => ({ ...current, dateTo: event.target.value }))
-              }
-            />
-          </FilterField>
+          <DateRangeFilter
+            fromId="audit-filter-from"
+            toId="audit-filter-to"
+            from={draftExtra.dateFrom}
+            to={draftExtra.dateTo}
+            onFromChange={(value) =>
+              setDraftExtra((current) => ({ ...current, dateFrom: value }))
+            }
+            onToChange={(value) => setDraftExtra((current) => ({ ...current, dateTo: value }))}
+          />
         </MoreFiltersDialog>
         <SortDialog
           fields={[...SORT_FIELDS]}

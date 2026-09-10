@@ -26,6 +26,7 @@ export function DocumentWorkflowButtons<TAction extends string>({
   documentLabel,
   onAction,
   extra,
+  disabledActions,
   onError,
 }: {
   availableActions: readonly string[];
@@ -34,6 +35,7 @@ export function DocumentWorkflowButtons<TAction extends string>({
   documentLabel: string;
   onAction: (action: TAction, extras: DocumentWorkflowExtras) => Promise<void>;
   extra?: ReactNode;
+  disabledActions?: Partial<Record<TAction, boolean>>;
   onError?: (error: unknown) => boolean;
 }) {
   const can = useCan();
@@ -88,7 +90,7 @@ export function DocumentWorkflowButtons<TAction extends string>({
               type="button"
               size="sm"
               variant={spec.variant ?? "default"}
-              disabled={pending}
+              disabled={pending || Boolean(disabledActions?.[spec.action])}
               onClick={() => onClickAction(spec)}
             >
               {running === spec.action ? <Loader2 className="size-3.5 animate-spin" /> : null}
