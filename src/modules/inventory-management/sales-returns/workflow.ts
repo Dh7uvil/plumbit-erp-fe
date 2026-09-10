@@ -10,7 +10,7 @@ export const SALES_RETURN_ACTION_REGISTRY: DocumentActionSpec<SalesReturnWorkflo
     label: "Post",
     permission: salesReturnPermissions.post,
     confirmCopy: (documentNumber) =>
-      `Posting ${documentNumber}: stock will move according to each line disposition, restoring original cost. Restock returns to available, QC hold stays out of sellable stock, and scrap writes the cost off.`,
+      `Posting ${documentNumber}: stock will move according to each line disposition, restoring original cost, and the general ledger will debit inventory and credit COGS. Restock returns to available, QC hold stays out of sellable stock, and scrap writes the cost off.`,
   },
   {
     action: "cancel",
@@ -18,7 +18,7 @@ export const SALES_RETURN_ACTION_REGISTRY: DocumentActionSpec<SalesReturnWorkflo
     permission: salesReturnPermissions.update,
     variant: "destructive",
     confirmCopy: (documentNumber) =>
-      `${documentNumber} will be cancelled. If posted, stock and cost will reverse when the API allows it.`,
+      `${documentNumber} will be cancelled. If posted, stock, cost, and the related general ledger entry will reverse when the API allows it.`,
     reasonField: { placeholder: "Why this sales return is being cancelled" },
   },
   {

@@ -123,10 +123,28 @@ export function TradingHistoryLines({
         cell: (row) => <span className="tabular-nums">{formatDecimal(row.quantity)}</span>,
       },
       {
+        id: "invoiced",
+        header: "Invoiced",
+        className: "text-right",
+        cell: (row) => (
+          <span className="tabular-nums">
+            {row.invoiced_quantity != null ? formatDecimal(row.invoiced_quantity) : "—"}
+          </span>
+        ),
+      },
+      {
         id: "rate",
         header: "Rate",
         className: "text-right",
         cell: (row) => <span className="tabular-nums">{formatDecimal(row.rate)}</span>,
+      },
+      {
+        id: "revenue",
+        header: "Revenue",
+        className: "text-right",
+        cell: (row) => (
+          <span className="tabular-nums">{row.revenue != null ? formatDecimal(row.revenue) : "—"}</span>
+        ),
       },
     );
     if (showCost) {
@@ -138,6 +156,16 @@ export function TradingHistoryLines({
           cell: (row) => (
             <span className="tabular-nums">
               {row.unit_cost != null ? formatDecimal(row.unit_cost) : "—"}
+            </span>
+          ),
+        },
+        {
+          id: "billed",
+          header: "Billed cost",
+          className: "text-right",
+          cell: (row) => (
+            <span className="tabular-nums">
+              {row.billed_cost != null ? formatDecimal(row.billed_cost) : "—"}
             </span>
           ),
         },

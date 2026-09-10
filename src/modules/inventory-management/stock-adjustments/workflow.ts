@@ -11,14 +11,15 @@ export const STOCK_ADJUSTMENT_ACTION_REGISTRY: DocumentActionSpec<StockAdjustmen
       label: "Post",
       permission: stockAdjustmentPermissions.post,
       confirmCopy: (documentNumber) =>
-        `Posting ${documentNumber}: stock will move immediately and inventory value will be created at each line's unit cost. This cannot be undone from this document — correct with a new adjustment.`,
+        `Posting ${documentNumber}: stock will move immediately, inventory value will be created at each line's unit cost, and the general ledger will move. This cannot be undone from this document — correct with a new adjustment.`,
     },
     {
       action: "cancel",
       label: "Cancel",
       permission: stockAdjustmentPermissions.update,
       variant: "destructive",
-      confirmCopy: (documentNumber) => `${documentNumber} will be cancelled. Stock will not move.`,
+      confirmCopy: (documentNumber) =>
+        `${documentNumber} will be cancelled. If it is posted, the related general ledger entry will reverse when the API allows it. Stock will not move from a draft cancel.`,
       reasonField: { placeholder: "Why this adjustment is being cancelled" },
     },
     {

@@ -12,6 +12,13 @@ import {
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -109,13 +116,28 @@ export function DocumentWorkflowButtons<TAction extends string>({
               <Label htmlFor={reasonId}>
                 {confirming.reasonField.label ?? "Reason (optional)"}
               </Label>
-              <Textarea
-                id={reasonId}
-                value={reason}
-                maxLength={2000}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder={confirming.reasonField.placeholder}
-              />
+              {confirming.reasonField.options ? (
+                <Select value={reason} onValueChange={setReason}>
+                  <SelectTrigger id={reasonId}>
+                    <SelectValue placeholder={confirming.reasonField.placeholder} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {confirming.reasonField.options.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Textarea
+                  id={reasonId}
+                  value={reason}
+                  maxLength={2000}
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder={confirming.reasonField.placeholder}
+                />
+              )}
             </div>
           ) : null
         }

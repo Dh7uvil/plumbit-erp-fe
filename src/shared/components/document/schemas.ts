@@ -84,3 +84,37 @@ export function emptyDocumentLine(): DocumentLineFormValues {
     purchase_order_line_id: "",
   };
 }
+
+export const EXPENSE_CATEGORIES = [
+  "FREIGHT",
+  "CUSTOMS_DUTY",
+  "INSURANCE",
+  "CLEARING",
+  "INSPECTION",
+  "OTHER",
+] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  FREIGHT: "Freight",
+  CUSTOMS_DUTY: "Customs duty",
+  INSURANCE: "Insurance",
+  CLEARING: "Clearing",
+  INSPECTION: "Inspection",
+  OTHER: "Other",
+};
+
+export type ExpenseDocumentLineFormValues = DocumentLineFormValues & {
+  line_type: "EXPENSE";
+  expense_account_id: string;
+  expense_category: string;
+};
+
+export function emptyExpenseDocumentLine(): ExpenseDocumentLineFormValues {
+  return {
+    ...emptyDocumentLine(),
+    line_type: "EXPENSE",
+    expense_account_id: OPTIONAL_SELECT_NONE,
+    expense_category: OPTIONAL_SELECT_NONE,
+  };
+}

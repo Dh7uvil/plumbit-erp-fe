@@ -22,6 +22,7 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
@@ -140,6 +141,7 @@ function StockAdjustmentDetailLoaded({
         />
       }
       formTitle={isEdit ? "Edit stock adjustment" : "Stock adjustment"}
+      panels={<DocumentLedgerCard journalEntryId={adjustment.journal_entry_id} />}
       attachments={
         <EntityAttachmentsPanel
           entityType="STOCK_ADJUSTMENT"

@@ -53,6 +53,10 @@ import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
+import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
+import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
+import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
+import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { supplierProductPermissions } from "@/modules/erp/supplier-products/permissions";
 import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
@@ -126,10 +130,34 @@ export const navigation: NavigationGroup[] = [
         icon: ClipboardPen,
       },
       {
+        label: "Sales invoices",
+        href: "/sales-invoices",
+        permission: salesInvoicePermissions.read,
+        icon: FileText,
+      },
+      {
+        label: "Credit notes",
+        href: "/credit-notes",
+        permission: creditNotePermissions.read,
+        icon: RotateCcw,
+      },
+      {
         label: "Purchase orders",
         href: "/purchase-orders",
         permission: purchaseOrderPermissions.read,
         icon: ShoppingBag,
+      },
+      {
+        label: "Purchase invoices",
+        href: "/purchase-invoices",
+        permission: purchaseInvoicePermissions.read,
+        icon: FileSpreadsheet,
+      },
+      {
+        label: "Debit notes",
+        href: "/debit-notes",
+        permission: debitNotePermissions.read,
+        icon: NotebookPen,
       },
       {
         label: "Suppliers",
@@ -268,6 +296,18 @@ export const navigation: NavigationGroup[] = [
         href: "/reports/account-statement",
         permission: reportPermissions.ledger,
         icon: FileSpreadsheet,
+      },
+      {
+        label: "Export evidence exceptions",
+        href: "/reports/export-evidence-exceptions",
+        permission: reportPermissions.tax,
+        icon: FileText,
+      },
+      {
+        label: "Invoiced not dispatched",
+        href: "/reports/invoiced-not-dispatched",
+        permission: reportPermissions.tax,
+        icon: ScrollText,
       },
     ],
   },

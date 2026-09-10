@@ -45,6 +45,24 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
         cell: (row) => <span className="tabular-nums">{formatDecimal(row.total_quantity)}</span>,
       },
       {
+        id: "invoiced",
+        header: "Invoiced",
+        className: "text-right",
+        cell: (row) => (
+          <span className="tabular-nums">
+            {row.invoiced_quantity != null ? formatDecimal(row.invoiced_quantity) : "—"}
+          </span>
+        ),
+      },
+      {
+        id: "revenue",
+        header: "Revenue",
+        className: "text-right",
+        cell: (row) => (
+          <span className="tabular-nums">{row.revenue != null ? formatDecimal(row.revenue) : "—"}</span>
+        ),
+      },
+      {
         id: "dispatches",
         header: "Dispatches",
         className: "text-right",
@@ -167,6 +185,24 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
         header: "Qty",
         className: "text-right",
         cell: (row) => <span className="tabular-nums">{formatDecimal(row.total_quantity)}</span>,
+      },
+      {
+        id: "invoiced",
+        header: "Invoiced",
+        className: "text-right",
+        cell: (row) => (
+          <span className="tabular-nums">
+            {row.invoiced_quantity != null ? formatDecimal(row.invoiced_quantity) : "—"}
+          </span>
+        ),
+      },
+      {
+        id: "revenue",
+        header: "Revenue",
+        className: "text-right",
+        cell: (row) => (
+          <span className="tabular-nums">{row.revenue != null ? formatDecimal(row.revenue) : "—"}</span>
+        ),
       },
       {
         id: "dispatches",

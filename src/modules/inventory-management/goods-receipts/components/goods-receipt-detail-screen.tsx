@@ -8,6 +8,8 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
+import { CreateBillFromGoodsReceiptDialog } from "@/modules/erp/purchase-invoices/components/create-from-goods-receipt-dialog";
+import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
 import { GoodsReceiptForm } from "@/modules/inventory-management/goods-receipts/components/goods-receipt-form";
 import { useGoodsReceiptWorkflow } from "@/modules/inventory-management/goods-receipts/hooks/use-goods-receipt-workflow";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
@@ -33,10 +35,12 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { Button } from "@/shared/components/ui/button";
 import { useCan } from "@/shared/providers/session-provider";
 import { formatDate } from "@/shared/lib/format";
 
@@ -111,6 +115,8 @@ function GoodsReceiptDetailLoaded({
   const number = goodsReceiptDisplayNumber(receipt);
   const onAction = useGoodsReceiptWorkflow(receipt);
   const [writeError, setWriteError] = useState<unknown>(null);
+  const [billOpen, setBillOpen] = useState(false);
+  const canCreateBill = receipt.status === "POSTED" && can(purchaseInvoicePermissions.create);
   const canReadInspections = can(qualityInspectionPermissions.read);
   const inspectionsQuery = useQualityInspections(
     {
@@ -152,24 +158,31 @@ function GoodsReceiptDetailLoaded({
         </>
       }
       workflow={
-        <DocumentWorkflowButtons
-          availableActions={receipt.available_actions}
-          registry={GOODS_RECEIPT_ACTION_REGISTRY}
-          documentKind="goods receipt"
-          documentLabel={number ?? "goods receipt"}
-          extra={<StockWriteAlert periodLocked={receipt.period_locked} error={writeError} />}
-          onError={(error) => {
-            if (isStockWriteAlertError(error)) {
-              setWriteError(error);
-              return true;
-            }
-            return false;
-          }}
-          onAction={async (action, extras) => {
-            setWriteError(null);
-            await onAction(action, extras);
-          }}
-        />
+        <div className="flex flex-col items-end gap-2">
+          {canCreateBill ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => setBillOpen(true)}>
+              Create bill
+            </Button>
+          ) : null}
+          <DocumentWorkflowButtons
+            availableActions={receipt.available_actions}
+            registry={GOODS_RECEIPT_ACTION_REGISTRY}
+            documentKind="goods receipt"
+            documentLabel={number ?? "goods receipt"}
+            extra={<StockWriteAlert periodLocked={receipt.period_locked} error={writeError} />}
+            onError={(error) => {
+              if (isStockWriteAlertError(error)) {
+                setWriteError(error);
+                return true;
+              }
+              return false;
+            }}
+            onAction={async (action, extras) => {
+              setWriteError(null);
+              await onAction(action, extras);
+            }}
+          />
+        </div>
       }
       banner={
         <div className="flex flex-col gap-2">
@@ -216,6 +229,7 @@ function GoodsReceiptDetailLoaded({
         </div>
       }
       formTitle={isEdit ? "Edit goods receipt" : "Goods receipt"}
+      panels={<DocumentLedgerCard journalEntryId={receipt.journal_entry_id} />}
       attachments={
         <EntityAttachmentsPanel
           entityType="GOODS_RECEIPT"
@@ -236,6 +250,11 @@ function GoodsReceiptDetailLoaded({
         receipt={receipt}
         disabled={!isEdit}
         onSuccess={() => router.push(viewHref)}
+      />
+      <CreateBillFromGoodsReceiptDialog
+        open={billOpen}
+        onOpenChange={setBillOpen}
+        goodsReceiptId={receipt.id}
       />
     </DocumentRecordShell>
   );

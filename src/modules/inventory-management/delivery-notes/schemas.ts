@@ -42,6 +42,7 @@ export const DeliveryNoteLineSchema = z.object({
   quantity: DecimalStringSchema,
   unit_id: z.string().uuid().nullable(),
   rate: MoneySchema,
+  qty_invoiced: DecimalStringSchema.optional().default("0"),
 });
 export type DeliveryNoteLine = z.infer<typeof DeliveryNoteLineSchema>;
 
@@ -74,6 +75,7 @@ export const DeliveryNoteSchema = z.object({
   cancel_reason: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),
   period_locked: z.boolean().default(false),
+  journal_entry_id: z.string().uuid().nullable().optional().default(null),
   lines: z.array(DeliveryNoteLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

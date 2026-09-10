@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { reportsApi } from "@/modules/erp/accounting/reports/api";
 import type {
   AccountStatementParams,
+  ExportEvidenceExceptionParams,
   GeneralLedgerParams,
   TrialBalanceParams,
 } from "@/modules/erp/accounting/reports/schemas";
@@ -18,6 +19,9 @@ export const reportKeys = {
     [...reportKeys.all, "general-ledger", params] as const,
   accountStatement: (params: AccountStatementParams) =>
     [...reportKeys.all, "account-statement", params] as const,
+  exportEvidenceExceptions: (params: ExportEvidenceExceptionParams) =>
+    [...reportKeys.all, "export-evidence-exceptions", params] as const,
+  invoicedNotDispatched: () => [...reportKeys.all, "invoiced-not-dispatched"] as const,
 };
 
 export function useTrialBalance(params: TrialBalanceParams | null) {
@@ -47,5 +51,21 @@ export function useAccountStatement(params: AccountStatementParams | null) {
     ),
     queryFn: () => reportsApi.accountStatement(params!),
     enabled: Boolean(params?.party_id && params.from && params.to),
+  });
+}
+
+export function useExportEvidenceExceptions(params: ExportEvidenceExceptionParams = {}, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.exportEvidenceExceptions(params)),
+    queryFn: () => reportsApi.exportEvidenceExceptions(params),
+    enabled,
+  });
+}
+
+export function useInvoicedNotDispatched(enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.invoicedNotDispatched()),
+    queryFn: reportsApi.invoicedNotDispatched,
+    enabled,
   });
 }

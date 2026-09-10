@@ -45,6 +45,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   ACCOUNT_NOT_POSTABLE: "This account cannot be posted to. Choose a postable account.",
   JOURNAL_LINE_INVALID: "Each journal line must have either a debit or a credit, not both.",
   JOURNAL_UNBALANCED: "Journal debit and credit totals must match.",
+  INVOICE_QTY_EXCEEDED: "Invoiced quantity is more than the remaining quantity on the source document.",
+  EXPORT_EVIDENCE_MISSING: "Export evidence is missing. Posting is allowed, but BL or customs documents should be attached.",
+  CREDIT_QTY_EXCEEDED: "Credited quantity is more than the remaining quantity on the invoice.",
+  DEBIT_QTY_EXCEEDED: "Debited quantity is more than the remaining quantity on the bill.",
   PARTY_REQUIRED_FOR_CONTROL_ACCOUNT: "A party is required when posting to an AR or AP control account.",
   FISCAL_YEAR_LOCKED:
     "The fiscal year start cannot change after document numbers have been issued.",

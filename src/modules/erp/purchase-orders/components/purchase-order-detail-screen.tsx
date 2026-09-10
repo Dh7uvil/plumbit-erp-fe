@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { CreateBillFromPurchaseOrderDialog } from "@/modules/erp/purchase-invoices/components/create-from-purchase-order-dialog";
+import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
 import { PurchaseOrderForm } from "@/modules/erp/purchase-orders/components/purchase-order-form";
 import { usePurchaseOrderWorkflow } from "@/modules/erp/purchase-orders/hooks/use-purchase-order-workflow";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
@@ -36,6 +38,8 @@ import {
   type DocumentWorkflowExtras,
 } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { Button } from "@/shared/components/ui/button";
+import { useCan } from "@/shared/providers/session-provider";
 
 export function PurchaseOrderDetailScreen({
   purchaseOrderId,
@@ -103,11 +107,16 @@ function PurchaseOrderDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
+  const can = useCan();
   const isEdit = mode === "edit";
   const number = purchaseOrderDisplayNumber(purchaseOrder);
   const onAction = usePurchaseOrderWorkflow(purchaseOrder);
   const createFromPo = useCreateGoodsReceiptFromPurchaseOrder();
   const [writeError, setWriteError] = useState<unknown>(null);
+  const [billOpen, setBillOpen] = useState(false);
+  const canCreateBill =
+    (purchaseOrder.status === "ISSUED" || purchaseOrder.status === "CLOSED") &&
+    can(purchaseInvoicePermissions.create);
   const workflowActions =
     purchaseOrder.available_actions.includes("create_goods_receipt") ||
     purchaseOrder.status !== "ISSUED" ||
@@ -171,14 +180,21 @@ function PurchaseOrderDetailLoaded({
         </>
       }
       workflow={
-        <DocumentWorkflowButtons
-          availableActions={workflowActions}
-          registry={PURCHASE_ORDER_ACTION_REGISTRY}
-          documentKind="purchase order"
-          documentLabel={number ?? "purchase order"}
-          extra={<StockWriteAlert error={writeError} />}
-          onAction={handleAction}
-        />
+        <div className="flex flex-col items-end gap-2">
+          {canCreateBill ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => setBillOpen(true)}>
+              Create bill
+            </Button>
+          ) : null}
+          <DocumentWorkflowButtons
+            availableActions={workflowActions}
+            registry={PURCHASE_ORDER_ACTION_REGISTRY}
+            documentKind="purchase order"
+            documentLabel={number ?? "purchase order"}
+            extra={<StockWriteAlert error={writeError} />}
+            onAction={handleAction}
+          />
+        </div>
       }
       banner={
         purchaseOrder.source_sales_order_id ? (
@@ -214,6 +230,11 @@ function PurchaseOrderDetailLoaded({
         purchaseOrder={purchaseOrder}
         disabled={!isEdit}
         onSuccess={() => router.push(viewHref)}
+      />
+      <CreateBillFromPurchaseOrderDialog
+        open={billOpen}
+        onOpenChange={setBillOpen}
+        purchaseOrderId={purchaseOrder.id}
       />
     </DocumentRecordShell>
   );
