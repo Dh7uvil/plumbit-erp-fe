@@ -12,8 +12,11 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
+import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
+import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
 import { ApplyDebitsDialog } from "@/modules/erp/purchase-invoices/components/apply-debits-dialog";
 import { PurchaseInvoiceForm } from "@/modules/erp/purchase-invoices/components/purchase-invoice-form";
+import { PurchaseInvoiceLandedCostCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-landed-cost-card";
 import { PurchaseInvoiceReverseChargeCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-reverse-charge-card";
 import { usePurchaseInvoiceWorkflow } from "@/modules/erp/purchase-invoices/hooks/use-purchase-invoice-workflow";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
@@ -117,10 +120,15 @@ function PurchaseInvoiceDetailLoaded({
   const [writeError, setWriteError] = useState<unknown>(null);
   const [debitOpen, setDebitOpen] = useState(false);
   const [applyDebitsOpen, setApplyDebitsOpen] = useState(false);
+  const [landedCostOpen, setLandedCostOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
   const canCreateDebit = invoice.status === "POSTED" && can(debitNotePermissions.create);
+  const canCreateLandedCost =
+    invoice.status === "POSTED" &&
+    can(landedCostPermissions.create) &&
+    invoice.lines.some((line) => line.line_type === "EXPENSE");
 
   return (
     <DocumentRecordShell
@@ -176,6 +184,16 @@ function PurchaseInvoiceDetailLoaded({
           {canCreateDebit ? (
             <Button type="button" size="sm" variant="outline" onClick={() => setDebitOpen(true)}>
               Create debit note
+            </Button>
+          ) : null}
+          {canCreateLandedCost ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setLandedCostOpen(true)}
+            >
+              Create landed cost
             </Button>
           ) : null}
           <DocumentWorkflowButtons
@@ -255,6 +273,7 @@ function PurchaseInvoiceDetailLoaded({
             currencyCode={currencyCode}
           />
           <RelatedDocumentsCard documents={invoice.related_documents} />
+          <PurchaseInvoiceLandedCostCard invoice={invoice} />
           <PurchaseInvoiceReverseChargeCard invoice={invoice} currencyCode={currencyCode} />
           <DocumentLedgerCard
             journalEntryId={invoice.journal_entry_id}
@@ -294,6 +313,11 @@ function PurchaseInvoiceDetailLoaded({
         currencyCode={currencyCode}
         open={applyDebitsOpen}
         onOpenChange={setApplyDebitsOpen}
+      />
+      <ComposeFromBillsDialog
+        open={landedCostOpen}
+        onOpenChange={setLandedCostOpen}
+        purchaseInvoiceId={invoice.id}
       />
     </DocumentRecordShell>
   );

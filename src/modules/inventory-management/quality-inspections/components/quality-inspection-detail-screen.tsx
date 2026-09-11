@@ -24,6 +24,7 @@ import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/c
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
@@ -161,14 +162,15 @@ function QualityInspectionDetailLoaded({
           defaultCategory="QC_PHOTO"
         />
       }
-      activity={
-        <ActivityFeed
-          entityType="quality_inspection"
-          entityId={inspection.id}
-          revision={inspection.version}
-        />
-      }
-    >
+        activity={
+          <ActivityFeed
+            entityType="quality_inspection"
+            entityId={inspection.id}
+            revision={inspection.version}
+          />
+        }
+        panels={<RelatedDocumentsCard documents={inspection.related_documents} />}
+      >
       <QualityInspectionForm
         inspection={inspection}
         disabled={!isEdit}

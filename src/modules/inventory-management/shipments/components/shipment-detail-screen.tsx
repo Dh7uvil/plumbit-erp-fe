@@ -7,6 +7,8 @@ import { ShipmentDeliveryNotesPanel } from "@/modules/inventory-management/shipm
 import { ShipmentForm } from "@/modules/inventory-management/shipments/components/shipment-form";
 import { ShipmentTrackingDialog } from "@/modules/inventory-management/shipments/components/shipment-tracking-dialog";
 import { ShipmentTrackingStrip } from "@/modules/inventory-management/shipments/components/shipment-tracking-strip";
+import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
+import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { useShipmentWorkflow } from "@/modules/inventory-management/shipments/hooks/use-shipment-workflow";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { useShipment } from "@/modules/inventory-management/shipments/queries";
@@ -22,9 +24,12 @@ import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/c
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Button } from "@/shared/components/ui/button";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { useCan } from "@/shared/providers/session-provider";
 
 function canUpdateTracking(status: Shipment["status"]): boolean {
   return status === "DISPATCHED" || status === "IN_TRANSIT" || status === "ARRIVED";
@@ -96,11 +101,15 @@ function ShipmentDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
+  const can = useCan();
   const isEdit = mode === "edit";
   const number = shipmentDisplayNumber(shipment);
   const [trackingOpen, setTrackingOpen] = useState(false);
+  const [landedCostOpen, setLandedCostOpen] = useState(false);
   const onAction = useShipmentWorkflow(shipment, { onTracking: () => setTrackingOpen(true) });
   const trackingEnabled = canUpdateTracking(shipment.status);
+  const canCreateLandedCost =
+    shipment.status !== "CANCELLED" && can(landedCostPermissions.create);
   const workflowActions =
     trackingEnabled && !shipment.available_actions.includes("tracking")
       ? [...shipment.available_actions, "tracking"]
@@ -129,13 +138,25 @@ function ShipmentDetailLoaded({
           />
         }
         workflow={
-          <DocumentWorkflowButtons
-            availableActions={workflowActions}
-            registry={SHIPMENT_ACTION_REGISTRY}
-            documentKind="shipment"
-            documentLabel={number ?? "shipment"}
-            onAction={onAction}
-          />
+          <div className="flex flex-col items-end gap-2">
+            {canCreateLandedCost ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setLandedCostOpen(true)}
+              >
+                Create landed cost
+              </Button>
+            ) : null}
+            <DocumentWorkflowButtons
+              availableActions={workflowActions}
+              registry={SHIPMENT_ACTION_REGISTRY}
+              documentKind="shipment"
+              documentLabel={number ?? "shipment"}
+              onAction={onAction}
+            />
+          </div>
         }
         banner={
           <p className="text-muted-foreground text-sm">
@@ -158,6 +179,7 @@ function ShipmentDetailLoaded({
               shipmentId={shipment.id}
               canEdit={shipment.status === "DRAFT"}
             />
+            <RelatedDocumentsCard documents={shipment.related_documents} />
           </>
         }
         attachments={
@@ -180,6 +202,11 @@ function ShipmentDetailLoaded({
         shipment={shipment}
         open={trackingOpen}
         onOpenChange={setTrackingOpen}
+      />
+      <ComposeFromBillsDialog
+        open={landedCostOpen}
+        onOpenChange={setLandedCostOpen}
+        shipmentId={shipment.id}
       />
     </>
   );

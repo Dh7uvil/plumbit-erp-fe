@@ -83,6 +83,7 @@ export const ACCOUNT_SYSTEM_ROLES = [
   "GOODS_RECEIVED_NOT_INVOICED",
   "SHIPPING_INCOME",
   "OTHER_CHARGES",
+  "LANDED_COST_VARIANCE",
   "SUSPENSE",
 ] as const;
 export const AccountSystemRoleSchema = z.enum(ACCOUNT_SYSTEM_ROLES);
@@ -117,6 +118,7 @@ export const ACCOUNT_SYSTEM_ROLE_LABELS: Record<AccountSystemRole, string> = {
   GOODS_RECEIVED_NOT_INVOICED: "Goods received not invoiced",
   SHIPPING_INCOME: "Shipping income",
   OTHER_CHARGES: "Other charges",
+  LANDED_COST_VARIANCE: "Landed cost variance",
   SUSPENSE: "Suspense",
 };
 

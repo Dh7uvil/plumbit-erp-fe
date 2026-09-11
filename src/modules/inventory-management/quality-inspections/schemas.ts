@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { RelatedDocumentRefSchema } from "@/shared/components/document/schemas";
 import { DecimalStringSchema } from "@/shared/lib/money";
 
 export const QUALITY_INSPECTION_STATUSES = ["DRAFT", "APPROVED", "CANCELLED"] as const;
@@ -61,6 +62,7 @@ export const QualityInspectionSchema = z.object({
   cancel_reason: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),
   period_locked: z.boolean().default(false),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(QualityInspectionLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

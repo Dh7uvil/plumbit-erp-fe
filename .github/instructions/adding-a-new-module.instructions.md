@@ -34,7 +34,7 @@ Everything belongs to exactly one of them.
 | Module                  | Owns                                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `users-management`      | Identity (BE `app/auth/`): **implemented** auth, users, roles, permissions, tenants/org-settings, branches, departments, employees (nested), audit-logs, activity. Attachments via `identity.attachment.*`. Tenant `allow_negative_stock` is on `/tenants/current`; lock dates are edited through `/period-lock`.                                                |
-| `erp`                   | **Implemented:** quotations, sales-orders, purchase-orders, currencies, exchange-rates (dialog-only; no `GET /{id}`), taxes, payment-terms, terms-templates, document-sequences, suppliers, supplier-products, period-lock, accounting/accounts (COA), accounting/journals, accounting/opening-balances, accounting/reports (trial balance, general ledger, account statement, export-evidence-exceptions, invoiced-not-dispatched, AR/AP aging, customer/supplier statements), sales-invoices, purchase-invoices, credit-notes, debit-notes, customer-payments, supplier-payments. **Planned:** logistics, einvoicing status UX. |
+| `erp`                   | **Implemented:** quotations, sales-orders, purchase-orders, currencies, exchange-rates (dialog-only; no `GET /{id}`), taxes, payment-terms, terms-templates, document-sequences, suppliers, supplier-products, period-lock, accounting/accounts (COA), accounting/journals, accounting/opening-balances, accounting/reports (trial balance, general ledger, account statement, export-evidence-exceptions, invoiced-not-dispatched, AR/AP aging, customer/supplier statements, stock valuation, stock valuation vs GL, stock movement, stock aging, purchase suggestions, profit and loss, balance sheet, cash flow, sales/purchase registers, VAT 201), sales-invoices, purchase-invoices, credit-notes, debit-notes, customer-payments, supplier-payments, landed-costs. **Planned:** logistics, einvoicing status UX. |
 | `inventory-management`  | **Implemented:** units, categories, products, price-lists, warehouses, stock (balances + `/stock-movements`), stock-transfers, stock-adjustments, goods-receipts, quality-inspections, delivery-notes, packages, shipments, sales-returns. **Planned:** none for Stage E outbound.                                                                                                                                                    |
 | `crm`                   | **Implemented:** customers, contacts. **Planned:** leads, opportunities, activities.                                                                                                                                                                                                                                                                             |
 | `communication-service` | email, whatsapp, chat, meetings (planned)                                                                                                                                                                                                                                                                                                                        |
@@ -77,6 +77,7 @@ plumbit-erp-fe/
 │   │   │   ├── sales-invoices/ credit-notes/
 │   │   │   ├── purchase-invoices/ debit-notes/
 │   │   │   ├── customer-payments/ supplier-payments/
+│   │   │   ├── landed-costs/
 │   │   │   └── logistics/   (planned)
 │   │   ├── inventory-management/     units/ categories/ products/ price-lists/ warehouses/
 │   │   │                             stock (balances + movements list)/ stock-transfers/ stock-adjustments/
@@ -171,6 +172,7 @@ Module names do not appear in the URL. Route groups such as `(app)` and `(auth)`
 shell without adding a path segment. Because the URL space is flat, segments must be unique across
 modules — name the route for what it is rather than prefixing it with the module:
 `/customer-payments` and `/supplier-payments`, not `/sales/payments` and `/purchasing/payments`.
+Keep `/landed-costs` unique.
 
 Every list route owns `loading.tsx` and `error.tsx` so a slow or failing request degrades into a
 skeleton or a recoverable error state rather than a blank screen.

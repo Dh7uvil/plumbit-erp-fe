@@ -7,6 +7,8 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { AccountPicker } from "@/modules/erp/accounting/accounts/components/account-picker";
+import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { TaxFormDialog } from "@/modules/erp/accounting/taxes/components/tax-form-dialog";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
@@ -72,6 +74,8 @@ function toFormValues(product: Product | null): ProductFormValues {
     purchase_rate: product?.purchase_rate ?? "0",
     purchase_description: product?.purchase_description ?? "",
     tax_id: product?.tax_id ?? OPTIONAL_SELECT_NONE,
+    income_account_id: product?.income_account_id ?? OPTIONAL_SELECT_NONE,
+    purchase_account_id: product?.purchase_account_id ?? OPTIONAL_SELECT_NONE,
     hs_code: product?.hs_code ?? "",
     track_inventory: product?.track_inventory ?? false,
     requires_qc: product?.requires_qc ?? false,
@@ -91,6 +95,8 @@ function toCreateRequest(values: ProductFormValues): ProductCreateRequest {
     purchase_rate: values.purchase_rate.trim() || "0",
     purchase_description: emptyToNull(values.purchase_description),
     tax_id: optionalUuid(values.tax_id),
+    income_account_id: optionalUuid(values.income_account_id) ?? undefined,
+    purchase_account_id: optionalUuid(values.purchase_account_id) ?? undefined,
     hs_code: emptyToNull(values.hs_code),
     track_inventory: values.track_inventory,
     requires_qc: values.requires_qc,
@@ -108,6 +114,8 @@ function toUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
     purchase_rate: values.purchase_rate.trim() || "0",
     purchase_description: emptyToNull(values.purchase_description),
     tax_id: optionalUuid(values.tax_id),
+    income_account_id: optionalUuid(values.income_account_id),
+    purchase_account_id: optionalUuid(values.purchase_account_id),
     hs_code: emptyToNull(values.hs_code),
     track_inventory: values.track_inventory,
     requires_qc: values.requires_qc,
@@ -398,6 +406,44 @@ export function ProductForm({
               )}
             />
           </div>
+          {can(accountPermissions.read) ? (
+            <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="income_account_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Income account</FormLabel>
+                    <AccountPicker
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={disabled}
+                      accountType="INCOME"
+                      aria-label="Income account"
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="purchase_account_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Purchase account</FormLabel>
+                    <AccountPicker
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={disabled}
+                      accountSubtype="COGS"
+                      aria-label="Purchase account"
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          ) : null}
           <div className="col-span-full flex flex-col gap-2">
             <FormField
               control={form.control}

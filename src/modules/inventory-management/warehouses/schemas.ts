@@ -13,6 +13,7 @@ export const WarehouseSchema = z.object({
   phone: z.string().nullable(),
   address: AddressPayloadSchema.nullable().optional(),
   is_default: z.boolean(),
+  is_designated_zone: z.boolean().optional().default(false),
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -27,6 +28,7 @@ export const WarehouseCreateRequestSchema = z.object({
   phone: z.string().max(50).nullable().optional(),
   address: AddressPayloadSchema.nullable().optional(),
   is_default: z.boolean().optional(),
+  is_designated_zone: z.boolean().optional(),
 });
 export type WarehouseCreateRequest = z.infer<typeof WarehouseCreateRequestSchema>;
 
@@ -35,6 +37,7 @@ export const WarehouseUpdateRequestSchema = z.object({
   phone: z.string().max(50).nullable().optional(),
   address: AddressPayloadSchema.nullable().optional(),
   is_default: z.boolean().nullable().optional(),
+  is_designated_zone: z.boolean().nullable().optional(),
   is_active: z.boolean().nullable().optional(),
 });
 export type WarehouseUpdateRequest = z.infer<typeof WarehouseUpdateRequestSchema>;
@@ -45,6 +48,7 @@ export const WarehouseFormSchema = z.object({
   phone: z.string().max(50),
   address: AddressFormSchema,
   is_default: z.boolean(),
+  is_designated_zone: z.boolean(),
   is_active: z.boolean(),
 });
 export type WarehouseFormValues = z.infer<typeof WarehouseFormSchema>;

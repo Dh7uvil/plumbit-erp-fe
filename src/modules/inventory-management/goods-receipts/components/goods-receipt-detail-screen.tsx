@@ -10,6 +10,8 @@ import {
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { CreateBillFromGoodsReceiptDialog } from "@/modules/erp/purchase-invoices/components/create-from-goods-receipt-dialog";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
+import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
+import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { GoodsReceiptForm } from "@/modules/inventory-management/goods-receipts/components/goods-receipt-form";
 import { useGoodsReceiptWorkflow } from "@/modules/inventory-management/goods-receipts/hooks/use-goods-receipt-workflow";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
@@ -117,7 +119,9 @@ function GoodsReceiptDetailLoaded({
   const onAction = useGoodsReceiptWorkflow(receipt);
   const [writeError, setWriteError] = useState<unknown>(null);
   const [billOpen, setBillOpen] = useState(false);
+  const [landedCostOpen, setLandedCostOpen] = useState(false);
   const canCreateBill = receipt.status === "POSTED" && can(purchaseInvoicePermissions.create);
+  const canCreateLandedCost = receipt.status === "POSTED" && can(landedCostPermissions.create);
   const canReadInspections = can(qualityInspectionPermissions.read);
   const inspectionsQuery = useQualityInspections(
     {
@@ -163,6 +167,16 @@ function GoodsReceiptDetailLoaded({
           {canCreateBill ? (
             <Button type="button" size="sm" variant="outline" onClick={() => setBillOpen(true)}>
               Create bill
+            </Button>
+          ) : null}
+          {canCreateLandedCost ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setLandedCostOpen(true)}
+            >
+              Create landed cost
             </Button>
           ) : null}
           <DocumentWorkflowButtons
@@ -260,6 +274,11 @@ function GoodsReceiptDetailLoaded({
       <CreateBillFromGoodsReceiptDialog
         open={billOpen}
         onOpenChange={setBillOpen}
+        goodsReceiptId={receipt.id}
+      />
+      <ComposeFromBillsDialog
+        open={landedCostOpen}
+        onOpenChange={setLandedCostOpen}
         goodsReceiptId={receipt.id}
       />
     </DocumentRecordShell>

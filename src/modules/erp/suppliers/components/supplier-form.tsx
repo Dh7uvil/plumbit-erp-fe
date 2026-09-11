@@ -12,6 +12,8 @@ import { useCreateContact, useUpdateContact } from "@/modules/crm/contacts/mutat
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { usePartyContacts } from "@/modules/crm/contacts/queries";
 import { toInitialContactRequest, type CreatedParty } from "@/modules/crm/contacts/schemas";
+import { AccountPicker } from "@/modules/erp/accounting/accounts/components/account-picker";
+import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { PaymentTermFormDialog } from "@/modules/erp/accounting/payment-terms/components/payment-term-form-dialog";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
@@ -79,6 +81,8 @@ function toFormValues(supplier: Supplier | null, defaultCurrencyId: string): Sup
     payment_terms_id: supplier?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
     credit_limit: supplier?.credit_limit ?? "",
     salesperson_id: supplier?.salesperson_id ?? OPTIONAL_SELECT_NONE,
+    receivable_account_id: supplier?.receivable_account_id ?? OPTIONAL_SELECT_NONE,
+    payable_account_id: supplier?.payable_account_id ?? OPTIONAL_SELECT_NONE,
     billing_address: supplier ? addressToFormValues(supplier.billing_address) : EMPTY_ADDRESS_FORM,
     shipping_address: supplier
       ? addressToFormValues(supplier.shipping_address)
@@ -110,6 +114,7 @@ export function SupplierForm({
   const canCreateCurrency = can(currencyPermissions.create);
   const canCreatePriceList = can(priceListPermissions.create);
   const canCreatePaymentTerm = can(paymentTermPermissions.create);
+  const canReadAccounts = can(accountPermissions.read);
   const canCreateContact = can(contactPermissions.create);
   const canReadContacts = can(contactPermissions.read);
   const canUpdateContact = can(contactPermissions.update);
@@ -486,6 +491,44 @@ export function SupplierForm({
                   </FormItem>
                 )}
               />
+            ) : null}
+            {canReadAccounts ? (
+              <>
+                <FormField
+                  control={form.control}
+                  name="payable_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payable account</FormLabel>
+                      <AccountPicker
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={disabled}
+                        accountSubtype="ACCOUNTS_PAYABLE"
+                        aria-label="Payable account"
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="receivable_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Receivable account</FormLabel>
+                      <AccountPicker
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={disabled}
+                        accountSubtype="ACCOUNTS_RECEIVABLE"
+                        aria-label="Receivable account"
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
             ) : null}
           </div>
         </section>
