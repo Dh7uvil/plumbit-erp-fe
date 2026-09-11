@@ -5,12 +5,14 @@ import {
   type TradingHistoryListParams,
 } from "@/modules/inventory-management/history/schemas";
 import {
+  OutstandingSummarySchema,
   SupplierCreateRequestSchema,
   SupplierExtraAddressCreateRequestSchema,
   SupplierExtraAddressSchema,
   SupplierListSchema,
   SupplierSchema,
   SupplierUpdateRequestSchema,
+  type OutstandingSummary,
   type Supplier,
   type SupplierCreateRequest,
   type SupplierExtraAddress,
@@ -19,6 +21,7 @@ import {
   type SupplierListParams,
   type SupplierUpdateRequest,
 } from "@/modules/erp/suppliers/schemas";
+import { OpenItemRowListSchema } from "@/shared/components/document/schemas";
 import { emptyToNull, toAddressPayload } from "@/modules/users-management/tenants/schemas";
 import { apiClient } from "@/shared/api/client";
 import type { ListResponse } from "@/shared/api/envelope";
@@ -130,4 +133,10 @@ export const suppliersApi = {
     });
     return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
   },
+  openItems: async (id: string) => {
+    const result = await apiClient.getList<unknown>(`/suppliers/${id}/open-items`);
+    return OpenItemRowListSchema.parse(result.data);
+  },
+  outstandingSummary: async (id: string): Promise<OutstandingSummary> =>
+    OutstandingSummarySchema.parse(await apiClient.get(`/suppliers/${id}/outstanding-summary`)),
 };

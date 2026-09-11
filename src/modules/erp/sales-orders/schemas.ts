@@ -3,6 +3,7 @@ import { z } from "zod";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
   ConversionLineInputSchema,
+  DocumentWarningSchema,
   QuantityProgressSchema,
   RelatedDocumentRefSchema,
 } from "@/shared/components/document/schemas";
@@ -213,6 +214,7 @@ export const SalesOrderSchema = z.object({
   acknowledged_at: z.string().nullable().optional().default(null),
   acknowledged_by: z.string().uuid().nullable().optional().default(null),
   available_actions: z.array(z.string()).default([]),
+  warnings: z.array(DocumentWarningSchema).optional().default([]),
   quantity_progress: QuantityProgressSchema.nullable().optional().default(null),
   related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(SalesOrderLineSchema).optional().default([]),
@@ -548,6 +550,7 @@ export const OrderTrackerRowSchema = z.object({
   status: z.string(),
   document_date: z.string().nullable().optional().default(null),
   quantity_summary: z.string().nullable().optional().default(null),
+  amount_summary: z.string().nullable().optional().default(null),
 });
 export type OrderTrackerRow = z.infer<typeof OrderTrackerRowSchema>;
 

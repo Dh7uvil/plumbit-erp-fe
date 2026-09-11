@@ -17,7 +17,16 @@ import {
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { useAddCustomerAddress, useDeleteCustomerAddress } from "@/modules/crm/customers/mutations";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
-import { useCustomer } from "@/modules/crm/customers/queries";
+import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { CreditExposureChip } from "@/modules/erp/credit-control/components/credit-exposure-chip";
+import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
+import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
+import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
+import {
+  useCustomer,
+  useCustomerCreditExposure,
+  useCustomerOutstandingSummary,
+} from "@/modules/crm/customers/queries";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
@@ -40,6 +49,7 @@ import {
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { PartyDocumentsCard } from "@/shared/components/document/party-documents-card";
+import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -109,6 +119,9 @@ export function CustomerDetailScreen({
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(customerPermissions);
   const customerQuery = useCustomer(customerId);
+  const outstandingQuery = useCustomerOutstandingSummary(customerId, mode !== "edit");
+  const exposureQuery = useCustomerCreditExposure(customerId, mode !== "edit");
+  const currenciesQuery = useAllCurrencies();
   const addAddress = useAddCustomerAddress();
   const deleteAddress = useDeleteCustomerAddress();
   const [addressOpen, setAddressOpen] = useState(false);
@@ -194,6 +207,9 @@ export function CustomerDetailScreen({
     );
   }
 
+  const currencyCode =
+    currenciesQuery.data?.find((currency) => currency.id === customer.currency_id)?.code ?? "";
+
   return (
     <div className="flex flex-col gap-5">
       <RecordPageHeader
@@ -205,11 +221,16 @@ export function CustomerDetailScreen({
         canUpdate={canUpdate}
         mode={mode}
         extraActions={
-          customer.company_type === "BOTH" && can(supplierPermissions.read) ? (
-            <Button type="button" variant="outline" size="sm" asChild>
-              <Link href={`/suppliers/${customer.id}`}>View as supplier</Link>
-            </Button>
-          ) : null
+          <div className="flex flex-wrap items-center gap-2">
+            {exposureQuery.data ? (
+              <CreditExposureChip exposure={exposureQuery.data} currencyCode={currencyCode} />
+            ) : null}
+            {customer.company_type === "BOTH" && can(supplierPermissions.read) ? (
+              <Button type="button" variant="outline" size="sm" asChild>
+                <Link href={`/suppliers/${customer.id}`}>View as supplier</Link>
+              </Button>
+            ) : null}
+          </div>
         }
       />
       <Card>
@@ -227,6 +248,15 @@ export function CustomerDetailScreen({
       </Card>
       {isEdit ? null : (
         <>
+          <CreditLimitBanner warnings={exposureQuery.data?.warnings} />
+          <PartyOutstandingCard
+            summary={outstandingQuery.data}
+            currencyCode={currencyCode}
+            isLoading={outstandingQuery.isLoading}
+            statementHref={`/reports/customer-statement?customer_id=${customer.id}`}
+            agingHref="/reports/ar-aging"
+            reportPermission={reportPermissions.arAp}
+          />
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle className="text-base">Extra addresses</CardTitle>
@@ -337,6 +367,11 @@ export function CustomerDetailScreen({
                 href: `/credit-notes?customer_id=${customer.id}`,
                 label: "Credit notes",
                 permission: creditNotePermissions.read,
+              },
+              {
+                href: `/customer-payments?customer_id=${customer.id}`,
+                label: "Receipts",
+                permission: customerPaymentPermissions.read,
               },
               {
                 href: `/delivery-notes?customer_id=${customer.id}`,

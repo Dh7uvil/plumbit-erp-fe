@@ -12,6 +12,7 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
+import { ApplyDebitsDialog } from "@/modules/erp/purchase-invoices/components/apply-debits-dialog";
 import { PurchaseInvoiceForm } from "@/modules/erp/purchase-invoices/components/purchase-invoice-form";
 import { PurchaseInvoiceReverseChargeCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-reverse-charge-card";
 import { usePurchaseInvoiceWorkflow } from "@/modules/erp/purchase-invoices/hooks/use-purchase-invoice-workflow";
@@ -34,6 +35,7 @@ import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { DocumentSettlementCard } from "@/shared/components/document/document-settlement-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
@@ -114,6 +116,7 @@ function PurchaseInvoiceDetailLoaded({
   const onAction = usePurchaseInvoiceWorkflow(invoice);
   const [writeError, setWriteError] = useState<unknown>(null);
   const [debitOpen, setDebitOpen] = useState(false);
+  const [applyDebitsOpen, setApplyDebitsOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
@@ -190,6 +193,16 @@ function PurchaseInvoiceDetailLoaded({
             }}
             onAction={async (action, extras) => {
               setWriteError(null);
+              if (action === "pay_bill") {
+                router.push(
+                  `/supplier-payments/new?supplier_id=${invoice.supplier_id}&invoice_id=${invoice.id}`,
+                );
+                return;
+              }
+              if (action === "apply_debits") {
+                setApplyDebitsOpen(true);
+                return;
+              }
               await onAction(action, extras);
             }}
           />
@@ -234,6 +247,13 @@ function PurchaseInvoiceDetailLoaded({
       formTitle={isEdit ? "Edit purchase invoice" : "Purchase invoice"}
       panels={
         <>
+          <DocumentSettlementCard
+            amountPaid={invoice.amount_paid}
+            amountAdjusted={invoice.amount_debited}
+            adjustedLabel="Amount debited"
+            balanceDue={invoice.balance_due}
+            currencyCode={currencyCode}
+          />
           <RelatedDocumentsCard documents={invoice.related_documents} />
           <PurchaseInvoiceReverseChargeCard invoice={invoice} currencyCode={currencyCode} />
           <DocumentLedgerCard
@@ -268,6 +288,12 @@ function PurchaseInvoiceDetailLoaded({
         open={debitOpen}
         onOpenChange={setDebitOpen}
         purchaseInvoiceId={invoice.id}
+      />
+      <ApplyDebitsDialog
+        invoice={invoice}
+        currencyCode={currencyCode}
+        open={applyDebitsOpen}
+        onOpenChange={setApplyDebitsOpen}
       />
     </DocumentRecordShell>
   );

@@ -9,12 +9,15 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
+import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { CreateCreditNoteDialog } from "@/modules/erp/credit-notes/components/create-from-source-dialog";
 import { InvoiceCreditNotesCard } from "@/modules/erp/credit-notes/components/invoice-credit-notes-card";
+import { ApplyCreditsDialog } from "@/modules/erp/sales-invoices/components/apply-credits-dialog";
 import { SalesInvoiceForm } from "@/modules/erp/sales-invoices/components/sales-invoice-form";
 import { SalesInvoiceMarginCard } from "@/modules/erp/sales-invoices/components/sales-invoice-margin-card";
 import { useSalesInvoiceWorkflow } from "@/modules/erp/sales-invoices/hooks/use-sales-invoice-workflow";
+import { usePostSalesInvoice } from "@/modules/erp/sales-invoices/mutations";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { useSalesInvoice } from "@/modules/erp/sales-invoices/queries";
 import {
@@ -33,14 +36,17 @@ import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { DocumentSettlementCard } from "@/shared/components/document/document-settlement-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
+import { isApiError } from "@/shared/api/errors";
 import { formatDate } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
+import { toast } from "sonner";
 
 export function SalesInvoiceDetailScreen({
   invoiceId,
@@ -112,8 +118,11 @@ function SalesInvoiceDetailLoaded({
   const isEdit = mode === "edit";
   const number = salesInvoiceDisplayNumber(invoice);
   const onAction = useSalesInvoiceWorkflow(invoice);
+  const postInvoice = usePostSalesInvoice();
   const [writeError, setWriteError] = useState<unknown>(null);
+  const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
   const [creditOpen, setCreditOpen] = useState(false);
+  const [applyCreditsOpen, setApplyCreditsOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
@@ -189,10 +198,25 @@ function SalesInvoiceDetailLoaded({
                 setWriteError(error);
                 return true;
               }
+              if (isApiError(error) && error.code === "CREDIT_LIMIT_EXCEEDED") {
+                setCreditBlockError(error);
+                return true;
+              }
               return false;
             }}
             onAction={async (action, extras) => {
               setWriteError(null);
+              setCreditBlockError(null);
+              if (action === "record_payment") {
+                router.push(
+                  `/customer-payments/new?customer_id=${invoice.customer_id}&invoice_id=${invoice.id}`,
+                );
+                return;
+              }
+              if (action === "apply_credits") {
+                setApplyCreditsOpen(true);
+                return;
+              }
               await onAction(action, extras);
             }}
           />
@@ -214,6 +238,20 @@ function SalesInvoiceDetailLoaded({
               </AlertDescription>
             </Alert>
           ) : null}
+          <CreditLimitBanner
+            warnings={invoice.warnings}
+            blockError={creditBlockError}
+            overridePending={postInvoice.isPending}
+            onOverride={async (reason) => {
+              await postInvoice.mutateAsync({
+                id: invoice.id,
+                version: invoice.version,
+                creditOverride: reason,
+              });
+              toast.success("Sales invoice posted");
+              setCreditBlockError(null);
+            }}
+          />
           {invoice.sales_order_id ||
           invoice.source_quotation_id ||
           invoice.source_proforma_invoice_id ? (
@@ -258,6 +296,13 @@ function SalesInvoiceDetailLoaded({
       formTitle={isEdit ? "Edit sales invoice" : "Sales invoice"}
       panels={
         <>
+          <DocumentSettlementCard
+            amountPaid={invoice.amount_paid}
+            amountAdjusted={invoice.amount_credited}
+            adjustedLabel="Amount credited"
+            balanceDue={invoice.balance_due}
+            currencyCode={currencyCode}
+          />
           <RelatedDocumentsCard documents={invoice.related_documents} />
           <SalesInvoiceMarginCard invoice={invoice} currencyCode={currencyCode} />
           <DocumentLedgerCard
@@ -287,6 +332,12 @@ function SalesInvoiceDetailLoaded({
         open={creditOpen}
         onOpenChange={setCreditOpen}
         salesInvoiceId={invoice.id}
+      />
+      <ApplyCreditsDialog
+        invoice={invoice}
+        currencyCode={currencyCode}
+        open={applyCreditsOpen}
+        onOpenChange={setApplyCreditsOpen}
       />
     </DocumentRecordShell>
   );

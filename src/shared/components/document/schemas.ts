@@ -17,8 +17,62 @@ export const RelatedDocumentRefSchema = z.object({
   relationship: z.string(),
   document_date: z.string().nullable().optional().default(null),
   quantity_summary: z.string().nullable().optional().default(null),
+  amount_summary: z.string().nullable().optional().default(null),
 });
 export type RelatedDocumentRef = z.infer<typeof RelatedDocumentRefSchema>;
+
+export const DocumentWarningSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  details: z.record(z.string(), z.unknown()).optional().default({}),
+});
+export type DocumentWarning = z.infer<typeof DocumentWarningSchema>;
+
+export const OPEN_ITEM_TYPES = [
+  "SALES_INVOICE",
+  "PURCHASE_INVOICE",
+  "CREDIT_NOTE",
+  "DEBIT_NOTE",
+  "OPENING_AR",
+  "OPENING_AP",
+  "CUSTOMER_PAYMENT",
+  "SUPPLIER_PAYMENT",
+] as const;
+export const OpenItemTypeSchema = z.enum(OPEN_ITEM_TYPES);
+export type OpenItemType = z.infer<typeof OpenItemTypeSchema>;
+
+export const OPEN_ITEM_TYPE_LABELS: Record<OpenItemType, string> = {
+  SALES_INVOICE: "Sales invoice",
+  PURCHASE_INVOICE: "Purchase invoice",
+  CREDIT_NOTE: "Credit note",
+  DEBIT_NOTE: "Debit note",
+  OPENING_AR: "Opening AR",
+  OPENING_AP: "Opening AP",
+  CUSTOMER_PAYMENT: "Customer receipt",
+  SUPPLIER_PAYMENT: "Supplier payment",
+};
+
+export const OpenItemRowSchema = z.object({
+  item_type: OpenItemTypeSchema,
+  document_id: z.string(),
+  document_number: z.string(),
+  document_date: z.string(),
+  due_date: z.string().nullable().optional().default(null),
+  currency_id: z.string(),
+  original_amount: MoneySchema,
+  balance: MoneySchema,
+  is_debit: z.boolean(),
+  exchange_rate: MoneySchema.nullable().optional().default(null),
+});
+export type OpenItemRow = z.infer<typeof OpenItemRowSchema>;
+export const OpenItemRowListSchema = z.array(OpenItemRowSchema);
+
+export const PaymentAllocationInputSchema = z.object({
+  item_type: OpenItemTypeSchema,
+  item_id: z.string().uuid(),
+  amount: MoneySchema,
+});
+export type PaymentAllocationInput = z.infer<typeof PaymentAllocationInputSchema>;
 
 export const QuantityProgressSchema = z.object({
   ordered: DecimalStringSchema,

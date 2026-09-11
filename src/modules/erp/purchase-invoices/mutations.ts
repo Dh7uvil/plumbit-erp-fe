@@ -4,11 +4,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { journalKeys } from "@/modules/erp/accounting/journals/queries";
 import { reportKeys } from "@/modules/erp/accounting/reports/queries";
+import { debitNoteKeys } from "@/modules/erp/debit-notes/queries";
 import { purchaseInvoicesApi } from "@/modules/erp/purchase-invoices/api";
 import { purchaseInvoiceKeys } from "@/modules/erp/purchase-invoices/queries";
 import { purchaseOrderKeys } from "@/modules/erp/purchase-orders/queries";
+import { supplierPaymentKeys } from "@/modules/erp/supplier-payments/queries";
+import { supplierKeys } from "@/modules/erp/suppliers/queries";
 import { goodsReceiptKeys } from "@/modules/inventory-management/goods-receipts/queries";
 import { isApiError } from "@/shared/api/errors";
+import type { PaymentAllocationInput } from "@/shared/components/document/schemas";
 
 type WriteVars = { id: string; version: number };
 
@@ -26,6 +30,9 @@ async function invalidate(
     await queryClient.invalidateQueries({ queryKey: goodsReceiptKeys.all });
     await queryClient.invalidateQueries({ queryKey: journalKeys.all });
     await queryClient.invalidateQueries({ queryKey: reportKeys.all });
+    await queryClient.invalidateQueries({ queryKey: supplierKeys.all });
+    await queryClient.invalidateQueries({ queryKey: supplierPaymentKeys.all });
+    await queryClient.invalidateQueries({ queryKey: debitNoteKeys.all });
   }
 }
 
@@ -127,6 +134,24 @@ export function useDeletePurchaseInvoice() {
     mutationFn: ({ id, version }: WriteVars) => purchaseInvoicesApi.delete(id, { version }),
     onSuccess: async (_data, { id }) => {
       await invalidate(queryClient, id);
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}
+
+export function useApplyPurchaseInvoiceDebits() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      allocations,
+    }: WriteVars & { allocations?: PaymentAllocationInput[] | null }) =>
+      purchaseInvoicesApi.applyDebits(id, { version, allocations }),
+    onSuccess: async (_data, { id }) => {
+      await invalidate(queryClient, id, true);
     },
     onError: async (error, { id }) => {
       await refetchIfStale(queryClient, error, id);

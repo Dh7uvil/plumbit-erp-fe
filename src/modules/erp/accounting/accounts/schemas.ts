@@ -79,6 +79,10 @@ export const ACCOUNT_SYSTEM_ROLES = [
   "OPENING_BALANCE_EQUITY",
   "CASH_ON_HAND",
   "BANK",
+  "BANK_CHARGES",
+  "GOODS_RECEIVED_NOT_INVOICED",
+  "SHIPPING_INCOME",
+  "OTHER_CHARGES",
   "SUSPENSE",
 ] as const;
 export const AccountSystemRoleSchema = z.enum(ACCOUNT_SYSTEM_ROLES);
@@ -109,6 +113,10 @@ export const ACCOUNT_SYSTEM_ROLE_LABELS: Record<AccountSystemRole, string> = {
   OPENING_BALANCE_EQUITY: "Opening balance equity",
   CASH_ON_HAND: "Cash on hand",
   BANK: "Bank",
+  BANK_CHARGES: "Bank charges",
+  GOODS_RECEIVED_NOT_INVOICED: "Goods received not invoiced",
+  SHIPPING_INCOME: "Shipping income",
+  OTHER_CHARGES: "Other charges",
   SUSPENSE: "Suspense",
 };
 
@@ -219,6 +227,16 @@ export type AccountListParams = {
 
 export function isControlAccount(account: Pick<Account, "account_subtype" | "is_group">): boolean {
   return !account.is_group && CONTROL_ACCOUNT_SUBTYPES.has(account.account_subtype);
+}
+
+export function isCashOrBankAccount(
+  account: Pick<Account, "account_subtype" | "is_group" | "is_active">,
+): boolean {
+  return (
+    !account.is_group &&
+    account.is_active &&
+    (account.account_subtype === "CASH" || account.account_subtype === "BANK")
+  );
 }
 
 export function flattenAccountTree(nodes: AccountTreeNode[]): Account[] {

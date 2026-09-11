@@ -3,6 +3,7 @@ import { z } from "zod";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
   ConversionLineInputSchema,
+  DocumentWarningSchema,
   RelatedDocumentRefSchema,
 } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
@@ -185,6 +186,7 @@ export const SalesInvoiceSchema = z.object({
   is_partially_credited: z.boolean().optional().default(false),
   is_fully_credited: z.boolean().optional().default(false),
   available_actions: z.array(z.string()).default([]),
+  warnings: z.array(DocumentWarningSchema).optional().default([]),
   related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(SalesInvoiceLineSchema).optional().default([]),
   created_at: z.string(),

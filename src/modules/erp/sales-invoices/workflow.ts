@@ -1,7 +1,14 @@
+import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
-export const SALES_INVOICE_WORKFLOW_ACTIONS = ["post", "cancel", "delete"] as const;
+export const SALES_INVOICE_WORKFLOW_ACTIONS = [
+  "post",
+  "cancel",
+  "delete",
+  "record_payment",
+  "apply_credits",
+] as const;
 export type SalesInvoiceWorkflowAction = (typeof SALES_INVOICE_WORKFLOW_ACTIONS)[number];
 
 export const SALES_INVOICE_ACTION_REGISTRY: DocumentActionSpec<SalesInvoiceWorkflowAction>[] = [
@@ -10,7 +17,17 @@ export const SALES_INVOICE_ACTION_REGISTRY: DocumentActionSpec<SalesInvoiceWorkf
     label: "Post",
     permission: salesInvoicePermissions.post,
     confirmCopy: (documentNumber) =>
-      `Posting ${documentNumber}: AR, revenue, VAT, and the general ledger will move. Stock will not, because the delivery note already moved it.`,
+      `Posting ${documentNumber}: AR, revenue, VAT, and the general ledger will move. Stock will not, because the delivery note already moved it. Unapplied PFI advances for this customer settle automatically when that setting is on.`,
+  },
+  {
+    action: "record_payment",
+    label: "Record payment",
+    permission: customerPaymentPermissions.create,
+  },
+  {
+    action: "apply_credits",
+    label: "Apply credits",
+    permission: salesInvoicePermissions.update,
   },
   {
     action: "cancel",

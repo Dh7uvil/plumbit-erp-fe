@@ -2,15 +2,19 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { customerKeys } from "@/modules/crm/customers/queries";
 import { journalKeys } from "@/modules/erp/accounting/journals/queries";
 import { reportKeys } from "@/modules/erp/accounting/reports/queries";
+import { creditNoteKeys } from "@/modules/erp/credit-notes/queries";
+import { customerPaymentKeys } from "@/modules/erp/customer-payments/queries";
 import { salesInvoicesApi } from "@/modules/erp/sales-invoices/api";
 import { salesInvoiceKeys } from "@/modules/erp/sales-invoices/queries";
 import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { deliveryNoteKeys } from "@/modules/inventory-management/delivery-notes/queries";
 import { isApiError } from "@/shared/api/errors";
+import type { PaymentAllocationInput } from "@/shared/components/document/schemas";
 
-type SalesInvoiceWriteVars = { id: string; version: number };
+type SalesInvoiceWriteVars = { id: string; version: number; creditOverride?: string | null };
 
 async function invalidateSalesInvoices(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -26,6 +30,9 @@ async function invalidateSalesInvoices(
     await queryClient.invalidateQueries({ queryKey: deliveryNoteKeys.all });
     await queryClient.invalidateQueries({ queryKey: journalKeys.all });
     await queryClient.invalidateQueries({ queryKey: reportKeys.all });
+    await queryClient.invalidateQueries({ queryKey: customerKeys.all });
+    await queryClient.invalidateQueries({ queryKey: customerPaymentKeys.all });
+    await queryClient.invalidateQueries({ queryKey: creditNoteKeys.all });
   }
 }
 
@@ -97,8 +104,26 @@ export function useUpdateSalesInvoice() {
 export function usePostSalesInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, version }: SalesInvoiceWriteVars) =>
-      salesInvoicesApi.post(id, { version }),
+    mutationFn: ({ id, version, creditOverride }: SalesInvoiceWriteVars) =>
+      salesInvoicesApi.post(id, { version, creditOverride }),
+    onSuccess: async (_data, { id }) => {
+      await invalidateSalesInvoices(queryClient, id, true);
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}
+
+export function useApplySalesInvoiceCredits() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      allocations,
+    }: SalesInvoiceWriteVars & { allocations?: PaymentAllocationInput[] | null }) =>
+      salesInvoicesApi.applyCredits(id, { version, allocations }),
     onSuccess: async (_data, { id }) => {
       await invalidateSalesInvoices(queryClient, id, true);
     },

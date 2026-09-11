@@ -20,11 +20,18 @@ describe("document links", () => {
     expect(documentDetailHref("sales-invoice", "11111111-1111-4111-8111-111111111111")).toBe(
       "/sales-invoices/11111111-1111-4111-8111-111111111111",
     );
+    expect(documentDetailHref("CUSTOMER_PAYMENT", "11111111-1111-4111-8111-111111111111")).toBe(
+      "/customer-payments/11111111-1111-4111-8111-111111111111",
+    );
+    expect(documentDetailHref("supplier-payment", "11111111-1111-4111-8111-111111111111")).toBe(
+      "/supplier-payments/11111111-1111-4111-8111-111111111111",
+    );
     expect(documentDetailHref("UNKNOWN", "11111111-1111-4111-8111-111111111111")).toBeNull();
   });
 
   it("labels known types and title-cases the rest", () => {
     expect(documentTypeDisplayLabel("CREDIT_NOTE")).toBe("Credit note");
+    expect(documentTypeDisplayLabel("CUSTOMER_PAYMENT")).toBe("Customer receipt");
     expect(documentTypeDisplayLabel("custom_type")).toBe("Custom Type");
   });
 

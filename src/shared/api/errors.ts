@@ -49,6 +49,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   EXPORT_EVIDENCE_MISSING: "Export evidence is missing. Posting is allowed, but BL or customs documents should be attached.",
   CREDIT_QTY_EXCEEDED: "Credited quantity is more than the remaining quantity on the invoice.",
   DEBIT_QTY_EXCEEDED: "Debited quantity is more than the remaining quantity on the bill.",
+  PAYMENT_OVER_ALLOCATED: "Allocated amounts are more than the payment can apply.",
+  PAYMENT_ACCOUNT_INVALID: "Choose a postable cash or bank account for this payment.",
+  PAYMENT_NOTHING_TO_APPLY: "There is nothing left to apply on this payment.",
+  CREDIT_LIMIT_EXCEEDED: "This action exceeds the customer credit limit.",
   PARTY_REQUIRED_FOR_CONTROL_ACCOUNT: "A party is required when posting to an AR or AP control account.",
   FISCAL_YEAR_LOCKED:
     "The fiscal year start cannot change after document numbers have been issued.",
@@ -184,6 +188,18 @@ export function getErrorMessage(codeOrError: unknown): string {
     return appendDetailSentence(base, [
       requiresOverride ? "An override permission is required." : null,
       requiresAck ? "Confirm the change to continue." : null,
+    ]);
+  }
+  if (code === "CREDIT_LIMIT_EXCEEDED") {
+    const limit = stringDetail(details, "limit");
+    const exposure = stringDetail(details, "exposure");
+    const thisDocument = stringDetail(details, "this_document");
+    const available = stringDetail(details, "available");
+    return appendDetailSentence(base, [
+      limit ? `Limit ${limit}.` : null,
+      exposure ? `Exposure ${exposure}.` : null,
+      thisDocument ? `This document ${thisDocument}.` : null,
+      available ? `Available ${available}.` : null,
     ]);
   }
   if (code === "VALIDATION_ERROR") {

@@ -18,6 +18,8 @@ import { useUpdateCurrentTenant } from "@/modules/users-management/tenants/mutat
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import {
   CompanySettingsFormSchema,
+  CREDIT_LIMIT_POLICIES,
+  CREDIT_LIMIT_POLICY_LABELS,
   EMPTY_ADDRESS_FORM,
   emptyToNull,
   toAddressPayload,
@@ -74,6 +76,10 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   allow_over_receipt: false,
   over_receipt_tolerance_pct: "",
   qc_required_default: false,
+  vat_on_advances: true,
+  auto_apply_advances_on_invoice: true,
+  credit_limit_policy: "WARN",
+  credit_limit_include_open_orders: true,
   timezone: "",
   fiscal_year_start_month: 1,
   fiscal_year_start_day: 1,
@@ -104,6 +110,10 @@ type CompanyTextFieldPath = Exclude<
   | "sales_order_requires_approval"
   | "purchase_order_requires_approval"
   | "allow_negative_stock"
+  | "vat_on_advances"
+  | "auto_apply_advances_on_invoice"
+  | "credit_limit_policy"
+  | "credit_limit_include_open_orders"
   | "costing_method"
   | "allow_over_receipt"
   | "qc_required_default"
@@ -159,6 +169,10 @@ function toFormValues(
     allow_over_receipt: tenant.allow_over_receipt,
     over_receipt_tolerance_pct: tenant.over_receipt_tolerance_pct ?? "",
     qc_required_default: tenant.qc_required_default,
+    vat_on_advances: tenant.vat_on_advances,
+    auto_apply_advances_on_invoice: tenant.auto_apply_advances_on_invoice,
+    credit_limit_policy: tenant.credit_limit_policy,
+    credit_limit_include_open_orders: tenant.credit_limit_include_open_orders,
     timezone: tenant.timezone ?? "",
     fiscal_year_start_month: tenant.fiscal_year_start_month,
     fiscal_year_start_day: tenant.fiscal_year_start_day,
@@ -258,6 +272,10 @@ function toRegionalPayload(
     allow_over_receipt: values.allow_over_receipt,
     over_receipt_tolerance_pct: emptyToNull(values.over_receipt_tolerance_pct),
     qc_required_default: values.qc_required_default,
+    vat_on_advances: values.vat_on_advances,
+    auto_apply_advances_on_invoice: values.auto_apply_advances_on_invoice,
+    credit_limit_policy: values.credit_limit_policy,
+    credit_limit_include_open_orders: values.credit_limit_include_open_orders,
   };
   if (
     values.fiscal_year_start_month !== original.fiscal_year_start_month ||
@@ -445,6 +463,10 @@ export function CompanySettingsForm() {
         allow_over_receipt: original.allow_over_receipt,
         over_receipt_tolerance_pct: original.over_receipt_tolerance_pct,
         qc_required_default: original.qc_required_default,
+        vat_on_advances: original.vat_on_advances,
+        auto_apply_advances_on_invoice: original.auto_apply_advances_on_invoice,
+        credit_limit_policy: original.credit_limit_policy,
+        credit_limit_include_open_orders: original.credit_limit_include_open_orders,
         timezone: original.timezone,
         fiscal_year_start_month: original.fiscal_year_start_month,
         fiscal_year_start_day: original.fiscal_year_start_day,
@@ -872,6 +894,89 @@ export function CompanySettingsForm() {
                   </FormControl>
                   <FormLabel className="text-muted-foreground text-xs font-medium">
                     Allow negative stock
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="vat_on_advances"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Charge VAT on standard-rated customer advances
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="auto_apply_advances_on_invoice"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Auto-apply matching advances when an invoice posts
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="credit_limit_policy"
+              render={({ field }) => (
+                <FormItem className="col-span-full">
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Credit limit policy
+                  </FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={!canUpdate || !isEditingRegional}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CREDIT_LIMIT_POLICIES.map((policy) => (
+                        <SelectItem key={policy} value={policy}>
+                          {CREDIT_LIMIT_POLICY_LABELS[policy]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="credit_limit_include_open_orders"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Include confirmed uninvoiced sales orders in credit exposure
                   </FormLabel>
                 </FormItem>
               )}

@@ -160,3 +160,8 @@ export type SupplierListParams = {
   currency_id?: string;
   is_active?: boolean;
 };
+
+export {
+  OutstandingSummarySchema,
+  type OutstandingSummary,
+} from "@/modules/crm/customers/schemas";

@@ -14,13 +14,16 @@ import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
+import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
+import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
 import { SupplierPurchaseHistoryCard } from "@/modules/inventory-management/history/components/trading-history-cards";
 import { SupplierProductsPanel } from "@/modules/erp/supplier-products/components/supplier-products-panel";
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { SupplierForm } from "@/modules/erp/suppliers/components/supplier-form";
 import { useAddSupplierAddress, useDeleteSupplierAddress } from "@/modules/erp/suppliers/mutations";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
-import { useSupplier } from "@/modules/erp/suppliers/queries";
+import { useSupplier, useSupplierOutstandingSummary } from "@/modules/erp/suppliers/queries";
 import {
   ExtraAddressFormSchema,
   type ExtraAddressFormValues,
@@ -36,6 +39,7 @@ import {
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { PartyDocumentsCard } from "@/shared/components/document/party-documents-card";
+import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -105,6 +109,8 @@ export function SupplierDetailScreen({
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(supplierPermissions);
   const supplierQuery = useSupplier(supplierId);
+  const outstandingQuery = useSupplierOutstandingSummary(supplierId, mode !== "edit");
+  const currenciesQuery = useAllCurrencies();
   const addAddress = useAddSupplierAddress();
   const deleteAddress = useDeleteSupplierAddress();
   const [addressOpen, setAddressOpen] = useState(false);
@@ -190,6 +196,9 @@ export function SupplierDetailScreen({
     );
   }
 
+  const currencyCode =
+    currenciesQuery.data?.find((currency) => currency.id === supplier.currency_id)?.code ?? "";
+
   return (
     <div className="flex flex-col gap-5">
       <RecordPageHeader
@@ -223,6 +232,14 @@ export function SupplierDetailScreen({
       </Card>
       {isEdit ? null : (
         <>
+          <PartyOutstandingCard
+            summary={outstandingQuery.data}
+            currencyCode={currencyCode}
+            isLoading={outstandingQuery.isLoading}
+            statementHref={`/reports/supplier-statement?supplier_id=${supplier.id}`}
+            agingHref="/reports/ap-aging"
+            reportPermission={reportPermissions.arAp}
+          />
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle className="text-base">Extra addresses</CardTitle>
@@ -323,6 +340,11 @@ export function SupplierDetailScreen({
                 href: `/debit-notes?supplier_id=${supplier.id}`,
                 label: "Debit notes",
                 permission: debitNotePermissions.read,
+              },
+              {
+                href: `/supplier-payments?supplier_id=${supplier.id}`,
+                label: "Payments",
+                permission: supplierPaymentPermissions.read,
               },
               {
                 href: `/goods-receipts?supplier_id=${supplier.id}`,

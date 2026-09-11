@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
 import { CreateInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-invoices/components/create-from-sales-order-dialog";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { CreateProformaInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-orders/components/create-proforma-invoice-dialog";
@@ -11,6 +12,7 @@ import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sa
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
 import { SalesOrderTrackerCard } from "@/modules/erp/sales-orders/components/sales-order-tracker-card";
 import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
+import { useConfirmSalesOrder } from "@/modules/erp/sales-orders/mutations";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrder } from "@/modules/erp/sales-orders/queries";
 import {
@@ -42,8 +44,10 @@ import { QuantityProgressStrip } from "@/shared/components/document/quantity-pro
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
+import { isApiError } from "@/shared/api/errors";
 import { formatDate, formatDateTime } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
+import { toast } from "sonner";
 
 export function SalesOrderDetailScreen({
   salesOrderId,
@@ -115,8 +119,10 @@ function SalesOrderDetailLoaded({
   const isEdit = mode === "edit";
   const number = salesOrderDisplayNumber(salesOrder);
   const onAction = useSalesOrderWorkflow(salesOrder);
+  const confirmSalesOrder = useConfirmSalesOrder();
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [proformaOpen, setProformaOpen] = useState(false);
+  const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
   const canCreateInvoice =
     (salesOrder.status === "CONFIRMED" || salesOrder.status === "CLOSED") &&
     can(salesInvoicePermissions.create);
@@ -175,7 +181,17 @@ function SalesOrderDetailLoaded({
             registry={SALES_ORDER_ACTION_REGISTRY}
             documentKind="sales order"
             documentLabel={number ?? "sales order"}
-            onAction={handleAction}
+            onError={(error) => {
+              if (isApiError(error) && error.code === "CREDIT_LIMIT_EXCEEDED") {
+                setCreditBlockError(error);
+                return true;
+              }
+              return false;
+            }}
+            onAction={async (action, extras) => {
+              setCreditBlockError(null);
+              await handleAction(action, extras);
+            }}
           />
         </div>
       }
@@ -233,6 +249,29 @@ function SalesOrderDetailLoaded({
               .
             </p>
           ) : null}
+          <CreditLimitBanner
+            warnings={salesOrder.warnings}
+            blockError={creditBlockError}
+            overridePending={confirmSalesOrder.isPending}
+            onOverride={async (reason) => {
+              const confirmed = await confirmSalesOrder.mutateAsync({
+                id: salesOrder.id,
+                version: salesOrder.version,
+                creditOverride: reason,
+              });
+              const shortfalls = confirmed.reservation_shortfalls.filter(
+                (row) => Number(row.shortfall) > 0,
+              );
+              if (shortfalls.length > 0) {
+                toast.warning(
+                  `Sales order confirmed with ${shortfalls.length} stock shortfall${shortfalls.length === 1 ? "" : "s"}.`,
+                );
+              } else {
+                toast.success("Sales order confirmed");
+              }
+              setCreditBlockError(null);
+            }}
+          />
         </div>
       }
       formTitle={isEdit ? "Edit sales order" : "Sales order"}
