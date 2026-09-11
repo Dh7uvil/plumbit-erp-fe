@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import { ConvertProformaToSalesOrderDialog } from "@/modules/erp/proforma-invoices/components/convert-to-sales-order-dialog";
 import { CreateSalesInvoiceFromProformaDialog } from "@/modules/erp/proforma-invoices/components/create-sales-invoice-dialog";
 import { ProformaInvoiceForm } from "@/modules/erp/proforma-invoices/components/proforma-invoice-form";
@@ -32,6 +33,7 @@ import {
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { formatDateTime, formatMoney } from "@/shared/lib/format";
+import { useCan } from "@/shared/providers/session-provider";
 
 export function ProformaInvoiceDetailScreen({
   proformaInvoiceId,
@@ -99,6 +101,7 @@ function ProformaInvoiceDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
+  const can = useCan();
   const isEdit = mode === "edit";
   const number = proformaInvoiceDisplayNumber(invoice);
   const onAction = useProformaInvoiceWorkflow(invoice);
@@ -196,7 +199,32 @@ function ProformaInvoiceDetailLoaded({
           ) : null}
           {invoice.advance_required_amount && invoice.advance_required_amount !== "0" ? (
             <p className="text-muted-foreground text-sm">
-              Advance required {formatMoney(invoice.advance_required_amount, "")}.
+              Advance required {formatMoney(invoice.advance_required_amount, "")}
+              {invoice.advance_outstanding
+                ? ` · outstanding ${formatMoney(invoice.advance_outstanding, "")}`
+                : ""}
+              .
+              {can(customerPaymentPermissions.create) ? (
+                <>
+                  {" "}
+                  <Link
+                    href={`/customer-payments/new?customer_id=${invoice.customer_id}&proforma_invoice_id=${invoice.id}`}
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    Record advance
+                  </Link>
+                  .
+                </>
+              ) : null}
+            </p>
+          ) : can(customerPaymentPermissions.create) ? (
+            <p className="text-muted-foreground text-sm">
+              <Link
+                href={`/customer-payments/new?customer_id=${invoice.customer_id}&proforma_invoice_id=${invoice.id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                Record advance
+              </Link>
             </p>
           ) : null}
         </div>

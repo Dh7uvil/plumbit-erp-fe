@@ -21,13 +21,16 @@ export type OrderTrackerRow = {
   status: string;
   document_date?: string | null;
   quantity_summary?: string | null;
+  amount_summary?: string | null;
 };
 
 const ORDER_TRACKER_STAGES = [
   { key: "QUOTATION", label: "Quotation" },
   { key: "PROFORMA_INVOICE", label: "Proforma invoice" },
+  { key: "CUSTOMER_PAYMENT", label: "Customer payments" },
   { key: "SALES_ORDER", label: "Sales order" },
   { key: "PURCHASE_ORDER", label: "Purchase orders" },
+  { key: "SUPPLIER_PAYMENT", label: "Supplier payments" },
   { key: "GOODS_RECEIPT", label: "Goods receipts" },
   { key: "QUALITY_INSPECTION", label: "Quality inspections" },
   { key: "PACKAGE", label: "Packages" },
@@ -150,6 +153,9 @@ export function DocumentTrackerTimeline({
                           ) : null}
                           {row.quantity_summary ? (
                             <span className="text-muted-foreground">{row.quantity_summary}</span>
+                          ) : null}
+                          {row.amount_summary ? (
+                            <span className="text-muted-foreground">{row.amount_summary}</span>
                           ) : null}
                         </li>
                       );

@@ -36,3 +36,19 @@ export function useSupplier(id: string | null) {
     enabled: Boolean(id),
   });
 }
+
+export function useSupplierOpenItems(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...supplierKeys.detail(id ?? ""), "open-items"]),
+    queryFn: () => suppliersApi.openItems(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useSupplierOutstandingSummary(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...supplierKeys.detail(id ?? ""), "outstanding-summary"]),
+    queryFn: () => suppliersApi.outstandingSummary(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}

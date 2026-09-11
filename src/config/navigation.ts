@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  Banknote,
   BookOpen,
   Boxes,
   ClipboardList,
@@ -55,7 +56,9 @@ import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
+import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
+import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
 import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { supplierProductPermissions } from "@/modules/erp/supplier-products/permissions";
@@ -136,6 +139,12 @@ export const navigation: NavigationGroup[] = [
         icon: FileText,
       },
       {
+        label: "Customer payments",
+        href: "/customer-payments",
+        permission: customerPaymentPermissions.read,
+        icon: Banknote,
+      },
+      {
         label: "Credit notes",
         href: "/credit-notes",
         permission: creditNotePermissions.read,
@@ -152,6 +161,12 @@ export const navigation: NavigationGroup[] = [
         href: "/purchase-invoices",
         permission: purchaseInvoicePermissions.read,
         icon: FileSpreadsheet,
+      },
+      {
+        label: "Supplier payments",
+        href: "/supplier-payments",
+        permission: supplierPaymentPermissions.read,
+        icon: CircleDollarSign,
       },
       {
         label: "Debit notes",
@@ -308,6 +323,30 @@ export const navigation: NavigationGroup[] = [
         href: "/reports/invoiced-not-dispatched",
         permission: reportPermissions.tax,
         icon: ScrollText,
+      },
+      {
+        label: "AR aging",
+        href: "/reports/ar-aging",
+        permission: reportPermissions.arAp,
+        icon: Scale,
+      },
+      {
+        label: "AP aging",
+        href: "/reports/ap-aging",
+        permission: reportPermissions.arAp,
+        icon: Scale,
+      },
+      {
+        label: "Customer statement",
+        href: "/reports/customer-statement",
+        permission: reportPermissions.arAp,
+        icon: FileSpreadsheet,
+      },
+      {
+        label: "Supplier statement",
+        href: "/reports/supplier-statement",
+        permission: reportPermissions.arAp,
+        icon: FileSpreadsheet,
       },
     ],
   },

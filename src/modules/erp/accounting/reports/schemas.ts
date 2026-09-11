@@ -152,6 +152,72 @@ export type ExportEvidenceExceptionParams = {
   as_of?: string;
 };
 
+export const AgingBucketTotalsSchema = z.object({
+  current: DecimalStringSchema.default("0"),
+  days_1_30: DecimalStringSchema.default("0"),
+  days_31_60: DecimalStringSchema.default("0"),
+  days_61_90: DecimalStringSchema.default("0"),
+  days_91_plus: DecimalStringSchema.default("0"),
+  unapplied_credits: DecimalStringSchema.default("0"),
+  total: DecimalStringSchema.default("0"),
+});
+export type AgingBucketTotals = z.infer<typeof AgingBucketTotalsSchema>;
+
+export const AgingPartyRowSchema = AgingBucketTotalsSchema.extend({
+  party_id: z.string().uuid(),
+  party_name: z.string(),
+  currency_id: z.string().uuid().nullable().optional().default(null),
+});
+export type AgingPartyRow = z.infer<typeof AgingPartyRowSchema>;
+
+export const AgingSchema = z.object({
+  as_of: z.string(),
+  rows: z.array(AgingPartyRowSchema).default([]),
+  totals: AgingBucketTotalsSchema,
+});
+export type Aging = z.infer<typeof AgingSchema>;
+
+export type AgingParams = {
+  as_of: string;
+};
+
+export const PartyStatementLineSchema = z.object({
+  document_type: z.string(),
+  document_id: z.string().uuid(),
+  document_number: z.string(),
+  document_date: z.string(),
+  due_date: z.string().nullable().optional().default(null),
+  debit: DecimalStringSchema,
+  credit: DecimalStringSchema,
+  running_balance: DecimalStringSchema,
+  description: z.string().nullable().optional().default(null),
+});
+export type PartyStatementLine = z.infer<typeof PartyStatementLineSchema>;
+
+export const PartyStatementSchema = z.object({
+  party_type: z.string(),
+  party_id: z.string().uuid(),
+  party_name: z.string(),
+  from_date: z.string(),
+  to_date: z.string(),
+  opening_balance: DecimalStringSchema,
+  closing_balance: DecimalStringSchema,
+  lines: z.array(PartyStatementLineSchema).default([]),
+});
+export type PartyStatement = z.infer<typeof PartyStatementSchema>;
+
+export type CustomerStatementParams = {
+  customer_id: string;
+  from: string;
+  to: string;
+};
+
+export type SupplierStatementParams = {
+  supplier_id: string;
+  from: string;
+  to: string;
+};
+
 const SOURCE_HREFS: Record<string, (id: string) => string> = {
   journal_entry: (id) => `/journals/${id}`,
   quotation: (id) => `/quotations/${id}`,
@@ -166,6 +232,8 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   purchase_invoice: (id) => `/purchase-invoices/${id}`,
   credit_note: (id) => `/credit-notes/${id}`,
   debit_note: (id) => `/debit-notes/${id}`,
+  customer_payment: (id) => `/customer-payments/${id}`,
+  supplier_payment: (id) => `/supplier-payments/${id}`,
   stock_transfer: (id) => `/stock-transfers/${id}`,
   stock_adjustment: (id) => `/stock-adjustments/${id}`,
   opening_balance: (id) => `/journals/${id}`,

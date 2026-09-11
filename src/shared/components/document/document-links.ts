@@ -17,6 +17,10 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   PACKAGE: "Package",
   SHIPMENT: "Shipment",
   SALES_RETURN: "Sales return",
+  CUSTOMER_PAYMENT: "Customer receipt",
+  SUPPLIER_PAYMENT: "Supplier payment",
+  OPENING_AR: "Opening AR",
+  OPENING_AP: "Opening AP",
 };
 
 export function documentTypeDisplayLabel(value: string): string {
@@ -47,6 +51,8 @@ const DOCUMENT_HREF: Record<string, (id: string) => string> = {
   PURCHASE_INVOICE: (id) => `/purchase-invoices/${id}`,
   CREDIT_NOTE: (id) => `/credit-notes/${id}`,
   DEBIT_NOTE: (id) => `/debit-notes/${id}`,
+  CUSTOMER_PAYMENT: (id) => `/customer-payments/${id}`,
+  SUPPLIER_PAYMENT: (id) => `/supplier-payments/${id}`,
 };
 
 export function documentDetailHref(documentType: string, documentId: string): string | null {

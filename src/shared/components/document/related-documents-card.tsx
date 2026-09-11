@@ -64,6 +64,9 @@ export function RelatedDocumentsCard({
                 {document.quantity_summary ? (
                   <span className="text-muted-foreground">{document.quantity_summary}</span>
                 ) : null}
+                {document.amount_summary ? (
+                  <span className="text-muted-foreground">{document.amount_summary}</span>
+                ) : null}
               </li>
             );
           })}

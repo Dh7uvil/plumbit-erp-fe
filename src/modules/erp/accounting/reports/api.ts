@@ -1,16 +1,23 @@
 import {
   AccountStatementSchema,
+  AgingSchema,
   ExportEvidenceExceptionSchema,
   GeneralLedgerSchema,
   InvoicedNotDispatchedSchema,
+  PartyStatementSchema,
   TrialBalanceSchema,
   type AccountStatement,
   type AccountStatementParams,
+  type Aging,
+  type AgingParams,
+  type CustomerStatementParams,
   type ExportEvidenceException,
   type ExportEvidenceExceptionParams,
   type GeneralLedger,
   type GeneralLedgerParams,
   type InvoicedNotDispatched,
+  type PartyStatement,
+  type SupplierStatementParams,
   type TrialBalance,
   type TrialBalanceParams,
 } from "@/modules/erp/accounting/reports/schemas";
@@ -61,4 +68,20 @@ export const reportsApi = {
     ),
   invoicedNotDispatched: async (): Promise<InvoicedNotDispatched> =>
     InvoicedNotDispatchedSchema.parse(await apiClient.get("/reports/invoiced-not-dispatched")),
+  arAging: async (params: AgingParams): Promise<Aging> =>
+    AgingSchema.parse(await apiClient.get("/reports/ar-aging", { params: { as_of: params.as_of } })),
+  apAging: async (params: AgingParams): Promise<Aging> =>
+    AgingSchema.parse(await apiClient.get("/reports/ap-aging", { params: { as_of: params.as_of } })),
+  customerStatement: async (params: CustomerStatementParams): Promise<PartyStatement> =>
+    PartyStatementSchema.parse(
+      await apiClient.get("/reports/customer-statement", {
+        params: { customer_id: params.customer_id, from: params.from, to: params.to },
+      }),
+    ),
+  supplierStatement: async (params: SupplierStatementParams): Promise<PartyStatement> =>
+    PartyStatementSchema.parse(
+      await apiClient.get("/reports/supplier-statement", {
+        params: { supplier_id: params.supplier_id, from: params.from, to: params.to },
+      }),
+    ),
 };

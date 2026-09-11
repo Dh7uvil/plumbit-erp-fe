@@ -70,6 +70,10 @@ Organization Settings may expose, **only after OpenAPI has them**:
 
 ```text
 allow_negative_stock
+vat_on_advances
+auto_apply_advances_on_invoice
+credit_limit_policy
+credit_limit_include_open_orders
 einvoicing_required     asp_provider (id, not secrets)
 peppol_participant_id   tin          digital identity
 ```

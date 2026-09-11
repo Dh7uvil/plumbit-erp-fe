@@ -36,3 +36,27 @@ export function useCustomer(id: string | null) {
     enabled: Boolean(id),
   });
 }
+
+export function useCustomerOpenItems(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...customerKeys.detail(id ?? ""), "open-items"]),
+    queryFn: () => customersApi.openItems(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useCustomerCreditExposure(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...customerKeys.detail(id ?? ""), "credit-exposure"]),
+    queryFn: () => customersApi.creditExposure(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useCustomerOutstandingSummary(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...customerKeys.detail(id ?? ""), "outstanding-summary"]),
+    queryFn: () => customersApi.outstandingSummary(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}

@@ -111,6 +111,10 @@ export const TenantCurrentSchema = z.object({
   allow_over_receipt: z.boolean().default(false),
   over_receipt_tolerance_pct: NullableDecimalStringSchema.optional().nullable(),
   qc_required_default: z.boolean().default(false),
+  vat_on_advances: z.boolean().default(true),
+  auto_apply_advances_on_invoice: z.boolean().default(true),
+  credit_limit_policy: z.enum(["OFF", "WARN", "BLOCK"]).default("WARN"),
+  credit_limit_include_open_orders: z.boolean().default(true),
   lock_date: z.string().nullable().optional(),
   hard_lock_date: z.string().nullable().optional(),
   headquarters: AddressPayloadSchema.nullable().optional(),
@@ -146,6 +150,10 @@ export const TenantCurrentUpdateSchema = z.object({
   allow_over_receipt: z.boolean().nullable().optional(),
   over_receipt_tolerance_pct: NullableDecimalStringSchema.optional(),
   qc_required_default: z.boolean().nullable().optional(),
+  vat_on_advances: z.boolean().nullable().optional(),
+  auto_apply_advances_on_invoice: z.boolean().nullable().optional(),
+  credit_limit_policy: z.enum(["OFF", "WARN", "BLOCK"]).nullable().optional(),
+  credit_limit_include_open_orders: z.boolean().nullable().optional(),
   headquarters: AddressPayloadSchema.nullable().optional(),
 });
 export type TenantCurrentUpdate = z.infer<typeof TenantCurrentUpdateSchema>;
@@ -168,9 +176,21 @@ export const CompanySettingsFormSchema = z.object({
   allow_over_receipt: z.boolean(),
   over_receipt_tolerance_pct: z.string(),
   qc_required_default: z.boolean(),
+  vat_on_advances: z.boolean(),
+  auto_apply_advances_on_invoice: z.boolean(),
+  credit_limit_policy: z.enum(["OFF", "WARN", "BLOCK"]),
+  credit_limit_include_open_orders: z.boolean(),
   timezone: z.string().max(100),
   fiscal_year_start_month: z.number().int().min(1).max(12),
   fiscal_year_start_day: z.number().int().min(1).max(31),
   books_start_date: z.string(),
 });
 export type CompanySettingsFormValues = z.infer<typeof CompanySettingsFormSchema>;
+
+export const CREDIT_LIMIT_POLICIES = ["OFF", "WARN", "BLOCK"] as const;
+export type CreditLimitPolicy = (typeof CREDIT_LIMIT_POLICIES)[number];
+export const CREDIT_LIMIT_POLICY_LABELS: Record<CreditLimitPolicy, string> = {
+  OFF: "Off",
+  WARN: "Warn",
+  BLOCK: "Block",
+};

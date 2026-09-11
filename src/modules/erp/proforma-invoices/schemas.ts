@@ -241,6 +241,7 @@ export const ProformaInvoiceSchema = z.object({
   converted_document_type: z.string().nullable(),
   converted_document_id: z.string().uuid().nullable(),
   advance_required_amount: MoneySchema.optional().default("0"),
+  advance_outstanding: MoneySchema.optional().default("0"),
   available_actions: z.array(z.string()).default([]),
   related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(ProformaInvoiceLineSchema).optional().default([]),

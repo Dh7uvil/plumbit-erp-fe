@@ -157,9 +157,9 @@ users-management        Identity (BE: app/auth/): Auth, Users, Roles, Permission
 erp                     Implemented: Quotations, Sales Orders, Purchase Orders, Currencies, Exchange Rates, Taxes,
                         Payment Terms, Terms Templates, Document Sequences, Suppliers, Supplier Products, Period Lock,
                         Accounting (Accounts, Journals, Opening Balances, ledger reports, export-evidence-exceptions,
-                        invoiced-not-dispatched), Sales Invoices, Purchase Invoices, Credit Notes, Debit Notes.
-                        Planned: Customer Payments, Supplier Payments,
-                        Logistics (Imports, Exports, Shipments, Containers),
+                        invoiced-not-dispatched, AR/AP aging, customer/supplier statements), Sales Invoices, Purchase
+                        Invoices, Credit Notes, Debit Notes, Customer Payments, Supplier Payments.
+                        Planned: Logistics (Imports, Exports, Shipments, Containers),
                         e-invoicing status UX on sales invoices and credit notes.
 inventory-management    Implemented: Units, Categories, Products, Price Lists, Warehouses,
                         Stock, Stock Transfers, Stock Adjustments, Goods Receipts,

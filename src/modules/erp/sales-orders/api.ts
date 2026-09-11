@@ -36,6 +36,7 @@ import { randomUuid } from "@/shared/lib/uuid";
 
 export type SalesOrderWriteOptions = {
   version: number;
+  creditOverride?: string | null;
 };
 
 export const salesOrdersApi = {
@@ -117,7 +118,7 @@ export const salesOrdersApi = {
   confirm: async (id: string, options: SalesOrderWriteOptions): Promise<SalesOrder> =>
     SalesOrderSchema.parse(
       await apiClient.post(`/sales-orders/${id}/confirm`, undefined, {
-        headers: ifMatchHeaders(options.version),
+        headers: ifMatchHeaders(options.version, { creditOverride: options.creditOverride }),
       }),
     ),
   close: async (id: string, options: SalesOrderWriteOptions): Promise<SalesOrder> =>

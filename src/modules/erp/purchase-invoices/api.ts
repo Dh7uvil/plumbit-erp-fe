@@ -17,6 +17,7 @@ import {
 import { apiClient } from "@/shared/api/client";
 import { ifMatchHeaders, postDocumentHeaders } from "@/shared/api/concurrency";
 import type { ListResponse } from "@/shared/api/envelope";
+import type { PaymentAllocationInput } from "@/shared/components/document/schemas";
 import { randomUuid } from "@/shared/lib/uuid";
 
 export type PurchaseInvoiceWriteOptions = { version: number };
@@ -107,4 +108,15 @@ export const purchaseInvoicesApi = {
     ),
   journal: async (id: string): Promise<JournalEntry> =>
     JournalEntrySchema.parse(await apiClient.get(`/purchase-invoices/${id}/journal`)),
+  applyDebits: async (
+    id: string,
+    options: PurchaseInvoiceWriteOptions & { allocations?: PaymentAllocationInput[] | null },
+  ): Promise<PurchaseInvoice> =>
+    PurchaseInvoiceSchema.parse(
+      await apiClient.post(
+        `/purchase-invoices/${id}/apply-debits`,
+        { allocations: options.allocations ?? null, version: options.version },
+        { headers: ifMatchHeaders(options.version) },
+      ),
+    ),
 };

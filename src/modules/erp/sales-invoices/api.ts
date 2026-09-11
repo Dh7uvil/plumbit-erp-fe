@@ -19,10 +19,12 @@ import {
 import { apiClient } from "@/shared/api/client";
 import { ifMatchHeaders, postDocumentHeaders } from "@/shared/api/concurrency";
 import type { ListResponse } from "@/shared/api/envelope";
+import type { PaymentAllocationInput } from "@/shared/components/document/schemas";
 import { randomUuid } from "@/shared/lib/uuid";
 
 export type SalesInvoiceWriteOptions = {
   version: number;
+  creditOverride?: string | null;
 };
 
 export const salesInvoicesApi = {
@@ -87,8 +89,21 @@ export const salesInvoicesApi = {
   post: async (id: string, options: SalesInvoiceWriteOptions): Promise<SalesInvoice> =>
     SalesInvoiceSchema.parse(
       await apiClient.post(`/sales-invoices/${id}/post`, undefined, {
-        headers: postDocumentHeaders(options.version),
+        headers: postDocumentHeaders(options.version, undefined, {
+          creditOverride: options.creditOverride,
+        }),
       }),
+    ),
+  applyCredits: async (
+    id: string,
+    options: SalesInvoiceWriteOptions & { allocations?: PaymentAllocationInput[] | null },
+  ): Promise<SalesInvoice> =>
+    SalesInvoiceSchema.parse(
+      await apiClient.post(
+        `/sales-invoices/${id}/apply-credits`,
+        { allocations: options.allocations ?? null, version: options.version },
+        { headers: ifMatchHeaders(options.version) },
+      ),
     ),
   cancel: async (
     id: string,

@@ -6,6 +6,7 @@ import {
   AddressPayloadSchema,
 } from "@/modules/users-management/tenants/schemas";
 import { MoneySchema } from "@/shared/lib/money";
+import { DocumentWarningSchema } from "@/shared/components/document/schemas";
 
 export const COMPANY_TYPES = ["CUSTOMER", "SUPPLIER", "BOTH", "OTHER"] as const;
 export const CompanyTypeSchema = z.enum(COMPANY_TYPES);
@@ -172,3 +173,30 @@ export type CustomerListParams = {
   company_type?: CustomerCompanyType;
   is_active?: boolean;
 };
+
+export const OutstandingSummarySchema = z.object({
+  party_id: z.string(),
+  balance_due: MoneySchema,
+  overdue: MoneySchema,
+  unapplied_credits: MoneySchema,
+  credit_limit: MoneySchema.nullable().optional().default(null),
+  available_credit: MoneySchema.nullable().optional().default(null),
+});
+export type OutstandingSummary = z.infer<typeof OutstandingSummarySchema>;
+
+export const CreditExposureSchema = z.object({
+  customer_id: z.string(),
+  currency_id: z.string(),
+  credit_limit: MoneySchema.nullable(),
+  exposure: MoneySchema,
+  this_document: MoneySchema.optional().default("0"),
+  available: MoneySchema.nullable().optional().default(null),
+  posted_ar: MoneySchema.optional().default("0"),
+  opening_ar: MoneySchema.optional().default("0"),
+  unapplied_receipts: MoneySchema.optional().default("0"),
+  unapplied_credits: MoneySchema.optional().default("0"),
+  open_orders: MoneySchema.optional().default("0"),
+  policy: z.string(),
+  warnings: z.array(DocumentWarningSchema).optional().default([]),
+});
+export type CreditExposure = z.infer<typeof CreditExposureSchema>;

@@ -1,11 +1,14 @@
 import { DEFAULT_PAGE_SIZE, OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
+  CreditExposureSchema,
   CustomerCreateRequestSchema,
   CustomerExtraAddressCreateRequestSchema,
   CustomerExtraAddressSchema,
   CustomerListSchema,
   CustomerSchema,
   CustomerUpdateRequestSchema,
+  OutstandingSummarySchema,
+  type CreditExposure,
   type Customer,
   type CustomerCreateRequest,
   type CustomerExtraAddress,
@@ -13,7 +16,9 @@ import {
   type CustomerFormValues,
   type CustomerListParams,
   type CustomerUpdateRequest,
+  type OutstandingSummary,
 } from "@/modules/crm/customers/schemas";
+import { OpenItemRowListSchema } from "@/shared/components/document/schemas";
 import {
   TradingHistoryLineListSchema,
   TradingProductAggregateListSchema,
@@ -136,4 +141,12 @@ export const customersApi = {
     });
     return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
   },
+  openItems: async (id: string) => {
+    const result = await apiClient.getList<unknown>(`/customers/${id}/open-items`);
+    return OpenItemRowListSchema.parse(result.data);
+  },
+  creditExposure: async (id: string): Promise<CreditExposure> =>
+    CreditExposureSchema.parse(await apiClient.get(`/customers/${id}/credit-exposure`)),
+  outstandingSummary: async (id: string): Promise<OutstandingSummary> =>
+    OutstandingSummarySchema.parse(await apiClient.get(`/customers/${id}/outstanding-summary`)),
 };

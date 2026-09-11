@@ -9,7 +9,7 @@ import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { stockKeys } from "@/modules/inventory-management/stock/queries";
 import { isApiError } from "@/shared/api/errors";
 
-type SalesOrderWriteVars = { id: string; version: number };
+type SalesOrderWriteVars = { id: string; version: number; creditOverride?: string | null };
 
 async function invalidateSalesOrders(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -113,7 +113,17 @@ export function useReopenSalesOrder() {
 }
 
 export function useConfirmSalesOrder() {
-  return useSalesOrderVersionMutation(salesOrdersApi.confirm, true);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, version, creditOverride }: SalesOrderWriteVars) =>
+      salesOrdersApi.confirm(id, { version, creditOverride }),
+    onSuccess: async (_data, { id }) => {
+      await invalidateSalesOrders(queryClient, id, true);
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
 }
 
 export function useCloseSalesOrder() {
