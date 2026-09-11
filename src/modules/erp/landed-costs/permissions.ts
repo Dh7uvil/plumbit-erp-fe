@@ -1,7 +1,7 @@
 export const landedCostPermissions = {
-  read: "erp.landed_cost.read",
-  create: "erp.landed_cost.create",
-  update: "erp.landed_cost.update",
-  post: "erp.landed_cost.post",
-  cancel: "erp.landed_cost.cancel",
+  read: "purchase.landed_cost.read",
+  create: "purchase.landed_cost.create",
+  update: "purchase.landed_cost.update",
+  post: "purchase.landed_cost.post",
+  cancel: "purchase.landed_cost.cancel",
 } as const;

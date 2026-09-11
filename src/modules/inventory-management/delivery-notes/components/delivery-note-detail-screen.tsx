@@ -27,6 +27,7 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { printHref } from "@/shared/lib/print";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
@@ -127,6 +128,7 @@ function DeliveryNoteDetailLoaded({
       subtitle={number ? undefined : "Number not assigned yet"}
       listHref="/delivery-notes"
       viewHref={viewHref}
+      printHref={printHref("delivery-notes", note.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}

@@ -1,6 +1,6 @@
 export const termsTemplatePermissions = {
-  read: "erp.terms_template.read",
-  create: "erp.terms_template.create",
-  update: "erp.terms_template.update",
-  delete: "erp.terms_template.delete",
+  read: "masters.terms_template.read",
+  create: "masters.terms_template.create",
+  update: "masters.terms_template.update",
+  delete: "masters.terms_template.delete",
 } as const;

@@ -3,6 +3,9 @@ import { z } from "zod";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
   ConversionLineInputSchema,
+  PackingLineFormFieldsSchema,
+  PackingLineInputFields,
+  PackingLineResponseFields,
   RelatedDocumentRefSchema,
 } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
@@ -116,6 +119,7 @@ export const QuotationLineSchema = z.object({
   amount: MoneySchema,
   qty_converted: DecimalStringSchema.optional().default("0"),
   qty_remaining: DecimalStringSchema.optional(),
+  ...PackingLineResponseFields,
 });
 export type QuotationLine = z.infer<typeof QuotationLineSchema>;
 
@@ -198,6 +202,7 @@ export const QuotationLineInputSchema = z.object({
   discount_type: DiscountTypeSchema.nullable().optional(),
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
+  ...PackingLineInputFields,
 });
 export type QuotationLineInput = z.infer<typeof QuotationLineInputSchema>;
 
@@ -317,16 +322,18 @@ export const QuotationRevisionSchema = QuotationRevisionListItemSchema.extend({
 });
 export type QuotationRevision = z.infer<typeof QuotationRevisionSchema>;
 
-export const QuotationLineFormSchema = z.object({
-  product_id: z.string(),
-  description: z.string(),
-  quantity: z.string(),
-  unit_id: z.string(),
-  rate: z.string(),
-  discount_type: z.string(),
-  discount_value: z.string(),
-  tax_id: z.string(),
-});
+export const QuotationLineFormSchema = z
+  .object({
+    product_id: z.string(),
+    description: z.string(),
+    quantity: z.string(),
+    unit_id: z.string(),
+    rate: z.string(),
+    discount_type: z.string(),
+    discount_value: z.string(),
+    tax_id: z.string(),
+  })
+  .merge(PackingLineFormFieldsSchema);
 export type QuotationLineFormValues = z.infer<typeof QuotationLineFormSchema>;
 
 const POSITIVE_DECIMAL = /^(?:0*[1-9]\d*(?:\.\d+)?|0+\.\d*[1-9]\d*)$/;

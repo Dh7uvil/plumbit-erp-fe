@@ -71,6 +71,7 @@ import { deliveryNotePermissions } from "@/modules/inventory-management/delivery
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { packagePermissions } from "@/modules/inventory-management/packages/permissions";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
+import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
@@ -110,10 +111,16 @@ export const navigation: NavigationGroup[] = [
         permission: customerPermissions.read,
         icon: Users,
       },
+      {
+        label: "Contacts",
+        href: "/contacts",
+        permission: contactPermissions.read,
+        icon: Contact,
+      },
     ],
   },
   {
-    label: "ERP",
+    label: "Sales",
     items: [
       {
         label: "Quotations",
@@ -134,16 +141,16 @@ export const navigation: NavigationGroup[] = [
         icon: ClipboardPen,
       },
       {
+        label: "Delivery notes",
+        href: "/delivery-notes",
+        permission: deliveryNotePermissions.read,
+        icon: Truck,
+      },
+      {
         label: "Sales invoices",
         href: "/sales-invoices",
         permission: salesInvoicePermissions.read,
         icon: FileText,
-      },
-      {
-        label: "Customer payments",
-        href: "/customer-payments",
-        permission: customerPaymentPermissions.read,
-        icon: Banknote,
       },
       {
         label: "Credit notes",
@@ -152,29 +159,22 @@ export const navigation: NavigationGroup[] = [
         icon: RotateCcw,
       },
       {
-        label: "Purchase orders",
-        href: "/purchase-orders",
-        permission: purchaseOrderPermissions.read,
-        icon: ShoppingBag,
+        label: "Customer payments",
+        href: "/customer-payments",
+        permission: customerPaymentPermissions.read,
+        icon: Banknote,
       },
       {
-        label: "Purchase invoices",
-        href: "/purchase-invoices",
-        permission: purchaseInvoicePermissions.read,
-        icon: FileSpreadsheet,
+        label: "Sales returns",
+        href: "/sales-returns",
+        permission: salesReturnPermissions.read,
+        icon: RotateCcw,
       },
-      {
-        label: "Supplier payments",
-        href: "/supplier-payments",
-        permission: supplierPaymentPermissions.read,
-        icon: CircleDollarSign,
-      },
-      {
-        label: "Debit notes",
-        href: "/debit-notes",
-        permission: debitNotePermissions.read,
-        icon: NotebookPen,
-      },
+    ],
+  },
+  {
+    label: "Purchases",
+    items: [
       {
         label: "Suppliers",
         href: "/suppliers",
@@ -186,6 +186,71 @@ export const navigation: NavigationGroup[] = [
         href: "/supplier-products",
         permission: supplierProductPermissions.read,
         icon: Boxes,
+      },
+      {
+        label: "Purchase orders",
+        href: "/purchase-orders",
+        permission: purchaseOrderPermissions.read,
+        icon: ShoppingBag,
+      },
+      {
+        label: "Goods receipts",
+        href: "/goods-receipts",
+        permission: goodsReceiptPermissions.read,
+        icon: PackageCheck,
+      },
+      {
+        label: "Quality inspections",
+        href: "/quality-inspections",
+        permission: qualityInspectionPermissions.read,
+        icon: ClipboardCheck,
+      },
+      {
+        label: "Purchase invoices",
+        href: "/purchase-invoices",
+        permission: purchaseInvoicePermissions.read,
+        icon: FileSpreadsheet,
+      },
+      {
+        label: "Debit notes",
+        href: "/debit-notes",
+        permission: debitNotePermissions.read,
+        icon: NotebookPen,
+      },
+      {
+        label: "Supplier payments",
+        href: "/supplier-payments",
+        permission: supplierPaymentPermissions.read,
+        icon: CircleDollarSign,
+      },
+      {
+        label: "Landed costs",
+        href: "/landed-costs",
+        permission: landedCostPermissions.read,
+        icon: PackageCheck,
+      },
+      {
+        label: "Purchase returns",
+        href: "/purchase-returns",
+        permission: purchaseReturnPermissions.read,
+        icon: RotateCcw,
+      },
+    ],
+  },
+  {
+    label: "Shipments",
+    items: [
+      {
+        label: "Packages",
+        href: "/packages",
+        permission: packagePermissions.read,
+        icon: Package,
+      },
+      {
+        label: "Shipments",
+        href: "/shipments",
+        permission: shipmentPermissions.read,
+        icon: Ship,
       },
     ],
   },
@@ -236,42 +301,6 @@ export const navigation: NavigationGroup[] = [
         permission: stockAdjustmentPermissions.read,
         icon: ClipboardPen,
       },
-      {
-        label: "Goods receipts",
-        href: "/goods-receipts",
-        permission: goodsReceiptPermissions.read,
-        icon: PackageCheck,
-      },
-      {
-        label: "Quality inspections",
-        href: "/quality-inspections",
-        permission: qualityInspectionPermissions.read,
-        icon: ClipboardCheck,
-      },
-      {
-        label: "Delivery notes",
-        href: "/delivery-notes",
-        permission: deliveryNotePermissions.read,
-        icon: Truck,
-      },
-      {
-        label: "Packages",
-        href: "/packages",
-        permission: packagePermissions.read,
-        icon: Package,
-      },
-      {
-        label: "Shipments",
-        href: "/shipments",
-        permission: shipmentPermissions.read,
-        icon: Ship,
-      },
-      {
-        label: "Sales returns",
-        href: "/sales-returns",
-        permission: salesReturnPermissions.read,
-        icon: RotateCcw,
-      },
     ],
   },
   {
@@ -295,12 +324,11 @@ export const navigation: NavigationGroup[] = [
         permission: openingBalancePermissions.manage,
         icon: CircleDollarSign,
       },
-      {
-        label: "Landed costs",
-        href: "/landed-costs",
-        permission: landedCostPermissions.read,
-        icon: PackageCheck,
-      },
+    ],
+  },
+  {
+    label: "Reports",
+    items: [
       {
         label: "Trial balance",
         href: "/reports/trial-balance",
@@ -320,16 +348,46 @@ export const navigation: NavigationGroup[] = [
         icon: FileSpreadsheet,
       },
       {
-        label: "Export evidence exceptions",
-        href: "/reports/export-evidence-exceptions",
+        label: "Profit and loss",
+        href: "/reports/profit-and-loss",
+        permission: reportPermissions.financial,
+        icon: FileSpreadsheet,
+      },
+      {
+        label: "Balance sheet",
+        href: "/reports/balance-sheet",
+        permission: reportPermissions.financial,
+        icon: Scale,
+      },
+      {
+        label: "Cash flow",
+        href: "/reports/cash-flow",
+        permission: reportPermissions.financial,
+        icon: Banknote,
+      },
+      {
+        label: "Sales register",
+        href: "/reports/sales-register",
         permission: reportPermissions.tax,
         icon: FileText,
       },
       {
-        label: "Invoiced not dispatched",
-        href: "/reports/invoiced-not-dispatched",
+        label: "Purchase register",
+        href: "/reports/purchase-register",
         permission: reportPermissions.tax,
-        icon: ScrollText,
+        icon: FileText,
+      },
+      {
+        label: "VAT 201",
+        href: "/reports/vat-201",
+        permission: reportPermissions.tax,
+        icon: Percent,
+      },
+      {
+        label: "Export evidence exceptions",
+        href: "/reports/export-evidence-exceptions",
+        permission: reportPermissions.tax,
+        icon: FileText,
       },
       {
         label: "AR aging",
@@ -386,40 +444,22 @@ export const navigation: NavigationGroup[] = [
         icon: ShoppingCart,
       },
       {
-        label: "Profit and loss",
-        href: "/reports/profit-and-loss",
-        permission: reportPermissions.financial,
-        icon: FileSpreadsheet,
-      },
-      {
-        label: "Balance sheet",
-        href: "/reports/balance-sheet",
-        permission: reportPermissions.financial,
-        icon: Scale,
-      },
-      {
-        label: "Cash flow",
-        href: "/reports/cash-flow",
-        permission: reportPermissions.financial,
-        icon: Banknote,
-      },
-      {
-        label: "Sales register",
-        href: "/reports/sales-register",
+        label: "Invoiced not dispatched",
+        href: "/reports/invoiced-not-dispatched",
         permission: reportPermissions.tax,
-        icon: FileText,
+        icon: ScrollText,
       },
       {
-        label: "Purchase register",
-        href: "/reports/purchase-register",
-        permission: reportPermissions.tax,
-        icon: FileText,
+        label: "Three-way match",
+        href: "/reports/three-way-match",
+        permission: reportPermissions.inventory,
+        icon: ClipboardCheck,
       },
       {
-        label: "VAT 201",
-        href: "/reports/vat-201",
-        permission: reportPermissions.tax,
-        icon: Percent,
+        label: "Received not billed",
+        href: "/reports/received-not-billed",
+        permission: reportPermissions.inventory,
+        icon: PackageCheck,
       },
     ],
   },
@@ -456,12 +496,6 @@ export const navigation: NavigationGroup[] = [
         href: "/document-sequences",
         permission: documentSequencePermissions.read,
         icon: BookOpen,
-      },
-      {
-        label: "Contacts",
-        href: "/contacts",
-        permission: contactPermissions.read,
-        icon: Contact,
       },
     ],
   },

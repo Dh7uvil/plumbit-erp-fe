@@ -1,9 +1,5 @@
-import { PageHeader } from "@/shared/components/layout/page-header";
+import { OperationalDashboardScreen } from "@/modules/erp/accounting/reports/components/operational-dashboard-screen";
 
 export default function DashboardPage() {
-  return (
-    <section className="flex flex-col gap-5">
-      <PageHeader title="Dashboard" />
-    </section>
-  );
+  return <OperationalDashboardScreen />;
 }

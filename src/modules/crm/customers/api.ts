@@ -18,7 +18,7 @@ import {
   type CustomerUpdateRequest,
   type OutstandingSummary,
 } from "@/modules/crm/customers/schemas";
-import { OpenItemRowListSchema } from "@/shared/components/document/schemas";
+import { OpenItemRowListSchema, PartyPaymentHistoryListSchema } from "@/shared/components/document/schemas";
 import {
   TradingHistoryLineListSchema,
   TradingProductAggregateListSchema,
@@ -153,4 +153,10 @@ export const customersApi = {
     CreditExposureSchema.parse(await apiClient.get(`/customers/${id}/credit-exposure`)),
   outstandingSummary: async (id: string): Promise<OutstandingSummary> =>
     OutstandingSummarySchema.parse(await apiClient.get(`/customers/${id}/outstanding-summary`)),
+  paymentHistory: async (id: string) => {
+    const result = await apiClient.getList<unknown>(`/customers/${id}/payment-history`, {
+      params: { page: 1, page_size: 20 },
+    });
+    return PartyPaymentHistoryListSchema.parse(result.data);
+  },
 };

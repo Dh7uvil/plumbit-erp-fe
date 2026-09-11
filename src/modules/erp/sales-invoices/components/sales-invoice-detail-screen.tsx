@@ -36,6 +36,7 @@ import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { printHref } from "@/shared/lib/print";
 import { DocumentSettlementCard } from "@/shared/components/document/document-settlement-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
@@ -143,6 +144,7 @@ function SalesInvoiceDetailLoaded({
       subtitle={number ? undefined : "Number not assigned yet"}
       listHref="/sales-invoices"
       viewHref={viewHref}
+      printHref={printHref("sales-invoices", invoice.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}

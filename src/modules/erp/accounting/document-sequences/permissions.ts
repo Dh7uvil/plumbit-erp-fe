@@ -1,6 +1,6 @@
 export const documentSequencePermissions = {
-  read: "erp.document_sequence.read",
-  create: "erp.document_sequence.create",
-  update: "erp.document_sequence.update",
-  delete: "erp.document_sequence.delete",
+  read: "masters.document_sequence.read",
+  create: "masters.document_sequence.create",
+  update: "masters.document_sequence.update",
+  delete: "masters.document_sequence.delete",
 } as const;

@@ -29,6 +29,9 @@ describe("document links", () => {
     expect(documentDetailHref("LANDED_COST", "11111111-1111-4111-8111-111111111111")).toBe(
       "/landed-costs/11111111-1111-4111-8111-111111111111",
     );
+    expect(documentDetailHref("PURCHASE_RETURN", "11111111-1111-4111-8111-111111111111")).toBe(
+      "/purchase-returns/11111111-1111-4111-8111-111111111111",
+    );
     expect(documentDetailHref("UNKNOWN", "11111111-1111-4111-8111-111111111111")).toBeNull();
   });
 

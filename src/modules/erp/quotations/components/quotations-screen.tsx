@@ -40,6 +40,7 @@ import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -47,6 +48,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { useCan } from "@/shared/providers/session-provider";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["Number", "Customer", "Date", "Status", "Grand total"] as const;
@@ -71,6 +73,7 @@ function parseStatus(value: string | undefined): QuotationStatus | undefined {
 }
 
 export function QuotationsScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(quotationPermissions);
   const router = useRouter();
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
@@ -140,14 +143,26 @@ export function QuotationsScreen() {
         title="Quotations"
         subtitle="Customer quotes with server-side totals"
         actions={
-          canCreate ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <ImexToolbar
+              resource="quotations"
+              title="quotations"
+              canImport={can(quotationPermissions.import) || canCreate}
+              canExport={can(quotationPermissions.export) || canRead}
+              exportParams={{ search, status: filters.status }}
+              onImported={() => {
+                void quotationsQuery.refetch();
+              }}
+            />
+            {canCreate ? (
             <Button type="button" size="sm" asChild>
               <Link href="/quotations/new">
                 <Plus className="size-3.5" />
                 New quotation
               </Link>
             </Button>
-          ) : undefined
+            ) : null}
+          </div>
         }
       />
       <DataTableToolbar>

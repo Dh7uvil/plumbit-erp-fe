@@ -23,6 +23,7 @@ export const AttachmentEntityTypeSchema = z.enum([
   "DEBIT_NOTE",
   "DELIVERY_NOTE",
   "SALES_RETURN",
+  "PURCHASE_RETURN",
   "JOURNAL_ENTRY",
   "ACCOUNT",
   "CUSTOMER_PAYMENT",

@@ -23,7 +23,7 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { SupplierForm } from "@/modules/erp/suppliers/components/supplier-form";
 import { useAddSupplierAddress, useDeleteSupplierAddress } from "@/modules/erp/suppliers/mutations";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
-import { useSupplier, useSupplierOutstandingSummary } from "@/modules/erp/suppliers/queries";
+import { useSupplier, useSupplierOutstandingSummary, useSupplierPaymentHistory } from "@/modules/erp/suppliers/queries";
 import {
   ExtraAddressFormSchema,
   type ExtraAddressFormValues,
@@ -40,6 +40,10 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { PartyDocumentsCard } from "@/shared/components/document/party-documents-card";
 import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
+import {
+  PartyPaymentHistoryCard,
+  toPartyPaymentHistoryRows,
+} from "@/shared/components/document/party-payment-history-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -110,6 +114,10 @@ export function SupplierDetailScreen({
   const { canUpdate } = useCrudPermissions(supplierPermissions);
   const supplierQuery = useSupplier(supplierId);
   const outstandingQuery = useSupplierOutstandingSummary(supplierId, mode !== "edit");
+  const paymentHistoryQuery = useSupplierPaymentHistory(
+    supplierId,
+    mode !== "edit" && can(supplierPaymentPermissions.read),
+  );
   const currenciesQuery = useAllCurrencies();
   const addAddress = useAddSupplierAddress();
   const deleteAddress = useDeleteSupplierAddress();
@@ -240,6 +248,17 @@ export function SupplierDetailScreen({
             agingHref="/reports/ap-aging"
             reportPermission={reportPermissions.arAp}
           />
+          {can(supplierPaymentPermissions.read) ? (
+            <PartyPaymentHistoryCard
+              currencyCode={currencyCode}
+              isLoading={paymentHistoryQuery.isLoading}
+              rows={toPartyPaymentHistoryRows(
+                paymentHistoryQuery.data ?? [],
+                (id) => `/supplier-payments/${id}`,
+                "amount_paid",
+              )}
+            />
+          ) : null}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle className="text-base">Extra addresses</CardTitle>

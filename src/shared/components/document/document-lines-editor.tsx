@@ -92,28 +92,37 @@ export type SupplierCatalogProps = {
 
 export type DocumentLinesMode = "standard" | "receive" | "expense";
 
-function lineHeaders(showSupplierSku: boolean, mode: DocumentLinesMode): readonly string[] {
+function lineHeaders(
+  showSupplierSku: boolean,
+  mode: DocumentLinesMode,
+  showPacking: boolean,
+): readonly string[] {
+  let headers: readonly string[];
   if (mode === "expense") {
-    return EXPENSE_LINE_HEADERS;
+    headers = EXPENSE_LINE_HEADERS;
+  } else if (mode === "receive") {
+    headers = RECEIVE_LINE_HEADERS;
+  } else if (!showSupplierSku) {
+    headers = BASE_LINE_HEADERS;
+  } else {
+    headers = [
+      "Product",
+      "Supplier SKU",
+      "Description",
+      "Qty",
+      "Unit",
+      "Rate",
+      "Discount type",
+      "Discount",
+      "Tax",
+      "",
+    ];
   }
-  if (mode === "receive") {
-    return RECEIVE_LINE_HEADERS;
+  if (showPacking && mode === "standard") {
+    const withoutActions = headers.slice(0, -1);
+    return [...withoutActions, "Item code", "PKG", "Ctns", "CBM", "Weight", ""];
   }
-  if (!showSupplierSku) {
-    return BASE_LINE_HEADERS;
-  }
-  return [
-    "Product",
-    "Supplier SKU",
-    "Description",
-    "Qty",
-    "Unit",
-    "Rate",
-    "Discount type",
-    "Discount",
-    "Tax",
-    "",
-  ];
+  return headers;
 }
 
 function linePath<TFieldValues extends FieldValues>(
@@ -185,12 +194,14 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   productSide,
   supplierCatalog,
   lineMode = "standard",
+  showPacking = false,
 }: {
   form: UseFormReturn<TFieldValues>;
   disabled: boolean;
   productSide: "sales" | "purchase";
   supplierCatalog?: SupplierCatalogProps;
   lineMode?: DocumentLinesMode;
+  showPacking?: boolean;
 }) {
   const can = useCan();
   const productsQuery = useAllProducts();
@@ -223,7 +234,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const isReceive = lineMode === "receive";
   const isExpense = lineMode === "expense";
   const showSupplierSku = Boolean(supplierCatalog) || isReceive;
-  const headers = lineHeaders(showSupplierSku, lineMode);
+  const headers = lineHeaders(showSupplierSku, lineMode, showPacking);
   const rawCurrencyId = useWatch({
     control: form.control,
     name: "currency_id" as Path<TFieldValues>,
@@ -798,6 +809,38 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                   </TableCell>
                     </>
                   )}
+                  {showPacking && !isReceive && !isExpense
+                    ? (
+                        [
+                          ["item_code", "Item code", false],
+                          ["packing_unit", "PKG", false],
+                          ["carton_qty", "Ctns", true],
+                          ["cbm", "CBM", true],
+                          ["weight", "Weight", true],
+                        ] as const
+                      ).map(([name, label, decimal]) => (
+                        <TableCell key={name} className="w-24 align-top">
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, name)}
+                            render={({ field: packingField }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    inputMode={decimal ? "decimal" : undefined}
+                                    className={decimal ? "text-right" : undefined}
+                                    disabled={disabled}
+                                    aria-label={`Line ${index + 1} ${label}`}
+                                    {...packingField}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TableCell>
+                      ))
+                    : null}
                   <TableCell className="align-top">
                     {disabled ? null : (
                       <Button

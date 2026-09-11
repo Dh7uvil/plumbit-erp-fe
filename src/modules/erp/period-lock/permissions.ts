@@ -1,5 +1,5 @@
 export const periodLockPermissions = {
   read: "identity.organization.read",
-  lock: "erp.period.lock",
-  override: "erp.period.override",
+  lock: "accounting.period.lock",
+  override: "accounting.period.override",
 } as const;

@@ -1,6 +1,6 @@
 export const paymentTermPermissions = {
-  read: "erp.payment_term.read",
-  create: "erp.payment_term.create",
-  update: "erp.payment_term.update",
-  delete: "erp.payment_term.delete",
+  read: "masters.payment_term.read",
+  create: "masters.payment_term.create",
+  update: "masters.payment_term.update",
+  delete: "masters.payment_term.delete",
 } as const;

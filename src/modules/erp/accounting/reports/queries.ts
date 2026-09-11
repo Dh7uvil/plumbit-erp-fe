@@ -57,6 +57,9 @@ export const reportKeys = {
   purchaseRegister: (params: TaxRegisterParams) =>
     [...reportKeys.all, "purchase-register", params] as const,
   vat201: (params: TaxRegisterParams) => [...reportKeys.all, "vat-201", params] as const,
+  threeWayMatch: () => [...reportKeys.all, "three-way-match"] as const,
+  receivedNotBilled: () => [...reportKeys.all, "received-not-billed"] as const,
+  dashboard: () => [...reportKeys.all, "dashboard"] as const,
 };
 
 export function useTrialBalance(params: TrialBalanceParams | null) {
@@ -227,6 +230,30 @@ export function useVat201(params: TaxRegisterParams | null) {
     queryKey: useTenantQueryKey(reportKeys.vat201(params ?? { from: "", to: "" })),
     queryFn: () => reportsApi.vat201(params!),
     enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useThreeWayMatch(enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.threeWayMatch()),
+    queryFn: reportsApi.threeWayMatch,
+    enabled,
+  });
+}
+
+export function useReceivedNotBilled(enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.receivedNotBilled()),
+    queryFn: reportsApi.receivedNotBilled,
+    enabled,
+  });
+}
+
+export function useDashboard(enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.dashboard()),
+    queryFn: reportsApi.dashboard,
+    enabled,
   });
 }
 

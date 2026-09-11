@@ -55,6 +55,7 @@ import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/s
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -185,7 +186,18 @@ export function SalesInvoicesScreen() {
         title="Sales invoices"
         subtitle="Customer invoices. Posting moves AR, not stock."
         actions={
-          canCreate ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <ImexToolbar
+              resource="sales-invoices"
+              title="sales invoices"
+              canImport={can(salesInvoicePermissions.import) || canCreate}
+              canExport={can(salesInvoicePermissions.export) || canRead}
+              exportParams={{ search, status: filters.status }}
+              onImported={() => {
+                void invoicesQuery.refetch();
+              }}
+            />
+            {canCreate ? (
             <div className="flex flex-wrap gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -226,7 +238,8 @@ export function SalesInvoicesScreen() {
                 </Link>
               </Button>
             </div>
-          ) : undefined
+            ) : null}
+          </div>
         }
       />
       {can(reportPermissions.tax) && exceptionCount > 0 ? (

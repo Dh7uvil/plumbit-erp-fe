@@ -4,6 +4,9 @@ import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
   ConversionLineInputSchema,
   DocumentWarningSchema,
+  PackingLineFormFieldsSchema,
+  PackingLineInputFields,
+  PackingLineResponseFields,
   RelatedDocumentRefSchema,
 } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
@@ -123,6 +126,7 @@ export const SalesInvoiceLineSchema = z.object({
   cogs_amount: MoneySchema,
   cogs_status: CogsStatusSchema,
   qty_credited: DecimalStringSchema,
+  ...PackingLineResponseFields,
 });
 export type SalesInvoiceLine = z.infer<typeof SalesInvoiceLineSchema>;
 
@@ -207,6 +211,7 @@ export const SalesInvoiceLineInputSchema = z.object({
   discount_type: DiscountTypeSchema.nullable().optional(),
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
+  ...PackingLineInputFields,
 });
 export type SalesInvoiceLineInput = z.infer<typeof SalesInvoiceLineInputSchema>;
 
@@ -293,19 +298,21 @@ export const SalesInvoiceMarginSchema = z.object({
 });
 export type SalesInvoiceMargin = z.infer<typeof SalesInvoiceMarginSchema>;
 
-export const SalesInvoiceLineFormSchema = z.object({
-  product_id: z.string(),
-  description: z.string(),
-  quantity: z.string(),
-  unit_id: z.string(),
-  rate: z.string(),
-  discount_type: z.string(),
-  discount_value: z.string(),
-  tax_id: z.string(),
-  sales_order_line_id: z.string(),
-  delivery_note_id: z.string(),
-  delivery_note_line_id: z.string(),
-});
+export const SalesInvoiceLineFormSchema = z
+  .object({
+    product_id: z.string(),
+    description: z.string(),
+    quantity: z.string(),
+    unit_id: z.string(),
+    rate: z.string(),
+    discount_type: z.string(),
+    discount_value: z.string(),
+    tax_id: z.string(),
+    sales_order_line_id: z.string(),
+    delivery_note_id: z.string(),
+    delivery_note_line_id: z.string(),
+  })
+  .merge(PackingLineFormFieldsSchema);
 export type SalesInvoiceLineFormValues = z.infer<typeof SalesInvoiceLineFormSchema>;
 
 const POSITIVE_DECIMAL = /^(?:0*[1-9]\d*(?:\.\d+)?|0+\.\d*[1-9]\d*)$/;

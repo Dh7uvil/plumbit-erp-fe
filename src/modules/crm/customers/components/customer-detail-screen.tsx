@@ -26,6 +26,7 @@ import {
   useCustomer,
   useCustomerCreditExposure,
   useCustomerOutstandingSummary,
+  useCustomerPaymentHistory,
 } from "@/modules/crm/customers/queries";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
@@ -50,6 +51,10 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { PartyDocumentsCard } from "@/shared/components/document/party-documents-card";
 import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
+import {
+  PartyPaymentHistoryCard,
+  toPartyPaymentHistoryRows,
+} from "@/shared/components/document/party-payment-history-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -120,6 +125,10 @@ export function CustomerDetailScreen({
   const { canUpdate } = useCrudPermissions(customerPermissions);
   const customerQuery = useCustomer(customerId);
   const outstandingQuery = useCustomerOutstandingSummary(customerId, mode !== "edit");
+  const paymentHistoryQuery = useCustomerPaymentHistory(
+    customerId,
+    mode !== "edit" && can(customerPaymentPermissions.read),
+  );
   const exposureQuery = useCustomerCreditExposure(customerId, mode !== "edit");
   const currenciesQuery = useAllCurrencies();
   const addAddress = useAddCustomerAddress();
@@ -257,6 +266,17 @@ export function CustomerDetailScreen({
             agingHref="/reports/ar-aging"
             reportPermission={reportPermissions.arAp}
           />
+          {can(customerPaymentPermissions.read) ? (
+            <PartyPaymentHistoryCard
+              currencyCode={currencyCode}
+              isLoading={paymentHistoryQuery.isLoading}
+              rows={toPartyPaymentHistoryRows(
+                paymentHistoryQuery.data ?? [],
+                (id) => `/customer-payments/${id}`,
+                "amount_received",
+              )}
+            />
+          ) : null}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle className="text-base">Extra addresses</CardTitle>

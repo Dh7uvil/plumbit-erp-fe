@@ -6,6 +6,7 @@ import { journalKeys } from "@/modules/erp/accounting/journals/queries";
 import { debitNotesApi } from "@/modules/erp/debit-notes/api";
 import { debitNoteKeys } from "@/modules/erp/debit-notes/queries";
 import { purchaseInvoiceKeys } from "@/modules/erp/purchase-invoices/queries";
+import { purchaseReturnKeys } from "@/modules/inventory-management/purchase-returns/queries";
 import { isApiError } from "@/shared/api/errors";
 
 type WriteVars = { id: string; version: number };
@@ -16,6 +17,7 @@ async function invalidate(queryClient: ReturnType<typeof useQueryClient>, id?: s
     await queryClient.invalidateQueries({ queryKey: debitNoteKeys.detail(id) });
   }
   await queryClient.invalidateQueries({ queryKey: purchaseInvoiceKeys.all });
+  await queryClient.invalidateQueries({ queryKey: purchaseReturnKeys.all });
   if (posted) {
     await queryClient.invalidateQueries({ queryKey: journalKeys.all });
   }
@@ -46,6 +48,16 @@ export function useCreateDebitNoteFromPurchaseInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: debitNotesApi.createFromPurchaseInvoice,
+    onSuccess: async () => {
+      await invalidate(queryClient);
+    },
+  });
+}
+
+export function useCreateDebitNoteFromPurchaseReturn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: debitNotesApi.createFromPurchaseReturn,
     onSuccess: async () => {
       await invalidate(queryClient);
     },

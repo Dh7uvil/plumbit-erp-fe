@@ -2,12 +2,14 @@ import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { JournalEntrySchema, type JournalEntry } from "@/modules/erp/accounting/journals/schemas";
 import {
   DebitNoteCreateFromPurchaseInvoiceSchema,
+  DebitNoteCreateFromPurchaseReturnSchema,
   DebitNoteCreateRequestSchema,
   DebitNoteListSchema,
   DebitNoteSchema,
   DebitNoteUpdateRequestSchema,
   type DebitNote,
   type DebitNoteCreateFromPurchaseInvoice,
+  type DebitNoteCreateFromPurchaseReturn,
   type DebitNoteCreateRequest,
   type DebitNoteListParams,
   type DebitNoteUpdateRequest,
@@ -51,6 +53,16 @@ export const debitNotesApi = {
       await apiClient.post(
         "/debit-notes/from-purchase-invoice",
         DebitNoteCreateFromPurchaseInvoiceSchema.parse(values),
+        { headers: { "Idempotency-Key": randomUuid() } },
+      ),
+    ),
+  createFromPurchaseReturn: async (
+    values: DebitNoteCreateFromPurchaseReturn,
+  ): Promise<DebitNote> =>
+    DebitNoteSchema.parse(
+      await apiClient.post(
+        "/debit-notes/from-purchase-return",
+        DebitNoteCreateFromPurchaseReturnSchema.parse(values),
         { headers: { "Idempotency-Key": randomUuid() } },
       ),
     ),

@@ -159,9 +159,11 @@ export function UsersScreen() {
                     </Avatar>
                     <div className="min-w-0">
                       <p className="font-medium">{user.name}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {user.employee?.employee_code ?? "—"}
-                      </p>
+                      {user.employee?.employee_code ? (
+                        <p className="text-muted-foreground text-xs">
+                          {user.employee.employee_code}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </TableCell>

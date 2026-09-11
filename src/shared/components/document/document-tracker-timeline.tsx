@@ -32,6 +32,8 @@ const ORDER_TRACKER_STAGES = [
   { key: "PURCHASE_ORDER", label: "Purchase orders" },
   { key: "SUPPLIER_PAYMENT", label: "Supplier payments" },
   { key: "GOODS_RECEIPT", label: "Goods receipts" },
+  { key: "LANDED_COST", label: "Landed costs" },
+  { key: "PURCHASE_RETURN", label: "Purchase returns" },
   { key: "QUALITY_INSPECTION", label: "Quality inspections" },
   { key: "PACKAGE", label: "Packages" },
   { key: "DELIVERY_NOTE", label: "Delivery notes" },

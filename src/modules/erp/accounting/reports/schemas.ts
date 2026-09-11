@@ -402,15 +402,20 @@ export const BalanceSheetLineSchema = z.object({
   account_type: z.string(),
   account_subtype: z.string(),
   amount: DecimalStringSchema,
+  comparative_amount: z.string().nullable().optional().default(null),
 });
 export type BalanceSheetLine = z.infer<typeof BalanceSheetLineSchema>;
 
 export const BalanceSheetSchema = z.object({
   as_of: z.string(),
+  comparative_as_of: z.string().nullable().optional().default(null),
   total_assets: DecimalStringSchema,
   total_liabilities: DecimalStringSchema,
   total_equity: DecimalStringSchema,
   current_earnings: DecimalStringSchema,
+  comparative_total_assets: z.string().nullable().optional().default(null),
+  comparative_total_liabilities: z.string().nullable().optional().default(null),
+  comparative_total_equity: z.string().nullable().optional().default(null),
   is_balanced: z.boolean(),
   lines: z.array(BalanceSheetLineSchema).optional().default([]),
 });
@@ -420,6 +425,7 @@ export const CashFlowLineSchema = z.object({
   key: z.string(),
   label: z.string(),
   amount: DecimalStringSchema,
+  comparative_amount: z.string().nullable().optional().default(null),
   account_id: z.string().uuid().nullable().optional().default(null),
 });
 export type CashFlowLine = z.infer<typeof CashFlowLineSchema>;
@@ -427,10 +433,13 @@ export type CashFlowLine = z.infer<typeof CashFlowLineSchema>;
 export const CashFlowSchema = z.object({
   from_date: z.string(),
   to_date: z.string(),
+  comparative_from: z.string().nullable().optional().default(null),
+  comparative_to: z.string().nullable().optional().default(null),
   net_profit: DecimalStringSchema,
   cash_opening: DecimalStringSchema,
   cash_closing: DecimalStringSchema,
   net_change: DecimalStringSchema,
+  comparative_net_change: z.string().nullable().optional().default(null),
   lines: z.array(CashFlowLineSchema).optional().default([]),
 });
 export type CashFlow = z.infer<typeof CashFlowSchema>;
@@ -526,6 +535,79 @@ export type TaxRegisterParams = {
   from: string;
   to: string;
 };
+
+export const ThreeWayMatchLineSchema = z.object({
+  purchase_order_id: z.string().uuid(),
+  purchase_order_line_id: z.string().uuid(),
+  document_number: z.string(),
+  order_date: z.string(),
+  supplier_id: z.string().uuid(),
+  supplier_name: z.string(),
+  product_id: z.string().uuid().nullable(),
+  description: z.string(),
+  ordered_qty: DecimalStringSchema,
+  received_qty: DecimalStringSchema,
+  billed_qty: DecimalStringSchema,
+  ordered_value: DecimalStringSchema,
+  received_value: DecimalStringSchema,
+  billed_value: DecimalStringSchema,
+  status: z.string(),
+});
+export type ThreeWayMatchLine = z.infer<typeof ThreeWayMatchLineSchema>;
+
+export const ThreeWayMatchSchema = z.object({
+  lines: z.array(ThreeWayMatchLineSchema).optional().default([]),
+});
+export type ThreeWayMatch = z.infer<typeof ThreeWayMatchSchema>;
+
+export const ReceivedNotBilledLineSchema = z.object({
+  goods_receipt_id: z.string().uuid(),
+  goods_receipt_line_id: z.string().uuid(),
+  document_number: z.string(),
+  document_date: z.string(),
+  supplier_id: z.string().uuid(),
+  supplier_name: z.string(),
+  product_id: z.string().uuid().nullable(),
+  description: z.string(),
+  quantity: DecimalStringSchema,
+  qty_billed: DecimalStringSchema,
+  outstanding_qty: DecimalStringSchema,
+  amount: DecimalStringSchema,
+});
+export type ReceivedNotBilledLine = z.infer<typeof ReceivedNotBilledLineSchema>;
+
+export const ReceivedNotBilledSchema = z.object({
+  lines: z.array(ReceivedNotBilledLineSchema).optional().default([]),
+});
+export type ReceivedNotBilled = z.infer<typeof ReceivedNotBilledSchema>;
+
+export const DashboardUnpostedCountSchema = z.object({
+  document_type: z.string(),
+  count: z.number().int(),
+});
+export type DashboardUnpostedCount = z.infer<typeof DashboardUnpostedCountSchema>;
+
+export const DashboardCreditBreachSchema = z.object({
+  customer_id: z.string().uuid(),
+  customer_name: z.string(),
+  credit_limit: DecimalStringSchema,
+  outstanding: DecimalStringSchema,
+});
+export type DashboardCreditBreach = z.infer<typeof DashboardCreditBreachSchema>;
+
+export const DashboardSchema = z.object({
+  as_of: z.string(),
+  open_ar: DecimalStringSchema,
+  open_ap: DecimalStringSchema,
+  overdue_ar_count: z.number().int(),
+  overdue_ap_count: z.number().int(),
+  stock_valuation: DecimalStringSchema,
+  unposted: z.array(DashboardUnpostedCountSchema).optional().default([]),
+  deliveries_today: z.number().int(),
+  receipts_today: z.number().int(),
+  credit_limit_breaches: z.array(DashboardCreditBreachSchema).optional().default([]),
+});
+export type Dashboard = z.infer<typeof DashboardSchema>;
 
 export function glHref(accountId: string, from: string, to: string, branchId?: string): string {
   const params = new URLSearchParams({ account_id: accountId, from, to });

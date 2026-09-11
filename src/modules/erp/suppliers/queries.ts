@@ -52,3 +52,11 @@ export function useSupplierOutstandingSummary(id: string | null, enabled = true)
     enabled: Boolean(id) && enabled,
   });
 }
+
+export function useSupplierPaymentHistory(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...supplierKeys.detail(id ?? ""), "payment-history"]),
+    queryFn: () => suppliersApi.paymentHistory(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}

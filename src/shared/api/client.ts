@@ -310,9 +310,9 @@ function filenameFromDisposition(header: string | null, fallback: string): strin
   return plain?.[1]?.trim() ?? fallback;
 }
 
-async function downloadCsv(
+async function downloadFile(
   path: string,
-  config: RequestConfig & { filename: string },
+  config: RequestConfig & { filename: string; accept?: string; extraParams?: RequestParams },
   basePrefix: string,
   skipRefresh: boolean,
   hasRetried = false,
@@ -321,9 +321,9 @@ async function downloadCsv(
     throw new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), 0);
   }
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const url = buildUrl(path, basePrefix, { ...config.params, format: "csv" });
+  const url = buildUrl(path, basePrefix, { ...config.params, ...config.extraParams });
   const headers = new Headers(config.headers);
-  headers.set("Accept", "text/csv");
+  headers.set("Accept", config.accept ?? "application/octet-stream");
   if (!headers.has("x-request-id")) {
     headers.set("x-request-id", randomUuid());
   }
@@ -345,7 +345,7 @@ async function downloadCsv(
   if (response.status === 401 && !hasRetried && !skipRefresh) {
     const refreshed = await refreshSession();
     if (refreshed) {
-      return downloadCsv(path, config, basePrefix, skipRefresh, true);
+      return downloadFile(path, config, basePrefix, skipRefresh, true);
     }
     if (!window.location.pathname.startsWith("/login")) {
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard fallback after failed refresh
@@ -381,7 +381,7 @@ async function downloadCsv(
   link.href = objectUrl;
   link.download = filenameFromDisposition(
     response.headers.get("content-disposition"),
-    config.filename.endsWith(".csv") ? config.filename : `${config.filename}.csv`,
+    config.filename,
   );
   document.body.appendChild(link);
   link.click();
@@ -395,7 +395,15 @@ function createClient(basePrefix: string, skipRefresh = false) {
       return request<T>(path, { ...config, method: "GET", basePrefix, skipRefresh });
     },
     downloadCsv(path: string, config: RequestConfig & { filename: string }): Promise<void> {
-      return downloadCsv(path, config, basePrefix, skipRefresh);
+      return downloadFile(
+        path,
+        { ...config, accept: "text/csv", extraParams: { format: "csv" } },
+        basePrefix,
+        skipRefresh,
+      );
+    },
+    downloadFile(path: string, config: RequestConfig & { filename: string; accept?: string }): Promise<void> {
+      return downloadFile(path, config, basePrefix, skipRefresh);
     },
     getList<T>(path: string, config: RequestConfig = {}): Promise<ListResponse<T>> {
       return requestList<T>(path, { ...config, method: "GET", basePrefix, skipRefresh });

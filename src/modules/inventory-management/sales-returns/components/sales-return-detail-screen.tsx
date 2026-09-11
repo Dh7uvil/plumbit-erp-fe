@@ -26,6 +26,7 @@ import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/c
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
@@ -169,7 +170,12 @@ function SalesReturnDetailLoaded({
         </p>
       }
       formTitle={isEdit ? "Edit sales return" : "Sales return"}
-      panels={<DocumentLedgerCard journalEntryId={doc.journal_entry_id} />}
+      panels={
+        <>
+          <RelatedDocumentsCard documents={doc.related_documents} />
+          <DocumentLedgerCard journalEntryId={doc.journal_entry_id} />
+        </>
+      }
       attachments={
         <EntityAttachmentsPanel
           entityType="SALES_RETURN"

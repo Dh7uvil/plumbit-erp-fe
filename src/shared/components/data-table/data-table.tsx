@@ -9,15 +9,19 @@ export function DataTable({
   children,
   footer,
   className,
+  tableClassName,
 }: {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  tableClassName?: string;
 }) {
   return (
     <ListPageTable>
       <Card className={cn("flex h-fit max-h-full min-h-0 w-full flex-col gap-0 py-0", className)}>
-        <Table containerClassName="overflow-auto">{children}</Table>
+        <Table className={tableClassName} containerClassName="overflow-auto">
+          {children}
+        </Table>
         {footer ? <div className="bg-card shrink-0 border-t">{footer}</div> : null}
       </Card>
     </ListPageTable>

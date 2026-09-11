@@ -94,11 +94,17 @@ export function EntityAttachmentsPanel({
   const can = useCan();
   const canRead = can(attachmentPermissions.read);
   const inputRef = useRef<HTMLInputElement>(null);
-  const attachmentsQuery = useEntityAttachments(entityType, entityId, canRead);
+  const [uploadCategory, setUploadCategory] = useState<AttachmentCategory>(defaultCategory);
+  const [filterCategory, setFilterCategory] = useState<AttachmentCategory | "all">("all");
+  const attachmentsQuery = useEntityAttachments(
+    entityType,
+    entityId,
+    canRead,
+    filterCategory === "all" ? undefined : filterCategory,
+  );
   const createAttachment = useCreateAttachment();
   const updateAttachment = useUpdateAttachment();
   const deleteAttachment = useDeleteAttachment();
-  const [uploadCategory, setUploadCategory] = useState<AttachmentCategory>(defaultCategory);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -195,6 +201,23 @@ export function EntityAttachmentsPanel({
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle className="text-base">Attachments</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={filterCategory}
+            onValueChange={(value) => setFilterCategory(value as AttachmentCategory | "all")}
+          >
+            <SelectTrigger className="h-8 w-44" aria-label="Filter attachments">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {ATTACHMENT_CATEGORIES.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {ATTACHMENT_CATEGORY_LABELS[category]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         {can(attachmentPermissions.create) ? (
           <div className="flex items-center gap-2">
             <Select
@@ -240,6 +263,7 @@ export function EntityAttachmentsPanel({
             </Button>
           </div>
         ) : null}
+        </div>
       </CardHeader>
       <CardContent>
         {attachmentsQuery.isLoading ? <Skeleton className="h-20 w-full" /> : null}

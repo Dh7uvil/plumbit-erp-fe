@@ -1,8 +1,10 @@
 export const proformaInvoicePermissions = {
-  read: "erp.proforma_invoice.read",
-  create: "erp.proforma_invoice.create",
-  update: "erp.proforma_invoice.update",
-  delete: "erp.proforma_invoice.delete",
-  send: "erp.proforma_invoice.send",
-  confirm: "erp.proforma_invoice.confirm",
+  read: "sales.proforma_invoice.read",
+  create: "sales.proforma_invoice.create",
+  update: "sales.proforma_invoice.update",
+  delete: "sales.proforma_invoice.delete",
+  send: "sales.proforma_invoice.send",
+  confirm: "sales.proforma_invoice.confirm",
+  import: "sales.proforma_invoice.import",
+  export: "sales.proforma_invoice.export",
 } as const;

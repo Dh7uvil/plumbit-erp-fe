@@ -3,6 +3,9 @@ import { z } from "zod";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
   ConversionLineInputSchema,
+  PackingLineFormFieldsSchema,
+  PackingLineInputFields,
+  PackingLineResponseFields,
   RelatedDocumentRefSchema,
 } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
@@ -161,6 +164,7 @@ export const ProformaInvoiceLineSchema = z.object({
   source_sales_order_line_id: z.string().uuid().nullable().optional().default(null),
   qty_converted: DecimalStringSchema.optional().default("0"),
   qty_remaining: DecimalStringSchema.optional(),
+  ...PackingLineResponseFields,
 });
 export type ProformaInvoiceLine = z.infer<typeof ProformaInvoiceLineSchema>;
 
@@ -281,6 +285,7 @@ export const ProformaInvoiceLineInputSchema = z.object({
   tax_id: z.string().uuid().nullable().optional(),
   hs_code: z.string().nullable().optional(),
   source_quotation_line_id: z.string().uuid().nullable().optional(),
+  ...PackingLineInputFields,
 });
 export type ProformaInvoiceLineInput = z.infer<typeof ProformaInvoiceLineInputSchema>;
 
@@ -386,18 +391,20 @@ export type ConvertProformaToSalesInvoiceRequest = z.infer<
   typeof ConvertProformaToSalesInvoiceRequestSchema
 >;
 
-export const ProformaInvoiceLineFormSchema = z.object({
-  product_id: z.string(),
-  description: z.string(),
-  quantity: z.string(),
-  unit_id: z.string(),
-  rate: z.string(),
-  discount_type: z.string(),
-  discount_value: z.string(),
-  tax_id: z.string(),
-  hs_code: z.string().optional(),
-  source_quotation_line_id: z.string().optional(),
-});
+export const ProformaInvoiceLineFormSchema = z
+  .object({
+    product_id: z.string(),
+    description: z.string(),
+    quantity: z.string(),
+    unit_id: z.string(),
+    rate: z.string(),
+    discount_type: z.string(),
+    discount_value: z.string(),
+    tax_id: z.string(),
+    hs_code: z.string().optional(),
+    source_quotation_line_id: z.string().optional(),
+  })
+  .merge(PackingLineFormFieldsSchema);
 export type ProformaInvoiceLineFormValues = z.infer<typeof ProformaInvoiceLineFormSchema>;
 
 export const ProformaInvoiceMilestoneFormSchema = z.object({

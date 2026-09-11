@@ -34,6 +34,7 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { printHref } from "@/shared/lib/print";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import {
   DocumentWorkflowButtons,
@@ -161,6 +162,7 @@ function PurchaseOrderDetailLoaded({
       subtitle={number ? undefined : "Number not assigned yet"}
       listHref="/purchase-orders"
       viewHref={viewHref}
+      printHref={printHref("purchase-orders", purchaseOrder.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}

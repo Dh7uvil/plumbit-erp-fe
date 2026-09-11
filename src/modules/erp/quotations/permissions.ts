@@ -1,9 +1,11 @@
 export const quotationPermissions = {
-  read: "erp.quotation.read",
-  create: "erp.quotation.create",
-  update: "erp.quotation.update",
-  delete: "erp.quotation.delete",
-  approve: "erp.quotation.approve",
-  send: "erp.quotation.send",
-  revise: "erp.quotation.revise",
+  read: "sales.quotation.read",
+  create: "sales.quotation.create",
+  update: "sales.quotation.update",
+  delete: "sales.quotation.delete",
+  approve: "sales.quotation.approve",
+  send: "sales.quotation.send",
+  revise: "sales.quotation.revise",
+  import: "sales.quotation.import",
+  export: "sales.quotation.export",
 } as const;

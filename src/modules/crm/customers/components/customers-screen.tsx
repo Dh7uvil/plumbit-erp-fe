@@ -38,12 +38,14 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMN_HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status"] as const;
 const SORT_FIELDS = [
@@ -84,6 +86,7 @@ function parseTaxTreatment(value: string | undefined): TaxTreatment | undefined 
 }
 
 export function CustomersScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(customerPermissions);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
@@ -136,7 +139,24 @@ export function CustomersScreen() {
         title="Customers"
         subtitle="Quote-ready customer master"
         actions={
-          canCreate ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <ImexToolbar
+              resource="customers"
+              title="customers"
+              canImport={can(customerPermissions.import) || canCreate}
+              canExport={can(customerPermissions.export) || canRead}
+              exportParams={{
+                search,
+                tax_treatment: filters.tax_treatment,
+                currency_id: filters.currency_id,
+                company_type: filters.company_type,
+                is_active: filters.is_active,
+              }}
+              onImported={() => {
+                void customersQuery.refetch();
+              }}
+            />
+            {canCreate ? (
             <Button
               type="button"
               size="sm"
@@ -147,7 +167,8 @@ export function CustomersScreen() {
               <Plus className="size-3.5" />
               New Customer
             </Button>
-          ) : undefined
+            ) : null}
+          </div>
         }
       />
       <DataTableToolbar>

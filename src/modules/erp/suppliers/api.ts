@@ -21,7 +21,7 @@ import {
   type SupplierListParams,
   type SupplierUpdateRequest,
 } from "@/modules/erp/suppliers/schemas";
-import { OpenItemRowListSchema } from "@/shared/components/document/schemas";
+import { OpenItemRowListSchema, PartyPaymentHistoryListSchema } from "@/shared/components/document/schemas";
 import { emptyToNull, toAddressPayload } from "@/modules/users-management/tenants/schemas";
 import { apiClient } from "@/shared/api/client";
 import type { ListResponse } from "@/shared/api/envelope";
@@ -143,4 +143,10 @@ export const suppliersApi = {
   },
   outstandingSummary: async (id: string): Promise<OutstandingSummary> =>
     OutstandingSummarySchema.parse(await apiClient.get(`/suppliers/${id}/outstanding-summary`)),
+  paymentHistory: async (id: string) => {
+    const result = await apiClient.getList<unknown>(`/suppliers/${id}/payment-history`, {
+      params: { page: 1, page_size: 20 },
+    });
+    return PartyPaymentHistoryListSchema.parse(result.data);
+  },
 };

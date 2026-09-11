@@ -4,17 +4,17 @@ import { can } from "@/shared/auth/permissions";
 import { crudPermissions, resolveFormDialogMode } from "@/shared/auth/use-crud-permissions";
 
 const keys = {
-  read: "erp.quotation.read",
-  create: "erp.quotation.create",
-  update: "erp.quotation.update",
-  delete: "erp.quotation.delete",
+  read: "sales.quotation.read",
+  create: "sales.quotation.create",
+  update: "sales.quotation.update",
+  delete: "sales.quotation.delete",
 };
 
 describe("can", () => {
   it("returns true only when the permission is granted", () => {
-    expect(can("erp.quotation.read", ["erp.quotation.read", "erp.quotation.create"])).toBe(true);
-    expect(can("erp.quotation.delete", ["erp.quotation.read"])).toBe(false);
-    expect(can("erp.quotation.read")).toBe(false);
+    expect(can("sales.quotation.read", ["sales.quotation.read", "sales.quotation.create"])).toBe(true);
+    expect(can("sales.quotation.delete", ["sales.quotation.read"])).toBe(false);
+    expect(can("sales.quotation.read")).toBe(false);
   });
 });
 
@@ -32,7 +32,7 @@ describe("crudPermissions", () => {
   });
 
   it("checks create, update and delete independently", () => {
-    const granted = new Set(["erp.quotation.read", "erp.quotation.create"]);
+    const granted = new Set(["sales.quotation.read", "sales.quotation.create"]);
     const permissions = crudPermissions((permission) => granted.has(permission), keys);
     expect(permissions.canRead).toBe(true);
     expect(permissions.canCreate).toBe(true);

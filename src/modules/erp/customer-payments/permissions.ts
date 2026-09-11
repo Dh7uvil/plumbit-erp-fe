@@ -1,8 +1,8 @@
 export const customerPaymentPermissions = {
-  read: "erp.customer_payment.read",
-  create: "erp.customer_payment.create",
-  update: "erp.customer_payment.update",
-  delete: "erp.customer_payment.delete",
-  post: "erp.customer_payment.post",
-  cancel: "erp.customer_payment.cancel",
+  read: "sales.customer_payment.read",
+  create: "sales.customer_payment.create",
+  update: "sales.customer_payment.update",
+  delete: "sales.customer_payment.delete",
+  post: "sales.customer_payment.post",
+  cancel: "sales.customer_payment.cancel",
 } as const;

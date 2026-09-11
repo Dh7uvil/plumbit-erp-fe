@@ -130,6 +130,88 @@ export const DISCOUNT_TYPE_LABELS: Record<(typeof DISCOUNT_TYPES)[number], strin
   AMOUNT: "Amount",
 };
 
+export const PartyPaymentHistoryItemSchema = z.object({
+  id: z.string().uuid(),
+  document_number: z.string().optional().default(""),
+  display_number: z.string().optional().default(""),
+  payment_date: z.string(),
+  status: z.string(),
+  amount_received: z.string().optional(),
+  amount_paid: z.string().optional(),
+});
+export const PartyPaymentHistoryListSchema = z.array(PartyPaymentHistoryItemSchema);
+export type PartyPaymentHistoryItem = z.infer<typeof PartyPaymentHistoryItemSchema>;
+
+export const PackingLineResponseFields = {
+  carton_qty: z.string().nullable().optional().default(null),
+  packing_unit: z.string().nullable().optional().default(null),
+  cbm: z.string().nullable().optional().default(null),
+  weight: z.string().nullable().optional().default(null),
+  item_code: z.string().nullable().optional().default(null),
+};
+
+export const PackingLineInputFields = {
+  carton_qty: DecimalStringSchema.nullable().optional(),
+  packing_unit: z.string().nullable().optional(),
+  cbm: DecimalStringSchema.nullable().optional(),
+  weight: DecimalStringSchema.nullable().optional(),
+  item_code: z.string().nullable().optional(),
+};
+
+export const PackingLineFormFieldsSchema = z.object({
+  carton_qty: z.string(),
+  packing_unit: z.string(),
+  cbm: z.string(),
+  weight: z.string(),
+  item_code: z.string(),
+});
+
+export function emptyPackingLineForm() {
+  return {
+    carton_qty: "",
+    packing_unit: "",
+    cbm: "",
+    weight: "",
+    item_code: "",
+  };
+}
+
+export function packingFromLine(line: {
+  carton_qty?: string | null;
+  packing_unit?: string | null;
+  cbm?: string | null;
+  weight?: string | null;
+  item_code?: string | null;
+}) {
+  return {
+    carton_qty: line.carton_qty ?? "",
+    packing_unit: line.packing_unit ?? "",
+    cbm: line.cbm ?? "",
+    weight: line.weight ?? "",
+    item_code: line.item_code ?? "",
+  };
+}
+
+export function packingLineInput(values: {
+  carton_qty?: string;
+  packing_unit?: string;
+  cbm?: string;
+  weight?: string;
+  item_code?: string;
+}) {
+  function emptyToNull(value: string | undefined): string | null {
+    const trimmed = value?.trim() ?? "";
+    return trimmed ? trimmed : null;
+  }
+  return {
+    carton_qty: emptyToNull(values.carton_qty),
+    packing_unit: emptyToNull(values.packing_unit),
+    cbm: emptyToNull(values.cbm),
+    weight: emptyToNull(values.weight),
+    item_code: emptyToNull(values.item_code),
+  };
+}
+
 export const DocumentLineFormSchema = z.object({
   product_id: z.string(),
   supplier_product_id: z.string(),
@@ -144,6 +226,11 @@ export const DocumentLineFormSchema = z.object({
   net_weight: z.string(),
   gross_weight: z.string(),
   purchase_order_line_id: z.string(),
+  carton_qty: z.string(),
+  packing_unit: z.string(),
+  cbm: z.string(),
+  weight: z.string(),
+  item_code: z.string(),
 });
 export type DocumentLineFormValues = z.infer<typeof DocumentLineFormSchema>;
 
@@ -162,6 +249,7 @@ export function emptyDocumentLine(): DocumentLineFormValues {
     net_weight: "",
     gross_weight: "",
     purchase_order_line_id: "",
+    ...emptyPackingLineForm(),
   };
 }
 

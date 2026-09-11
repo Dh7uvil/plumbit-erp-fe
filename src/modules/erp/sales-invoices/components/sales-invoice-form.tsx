@@ -41,14 +41,13 @@ import {
   type SalesInvoiceLineInput,
   type SalesInvoiceUpdateRequest,
 } from "@/modules/erp/sales-invoices/schemas";
-import { emptyDocumentLine } from "@/shared/components/document/schemas";
+import { emptyDocumentLine, packingFromLine, packingLineInput } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
-import { userPermissions } from "@/modules/users-management/users/permissions";
-import { useAllUsers } from "@/modules/users-management/users/queries";
+import { EmployeeSelect } from "@/modules/users-management/employees/components/employee-select";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -114,6 +113,7 @@ function toLineInput(line: SalesInvoiceLineFormValues): SalesInvoiceLineInput {
     sales_order_line_id: optionalUuid(line.sales_order_line_id),
     delivery_note_id: optionalUuid(line.delivery_note_id),
     delivery_note_line_id: optionalUuid(line.delivery_note_line_id),
+    ...packingLineInput(line),
   };
 }
 
@@ -141,6 +141,7 @@ function toFormLines(invoice: SalesInvoice | null): SalesInvoiceLineFormValues[]
     sales_order_line_id: line.sales_order_line_id ?? "",
     delivery_note_id: line.delivery_note_id ?? "",
     delivery_note_line_id: line.delivery_note_line_id ?? "",
+    ...packingFromLine(line),
   }));
 }
 
@@ -235,7 +236,6 @@ export function SalesInvoiceForm({
   const paymentTermsQuery = useAllPaymentTerms();
   const branchesQuery = useAllBranches();
   const termsTemplatesQuery = useAllTermsTemplates(!invoice);
-  const usersQuery = useAllUsers(can(userPermissions.read));
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState<
     "customer" | "contact" | "branch" | "currency" | "paymentTerms" | "termsTemplate" | null
@@ -266,7 +266,6 @@ export function SalesInvoiceForm({
   const paymentTerms = paymentTermsQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
   const templates = useMemo(() => termsTemplatesQuery.data ?? [], [termsTemplatesQuery.data]);
-  const users = usersQuery.data ?? [];
 
   useEffect(() => {
     const customer = customerQuery.data;
@@ -506,32 +505,14 @@ export function SalesInvoiceForm({
             control={form.control}
             name="salesperson_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Salesperson</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    markComposeDirty("salesperson_id");
-                    field.onChange(value);
-                  }}
-                  disabled={disabled || usersQuery.isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+              <EmployeeSelect
+                value={field.value}
+                onValueChange={(value) => {
+                  markComposeDirty("salesperson_id");
+                  field.onChange(value);
+                }}
+                disabled={disabled}
+              />
             )}
           />
           <FormField
@@ -708,6 +689,7 @@ export function SalesInvoiceForm({
             form={form}
             disabled={disabled || sourcedLines}
             productSide="sales"
+            showPacking
           />
         </div>
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}

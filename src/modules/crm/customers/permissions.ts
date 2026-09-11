@@ -3,4 +3,6 @@ export const customerPermissions = {
   create: "crm.customer.create",
   update: "crm.customer.update",
   delete: "crm.customer.delete",
+  import: "crm.customer.import",
+  export: "crm.customer.export",
 } as const;

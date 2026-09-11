@@ -27,6 +27,7 @@ import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { printHref } from "@/shared/lib/print";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
@@ -115,6 +116,7 @@ function CreditNoteDetailLoaded({
       subtitle={number ? undefined : "Number not assigned yet"}
       listHref="/credit-notes"
       viewHref={viewHref}
+      printHref={printHref("credit-notes", note.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}

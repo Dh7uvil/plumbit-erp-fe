@@ -1,13 +1,15 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
   grantedPermissionIds,
+  matrixActionColumns,
   permissionMatrixTable,
+  sameIdSet,
 } from "@/modules/users-management/permissions/matrix";
 import { usePermissionMatrix } from "@/modules/users-management/permissions/queries";
 import {
@@ -35,7 +37,6 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -44,14 +45,23 @@ import { titleCase } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
+const MODULE_COL_CLASS = "w-36 min-w-36 max-w-36";
+const RESOURCE_COL_CLASS = "w-48 min-w-48 max-w-48";
+const ACTION_COL_CLASS = "w-24 min-w-24 max-w-24";
+const FROZEN_SHADOW = "shadow-[2px_0_6px_-2px_rgba(0,0,0,0.18)]";
+
+function writePermissionsQuery(params: URLSearchParams) {
+  const query = params.toString();
+  const href = query ? `/permissions?${query}` : "/permissions";
+  window.history.replaceState(window.history.state, "", href);
+}
 
 export function PermissionsScreen() {
   const can = useCan();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const roleIdParam = searchParams.get("role_id");
-  const moduleFilter = searchParams.get("module") ?? ALL;
-  const resourceFilter = searchParams.get("resource") ?? ALL;
+  const [roleIdParam, setRoleIdParam] = useState(() => searchParams.get("role_id"));
+  const [moduleFilter, setModuleFilter] = useState(() => searchParams.get("module") ?? ALL);
+  const [resourceFilter, setResourceFilter] = useState(() => searchParams.get("resource") ?? ALL);
   const rolesQuery = useAllRoles();
   const selectedRoleId = roleIdParam ?? rolesQuery.data?.[0]?.id ?? null;
   const matrixQuery = usePermissionMatrix(selectedRoleId);
@@ -106,6 +116,20 @@ export function PermissionsScreen() {
     [table.rows, moduleFilter, resourceFilter],
   );
 
+  const visibleActions = useMemo(() => matrixActionColumns(filteredRows), [filteredRows]);
+
+  useEffect(() => {
+    if (!selectedRoleId || typeof window === "undefined") {
+      return;
+    }
+    const next = new URLSearchParams(window.location.search);
+    if (next.get("role_id") === selectedRoleId) {
+      return;
+    }
+    next.set("role_id", selectedRoleId);
+    writePermissionsQuery(next);
+  }, [selectedRoleId]);
+
   function toggle(id: string, checked: boolean) {
     if (!selectedRoleId) {
       return;
@@ -124,26 +148,31 @@ export function PermissionsScreen() {
     module?: string | null;
     resource?: string | null;
   }) {
-    const next = new URLSearchParams(searchParams.toString());
+    const nextRoleId = patch.role_id !== undefined ? patch.role_id : selectedRoleId;
+    const nextModule = patch.module !== undefined ? (patch.module ?? ALL) : moduleFilter;
+    const nextResource = patch.resource !== undefined ? (patch.resource ?? ALL) : resourceFilter;
+
     if (patch.role_id !== undefined) {
-      next.set("role_id", patch.role_id);
+      setRoleIdParam(patch.role_id);
     }
     if (patch.module !== undefined) {
-      if (patch.module && patch.module !== ALL) {
-        next.set("module", patch.module);
-      } else {
-        next.delete("module");
-      }
+      setModuleFilter(nextModule);
     }
     if (patch.resource !== undefined) {
-      if (patch.resource && patch.resource !== ALL) {
-        next.set("resource", patch.resource);
-      } else {
-        next.delete("resource");
-      }
+      setResourceFilter(nextResource);
     }
-    const query = next.toString();
-    router.replace(query ? `/permissions?${query}` : "/permissions");
+
+    const next = new URLSearchParams();
+    if (nextRoleId) {
+      next.set("role_id", nextRoleId);
+    }
+    if (nextModule && nextModule !== ALL) {
+      next.set("module", nextModule);
+    }
+    if (nextResource && nextResource !== ALL) {
+      next.set("resource", nextResource);
+    }
+    writePermissionsQuery(next);
   }
 
   function selectRole(id: string) {
@@ -164,12 +193,18 @@ export function PermissionsScreen() {
     if (!selectedRoleId) {
       return;
     }
+    const permissionIds = [...selectedIds];
     try {
-      await savePermissions.mutateAsync({
+      const detail = await savePermissions.mutateAsync({
         id: selectedRoleId,
-        permissionIds: [...selectedIds],
+        permissionIds,
       });
       setDraft(null);
+      const returnedIds = detail.permissions.map((item) => item.id);
+      if (returnedIds.length > 0 && !sameIdSet(permissionIds, returnedIds)) {
+        toast.warning("The server kept a different permission set for this role.");
+        return;
+      }
       toast.success("Permissions saved");
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -320,30 +355,79 @@ export function PermissionsScreen() {
         />
       ) : null}
       {!matrixQuery.isLoading && filteredRows.length > 0 && selectedRoleId ? (
-        <DataTable>
-          <TableHeader>
+        <DataTable
+          tableClassName="min-w-full w-max table-fixed border-separate border-spacing-0 [&_th]:border-b [&_td]:border-b [&_th:not(:last-child)]:border-r [&_td:not(:last-child)]:border-r"
+          footer={
+            canSave ? (
+              <div className="flex justify-end gap-2 px-3 py-2.5">
+                {canResetSuperadmin ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setResetOpen(true)}
+                    disabled={pending}
+                  >
+                    Reset to Default
+                  </Button>
+                ) : null}
+                <Button type="button" size="sm" onClick={onSave} disabled={pending}>
+                  {savePermissions.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Save Permissions
+                </Button>
+              </div>
+            ) : null
+          }
+        >
+          <colgroup>
+            <col className={MODULE_COL_CLASS} style={{ width: "9rem" }} />
+            <col className={RESOURCE_COL_CLASS} style={{ width: "12rem" }} />
+            {visibleActions.map((action) => (
+              <col key={action} className={ACTION_COL_CLASS} style={{ width: "6rem" }} />
+            ))}
+            <col />
+          </colgroup>
+          <TableHeader className="z-30">
             <TableRow>
-              <TableHead className="w-36">Module</TableHead>
-              <TableHead>Resource</TableHead>
-              {table.actions.map((action) => (
-                <TableHead key={action} className="text-center">
+              <TableHead className={`bg-card sticky left-0 z-40 truncate ${MODULE_COL_CLASS}`}>
+                Module
+              </TableHead>
+              <TableHead
+                className={`bg-card sticky left-36 z-40 truncate ${RESOURCE_COL_CLASS} ${FROZEN_SHADOW}`}
+              >
+                Resource
+              </TableHead>
+              {visibleActions.map((action) => (
+                <TableHead
+                  key={action}
+                  className={`${ACTION_COL_CLASS} text-center whitespace-normal`}
+                >
                   {titleCase(action)}
                 </TableHead>
               ))}
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRows.map((row) => (
-              <TableRow key={`${row.module}-${row.resource}`}>
-                <TableCell className="font-medium">{row.module}</TableCell>
-                <TableCell>{row.resource}</TableCell>
-                {table.actions.map((action) => {
+              <TableRow key={`${row.module}-${row.resource}`} className="group">
+                <TableCell
+                  className={`bg-card group-hover:bg-muted sticky left-0 z-10 truncate font-medium ${MODULE_COL_CLASS}`}
+                >
+                  {row.module}
+                </TableCell>
+                <TableCell
+                  className={`bg-card group-hover:bg-muted sticky left-36 z-10 truncate ${RESOURCE_COL_CLASS} ${FROZEN_SHADOW}`}
+                >
+                  {row.resource}
+                </TableCell>
+                {visibleActions.map((action) => {
                   const permission = row.actions[action];
                   if (!permission) {
-                    return <TableCell key={action} />;
+                    return <TableCell key={action} className={ACTION_COL_CLASS} />;
                   }
                   return (
-                    <TableCell key={action} className="text-center">
+                    <TableCell key={action} className={`${ACTION_COL_CLASS} text-center`}>
                       <div className="flex justify-center">
                         <Checkbox
                           checked={selectedIds.has(permission.id)}
@@ -355,36 +439,10 @@ export function PermissionsScreen() {
                     </TableCell>
                   );
                 })}
+                <TableCell />
               </TableRow>
             ))}
           </TableBody>
-          {canSave ? (
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={2 + table.actions.length} className="text-right">
-                  <div className="flex justify-end gap-2">
-                    {canResetSuperadmin ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setResetOpen(true)}
-                        disabled={pending}
-                      >
-                        Reset to Default
-                      </Button>
-                    ) : null}
-                    <Button type="button" size="sm" onClick={onSave} disabled={pending}>
-                      {savePermissions.isPending ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : null}
-                      Save Permissions
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          ) : null}
         </DataTable>
       ) : null}
       <ConfirmActionDialog
