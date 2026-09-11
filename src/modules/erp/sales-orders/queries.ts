@@ -21,11 +21,12 @@ export const salesOrderKeys = {
   tracker: (id: string) => [...salesOrderKeys.all, "tracker", id] as const,
 };
 
-export function useSalesOrders(params: SalesOrderListParams) {
+export function useSalesOrders(params: SalesOrderListParams, enabled = true) {
   return useQuery({
     queryKey: useTenantQueryKey(salesOrderKeys.list(params)),
     queryFn: () => salesOrdersApi.list(params),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

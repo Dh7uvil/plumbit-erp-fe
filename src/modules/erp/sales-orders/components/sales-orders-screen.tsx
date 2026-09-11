@@ -8,9 +8,11 @@ import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
-import { getDocumentAction } from "@/shared/components/document/workflow-registry";
-import { SALES_ORDER_ACTION_REGISTRY } from "@/modules/erp/sales-orders/workflow";
+import { ConvertProformaToSalesOrderDialog } from "@/modules/erp/proforma-invoices/components/convert-to-sales-order-dialog";
+import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
+import { ConvertQuotationToSalesOrderDialog } from "@/modules/erp/quotations/components/convert-to-sales-order-dialog";
+import { quotationPermissions } from "@/modules/erp/quotations/permissions";
+import { CloneSalesOrderDialog } from "@/modules/erp/sales-orders/components/clone-sales-order-dialog";
 import { useCloneSalesOrder, useDeleteSalesOrder } from "@/modules/erp/sales-orders/mutations";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrders } from "@/modules/erp/sales-orders/queries";
@@ -30,6 +32,7 @@ import {
   type SalesOrder,
   type SalesOrderStatus,
 } from "@/modules/erp/sales-orders/schemas";
+import { SALES_ORDER_ACTION_REGISTRY } from "@/modules/erp/sales-orders/workflow";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -48,15 +51,25 @@ import {
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
+import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMN_HEADERS = ["Number", "Customer", "Date", "Status", "Grand total"] as const;
 const ALL = "all";
@@ -91,6 +104,7 @@ function parseBilling(value: string | undefined): BillingStatus | undefined {
 
 export function SalesOrdersScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(salesOrderPermissions);
+  const can = useCan();
   const router = useRouter();
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
@@ -136,6 +150,12 @@ export function SalesOrdersScreen() {
   const cloneSalesOrder = useCloneSalesOrder();
   const deleteSalesOrder = useDeleteSalesOrder();
   const [deleting, setDeleting] = useState<SalesOrder | null>(null);
+  const [fromQuotation, setFromQuotation] = useState(false);
+  const [fromClone, setFromClone] = useState(false);
+  const [fromProforma, setFromProforma] = useState(false);
+  const canConvertFromQuotation =
+    canCreate && can(quotationPermissions.update) && can(quotationPermissions.read);
+  const canConvertFromProforma = canCreate && can(proformaInvoicePermissions.read);
 
   const rows = salesOrdersQuery.data?.data ?? [];
   const meta = salesOrdersQuery.data?.meta;
@@ -178,12 +198,41 @@ export function SalesOrdersScreen() {
         subtitle="Customer orders with server-side totals"
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/sales-orders/new">
-                <Plus className="size-3.5" />
-                New sales order
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                  >
+                    Convert from
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                  {canConvertFromQuotation ? (
+                    <DropdownMenuItem onSelect={() => setFromQuotation(true)}>
+                      Quotation
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem onSelect={() => setFromClone(true)}>
+                    Sales order
+                  </DropdownMenuItem>
+                  {canConvertFromProforma ? (
+                    <DropdownMenuItem onSelect={() => setFromProforma(true)}>
+                      Proforma invoice
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button type="button" size="sm" asChild>
+                <Link href="/sales-orders/new">
+                  <Plus className="size-3.5" />
+                  New sales order
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -504,6 +553,9 @@ export function SalesOrdersScreen() {
         }}
         onConfirm={() => void onDelete()}
       />
+      <ConvertQuotationToSalesOrderDialog open={fromQuotation} onOpenChange={setFromQuotation} />
+      <CloneSalesOrderDialog open={fromClone} onOpenChange={setFromClone} />
+      <ConvertProformaToSalesOrderDialog open={fromProforma} onOpenChange={setFromProforma} />
     </ListPage>
   );
 }

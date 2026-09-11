@@ -1,6 +1,7 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
   ConvertToProformaInvoiceRequestSchema,
+  ConvertToSalesInvoiceRequestSchema,
   ConvertToSalesOrderRequestSchema,
   QuotationComposeDefaultsSchema,
   QuotationCreateRequestSchema,
@@ -11,6 +12,7 @@ import {
   QuotationUpdateRequestSchema,
   ReviseQuotationRequestSchema,
   type ConvertToProformaInvoiceRequest,
+  type ConvertToSalesInvoiceRequest,
   type ConvertToSalesOrderRequest,
   type Quotation,
   type QuotationComposeDefaults,
@@ -21,6 +23,7 @@ import {
   type QuotationUpdateRequest,
 } from "@/modules/erp/quotations/schemas";
 import { ProformaInvoiceSchema, type ProformaInvoice } from "@/modules/erp/proforma-invoices/schemas";
+import { SalesInvoiceSchema, type SalesInvoice } from "@/modules/erp/sales-invoices/schemas";
 import { SalesOrderSchema, type SalesOrder } from "@/modules/erp/sales-orders/schemas";
 import { apiClient } from "@/shared/api/client";
 import { ifMatchHeaders, postDocumentHeaders } from "@/shared/api/concurrency";
@@ -152,6 +155,20 @@ export const quotationsApi = {
           version: options.version,
         }),
         { headers: ifMatchHeaders(options.version) },
+      ),
+    ),
+  convertToSalesInvoice: async (
+    id: string,
+    options: QuotationWriteOptions & { values?: ConvertToSalesInvoiceRequest },
+  ): Promise<SalesInvoice> =>
+    SalesInvoiceSchema.parse(
+      await apiClient.post(
+        `/quotations/${id}/convert-to-sales-invoice`,
+        ConvertToSalesInvoiceRequestSchema.parse({
+          ...(options.values ?? {}),
+          version: options.version,
+        }),
+        { headers: postDocumentHeaders(options.version) },
       ),
     ),
   revise: async (

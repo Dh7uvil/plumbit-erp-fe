@@ -22,6 +22,7 @@ import {
   INVOICE_DOCUMENT_STATUS_VARIANTS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_VARIANTS,
+  TAX_TREATMENT_LABELS,
   salesInvoiceDisplayNumber,
   type SalesInvoice,
 } from "@/modules/erp/sales-invoices/schemas";
@@ -29,10 +30,12 @@ import { SALES_INVOICE_ACTION_REGISTRY } from "@/modules/erp/sales-invoices/work
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
@@ -146,6 +149,26 @@ function SalesInvoiceDetailLoaded({
             labels={PAYMENT_STATUS_LABELS}
             variants={PAYMENT_STATUS_VARIANTS}
           />
+          {invoice.is_overdue ? (
+            <DocumentStatusBadge
+              status="OVERDUE"
+              labels={{ OVERDUE: "Overdue" }}
+              variants={{ OVERDUE: "destructive" }}
+            />
+          ) : null}
+          {invoice.is_fully_credited ? (
+            <DocumentStatusBadge
+              status="CREDITED"
+              labels={{ CREDITED: "Credited" }}
+              variants={{ CREDITED: "secondary" }}
+            />
+          ) : invoice.is_partially_credited ? (
+            <DocumentStatusBadge
+              status="PARTIALLY_CREDITED"
+              labels={{ PARTIALLY_CREDITED: "Partially credited" }}
+              variants={{ PARTIALLY_CREDITED: "warning" }}
+            />
+          ) : null}
         </>
       }
       workflow={
@@ -177,6 +200,12 @@ function SalesInvoiceDetailLoaded({
       }
       banner={
         <div className="flex flex-col gap-2">
+          <AppliedCommercialTerms
+            currencyId={invoice.currency_id}
+            exchangeRate={invoice.exchange_rate}
+            taxTreatmentLabel={TAX_TREATMENT_LABELS[invoice.tax_treatment]}
+            paymentTermsId={invoice.payment_terms_id}
+          />
           {missingExportEvidence ? (
             <Alert>
               <AlertDescription>
@@ -185,15 +214,40 @@ function SalesInvoiceDetailLoaded({
               </AlertDescription>
             </Alert>
           ) : null}
-          {invoice.sales_order_id ? (
+          {invoice.sales_order_id ||
+          invoice.source_quotation_id ||
+          invoice.source_proforma_invoice_id ? (
             <p className="text-muted-foreground text-sm">
               Invoiced from{" "}
-              <Link
-                href={`/sales-orders/${invoice.sales_order_id}`}
-                className="text-foreground underline-offset-4 hover:underline"
-              >
-                sales order
-              </Link>
+              {invoice.sales_order_id ? (
+                <Link
+                  href={`/sales-orders/${invoice.sales_order_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  sales order
+                </Link>
+              ) : null}
+              {invoice.sales_order_id &&
+              (invoice.source_proforma_invoice_id || invoice.source_quotation_id)
+                ? " · "
+                : null}
+              {invoice.source_proforma_invoice_id ? (
+                <Link
+                  href={`/proforma-invoices/${invoice.source_proforma_invoice_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  proforma invoice
+                </Link>
+              ) : null}
+              {invoice.source_proforma_invoice_id && invoice.source_quotation_id ? " · " : null}
+              {invoice.source_quotation_id ? (
+                <Link
+                  href={`/quotations/${invoice.source_quotation_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  quotation
+                </Link>
+              ) : null}
               {invoice.due_date ? ` · Due ${formatDate(invoice.due_date)}` : ""}.
             </p>
           ) : invoice.due_date ? (
@@ -204,6 +258,7 @@ function SalesInvoiceDetailLoaded({
       formTitle={isEdit ? "Edit sales invoice" : "Sales invoice"}
       panels={
         <>
+          <RelatedDocumentsCard documents={invoice.related_documents} />
           <SalesInvoiceMarginCard invoice={invoice} currencyCode={currencyCode} />
           <DocumentLedgerCard
             journalEntryId={invoice.journal_entry_id}

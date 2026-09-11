@@ -58,6 +58,8 @@ export function useProformaInvoiceWorkflow(invoice: ProformaInvoice) {
       router.push(`/proforma-invoices/${cloned.id}`);
     } else if (action === "convert") {
       return;
+    } else if (action === "create_sales_invoice") {
+      return;
     } else if (action === "delete") {
       await deleteInvoice.mutateAsync(write);
       toast.success("Proforma invoice deleted");

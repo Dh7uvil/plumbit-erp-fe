@@ -81,6 +81,10 @@ let quotations = new Map();
 let quoteSeq = 0;
 let salesOrders = new Map();
 let soSeq = 0;
+let salesInvoices = new Map();
+let siSeq = 0;
+let proformaInvoices = new Map();
+let pfiSeq = 0;
 let purchaseOrders = new Map();
 let poSeq = 0;
 let supplierProducts = new Map();
@@ -162,6 +166,16 @@ function listOk(res, data) {
   });
 }
 
+function filterBySearch(items, search, fields) {
+  const needle = String(search ?? "").trim().toLowerCase();
+  if (!needle) {
+    return items;
+  }
+  return items.filter((item) =>
+    fields.some((field) => String(item[field] ?? "").toLowerCase().includes(needle)),
+  );
+}
+
 function fail(res, status, code, message, details) {
   json(res, status, {
     success: false,
@@ -214,6 +228,10 @@ function resetErpState() {
   quoteSeq = 0;
   salesOrders = new Map();
   soSeq = 0;
+  salesInvoices = new Map();
+  siSeq = 0;
+  proformaInvoices = new Map();
+  pfiSeq = 0;
   purchaseOrders = new Map();
   poSeq = 0;
   supplierProducts = new Map();
@@ -331,7 +349,7 @@ function quotationAvailableActions(status) {
     case "SENT":
       return ["accept", "decline", "clone"];
     case "ACCEPTED":
-      return ["convert", "clone"];
+      return ["convert", "create_sales_invoice", "clone"];
     default:
       return ["clone"];
   }
@@ -394,6 +412,7 @@ function buildQuotation(body, existing = null) {
     converted_at: null,
     converted_document_type: null,
     converted_document_id: null,
+    related_documents: existing?.related_documents ?? [],
     available_actions: quotationAvailableActions(status),
     lines,
     created_at: existing?.created_at ?? now,
@@ -569,7 +588,7 @@ function salesOrderAvailableActions(status) {
     case "REJECTED":
       return ["reopen", "cancel", "clone"];
     case "CONFIRMED":
-      return ["close", "cancel", "clone"];
+      return ["close", "cancel", "clone", "create_proforma"];
     case "CLOSED":
       return ["reopen", "clone"];
     default:
@@ -727,6 +746,8 @@ function buildSalesOrderLines(inputLines) {
       qty_returned: line.qty_returned ?? "0",
       qty_reserved: line.qty_reserved ?? "0",
       qty_invoiced: line.qty_invoiced ?? "0",
+      qty_converted: line.qty_converted ?? "0",
+      qty_remaining_to_invoice: line.qty_remaining_to_invoice ?? String(quantity),
       source_quotation_line_id: line.source_quotation_line_id ?? null,
     };
   });
@@ -817,6 +838,10 @@ function buildSalesOrder(body, existing = null, extras = {}) {
     fulfillment_status: existing?.fulfillment_status ?? "NOT_DELIVERED",
     billing_status: existing?.billing_status ?? "NOT_INVOICED",
     source_quotation_id: extras.source_quotation_id ?? existing?.source_quotation_id ?? null,
+    source_proforma_invoice_id:
+      extras.source_proforma_invoice_id ?? existing?.source_proforma_invoice_id ?? null,
+    customer_po_number: body.customer_po_number ?? existing?.customer_po_number ?? null,
+    customer_po_date: body.customer_po_date ?? existing?.customer_po_date ?? null,
     confirmed_at: existing?.confirmed_at ?? null,
     confirmed_by: existing?.confirmed_by ?? null,
     closed_at: existing?.closed_at ?? null,
@@ -828,6 +853,190 @@ function buildSalesOrder(body, existing = null, extras = {}) {
     lines,
     reservation_shortfalls: existing?.reservation_shortfalls ?? [],
     created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+function relatedDocumentRef(documentType, document, relationship, documentDate) {
+  return {
+    document_type: documentType,
+    document_id: document.id,
+    document_number: document.document_number,
+    status: document.status,
+    relationship,
+    document_date: documentDate ?? null,
+    quantity_summary: null,
+  };
+}
+
+function buildSalesInvoiceFromSource(source, extras = {}) {
+  siSeq += 1;
+  const now = new Date().toISOString();
+  const documentNumber = `SI-${String(siSeq).padStart(4, "0")}`;
+  const invoiceDate = extras.invoice_date ?? source.quote_date ?? source.order_date ?? now.slice(0, 10);
+  const lines = (source.lines ?? []).map((line, index) => ({
+    id: crypto.randomUUID(),
+    line_number: index + 1,
+    product_id: line.product_id ?? null,
+    description: line.description ?? "",
+    quantity: String(line.quantity ?? "1"),
+    unit_id: line.unit_id ?? null,
+    rate: String(line.rate ?? "0"),
+    sales_order_line_id: extras.sales_order_id ? line.id : null,
+    source_quotation_line_id: extras.source_quotation_id ? line.id : null,
+    source_proforma_invoice_line_id: extras.source_proforma_invoice_id ? line.id : null,
+    delivery_note_id: null,
+    delivery_note_line_id: null,
+    discount_type: line.discount_type ?? null,
+    discount_value: line.discount_value ?? null,
+    discount_amount: line.discount_amount ?? "0",
+    tax_id: line.tax_id ?? null,
+    tax_rate: line.tax_rate ?? "0",
+    tax_amount: line.tax_amount ?? "0",
+    amount: line.amount ?? "0",
+    income_account_id: null,
+    cogs_amount: "0",
+    cogs_status: "PENDING",
+    qty_credited: "0",
+  }));
+  const subtotal = source.subtotal ?? "0";
+  return {
+    id: crypto.randomUUID(),
+    tenant_id: TENANT_ID,
+    document_number: documentNumber,
+    status: "DRAFT",
+    version: 1,
+    is_posted: false,
+    invoice_date: invoiceDate,
+    document_date: invoiceDate,
+    customer_id: source.customer_id,
+    contact_id: source.contact_id ?? null,
+    customer_trn: source.customer_trn ?? null,
+    branch_id: source.branch_id ?? null,
+    salesperson_id: source.salesperson_id ?? null,
+    sales_order_id: extras.sales_order_id ?? null,
+    source_quotation_id: extras.source_quotation_id ?? null,
+    source_proforma_invoice_id: extras.source_proforma_invoice_id ?? null,
+    payment_terms_id: source.payment_terms_id ?? null,
+    due_date: null,
+    tax_treatment: source.tax_treatment ?? "UNREGISTERED",
+    place_of_supply: source.place_of_supply ?? "DUBAI",
+    is_export: false,
+    currency_id: source.currency_id,
+    base_currency_id: source.base_currency_id ?? source.currency_id,
+    exchange_rate: source.exchange_rate ?? "1",
+    discount_type: source.discount_type ?? null,
+    discount_value: source.discount_value ?? null,
+    discount_amount: source.discount_amount ?? "0",
+    shipping_amount: source.shipping_amount ?? "0",
+    adjustment_amount: source.adjustment_amount ?? "0",
+    round_off_amount: "0",
+    subtotal,
+    tax_amount: source.tax_amount ?? "0",
+    grand_total: source.grand_total ?? subtotal,
+    foreign_amount: source.foreign_amount ?? subtotal,
+    base_amount: source.base_amount ?? subtotal,
+    bill_to_snapshot: source.bill_to_snapshot ?? null,
+    ship_to_snapshot: source.ship_to_snapshot ?? null,
+    notes: extras.notes ?? source.notes ?? null,
+    terms_and_conditions: source.terms_and_conditions ?? null,
+    amount_paid: "0",
+    amount_credited: "0",
+    balance_due: source.grand_total ?? subtotal,
+    payment_status: "UNPAID",
+    cogs_amount: "0",
+    cogs_status: "PENDING",
+    journal_entry_id: null,
+    reversal_journal_entry_id: null,
+    export_evidence_ok: true,
+    export_evidence_checked_at: null,
+    posted_at: null,
+    posted_by: null,
+    cancelled_at: null,
+    cancelled_by: null,
+    cancel_reason: null,
+    is_overdue: false,
+    is_partially_credited: false,
+    is_fully_credited: false,
+    available_actions: ["post", "delete"],
+    related_documents: extras.related_documents ?? [],
+    lines,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+function buildProformaInvoiceFromSalesOrder(order, extras = {}) {
+  pfiSeq += 1;
+  const now = new Date().toISOString();
+  const documentNumber = `PFI-${String(pfiSeq).padStart(4, "0")}`;
+  const proformaDate = extras.proforma_date ?? order.order_date ?? now.slice(0, 10);
+  const lines = (order.lines ?? []).map((line, index) => ({
+    id: crypto.randomUUID(),
+    line_number: index + 1,
+    product_id: line.product_id ?? null,
+    description: line.description ?? "",
+    quantity: String(line.quantity ?? "1"),
+    unit_id: line.unit_id ?? null,
+    rate: String(line.rate ?? "0"),
+    discount_type: line.discount_type ?? null,
+    discount_value: line.discount_value ?? null,
+    discount_amount: line.discount_amount ?? "0",
+    tax_id: line.tax_id ?? null,
+    tax_rate: line.tax_rate ?? "0",
+    tax_amount: line.tax_amount ?? "0",
+    amount: line.amount ?? "0",
+    source_sales_order_line_id: line.id,
+    qty_converted: "0",
+    qty_remaining: String(line.quantity ?? "1"),
+  }));
+  const subtotal = order.subtotal ?? "0";
+  return {
+    id: crypto.randomUUID(),
+    tenant_id: TENANT_ID,
+    document_number: documentNumber,
+    status: "DRAFT",
+    version: 1,
+    is_posted: false,
+    proforma_date: proformaDate,
+    document_date: proformaDate,
+    valid_until: extras.valid_until ?? null,
+    branch_id: order.branch_id ?? null,
+    customer_id: order.customer_id,
+    contact_id: order.contact_id ?? null,
+    customer_trn: order.customer_trn ?? null,
+    tax_treatment: order.tax_treatment ?? "UNREGISTERED",
+    place_of_supply: order.place_of_supply ?? "DUBAI",
+    currency_id: order.currency_id,
+    base_currency_id: order.base_currency_id ?? order.currency_id,
+    exchange_rate: order.exchange_rate ?? "1",
+    price_list_id: order.price_list_id ?? null,
+    payment_terms_id: order.payment_terms_id ?? null,
+    salesperson_id: order.salesperson_id ?? null,
+    notes: extras.notes ?? order.notes ?? null,
+    terms_and_conditions: order.terms_and_conditions ?? null,
+    bill_to_snapshot: order.bill_to_snapshot ?? null,
+    ship_to_snapshot: order.ship_to_snapshot ?? null,
+    discount_type: order.discount_type ?? null,
+    discount_value: order.discount_value ?? null,
+    discount_amount: order.discount_amount ?? "0",
+    shipping_amount: order.shipping_amount ?? "0",
+    adjustment_amount: order.adjustment_amount ?? "0",
+    subtotal,
+    tax_amount: order.tax_amount ?? "0",
+    grand_total: order.grand_total ?? subtotal,
+    foreign_amount: order.foreign_amount ?? subtotal,
+    base_amount: order.base_amount ?? subtotal,
+    source_quotation_id: order.source_quotation_id ?? null,
+    source_sales_order_id: order.id,
+    converted_at: null,
+    converted_document_type: null,
+    converted_document_id: null,
+    available_actions: ["send", "confirm", "delete"],
+    related_documents: extras.related_documents ?? [],
+    lines,
+    milestones: [],
+    created_at: now,
     updated_at: now,
   };
 }
@@ -3640,7 +3849,14 @@ const server = http.createServer(async (req, res) => {
       if (unauthorized(req, res)) {
         return;
       }
-      listOk(res, [...quotations.values()]);
+      listOk(
+        res,
+        filterBySearch([...quotations.values()], url.searchParams.get("search"), [
+          "quote_number",
+          "document_number",
+          "notes",
+        ]),
+      );
       return;
     }
 
@@ -3739,7 +3955,7 @@ const server = http.createServer(async (req, res) => {
         fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
         return;
       }
-      if (quotation.status !== "ACCEPTED") {
+      if (quotation.status !== "ACCEPTED" && quotation.status !== "PARTIALLY_CONVERTED") {
         fail(
           res,
           409,
@@ -3762,6 +3978,7 @@ const server = http.createServer(async (req, res) => {
           order_date: body.order_date ?? quotation.quote_date,
           expected_shipment_date: body.expected_shipment_date ?? null,
           reference_number: body.reference_number ?? null,
+          customer_po_number: body.customer_po_number ?? null,
           currency_id: quotation.currency_id,
           price_list_id: quotation.price_list_id,
           payment_terms_id: quotation.payment_terms_id,
@@ -3800,11 +4017,238 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    const convertQuotationToInvoice = url.pathname.match(
+      /^\/api\/v1\/quotations\/([0-9a-f-]{36})\/convert-to-sales-invoice$/i,
+    );
+    if (req.method === "POST" && convertQuotationToInvoice) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const quotation = quotations.get(convertQuotationToInvoice[1]);
+      if (!quotation) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (quotation.status !== "ACCEPTED" && quotation.status !== "PARTIALLY_CONVERTED") {
+        fail(
+          res,
+          409,
+          "INVALID_STATUS",
+          "Only an accepted quotation can be converted to a sales invoice",
+        );
+        return;
+      }
+      const body = await readBody(req);
+      const replay = replayPost(req);
+      if (replay) {
+        ok(res, replay, 201);
+        return;
+      }
+      const invoice = buildSalesInvoiceFromSource(quotation, {
+        invoice_date: body.invoice_date,
+        notes: body.notes,
+        source_quotation_id: quotation.id,
+        related_documents: [
+          relatedDocumentRef("QUOTATION", quotation, "source", quotation.quote_date),
+        ],
+      });
+      salesInvoices.set(invoice.id, invoice);
+      const related = quotation.related_documents ?? [];
+      related.push(relatedDocumentRef("SALES_INVOICE", invoice, "child", invoice.invoice_date));
+      quotation.related_documents = related;
+      quotation.status = "CONVERTED";
+      quotation.version = (quotation.version ?? 1) + 1;
+      quotation.converted_at = new Date().toISOString();
+      quotation.available_actions = quotationAvailableActions("CONVERTED");
+      quotation.updated_at = quotation.converted_at;
+      quotations.set(quotation.id, quotation);
+      storePost(req, invoice);
+      ok(res, invoice, 201);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/sales-invoices") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [...salesInvoices.values()]);
+      return;
+    }
+
+    const salesInvoiceDetail = url.pathname.match(/^\/api\/v1\/sales-invoices\/([0-9a-f-]{36})$/i);
+    if (req.method === "GET" && salesInvoiceDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const invoice = salesInvoices.get(salesInvoiceDetail[1]);
+      if (!invoice) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      ok(res, invoice);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/proforma-invoices") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(
+        res,
+        filterBySearch([...proformaInvoices.values()], url.searchParams.get("search"), [
+          "document_number",
+          "notes",
+        ]),
+      );
+      return;
+    }
+
+    const proformaInvoiceDetail = url.pathname.match(
+      /^\/api\/v1\/proforma-invoices\/([0-9a-f-]{36})$/i,
+    );
+    if (req.method === "GET" && proformaInvoiceDetail) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const invoice = proformaInvoices.get(proformaInvoiceDetail[1]);
+      if (!invoice) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      ok(res, invoice);
+      return;
+    }
+
+    const proformaInvoiceAction = url.pathname.match(
+      /^\/api\/v1\/proforma-invoices\/([0-9a-f-]{36})\/(send|confirm|clone)$/i,
+    );
+    if (req.method === "POST" && proformaInvoiceAction) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const invoice = proformaInvoices.get(proformaInvoiceAction[1]);
+      if (!invoice) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      const action = proformaInvoiceAction[2];
+      if (action === "clone") {
+        const cloned = {
+          ...invoice,
+          id: crypto.randomUUID(),
+          document_number: `PFI-${String(++pfiSeq).padStart(4, "0")}`,
+          status: "DRAFT",
+          version: 1,
+          available_actions: ["send", "confirm", "delete"],
+          converted_at: null,
+          converted_document_type: null,
+          converted_document_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        proformaInvoices.set(cloned.id, cloned);
+        ok(res, cloned, 201);
+        return;
+      }
+      if (action === "send") {
+        invoice.status = "SENT";
+        invoice.available_actions = ["confirm", "clone"];
+      } else if (action === "confirm") {
+        invoice.status = "CONFIRMED";
+        invoice.available_actions = ["convert", "create_sales_invoice", "clone"];
+        invoice.confirmed_at = new Date().toISOString();
+      }
+      invoice.version = (invoice.version ?? 1) + 1;
+      invoice.updated_at = new Date().toISOString();
+      proformaInvoices.set(invoice.id, invoice);
+      ok(res, invoice);
+      return;
+    }
+
+    const convertProformaToSalesOrder = url.pathname.match(
+      /^\/api\/v1\/proforma-invoices\/([0-9a-f-]{36})\/convert-to-sales-order$/i,
+    );
+    if (req.method === "POST" && convertProformaToSalesOrder) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const invoice = proformaInvoices.get(convertProformaToSalesOrder[1]);
+      if (!invoice) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (invoice.status !== "CONFIRMED" && invoice.status !== "PARTIALLY_CONVERTED") {
+        fail(
+          res,
+          409,
+          "INVALID_STATUS",
+          "Only a confirmed proforma invoice can be converted to a sales order",
+        );
+        return;
+      }
+      const body = await readBody(req);
+      const order = buildSalesOrder(
+        {
+          customer_id: invoice.customer_id,
+          contact_id: invoice.contact_id,
+          branch_id: body.branch_id ?? invoice.branch_id,
+          warehouse_id: body.warehouse_id ?? WAREHOUSE_MAIN_ID,
+          order_date: body.order_date ?? invoice.proforma_date,
+          expected_shipment_date:
+            body.expected_shipment_date ?? invoice.expected_shipment_date ?? null,
+          customer_po_number: body.customer_po_number ?? null,
+          customer_po_date: body.customer_po_date ?? null,
+          currency_id: invoice.currency_id,
+          price_list_id: invoice.price_list_id,
+          payment_terms_id: invoice.payment_terms_id,
+          salesperson_id: invoice.salesperson_id,
+          notes: invoice.notes,
+          terms_and_conditions: invoice.terms_and_conditions,
+          place_of_supply: invoice.place_of_supply,
+          discount_type: invoice.discount_type,
+          discount_value: invoice.discount_value,
+          shipping_amount: invoice.shipping_amount,
+          adjustment_amount: invoice.adjustment_amount,
+          lines: invoice.lines,
+        },
+        null,
+        {
+          source_quotation_id: invoice.source_quotation_id ?? null,
+          source_proforma_invoice_id: invoice.id,
+          customer_trn: invoice.customer_trn,
+          tax_treatment: invoice.tax_treatment,
+          bill_to_snapshot: invoice.bill_to_snapshot,
+          ship_to_snapshot: invoice.ship_to_snapshot,
+          warehouse_id: body.warehouse_id ?? WAREHOUSE_MAIN_ID,
+        },
+      );
+      salesOrders.set(order.id, order);
+      const now = new Date().toISOString();
+      invoice.status = "CONVERTED";
+      invoice.version = (invoice.version ?? 1) + 1;
+      invoice.converted_at = now;
+      invoice.converted_document_type = "SALES_ORDER";
+      invoice.converted_document_id = order.id;
+      invoice.available_actions = ["clone"];
+      invoice.updated_at = now;
+      proformaInvoices.set(invoice.id, invoice);
+      ok(res, order);
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/v1/sales-orders") {
       if (unauthorized(req, res)) {
         return;
       }
-      listOk(res, [...salesOrders.values()]);
+      listOk(
+        res,
+        filterBySearch([...salesOrders.values()], url.searchParams.get("search"), [
+          "document_number",
+          "reference_number",
+          "customer_po_number",
+          "notes",
+        ]),
+      );
       return;
     }
 
@@ -3860,6 +4304,46 @@ const server = http.createServer(async (req, res) => {
       }
       salesOrders.set(order.id, order);
       ok(res, order);
+      return;
+    }
+
+    const convertSalesOrderToProforma = url.pathname.match(
+      /^\/api\/v1\/sales-orders\/([0-9a-f-]{36})\/convert-to-proforma-invoice$/i,
+    );
+    if (req.method === "POST" && convertSalesOrderToProforma) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const order = salesOrders.get(convertSalesOrderToProforma[1]);
+      if (!order) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Not found");
+        return;
+      }
+      if (order.status !== "CONFIRMED") {
+        fail(
+          res,
+          409,
+          "INVALID_STATUS",
+          "Only a confirmed sales order can be converted to a proforma invoice",
+        );
+        return;
+      }
+      const body = await readBody(req);
+      const invoice = buildProformaInvoiceFromSalesOrder(order, {
+        proforma_date: body.proforma_date,
+        valid_until: body.valid_until,
+        related_documents: [relatedDocumentRef("SALES_ORDER", order, "source", order.order_date)],
+      });
+      proformaInvoices.set(invoice.id, invoice);
+      const related = order.related_documents ?? [];
+      related.push(
+        relatedDocumentRef("PROFORMA_INVOICE", invoice, "child", invoice.proforma_date),
+      );
+      order.related_documents = related;
+      order.version = (order.version ?? 1) + 1;
+      order.updated_at = new Date().toISOString();
+      salesOrders.set(order.id, order);
+      ok(res, invoice, 201);
       return;
     }
 
@@ -3925,7 +4409,14 @@ const server = http.createServer(async (req, res) => {
       if (unauthorized(req, res)) {
         return;
       }
-      listOk(res, [...purchaseOrders.values()]);
+      listOk(
+        res,
+        filterBySearch([...purchaseOrders.values()], url.searchParams.get("search"), [
+          "document_number",
+          "reference_number",
+          "notes",
+        ]),
+      );
       return;
     }
 

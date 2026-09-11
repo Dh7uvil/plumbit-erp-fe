@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { proformaInvoiceKeys } from "@/modules/erp/proforma-invoices/queries";
 import { purchaseOrderKeys } from "@/modules/erp/purchase-orders/queries";
 import { salesOrdersApi } from "@/modules/erp/sales-orders/api";
 import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
@@ -145,6 +146,26 @@ export function useCloneSalesOrder() {
 
 export function useAcknowledgeSalesOrder() {
   return useSalesOrderVersionMutation(salesOrdersApi.acknowledge);
+}
+
+export function useConvertSalesOrderToProformaInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      values,
+    }: SalesOrderWriteVars & {
+      values?: Parameters<typeof salesOrdersApi.convertToProformaInvoice>[1]["values"];
+    }) => salesOrdersApi.convertToProformaInvoice(id, { version, values }),
+    onSuccess: async (_data, { id }) => {
+      await invalidateSalesOrders(queryClient, id);
+      await queryClient.invalidateQueries({ queryKey: proformaInvoiceKeys.all });
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
 }
 
 export function useCreatePurchaseOrdersFromSalesOrder() {

@@ -9,7 +9,13 @@ import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { useExportEvidenceExceptions } from "@/modules/erp/accounting/reports/queries";
+import { CreateSalesInvoiceFromProformaDialog } from "@/modules/erp/proforma-invoices/components/create-sales-invoice-dialog";
+import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
+import { CreateSalesInvoiceFromQuotationDialog } from "@/modules/erp/quotations/components/create-sales-invoice-dialog";
+import { quotationPermissions } from "@/modules/erp/quotations/permissions";
+import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { CreateInvoiceFromDeliveryNotesDialog } from "@/modules/erp/sales-invoices/components/create-from-delivery-notes-dialog";
+import { CreateInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-invoices/components/create-from-sales-order-dialog";
 import { useDeleteSalesInvoice } from "@/modules/erp/sales-invoices/mutations";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { useSalesInvoices } from "@/modules/erp/sales-invoices/queries";
@@ -45,6 +51,7 @@ import {
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -53,6 +60,12 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -113,6 +126,9 @@ export function SalesInvoicesScreen() {
     Boolean(extraFilters.invoiceDateTo),
   ].filter(Boolean).length;
   const [draftExtra, setDraftExtra] = useState(extraFilters);
+  const [fromQuotation, setFromQuotation] = useState(false);
+  const [fromSalesOrder, setFromSalesOrder] = useState(false);
+  const [fromProforma, setFromProforma] = useState(false);
   const [fromDeliveryNotes, setFromDeliveryNotes] = useState(false);
   const invoicesQuery = useSalesInvoices({
     page,
@@ -171,9 +187,38 @@ export function SalesInvoicesScreen() {
         actions={
           canCreate ? (
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setFromDeliveryNotes(true)}>
-                From delivery notes
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                  >
+                    Convert from
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                  {can(quotationPermissions.read) ? (
+                    <DropdownMenuItem onSelect={() => setFromQuotation(true)}>
+                      Quotation
+                    </DropdownMenuItem>
+                  ) : null}
+                  {can(salesOrderPermissions.read) ? (
+                    <DropdownMenuItem onSelect={() => setFromSalesOrder(true)}>
+                      Sales order
+                    </DropdownMenuItem>
+                  ) : null}
+                  {can(proformaInvoicePermissions.read) ? (
+                    <DropdownMenuItem onSelect={() => setFromProforma(true)}>
+                      Proforma invoice
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem onSelect={() => setFromDeliveryNotes(true)}>
+                    Delivery notes
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button type="button" size="sm" asChild>
                 <Link href="/sales-invoices/new">
                   <Plus className="size-3.5" />
@@ -425,11 +470,26 @@ export function SalesInvoicesScreen() {
                     ) : null}
                   </TableCell>
                   <TableCell>
-                    <DocumentStatusBadge
-                      status={invoice.status}
-                      labels={INVOICE_DOCUMENT_STATUS_LABELS}
-                      variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
-                    />
+                    <div className="flex flex-wrap items-center gap-1">
+                      <DocumentStatusBadge
+                        status={invoice.status}
+                        labels={INVOICE_DOCUMENT_STATUS_LABELS}
+                        variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
+                      />
+                      {invoice.is_fully_credited ? (
+                        <DocumentStatusBadge
+                          status="CREDITED"
+                          labels={{ CREDITED: "Credited" }}
+                          variants={{ CREDITED: "secondary" }}
+                        />
+                      ) : invoice.is_partially_credited ? (
+                        <DocumentStatusBadge
+                          status="PARTIALLY_CREDITED"
+                          labels={{ PARTIALLY_CREDITED: "Partially credited" }}
+                          variants={{ PARTIALLY_CREDITED: "warning" }}
+                        />
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <DocumentStatusBadge
@@ -483,6 +543,18 @@ export function SalesInvoicesScreen() {
           }
         }}
         onConfirm={() => void onDelete()}
+      />
+      <CreateSalesInvoiceFromQuotationDialog
+        open={fromQuotation}
+        onOpenChange={setFromQuotation}
+      />
+      <CreateInvoiceFromSalesOrderDialog
+        open={fromSalesOrder}
+        onOpenChange={setFromSalesOrder}
+      />
+      <CreateSalesInvoiceFromProformaDialog
+        open={fromProforma}
+        onOpenChange={setFromProforma}
       />
       <CreateInvoiceFromDeliveryNotesDialog
         open={fromDeliveryNotes}

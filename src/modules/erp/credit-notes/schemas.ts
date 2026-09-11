@@ -19,6 +19,7 @@ import {
   type InvoiceDocumentStatus,
   type PlaceOfSupply,
 } from "@/modules/erp/sales-invoices/schemas";
+import { RelatedDocumentRefSchema } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export {
@@ -117,6 +118,7 @@ export const CreditNoteSchema = z.object({
   cancelled_by: z.string().uuid().nullable(),
   cancel_reason: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(CreditNoteLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

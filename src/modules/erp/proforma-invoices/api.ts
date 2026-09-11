@@ -1,11 +1,13 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  ConvertProformaToSalesInvoiceRequestSchema,
   ConvertProformaToSalesOrderRequestSchema,
   ProformaInvoiceComposeDefaultsSchema,
   ProformaInvoiceCreateRequestSchema,
   ProformaInvoiceListSchema,
   ProformaInvoiceSchema,
   ProformaInvoiceUpdateRequestSchema,
+  type ConvertProformaToSalesInvoiceRequest,
   type ConvertProformaToSalesOrderRequest,
   type ProformaInvoice,
   type ProformaInvoiceComposeDefaults,
@@ -13,6 +15,7 @@ import {
   type ProformaInvoiceListParams,
   type ProformaInvoiceUpdateRequest,
 } from "@/modules/erp/proforma-invoices/schemas";
+import { SalesInvoiceSchema, type SalesInvoice } from "@/modules/erp/sales-invoices/schemas";
 import { SalesOrderSchema, type SalesOrder } from "@/modules/erp/sales-orders/schemas";
 import { apiClient } from "@/shared/api/client";
 import { ifMatchHeaders, postDocumentHeaders } from "@/shared/api/concurrency";
@@ -122,6 +125,20 @@ export const proformaInvoicesApi = {
       await apiClient.post(
         `/proforma-invoices/${id}/convert-to-sales-order`,
         ConvertProformaToSalesOrderRequestSchema.parse({
+          ...(options.values ?? {}),
+          version: options.version,
+        }),
+        { headers: postDocumentHeaders(options.version) },
+      ),
+    ),
+  convertToSalesInvoice: async (
+    id: string,
+    options: ProformaInvoiceWriteOptions & { values?: ConvertProformaToSalesInvoiceRequest },
+  ): Promise<SalesInvoice> =>
+    SalesInvoiceSchema.parse(
+      await apiClient.post(
+        `/proforma-invoices/${id}/convert-to-sales-invoice`,
+        ConvertProformaToSalesInvoiceRequestSchema.parse({
           ...(options.values ?? {}),
           version: options.version,
         }),

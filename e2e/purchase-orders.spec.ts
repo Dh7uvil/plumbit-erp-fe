@@ -51,4 +51,37 @@ test.describe("purchase orders", () => {
 
     await expect(page.getByText("Issued", { exact: true })).toBeVisible();
   });
+
+  test("clones a purchase order from the list without consuming remaining quantity", async ({
+    page,
+  }) => {
+    await signIn(page);
+    await page.goto("/purchase-orders/new");
+    await expect(page.getByRole("heading", { name: "New purchase order" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Supplier" }).click();
+    await page.getByRole("menuitem", { name: "Gulf Pipes" }).click();
+    await expect(page.getByText("Loading supplier defaults…")).toBeHidden();
+
+    await page.getByLabel("Line 1 description").fill("Copper pipe purchase");
+    await page.getByLabel("Line 1 rate").fill("8.00");
+    await page.getByRole("button", { name: "Create purchase order" }).click();
+
+    await expect(page).toHaveURL(/\/purchase-orders\/[0-9a-f-]{36}$/i);
+    await expect(page.getByRole("heading", { name: "PO-0001" })).toBeVisible();
+
+    await page.goto("/purchase-orders");
+    await page.getByRole("button", { name: "Convert from" }).click();
+    await page.getByRole("menuitem", { name: "Purchase order" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Clone purchase order" })).toBeVisible();
+    await dialog.getByLabel("Purchase order").click();
+    await page.getByRole("menuitem", { name: /PO-0001/ }).click();
+    await dialog.getByRole("button", { name: "Clone" }).click();
+
+    await expect(page).toHaveURL(/\/purchase-orders\/[0-9a-f-]{36}$/i);
+    await expect(page.getByRole("heading", { name: "PO-0002" })).toBeVisible();
+    await expect(page.getByText("Draft", { exact: true })).toBeVisible();
+  });
 });

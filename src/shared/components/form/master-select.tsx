@@ -35,6 +35,8 @@ export function MasterSelect({
   createActions,
   asFormControl = true,
   "aria-label": ariaLabel,
+  onQueryChange,
+  loading,
 }: {
   options: SearchableSelectOption[];
   value: string;
@@ -50,6 +52,8 @@ export function MasterSelect({
   createActions?: SearchableSelectCreateAction[];
   asFormControl?: boolean;
   "aria-label"?: string;
+  onQueryChange?: (query: string) => void;
+  loading?: boolean;
 }) {
   const actions =
     createActions ?? (onCreate && createLabel ? [{ label: createLabel, onSelect: onCreate }] : []);
@@ -69,6 +73,8 @@ export function MasterSelect({
           createActions={canCreate ? actions : undefined}
           asFormControl={asFormControl}
           aria-label={ariaLabel}
+          onQueryChange={onQueryChange}
+          loading={loading}
         />
       </div>
       {canCreate && !compact ? (

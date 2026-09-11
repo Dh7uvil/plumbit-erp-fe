@@ -18,6 +18,7 @@ import {
   PURCHASE_ORDER_STATUS_VARIANTS,
   RECEIPT_STATUS_LABELS,
   RECEIPT_STATUS_VARIANTS,
+  TAX_TREATMENT_LABELS,
   purchaseOrderDisplayNumber,
   type PurchaseOrder,
 } from "@/modules/erp/purchase-orders/schemas";
@@ -31,12 +32,15 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import {
   DocumentWorkflowButtons,
   type DocumentWorkflowExtras,
 } from "@/shared/components/document/document-workflow-buttons";
+import { QuantityProgressStrip } from "@/shared/components/document/quantity-progress-strip";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
 import { useCan } from "@/shared/providers/session-provider";
@@ -197,20 +201,36 @@ function PurchaseOrderDetailLoaded({
         </div>
       }
       banner={
-        purchaseOrder.source_sales_order_id ? (
-          <p className="text-muted-foreground text-sm">
-            Raised for{" "}
-            <Link
-              href={`/sales-orders/${purchaseOrder.source_sales_order_id}`}
-              className="text-foreground underline-offset-4 hover:underline"
-            >
-              sales order
-            </Link>
-            .
-          </p>
-        ) : null
+        <div className="flex flex-col gap-2">
+          <AppliedCommercialTerms
+            currencyId={purchaseOrder.currency_id}
+            exchangeRate={purchaseOrder.exchange_rate}
+            taxTreatmentLabel={TAX_TREATMENT_LABELS[purchaseOrder.tax_treatment]}
+            paymentTermsId={purchaseOrder.payment_terms_id}
+          />
+          {purchaseOrder.quantity_progress ? (
+            <QuantityProgressStrip
+              progress={purchaseOrder.quantity_progress}
+              fulfilledLabel="Received"
+              remainingFulfillLabel="Remaining to receive"
+            />
+          ) : null}
+          {purchaseOrder.source_sales_order_id ? (
+            <p className="text-muted-foreground text-sm">
+              Raised for{" "}
+              <Link
+                href={`/sales-orders/${purchaseOrder.source_sales_order_id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                sales order
+              </Link>
+              .
+            </p>
+          ) : null}
+        </div>
       }
       formTitle={isEdit ? "Edit purchase order" : "Purchase order"}
+      panels={<RelatedDocumentsCard documents={purchaseOrder.related_documents} />}
       attachments={
         <EntityAttachmentsPanel
           entityType="PURCHASE_ORDER"

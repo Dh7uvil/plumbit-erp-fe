@@ -9,6 +9,8 @@ import { useCreatePurchaseInvoiceFromPurchaseOrder } from "@/modules/erp/purchas
 import { usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
 import { purchaseOrderDisplayNumber } from "@/modules/erp/purchase-orders/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { ConversionSourceSelect } from "@/shared/components/document/conversion-source-select";
+import { CONVERT_FROM_DIALOG_CLASSNAME } from "@/shared/components/document/convert-from-menu";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -20,13 +22,6 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { formatDate } from "@/shared/lib/format";
 
@@ -44,11 +39,34 @@ export function CreateBillFromPurchaseOrderDialog({
   onOpenChange: (open: boolean) => void;
   purchaseOrderId?: string;
 }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {open ? (
+        <CreateBillFromPurchaseOrderBody
+          purchaseOrderId={purchaseOrderId}
+          onOpenChange={onOpenChange}
+        />
+      ) : null}
+    </Dialog>
+  );
+}
+
+function CreateBillFromPurchaseOrderBody({
+  purchaseOrderId,
+  onOpenChange,
+}: {
+  purchaseOrderId?: string;
+  onOpenChange: (open: boolean) => void;
+}) {
   const router = useRouter();
   const createBill = useCreatePurchaseInvoiceFromPurchaseOrder();
-  const ordersQuery = usePurchaseOrders({ status: "ISSUED", page_size: 100 });
-  const orders = ordersQuery.data?.data ?? [];
   const [selectedId, setSelectedId] = useState(purchaseOrderId ?? "");
+  const [search, setSearch] = useState("");
+  const ordersQuery = usePurchaseOrders(
+    { status: "ISSUED", page_size: 50, search: search || undefined },
+    !purchaseOrderId,
+  );
+  const orders = ordersQuery.data?.data ?? [];
   const [invoiceDate, setInvoiceDate] = useState(todayIsoDate());
   const [notes, setNotes] = useState("");
   const chosenId = purchaseOrderId ?? selectedId;
@@ -73,61 +91,56 @@ export function CreateBillFromPurchaseOrderDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Create bill from purchase order</DialogTitle>
-          <DialogDescription>
-            Creates a draft goods bill. Stock will not move — the goods receipt already received it.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-3">
-          {!purchaseOrderId ? (
-            <div className="flex flex-col gap-1.5">
-              <Label>Purchase order</Label>
-              <Select value={selectedId} onValueChange={setSelectedId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a purchase order" />
-                </SelectTrigger>
-                <SelectContent>
-                  {orders.map((order) => (
-                    <SelectItem key={order.id} value={order.id}>
-                      {purchaseOrderDisplayNumber(order) ?? "Purchase order"} ·{" "}
-                      {formatDate(order.document_date)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pi-from-po-date">Invoice date</Label>
-            <Input
-              id="pi-from-po-date"
-              type="date"
-              value={invoiceDate}
-              onChange={(event) => setInvoiceDate(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pi-from-po-notes">Notes</Label>
-            <Textarea
-              id="pi-from-po-notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-            />
-          </div>
+    <DialogContent className={CONVERT_FROM_DIALOG_CLASSNAME}>
+      <DialogHeader>
+        <DialogTitle>Create bill from purchase order</DialogTitle>
+        <DialogDescription>
+          Creates a draft goods bill. Stock will not move — the goods receipt already received it.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="flex flex-col gap-3">
+        {purchaseOrderId ? null : (
+          <ConversionSourceSelect
+            label="Purchase order"
+            value={selectedId}
+            onValueChange={setSelectedId}
+            onSearch={setSearch}
+            loading={ordersQuery.isFetching}
+            placeholder="Select a purchase order"
+            options={orders.map((order) => ({
+              value: order.id,
+              label: `${purchaseOrderDisplayNumber(order) ?? "Purchase order"} · ${formatDate(order.document_date)}`,
+            }))}
+            emptyText="No issued purchase orders are available."
+          />
+        )}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="pi-from-po-date">Invoice date</Label>
+          <Input
+            id="pi-from-po-date"
+            type="date"
+            value={invoiceDate}
+            onChange={(event) => setInvoiceDate(event.target.value)}
+          />
         </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button type="button" disabled={createBill.isPending} onClick={() => void onSubmit()}>
-            {createBill.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-            Create bill
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="pi-from-po-notes">Notes</Label>
+          <Textarea
+            id="pi-from-po-notes"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          Cancel
+        </Button>
+        <Button type="button" disabled={createBill.isPending} onClick={() => void onSubmit()}>
+          {createBill.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+          Create bill
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }

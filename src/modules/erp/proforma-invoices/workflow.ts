@@ -1,4 +1,5 @@
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
+import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
@@ -9,6 +10,7 @@ export const PROFORMA_INVOICE_WORKFLOW_ACTIONS = [
   "revise",
   "reopen",
   "convert",
+  "create_sales_invoice",
   "cancel",
   "clone",
   "delete",
@@ -50,6 +52,11 @@ export const PROFORMA_INVOICE_ACTION_REGISTRY: DocumentActionSpec<ProformaInvoic
       action: "convert",
       label: "Convert to sales order",
       permission: salesOrderPermissions.create,
+    },
+    {
+      action: "create_sales_invoice",
+      label: "Create sales invoice",
+      permission: salesInvoicePermissions.create,
     },
     {
       action: "cancel",

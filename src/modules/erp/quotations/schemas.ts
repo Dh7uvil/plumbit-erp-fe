@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import {
+  ConversionLineInputSchema,
+  RelatedDocumentRefSchema,
+} from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export const QUOTATION_STATUSES = [
@@ -13,6 +17,7 @@ export const QUOTATION_STATUSES = [
   "DECLINED",
   "EXPIRED",
   "CANCELLED",
+  "PARTIALLY_CONVERTED",
   "CONVERTED",
 ] as const;
 export const QuotationStatusSchema = z.enum(QUOTATION_STATUSES);
@@ -28,6 +33,7 @@ export const QUOTATION_STATUS_LABELS: Record<QuotationStatus, string> = {
   DECLINED: "Declined",
   EXPIRED: "Expired",
   CANCELLED: "Cancelled",
+  PARTIALLY_CONVERTED: "Partially converted",
   CONVERTED: "Converted",
 };
 
@@ -44,6 +50,7 @@ export const QUOTATION_STATUS_VARIANTS: Record<
   DECLINED: "destructive",
   CANCELLED: "destructive",
   EXPIRED: "destructive",
+  PARTIALLY_CONVERTED: "warning",
   CONVERTED: "secondary",
 };
 
@@ -107,6 +114,8 @@ export const QuotationLineSchema = z.object({
   tax_rate: MoneySchema,
   tax_amount: MoneySchema,
   amount: MoneySchema,
+  qty_converted: DecimalStringSchema.optional().default("0"),
+  qty_remaining: DecimalStringSchema.optional(),
 });
 export type QuotationLine = z.infer<typeof QuotationLineSchema>;
 
@@ -154,6 +163,7 @@ export const QuotationSchema = z.object({
   revision_count: z.number().int().optional().default(0),
   display_number: z.string().optional(),
   available_actions: z.array(z.string()).default([]),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(QuotationLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
@@ -238,9 +248,12 @@ export const ConvertToSalesOrderRequestSchema = z.object({
   order_date: z.string().nullable().optional(),
   expected_shipment_date: z.string().nullable().optional(),
   reference_number: z.string().max(60).nullable().optional(),
+  customer_po_number: z.string().max(60).nullable().optional(),
+  customer_po_date: z.string().nullable().optional(),
   warehouse_id: z.string().uuid().nullable().optional(),
   branch_id: z.string().uuid().nullable().optional(),
   version: z.number().int().optional(),
+  lines: z.array(ConversionLineInputSchema).nullable().optional(),
 });
 export type ConvertToSalesOrderRequest = z.infer<typeof ConvertToSalesOrderRequestSchema>;
 
@@ -266,7 +279,16 @@ export const ConvertToProformaInvoiceRequestSchema = z.object({
   incoterm: IncotermSchema.nullable().optional(),
   incoterm_place: z.string().max(120).nullable().optional(),
   version: z.number().int().optional(),
+  lines: z.array(ConversionLineInputSchema).nullable().optional(),
 });
+
+export const ConvertToSalesInvoiceRequestSchema = z.object({
+  invoice_date: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  version: z.number().int().optional(),
+  lines: z.array(ConversionLineInputSchema).nullable().optional(),
+});
+export type ConvertToSalesInvoiceRequest = z.infer<typeof ConvertToSalesInvoiceRequestSchema>;
 export type ConvertToProformaInvoiceRequest = z.infer<typeof ConvertToProformaInvoiceRequestSchema>;
 
 export const ReviseQuotationRequestSchema = z.object({

@@ -23,6 +23,7 @@ import {
   INVOICE_DOCUMENT_STATUS_VARIANTS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_VARIANTS,
+  TAX_TREATMENT_LABELS,
   purchaseInvoiceDisplayNumber,
   type PurchaseInvoice,
 } from "@/modules/erp/purchase-invoices/schemas";
@@ -30,9 +31,11 @@ import { PURCHASE_INVOICE_ACTION_REGISTRY } from "@/modules/erp/purchase-invoice
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -143,6 +146,26 @@ function PurchaseInvoiceDetailLoaded({
             labels={PAYMENT_STATUS_LABELS}
             variants={PAYMENT_STATUS_VARIANTS}
           />
+          {invoice.is_overdue ? (
+            <DocumentStatusBadge
+              status="OVERDUE"
+              labels={{ OVERDUE: "Overdue" }}
+              variants={{ OVERDUE: "destructive" }}
+            />
+          ) : null}
+          {invoice.is_fully_debited ? (
+            <DocumentStatusBadge
+              status="DEBITED"
+              labels={{ DEBITED: "Debited" }}
+              variants={{ DEBITED: "secondary" }}
+            />
+          ) : invoice.is_partially_debited ? (
+            <DocumentStatusBadge
+              status="PARTIALLY_DEBITED"
+              labels={{ PARTIALLY_DEBITED: "Partially debited" }}
+              variants={{ PARTIALLY_DEBITED: "warning" }}
+            />
+          ) : null}
         </>
       }
       workflow={
@@ -173,36 +196,45 @@ function PurchaseInvoiceDetailLoaded({
         </div>
       }
       banner={
-        <p className="text-muted-foreground text-sm">
-          {BILL_TYPE_LABELS[invoice.bill_type]} bill
-          {invoice.purchase_order_id ? (
-            <>
-              {" · "}
-              <Link
-                href={`/purchase-orders/${invoice.purchase_order_id}`}
-                className="text-foreground underline-offset-4 hover:underline"
-              >
-                purchase order
-              </Link>
-            </>
-          ) : null}
-          {invoice.goods_receipt_id ? (
-            <>
-              {" · "}
-              <Link
-                href={`/goods-receipts/${invoice.goods_receipt_id}`}
-                className="text-foreground underline-offset-4 hover:underline"
-              >
-                goods receipt
-              </Link>
-            </>
-          ) : null}
-          {invoice.due_date ? ` · Due ${formatDate(invoice.due_date)}` : ""}.
-        </p>
+        <div className="flex flex-col gap-2">
+          <AppliedCommercialTerms
+            currencyId={invoice.currency_id}
+            exchangeRate={invoice.exchange_rate}
+            taxTreatmentLabel={TAX_TREATMENT_LABELS[invoice.tax_treatment]}
+            paymentTermsId={invoice.payment_terms_id}
+          />
+          <p className="text-muted-foreground text-sm">
+            {BILL_TYPE_LABELS[invoice.bill_type]} bill
+            {invoice.purchase_order_id ? (
+              <>
+                {" · "}
+                <Link
+                  href={`/purchase-orders/${invoice.purchase_order_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  purchase order
+                </Link>
+              </>
+            ) : null}
+            {invoice.goods_receipt_id ? (
+              <>
+                {" · "}
+                <Link
+                  href={`/goods-receipts/${invoice.goods_receipt_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  goods receipt
+                </Link>
+              </>
+            ) : null}
+            {invoice.due_date ? ` · Due ${formatDate(invoice.due_date)}` : ""}.
+          </p>
+        </div>
       }
       formTitle={isEdit ? "Edit purchase invoice" : "Purchase invoice"}
       panels={
         <>
+          <RelatedDocumentsCard documents={invoice.related_documents} />
           <PurchaseInvoiceReverseChargeCard invoice={invoice} currencyCode={currencyCode} />
           <DocumentLedgerCard
             journalEntryId={invoice.journal_entry_id}

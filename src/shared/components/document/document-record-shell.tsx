@@ -88,17 +88,13 @@ export function DocumentRecordShell({
       <RecordPageHeader
         title={title}
         subtitle={subtitle}
+        badges={badges}
         listHref={listHref}
         viewHref={viewHref}
         editHref={editHref}
         canUpdate={canUpdate}
         mode={mode}
-        extraActions={
-          <>
-            {badges}
-            {mode === "view" ? workflow : null}
-          </>
-        }
+        extraActions={mode === "view" ? workflow : null}
       />
       {banner}
       <Card>

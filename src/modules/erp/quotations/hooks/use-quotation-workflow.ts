@@ -77,6 +77,8 @@ export function useQuotationWorkflow(quotation: Quotation) {
       const order = await convertQuotation.mutateAsync(write);
       toast.success("Sales order created");
       router.push(`/sales-orders/${order.id}`);
+    } else if (action === "create_proforma" || action === "create_sales_invoice") {
+      return;
     } else if (action === "delete") {
       await deleteQuotation.mutateAsync(write);
       toast.success("Quotation deleted");

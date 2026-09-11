@@ -17,11 +17,12 @@ export const quotationKeys = {
     [...quotationKeys.all, "revision", id, revisionNumber] as const,
 };
 
-export function useQuotations(params: QuotationListParams) {
+export function useQuotations(params: QuotationListParams, enabled = true) {
   return useQuery({
     queryKey: useTenantQueryKey(quotationKeys.list(params)),
     queryFn: () => quotationsApi.list(params),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

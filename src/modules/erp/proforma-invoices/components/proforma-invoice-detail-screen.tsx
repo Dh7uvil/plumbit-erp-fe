@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { documentTypeLabel } from "@/modules/erp/accounting/document-sequences/schemas";
 import { ConvertProformaToSalesOrderDialog } from "@/modules/erp/proforma-invoices/components/convert-to-sales-order-dialog";
+import { CreateSalesInvoiceFromProformaDialog } from "@/modules/erp/proforma-invoices/components/create-sales-invoice-dialog";
 import { ProformaInvoiceForm } from "@/modules/erp/proforma-invoices/components/proforma-invoice-form";
 import { useProformaInvoiceWorkflow } from "@/modules/erp/proforma-invoices/hooks/use-proforma-invoice-workflow";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
@@ -13,6 +13,7 @@ import { useProformaInvoice } from "@/modules/erp/proforma-invoices/queries";
 import {
   PROFORMA_INVOICE_STATUS_LABELS,
   PROFORMA_INVOICE_STATUS_VARIANTS,
+  TAX_TREATMENT_LABELS,
   proformaInvoiceDisplayNumber,
   type ProformaInvoice,
 } from "@/modules/erp/proforma-invoices/schemas";
@@ -21,12 +22,14 @@ import { PROFORMA_INVOICE_ACTION_REGISTRY } from "@/modules/erp/proforma-invoice
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import {
   DocumentWorkflowButtons,
   type DocumentWorkflowExtras,
 } from "@/shared/components/document/document-workflow-buttons";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { formatDateTime, formatMoney } from "@/shared/lib/format";
 
@@ -100,6 +103,7 @@ function ProformaInvoiceDetailLoaded({
   const number = proformaInvoiceDisplayNumber(invoice);
   const onAction = useProformaInvoiceWorkflow(invoice);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [createInvoiceOpen, setCreateInvoiceOpen] = useState(false);
 
   async function handleAction(
     action: ProformaInvoiceWorkflowAction,
@@ -107,6 +111,10 @@ function ProformaInvoiceDetailLoaded({
   ) {
     if (action === "convert") {
       setConvertOpen(true);
+      return;
+    }
+    if (action === "create_sales_invoice") {
+      setCreateInvoiceOpen(true);
       return;
     }
     await onAction(action, extras);
@@ -145,6 +153,12 @@ function ProformaInvoiceDetailLoaded({
       }
       banner={
         <div className="flex flex-col gap-1">
+          <AppliedCommercialTerms
+            currencyId={invoice.currency_id}
+            exchangeRate={invoice.exchange_rate}
+            taxTreatmentLabel={TAX_TREATMENT_LABELS[invoice.tax_treatment]}
+            paymentTermsId={invoice.payment_terms_id}
+          />
           {invoice.source_quotation_id ? (
             <p className="text-muted-foreground text-sm">
               Raised from{" "}
@@ -157,26 +171,27 @@ function ProformaInvoiceDetailLoaded({
               .
             </p>
           ) : null}
-          {invoice.status === "CONVERTED" || invoice.converted_document_id ? (
+          {invoice.source_sales_order_id ? (
+            <p className="text-muted-foreground text-sm">
+              Raised from{" "}
+              <Link
+                href={`/sales-orders/${invoice.source_sales_order_id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                sales order
+              </Link>
+              .
+            </p>
+          ) : null}
+          {invoice.status === "PARTIALLY_CONVERTED" ? (
+            <p className="text-muted-foreground text-sm">
+              Partially converted
+              {invoice.converted_at ? ` as of ${formatDateTime(invoice.converted_at)}` : ""}.
+            </p>
+          ) : invoice.status === "CONVERTED" ? (
             <p className="text-muted-foreground text-sm">
               Converted
-              {invoice.converted_document_type
-                ? ` to ${documentTypeLabel(invoice.converted_document_type)}`
-                : ""}
-              {invoice.converted_at ? ` on ${formatDateTime(invoice.converted_at)}` : ""}
-              {invoice.converted_document_id ? (
-                <>
-                  {". "}
-                  <Link
-                    href={`/sales-orders/${invoice.converted_document_id}`}
-                    className="text-foreground underline-offset-4 hover:underline"
-                  >
-                    Open sales order
-                  </Link>
-                </>
-              ) : (
-                "."
-              )}
+              {invoice.converted_at ? ` on ${formatDateTime(invoice.converted_at)}` : ""}.
             </p>
           ) : null}
           {invoice.advance_required_amount && invoice.advance_required_amount !== "0" ? (
@@ -187,6 +202,7 @@ function ProformaInvoiceDetailLoaded({
         </div>
       }
       formTitle={isEdit ? "Edit proforma invoice" : "Proforma invoice"}
+      panels={<RelatedDocumentsCard documents={invoice.related_documents} />}
       attachments={
         <EntityAttachmentsPanel
           entityType="PROFORMA_INVOICE"
@@ -211,6 +227,11 @@ function ProformaInvoiceDetailLoaded({
         invoice={invoice}
         open={convertOpen}
         onOpenChange={setConvertOpen}
+      />
+      <CreateSalesInvoiceFromProformaDialog
+        invoice={invoice}
+        open={createInvoiceOpen}
+        onOpenChange={setCreateInvoiceOpen}
       />
     </DocumentRecordShell>
   );

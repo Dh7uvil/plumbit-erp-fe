@@ -8,6 +8,7 @@ import {
   StockDocumentStatusSchema,
   type StockDocumentStatus,
 } from "@/modules/inventory-management/stock-adjustments/schemas";
+import { RelatedDocumentRefSchema } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export {
@@ -75,6 +76,7 @@ export const DeliveryNoteSchema = z.object({
   cancel_reason: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),
   period_locked: z.boolean().default(false),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   journal_entry_id: z.string().uuid().nullable().optional().default(null),
   lines: z.array(DeliveryNoteLineSchema).optional().default([]),
   created_at: z.string(),

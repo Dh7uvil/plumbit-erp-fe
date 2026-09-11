@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ClonePurchaseOrderDialog } from "@/modules/erp/purchase-orders/components/clone-purchase-order-dialog";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
@@ -51,11 +52,21 @@ import {
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -138,6 +149,7 @@ export function PurchaseOrdersScreen() {
   const clonePurchaseOrder = useClonePurchaseOrder();
   const deletePurchaseOrder = useDeletePurchaseOrder();
   const [deleting, setDeleting] = useState<PurchaseOrder | null>(null);
+  const [fromClone, setFromClone] = useState(false);
 
   const rows = purchaseOrdersQuery.data?.data ?? [];
   const meta = purchaseOrdersQuery.data?.meta;
@@ -180,12 +192,31 @@ export function PurchaseOrdersScreen() {
         subtitle="Supplier orders with server-side totals"
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/purchase-orders/new">
-                <Plus className="size-3.5" />
-                New purchase order
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                  >
+                    Convert from
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                  <DropdownMenuItem onSelect={() => setFromClone(true)}>
+                    Purchase order
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button type="button" size="sm" asChild>
+                <Link href="/purchase-orders/new">
+                  <Plus className="size-3.5" />
+                  New purchase order
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -526,6 +557,7 @@ export function PurchaseOrdersScreen() {
         }}
         onConfirm={() => void onDelete()}
       />
+      <ClonePurchaseOrderDialog open={fromClone} onOpenChange={setFromClone} />
     </ListPage>
   );
 }

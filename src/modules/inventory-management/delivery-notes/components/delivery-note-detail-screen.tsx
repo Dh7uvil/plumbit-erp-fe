@@ -30,6 +30,7 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
 import { useCan } from "@/shared/providers/session-provider";
@@ -190,6 +191,7 @@ function DeliveryNoteDetailLoaded({
       formTitle={isEdit ? "Edit delivery note" : "Delivery note"}
       panels={
         <>
+          <RelatedDocumentsCard documents={note.related_documents} />
           <DocumentLedgerCard journalEntryId={note.journal_entry_id} />
           <DeliveryNotePackagesPanel
             noteId={note.id}
