@@ -1,6 +1,6 @@
 export const accountPermissions = {
-  read: "erp.account.read",
-  create: "erp.account.create",
-  update: "erp.account.update",
-  delete: "erp.account.delete",
+  read: "accounting.account.read",
+  create: "accounting.account.create",
+  update: "accounting.account.update",
+  delete: "accounting.account.delete",
 } as const;

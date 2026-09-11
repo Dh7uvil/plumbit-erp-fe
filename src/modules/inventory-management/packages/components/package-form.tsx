@@ -27,6 +27,7 @@ import {
   type PackageUpdateRequest,
 } from "@/modules/inventory-management/packages/schemas";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
+import { packingFromLine, packingLineInput } from "@/shared/components/document/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
@@ -65,6 +66,7 @@ function toLineInput(line: PackageFormValues["lines"][number]): PackageLineInput
     product_id: optionalUuid(line.product_id),
     quantity: line.quantity,
     unit_id: optionalUuid(line.unit_id),
+    ...packingLineInput(line),
   };
 }
 
@@ -93,6 +95,7 @@ function toFormValues(pkg: Package | null, salesOrderId?: string, deliveryNoteId
             quantity: line.quantity,
             outstanding: line.quantity,
             unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
+            ...packingFromLine(line),
           })),
   };
 }
@@ -146,6 +149,7 @@ export function PackageForm({
       outstanding.length === 0
         ? [emptyPackageLine()]
         : outstanding.map((line) => ({
+            ...emptyPackageLine(),
             sales_order_line_id: line.sales_order_line_id,
             product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
             description: line.description,
@@ -382,6 +386,11 @@ export function PackageForm({
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right">Outstanding</TableHead>
                 <TableHead className="w-32">Qty</TableHead>
+                <TableHead className="w-28">Item code</TableHead>
+                <TableHead className="w-24">PKG</TableHead>
+                <TableHead className="w-24">Ctns</TableHead>
+                <TableHead className="w-24">CBM</TableHead>
+                <TableHead className="w-24">Weight</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -405,6 +414,34 @@ export function PackageForm({
                       )}
                     />
                   </TableCell>
+                  {(
+                    [
+                      ["item_code", "Item code"],
+                      ["packing_unit", "PKG"],
+                      ["carton_qty", "Ctns"],
+                      ["cbm", "CBM"],
+                      ["weight", "Weight"],
+                    ] as const
+                  ).map(([name, label]) => (
+                    <TableCell key={name}>
+                      <FormField
+                        control={form.control}
+                        name={`lines.${index}.${name}`}
+                        render={({ field: packingField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                disabled={disabled}
+                                aria-label={`Line ${index + 1} ${label}`}
+                                {...packingField}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))}
             </TableBody>

@@ -62,6 +62,7 @@ export const SupplierPaymentSchema = z.object({
   journal_entry_id: z.string().uuid().nullable(),
   reversal_journal_entry_id: z.string().uuid().nullable(),
   refund_journal_entry_id: z.string().uuid().nullable(),
+  realized_fx_amount: MoneySchema.nullable().optional().default(null),
   notes: z.string().nullable(),
   posted_at: z.string().nullable(),
   posted_by: z.string().uuid().nullable(),

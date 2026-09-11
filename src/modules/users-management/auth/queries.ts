@@ -18,7 +18,7 @@ export function useMe(initialData?: Me | null) {
   });
 }
 
-export async function refetchCurrentUser(queryClient: QueryClient, refreshRouter: () => void) {
-  await queryClient.invalidateQueries({ queryKey: authKeys.me() });
-  refreshRouter();
+export async function refetchCurrentUser(queryClient: QueryClient, refreshRouter?: () => void) {
+  await queryClient.refetchQueries({ queryKey: authKeys.me() });
+  refreshRouter?.();
 }

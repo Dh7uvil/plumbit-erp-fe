@@ -1,3 +1,3 @@
 export const openingBalancePermissions = {
-  manage: "erp.opening_balance.manage",
+  manage: "accounting.opening_balance.manage",
 } as const;

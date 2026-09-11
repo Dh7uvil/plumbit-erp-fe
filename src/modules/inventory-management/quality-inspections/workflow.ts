@@ -1,7 +1,13 @@
+import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
-export const QUALITY_INSPECTION_WORKFLOW_ACTIONS = ["approve", "cancel", "delete"] as const;
+export const QUALITY_INSPECTION_WORKFLOW_ACTIONS = [
+  "approve",
+  "cancel",
+  "delete",
+  "create_purchase_return",
+] as const;
 export type QualityInspectionWorkflowAction =
   (typeof QUALITY_INSPECTION_WORKFLOW_ACTIONS)[number];
 
@@ -30,5 +36,11 @@ export const QUALITY_INSPECTION_ACTION_REGISTRY: DocumentActionSpec<QualityInspe
       variant: "destructive",
       confirmCopy: (documentNumber) =>
         `${documentNumber} will be removed. Only draft inspections can be deleted.`,
+    },
+    {
+      action: "create_purchase_return",
+      label: "Create purchase return",
+      permission: purchaseReturnPermissions.create,
+      variant: "outline",
     },
   ];

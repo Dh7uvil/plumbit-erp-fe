@@ -36,6 +36,7 @@ export function DocumentRecordShell({
   panels,
   attachments,
   activity,
+  printHref,
 }: {
   isLoading: boolean;
   isError: boolean;
@@ -59,6 +60,7 @@ export function DocumentRecordShell({
   panels?: ReactNode;
   attachments?: ReactNode;
   activity?: ReactNode;
+  printHref?: string;
 }) {
   if (isLoading) {
     return (
@@ -94,7 +96,18 @@ export function DocumentRecordShell({
         editHref={editHref}
         canUpdate={canUpdate}
         mode={mode}
-        extraActions={mode === "view" ? workflow : null}
+        extraActions={
+          mode === "view" ? (
+            <>
+              {printHref ? (
+                <Button type="button" size="sm" variant="outline" asChild>
+                  <Link href={printHref}>Print</Link>
+                </Button>
+              ) : null}
+              {workflow}
+            </>
+          ) : null
+        }
       />
       {banner}
       <Card>

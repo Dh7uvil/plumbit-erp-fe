@@ -1,6 +1,8 @@
 export const supplierPermissions = {
-  read: "erp.supplier.read",
-  create: "erp.supplier.create",
-  update: "erp.supplier.update",
-  delete: "erp.supplier.delete",
+  read: "purchase.supplier.read",
+  create: "purchase.supplier.create",
+  update: "purchase.supplier.update",
+  delete: "purchase.supplier.delete",
+  import: "purchase.supplier.import",
+  export: "purchase.supplier.export",
 } as const;

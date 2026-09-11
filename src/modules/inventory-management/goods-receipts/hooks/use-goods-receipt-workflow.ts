@@ -53,6 +53,8 @@ export function useGoodsReceiptWorkflow(receipt: GoodsReceipt) {
       });
       toast.success("Quality inspection created");
       router.push(`/quality-inspections/${inspection.id}`);
+    } else if (action === "create_purchase_return") {
+      router.push(`/purchase-returns/new?goods_receipt_id=${receipt.id}`);
     }
   };
 }

@@ -1,4 +1,5 @@
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
+import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
@@ -7,6 +8,7 @@ export const GOODS_RECEIPT_WORKFLOW_ACTIONS = [
   "cancel",
   "delete",
   "create_inspection",
+  "create_purchase_return",
 ] as const;
 export type GoodsReceiptWorkflowAction = (typeof GOODS_RECEIPT_WORKFLOW_ACTIONS)[number];
 
@@ -39,6 +41,12 @@ export const GOODS_RECEIPT_ACTION_REGISTRY: DocumentActionSpec<GoodsReceiptWorkf
     action: "create_inspection",
     label: "Create inspection",
     permission: qualityInspectionPermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "create_purchase_return",
+    label: "Create purchase return",
+    permission: purchaseReturnPermissions.create,
     variant: "outline",
   },
 ];

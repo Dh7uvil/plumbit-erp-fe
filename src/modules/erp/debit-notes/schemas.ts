@@ -180,6 +180,16 @@ export type DebitNoteCreateFromPurchaseInvoice = z.infer<
   typeof DebitNoteCreateFromPurchaseInvoiceSchema
 >;
 
+export const DebitNoteCreateFromPurchaseReturnSchema = z.object({
+  purchase_return_id: z.string().uuid(),
+  debit_note_date: z.string().nullable().optional(),
+  reason_code: DebitNoteReasonSchema.optional(),
+  notes: z.string().nullable().optional(),
+});
+export type DebitNoteCreateFromPurchaseReturn = z.infer<
+  typeof DebitNoteCreateFromPurchaseReturnSchema
+>;
+
 export const DebitNoteLineFormSchema = z.object({
   product_id: z.string(),
   description: z.string(),

@@ -24,6 +24,7 @@ import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/c
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { printHref } from "@/shared/lib/print";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import {
   DocumentWorkflowButtons,
@@ -137,6 +138,7 @@ function QuotationDetailLoaded({
       subtitle={number ? undefined : "Number not assigned yet"}
       listHref="/quotations"
       viewHref={viewHref}
+      printHref={printHref("quotations", quotation.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}

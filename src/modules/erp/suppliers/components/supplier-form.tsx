@@ -34,12 +34,11 @@ import {
 import { PriceListFormDialog } from "@/modules/inventory-management/price-lists/components/price-list-form-dialog";
 import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
 import { useAllPriceLists } from "@/modules/inventory-management/price-lists/queries";
+import { EmployeeSelect } from "@/modules/users-management/employees/components/employee-select";
 import {
   addressToFormValues,
   EMPTY_ADDRESS_FORM,
 } from "@/modules/users-management/tenants/schemas";
-import { userPermissions } from "@/modules/users-management/users/permissions";
-import { useAllUsers } from "@/modules/users-management/users/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { BillingShippingFields } from "@/shared/components/form/billing-shipping-fields";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -110,7 +109,6 @@ export function SupplierForm({
   onCancel?: () => void;
 }) {
   const can = useCan();
-  const canReadUsers = can(userPermissions.read);
   const canCreateCurrency = can(currencyPermissions.create);
   const canCreatePriceList = can(priceListPermissions.create);
   const canCreatePaymentTerm = can(paymentTermPermissions.create);
@@ -125,7 +123,6 @@ export function SupplierForm({
   const currenciesQuery = useAllCurrencies();
   const priceListsQuery = useAllPriceLists();
   const paymentTermsQuery = useAllPaymentTerms();
-  const usersQuery = useAllUsers(canReadUsers);
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState<
     "currency" | "priceList" | "paymentTerm" | "contact" | null
@@ -143,7 +140,6 @@ export function SupplierForm({
   const currencies = currenciesQuery.data ?? [];
   const priceLists = priceListsQuery.data ?? [];
   const paymentTerms = paymentTermsQuery.data ?? [];
-  const users = usersQuery.data ?? [];
   const defaultCurrencyId =
     currencies.find((currency) => currency.is_base)?.id ??
     currencies[0]?.id ??
@@ -461,37 +457,17 @@ export function SupplierForm({
                 </FormItem>
               )}
             />
-            {canReadUsers ? (
-              <FormField
-                control={form.control}
-                name="salesperson_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Salesperson</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={disabled || usersQuery.isLoading}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="None" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
+            <FormField
+              control={form.control}
+              name="salesperson_id"
+              render={({ field }) => (
+                <EmployeeSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled}
+                />
+              )}
+            />
             {canReadAccounts ? (
               <>
                 <FormField

@@ -33,6 +33,8 @@ export function useQualityInspectionWorkflow(inspection: QualityInspection) {
       await deleteInspection.mutateAsync(write);
       toast.success("Quality inspection deleted");
       router.push("/quality-inspections");
+    } else if (action === "create_purchase_return") {
+      router.push(`/purchase-returns/new?goods_receipt_id=${inspection.goods_receipt_id}`);
     }
   };
 }

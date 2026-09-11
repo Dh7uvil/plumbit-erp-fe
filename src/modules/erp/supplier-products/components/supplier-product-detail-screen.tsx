@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { SupplierProductForm } from "@/modules/erp/supplier-products/components/supplier-product-form";
 import { supplierProductPermissions } from "@/modules/erp/supplier-products/permissions";
 import { useSupplierProduct } from "@/modules/erp/supplier-products/queries";
+import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
+import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableError } from "@/shared/components/data-table/states";
@@ -79,6 +81,10 @@ export function SupplierProductDetailScreen({
           />
         </CardContent>
       </Card>
+      {row.product_id ? (
+        <EntityAttachmentsPanel entityType="PRODUCT" entityId={row.product_id} />
+      ) : null}
+      <ActivityFeed entityType="supplier_product" entityId={row.id} />
     </div>
   );
 }

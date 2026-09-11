@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { attachmentsApi } from "@/modules/users-management/attachments/api";
-import type { AttachmentListParams } from "@/modules/users-management/attachments/schemas";
+import type { AttachmentCategory, AttachmentListParams } from "@/modules/users-management/attachments/schemas";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const attachmentKeys = {
@@ -27,10 +27,19 @@ export function useEntityAttachments(
   entityType: AttachmentListParams["entity_type"],
   entityId: string | null,
   enabled = true,
+  category?: AttachmentCategory,
 ) {
   return useQuery({
-    queryKey: useTenantQueryKey(attachmentKeys.forEntity(entityType, entityId ?? "")),
-    queryFn: () => attachmentsApi.listAll({ entity_type: entityType, entity_id: entityId! }),
+    queryKey: useTenantQueryKey([
+      ...attachmentKeys.forEntity(entityType, entityId ?? ""),
+      category ?? "all",
+    ]),
+    queryFn: () =>
+      attachmentsApi.listAll({
+        entity_type: entityType,
+        entity_id: entityId!,
+        category,
+      }),
     enabled: enabled && Boolean(entityId),
   });
 }

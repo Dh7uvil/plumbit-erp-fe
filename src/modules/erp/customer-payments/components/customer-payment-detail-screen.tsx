@@ -165,6 +165,9 @@ function CustomerPaymentDetailLoaded({
             {payment.amount_refunded !== "0" ? (
               <> · Refunded {formatMoney(payment.amount_refunded, currencyCode)}</>
             ) : null}
+            {payment.realized_fx_amount && payment.realized_fx_amount !== "0" ? (
+              <> · Realized FX {formatMoney(payment.realized_fx_amount, currencyCode)}</>
+            ) : null}
             .
           </p>
         </div>

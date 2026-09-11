@@ -1,7 +1,12 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
-import { RelatedDocumentRefSchema } from "@/shared/components/document/schemas";
+import {
+  PackingLineFormFieldsSchema,
+  PackingLineInputFields,
+  PackingLineResponseFields,
+  RelatedDocumentRefSchema,
+} from "@/shared/components/document/schemas";
 import { DecimalStringSchema, NullableDecimalStringSchema } from "@/shared/lib/money";
 
 export const PACKAGE_STATUSES = ["DRAFT", "PACKED", "CANCELLED"] as const;
@@ -30,6 +35,7 @@ export const PackageLineSchema = z.object({
   product_id: z.string().uuid().nullable(),
   quantity: DecimalStringSchema,
   unit_id: z.string().uuid().nullable(),
+  ...PackingLineResponseFields,
 });
 export type PackageLine = z.infer<typeof PackageLineSchema>;
 
@@ -65,6 +71,7 @@ export const PackageLineInputSchema = z.object({
   product_id: z.string().uuid().nullable().optional(),
   quantity: DecimalStringSchema,
   unit_id: z.string().uuid().nullable().optional(),
+  ...PackingLineInputFields,
 });
 export type PackageLineInput = z.infer<typeof PackageLineInputSchema>;
 
@@ -102,14 +109,16 @@ export const PackageUpdateRequestSchema = z.object({
 });
 export type PackageUpdateRequest = z.infer<typeof PackageUpdateRequestSchema>;
 
-export const PackageLineFormSchema = z.object({
-  sales_order_line_id: z.string(),
-  product_id: z.string(),
-  description: z.string(),
-  quantity: z.string(),
-  outstanding: z.string(),
-  unit_id: z.string(),
-});
+export const PackageLineFormSchema = z
+  .object({
+    sales_order_line_id: z.string(),
+    product_id: z.string(),
+    description: z.string(),
+    quantity: z.string(),
+    outstanding: z.string(),
+    unit_id: z.string(),
+  })
+  .merge(PackingLineFormFieldsSchema);
 export type PackageLineFormValues = z.infer<typeof PackageLineFormSchema>;
 
 const POSITIVE_DECIMAL = /^(?:0*[1-9]\d*(?:\.\d+)?|0+\.\d*[1-9]\d*)$/;
@@ -126,6 +135,11 @@ export function emptyPackageLine(): PackageLineFormValues {
     quantity: "",
     outstanding: "",
     unit_id: OPTIONAL_SELECT_NONE,
+    carton_qty: "",
+    packing_unit: "",
+    cbm: "",
+    weight: "",
+    item_code: "",
   };
 }
 

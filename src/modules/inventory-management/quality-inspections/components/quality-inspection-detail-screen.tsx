@@ -19,6 +19,7 @@ import {
   type QualityInspection,
 } from "@/modules/inventory-management/quality-inspections/schemas";
 import { QUALITY_INSPECTION_ACTION_REGISTRY } from "@/modules/inventory-management/quality-inspections/workflow";
+import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -27,6 +28,7 @@ import { DocumentStatusBadge } from "@/shared/components/document/document-statu
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { useCan } from "@/shared/providers/session-provider";
 
 export function QualityInspectionDetailScreen({
   inspectionId,
@@ -94,10 +96,17 @@ function QualityInspectionDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
+  const can = useCan();
   const isEdit = mode === "edit";
   const number = qualityInspectionDisplayNumber(inspection);
   const onAction = useQualityInspectionWorkflow(inspection);
   const [writeError, setWriteError] = useState<unknown>(null);
+  const workflowActions =
+    inspection.status === "APPROVED" &&
+    can(purchaseReturnPermissions.create) &&
+    !inspection.available_actions.includes("create_purchase_return")
+      ? [...inspection.available_actions, "create_purchase_return"]
+      : inspection.available_actions;
 
   return (
     <DocumentRecordShell
@@ -123,7 +132,7 @@ function QualityInspectionDetailLoaded({
       }
       workflow={
         <DocumentWorkflowButtons
-          availableActions={inspection.available_actions}
+          availableActions={workflowActions}
           registry={QUALITY_INSPECTION_ACTION_REGISTRY}
           documentKind="quality inspection"
           documentLabel={number ?? "inspection"}

@@ -32,6 +32,7 @@ import {
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -40,11 +41,13 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMN_HEADERS = ["Number", "Carton", "Status"] as const;
 const ALL = "all";
 
 export function PackagesScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(packagePermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const packagesQuery = usePackages({
@@ -77,14 +80,26 @@ export function PackagesScreen() {
         title="Packages"
         subtitle="Optional carton packing for a sales order"
         actions={
-          canCreate ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <ImexToolbar
+              resource="packages"
+              title="packages"
+              canImport={can(packagePermissions.import) || canCreate}
+              canExport={can(packagePermissions.export) || canRead}
+              exportParams={{ search, status: filters.status }}
+              onImported={() => {
+                void packagesQuery.refetch();
+              }}
+            />
+            {canCreate ? (
             <Button type="button" size="sm" asChild>
               <Link href="/packages/new">
                 <Plus className="size-3.5" />
                 New package
               </Link>
             </Button>
-          ) : undefined
+            ) : null}
+          </div>
         }
       />
       <DataTableToolbar>

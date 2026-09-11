@@ -1,7 +1,7 @@
 export const reportPermissions = {
-  ledger: "erp.report.ledger",
-  tax: "erp.report.tax",
-  arAp: "erp.report.ar_ap",
-  inventory: "erp.report.inventory",
-  financial: "erp.report.financial",
+  ledger: "reports.report.ledger",
+  tax: "reports.report.tax",
+  arAp: "reports.report.ar_ap",
+  inventory: "reports.report.inventory",
+  financial: "reports.report.financial",
 } as const;

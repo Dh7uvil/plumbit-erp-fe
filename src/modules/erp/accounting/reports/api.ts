@@ -16,6 +16,9 @@ import {
   TaxRegisterSchema,
   TrialBalanceSchema,
   Vat201Schema,
+  DashboardSchema,
+  ReceivedNotBilledSchema,
+  ThreeWayMatchSchema,
   type AccountStatement,
   type AccountStatementParams,
   type Aging,
@@ -47,6 +50,9 @@ import {
   type TrialBalance,
   type TrialBalanceParams,
   type Vat201,
+  type Dashboard,
+  type ReceivedNotBilled,
+  type ThreeWayMatch,
 } from "@/modules/erp/accounting/reports/schemas";
 import { apiClient } from "@/shared/api/client";
 import type { RequestParams } from "@/shared/api/client";
@@ -183,6 +189,12 @@ export const reportsApi = {
         params: { from: params.from, to: params.to },
       }),
     ),
+  threeWayMatch: async (): Promise<ThreeWayMatch> =>
+    ThreeWayMatchSchema.parse(await apiClient.get("/reports/three-way-match")),
+  receivedNotBilled: async (): Promise<ReceivedNotBilled> =>
+    ReceivedNotBilledSchema.parse(await apiClient.get("/reports/received-not-billed")),
+  dashboard: async (): Promise<Dashboard> =>
+    DashboardSchema.parse(await apiClient.get("/reports/dashboard")),
   downloadCsv: (path: string, params: RequestParams, filename: string): Promise<void> =>
     apiClient.downloadCsv(path, { params, filename }),
 };

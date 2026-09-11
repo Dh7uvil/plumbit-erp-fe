@@ -26,6 +26,7 @@ import {
   type GoodsReceipt,
 } from "@/modules/inventory-management/goods-receipts/schemas";
 import { GOODS_RECEIPT_ACTION_REGISTRY } from "@/modules/inventory-management/goods-receipts/workflow";
+import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
 import { useQualityInspections } from "@/modules/inventory-management/quality-inspections/queries";
 import {
@@ -37,6 +38,7 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { printHref } from "@/shared/lib/print";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
@@ -122,6 +124,12 @@ function GoodsReceiptDetailLoaded({
   const [landedCostOpen, setLandedCostOpen] = useState(false);
   const canCreateBill = receipt.status === "POSTED" && can(purchaseInvoicePermissions.create);
   const canCreateLandedCost = receipt.status === "POSTED" && can(landedCostPermissions.create);
+  const workflowActions =
+    receipt.is_posted &&
+    can(purchaseReturnPermissions.create) &&
+    !receipt.available_actions.includes("create_purchase_return")
+      ? [...receipt.available_actions, "create_purchase_return"]
+      : receipt.available_actions;
   const canReadInspections = can(qualityInspectionPermissions.read);
   const inspectionsQuery = useQualityInspections(
     {
@@ -145,6 +153,7 @@ function GoodsReceiptDetailLoaded({
       subtitle={number ? undefined : "Number not assigned yet"}
       listHref="/goods-receipts"
       viewHref={viewHref}
+      printHref={printHref("goods-receipts", receipt.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}
@@ -180,7 +189,7 @@ function GoodsReceiptDetailLoaded({
             </Button>
           ) : null}
           <DocumentWorkflowButtons
-            availableActions={receipt.available_actions}
+            availableActions={workflowActions}
             registry={GOODS_RECEIPT_ACTION_REGISTRY}
             documentKind="goods receipt"
             documentLabel={number ?? "goods receipt"}

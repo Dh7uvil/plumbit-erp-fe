@@ -25,6 +25,8 @@ export function BalanceSheetScreen() {
   const reportQuery = useBalanceSheet(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
+  const showComparative = Boolean(report?.comparative_as_of);
+  const columnCount = COLUMN_COUNT + Number(showComparative);
 
   return (
     <ReportShell
@@ -50,20 +52,25 @@ export function BalanceSheetScreen() {
             <TableHead>Account</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Amount</TableHead>
+            {showComparative ? (
+              <TableHead>
+                {report?.comparative_as_of ? `As of ${report.comparative_as_of}` : "Comparative"}
+              </TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
           {reportQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={COLUMN_COUNT}>
+                <TableCell colSpan={columnCount}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : reportQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
+              <TableCell colSpan={columnCount}>
                 <DataTableError
                   message={getErrorMessage(reportQuery.error)}
                   onRetry={() => reportQuery.refetch()}
@@ -72,7 +79,7 @@ export function BalanceSheetScreen() {
             </TableRow>
           ) : !report || report.lines.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
+              <TableCell colSpan={columnCount}>
                 <DataTableEmpty title="No balances" message="No posted balances at this date." />
               </TableCell>
             </TableRow>
@@ -100,6 +107,11 @@ export function BalanceSheetScreen() {
                   </TableCell>
                   <TableCell>{line.account_subtype || line.account_type}</TableCell>
                   <TableCell>{formatDecimal(line.amount)}</TableCell>
+                  {showComparative ? (
+                    <TableCell>
+                      {line.comparative_amount ? formatDecimal(line.comparative_amount) : "—"}
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))}
               <TableRow>
@@ -107,24 +119,46 @@ export function BalanceSheetScreen() {
                   Total assets
                 </TableCell>
                 <TableCell className="font-medium">{formatDecimal(report.total_assets)}</TableCell>
+                {showComparative ? (
+                  <TableCell className="font-medium">
+                    {report.comparative_total_assets
+                      ? formatDecimal(report.comparative_total_assets)
+                      : "—"}
+                  </TableCell>
+                ) : null}
               </TableRow>
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Total liabilities
                 </TableCell>
                 <TableCell className="font-medium">{formatDecimal(report.total_liabilities)}</TableCell>
+                {showComparative ? (
+                  <TableCell className="font-medium">
+                    {report.comparative_total_liabilities
+                      ? formatDecimal(report.comparative_total_liabilities)
+                      : "—"}
+                  </TableCell>
+                ) : null}
               </TableRow>
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Total equity
                 </TableCell>
                 <TableCell className="font-medium">{formatDecimal(report.total_equity)}</TableCell>
+                {showComparative ? (
+                  <TableCell className="font-medium">
+                    {report.comparative_total_equity
+                      ? formatDecimal(report.comparative_total_equity)
+                      : "—"}
+                  </TableCell>
+                ) : null}
               </TableRow>
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Current earnings
                 </TableCell>
                 <TableCell className="font-medium">{formatDecimal(report.current_earnings)}</TableCell>
+                {showComparative ? <TableCell /> : null}
               </TableRow>
             </>
           )}

@@ -23,7 +23,7 @@ import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/q
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { emptyDocumentLine } from "@/shared/components/document/schemas";
+import { emptyDocumentLine, packingFromLine, packingLineInput } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { MilestonesEditor } from "@/modules/erp/proforma-invoices/components/milestones-editor";
@@ -58,8 +58,7 @@ import { priceListPermissions } from "@/modules/inventory-management/price-lists
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
-import { userPermissions } from "@/modules/users-management/users/permissions";
-import { useAllUsers } from "@/modules/users-management/users/queries";
+import { EmployeeSelect } from "@/modules/users-management/employees/components/employee-select";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -127,6 +126,7 @@ function toLineInput(line: ProformaInvoiceLineFormValues): ProformaInvoiceLineIn
     tax_id: optionalUuid(line.tax_id),
     hs_code: emptyToNull(line.hs_code ?? ""),
     source_quotation_line_id: optionalUuid(line.source_quotation_line_id ?? ""),
+    ...packingLineInput(line),
   };
 }
 
@@ -181,6 +181,7 @@ function toFormLines(invoice: ProformaInvoice | null): ProformaInvoiceLineFormVa
     tax_id: line.tax_id ?? OPTIONAL_SELECT_NONE,
     hs_code: line.hs_code ?? "",
     source_quotation_line_id: line.source_quotation_line_id ?? "",
+    ...packingFromLine(line),
   }));
 }
 
@@ -307,7 +308,6 @@ export function ProformaInvoiceForm({
   const paymentTermsQuery = useAllPaymentTerms();
   const branchesQuery = useAllBranches();
   const termsTemplatesQuery = useAllTermsTemplates(!invoice);
-  const usersQuery = useAllUsers(can(userPermissions.read));
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState<
     | "customer"
@@ -345,7 +345,6 @@ export function ProformaInvoiceForm({
   const paymentTerms = paymentTermsQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
   const templates = useMemo(() => termsTemplatesQuery.data ?? [], [termsTemplatesQuery.data]);
-  const users = usersQuery.data ?? [];
 
   useEffect(() => {
     const defaults = composeQuery.data;
@@ -646,32 +645,14 @@ export function ProformaInvoiceForm({
             control={form.control}
             name="salesperson_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Salesperson</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    markComposeDirty("salesperson_id");
-                    field.onChange(value);
-                  }}
-                  disabled={disabled || usersQuery.isLoading || !can(userPermissions.read)}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+              <EmployeeSelect
+                value={field.value}
+                onValueChange={(value) => {
+                  markComposeDirty("salesperson_id");
+                  field.onChange(value);
+                }}
+                disabled={disabled}
+              />
             )}
           />
           <FormField
@@ -826,7 +807,7 @@ export function ProformaInvoiceForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor form={form} disabled={disabled} productSide="sales" />
+          <DocumentLinesEditor form={form} disabled={disabled} productSide="sales" showPacking />
         </div>
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
         <Card>

@@ -60,3 +60,11 @@ export function useCustomerOutstandingSummary(id: string | null, enabled = true)
     enabled: Boolean(id) && enabled,
   });
 }
+
+export function useCustomerPaymentHistory(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...customerKeys.detail(id ?? ""), "payment-history"]),
+    queryFn: () => customersApi.paymentHistory(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}

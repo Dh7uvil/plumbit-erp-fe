@@ -35,12 +35,14 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMN_HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status"] as const;
 const SORT_FIELDS = [
@@ -82,6 +84,7 @@ function deleteDescription(supplier: Supplier | null): string {
 }
 
 export function SuppliersScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(supplierPermissions);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
@@ -128,7 +131,18 @@ export function SuppliersScreen() {
         title="Suppliers"
         subtitle="Purchase-side supplier master"
         actions={
-          canCreate ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <ImexToolbar
+              resource="suppliers"
+              title="suppliers"
+              canImport={can(supplierPermissions.import) || canCreate}
+              canExport={can(supplierPermissions.export) || canRead}
+              exportParams={{ search }}
+              onImported={() => {
+                void suppliersQuery.refetch();
+              }}
+            />
+            {canCreate ? (
             <Button
               type="button"
               size="sm"
@@ -139,7 +153,8 @@ export function SuppliersScreen() {
               <Plus className="size-3.5" />
               New Supplier
             </Button>
-          ) : undefined
+            ) : null}
+          </div>
         }
       />
       <DataTableToolbar>

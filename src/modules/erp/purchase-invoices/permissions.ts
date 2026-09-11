@@ -1,8 +1,8 @@
 export const purchaseInvoicePermissions = {
-  read: "erp.purchase_invoice.read",
-  create: "erp.purchase_invoice.create",
-  update: "erp.purchase_invoice.update",
-  delete: "erp.purchase_invoice.delete",
-  post: "erp.purchase_invoice.post",
-  cancel: "erp.purchase_invoice.cancel",
+  read: "purchase.purchase_invoice.read",
+  create: "purchase.purchase_invoice.create",
+  update: "purchase.purchase_invoice.update",
+  delete: "purchase.purchase_invoice.delete",
+  post: "purchase.purchase_invoice.post",
+  cancel: "purchase.purchase_invoice.cancel",
 } as const;

@@ -42,14 +42,14 @@ describe("visibleActions", () => {
 
   it("keeps revise when the backend lists it and the permission is granted", () => {
     const registry: DocumentActionSpec<"revise" | "send">[] = [
-      { action: "revise", label: "Revise", permission: "erp.quotation.revise" },
-      { action: "send", label: "Send", permission: "erp.quotation.send" },
+      { action: "revise", label: "Revise", permission: "sales.quotation.revise" },
+      { action: "send", label: "Send", permission: "sales.quotation.send" },
     ];
     expect(
       visibleActions(["send", "revise"], registry, () => true).map((spec) => spec.action),
     ).toEqual(["send", "revise"]);
     expect(
-      visibleActions(["send", "revise"], registry, (permission) => permission !== "erp.quotation.revise").map(
+      visibleActions(["send", "revise"], registry, (permission) => permission !== "sales.quotation.revise").map(
         (spec) => spec.action,
       ),
     ).toEqual(["send"]);

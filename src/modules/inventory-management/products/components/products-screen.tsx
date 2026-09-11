@@ -35,12 +35,14 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
+import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { useCan } from "@/shared/providers/session-provider";
 import { formatMoney } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["SKU", "Name", "Type", "Rate", "Status"] as const;
@@ -75,6 +77,7 @@ function parseItemType(value: string | undefined): ItemType | undefined {
 }
 
 export function ProductsScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(productPermissions);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
@@ -124,7 +127,18 @@ export function ProductsScreen() {
         title="Products"
         subtitle="Sellable goods and services"
         actions={
-          canCreate ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <ImexToolbar
+              resource="products"
+              title="products"
+              canImport={can(productPermissions.import) || canCreate}
+              canExport={can(productPermissions.export) || canRead}
+              exportParams={{ search, item_type: filters.item_type, category_id: filters.category_id }}
+              onImported={() => {
+                void productsQuery.refetch();
+              }}
+            />
+            {canCreate ? (
             <Button
               type="button"
               size="sm"
@@ -135,7 +149,8 @@ export function ProductsScreen() {
               <Plus className="size-3.5" />
               New Product
             </Button>
-          ) : undefined
+            ) : null}
+          </div>
         }
       />
       <DataTableToolbar>

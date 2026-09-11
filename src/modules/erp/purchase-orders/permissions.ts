@@ -1,9 +1,9 @@
 export const purchaseOrderPermissions = {
-  read: "erp.purchase_order.read",
-  create: "erp.purchase_order.create",
-  update: "erp.purchase_order.update",
-  delete: "erp.purchase_order.delete",
-  approve: "erp.purchase_order.approve",
-  issue: "erp.purchase_order.issue",
-  close: "erp.purchase_order.close",
+  read: "purchase.purchase_order.read",
+  create: "purchase.purchase_order.create",
+  update: "purchase.purchase_order.update",
+  delete: "purchase.purchase_order.delete",
+  approve: "purchase.purchase_order.approve",
+  issue: "purchase.purchase_order.issue",
+  close: "purchase.purchase_order.close",
 } as const;

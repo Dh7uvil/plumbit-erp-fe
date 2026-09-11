@@ -54,8 +54,7 @@ import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { WarehouseFormDialog } from "@/modules/inventory-management/warehouses/components/warehouse-form-dialog";
 import { warehousePermissions } from "@/modules/inventory-management/warehouses/permissions";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
-import { userPermissions } from "@/modules/users-management/users/permissions";
-import { useAllUsers } from "@/modules/users-management/users/queries";
+import { EmployeeSelect } from "@/modules/users-management/employees/components/employee-select";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -246,7 +245,6 @@ export function SalesOrderForm({
   const branchesQuery = useAllBranches();
   const warehousesQuery = useAllWarehouses();
   const termsTemplatesQuery = useAllTermsTemplates(!salesOrder);
-  const usersQuery = useAllUsers(can(userPermissions.read));
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState<
     | "customer"
@@ -292,7 +290,6 @@ export function SalesOrderForm({
   const branches = branchesQuery.data ?? [];
   const warehouses = warehousesQuery.data ?? [];
   const templates = useMemo(() => termsTemplatesQuery.data ?? [], [termsTemplatesQuery.data]);
-  const users = usersQuery.data ?? [];
 
   useEffect(() => {
     const defaults = composeQuery.data;
@@ -686,32 +683,14 @@ export function SalesOrderForm({
             control={form.control}
             name="salesperson_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Salesperson</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    markComposeDirty("salesperson_id");
-                    field.onChange(value);
-                  }}
-                  disabled={disabled || usersQuery.isLoading || !can(userPermissions.read)}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+              <EmployeeSelect
+                value={field.value}
+                onValueChange={(value) => {
+                  markComposeDirty("salesperson_id");
+                  field.onChange(value);
+                }}
+                disabled={disabled}
+              />
             )}
           />
           <FormField

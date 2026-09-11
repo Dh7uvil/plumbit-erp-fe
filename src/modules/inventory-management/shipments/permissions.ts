@@ -1,8 +1,8 @@
 export const shipmentPermissions = {
-  read: "inventory.shipment.read",
-  create: "inventory.shipment.create",
-  update: "inventory.shipment.update",
-  delete: "inventory.shipment.delete",
-  dispatch: "inventory.shipment.dispatch",
-  close: "inventory.shipment.close",
+  read: "logistics.shipment.read",
+  create: "logistics.shipment.create",
+  update: "logistics.shipment.update",
+  delete: "logistics.shipment.delete",
+  dispatch: "logistics.shipment.dispatch",
+  close: "logistics.shipment.close",
 } as const;

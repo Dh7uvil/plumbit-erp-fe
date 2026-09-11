@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateDebitNoteFromPurchaseInvoice } from "@/modules/erp/debit-notes/mutations";
+import {
+  useCreateDebitNoteFromPurchaseInvoice,
+  useCreateDebitNoteFromPurchaseReturn,
+} from "@/modules/erp/debit-notes/mutations";
 import {
   DEBIT_NOTE_REASON_LABELS,
   DEBIT_NOTE_REASONS,
@@ -41,25 +44,45 @@ export function CreateDebitNoteDialog({
   open,
   onOpenChange,
   purchaseInvoiceId,
+  purchaseReturnId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  purchaseInvoiceId: string;
+  purchaseInvoiceId?: string;
+  purchaseReturnId?: string;
 }) {
   const router = useRouter();
-  const createNote = useCreateDebitNoteFromPurchaseInvoice();
+  const createFromInvoice = useCreateDebitNoteFromPurchaseInvoice();
+  const createFromReturn = useCreateDebitNoteFromPurchaseReturn();
+  const fromReturn = Boolean(purchaseReturnId);
   const [date, setDate] = useState(todayIsoDate());
-  const [reason, setReason] = useState<DebitNoteReason>("PRICE_ADJUSTMENT");
+  const [reason, setReason] = useState<DebitNoteReason>(
+    fromReturn ? "GOODS_REJECTED" : "PRICE_ADJUSTMENT",
+  );
   const [notes, setNotes] = useState("");
+  const pending = createFromInvoice.isPending || createFromReturn.isPending;
+
+  function resetFields() {
+    setDate(todayIsoDate());
+    setReason(fromReturn ? "GOODS_REJECTED" : "PRICE_ADJUSTMENT");
+    setNotes("");
+  }
 
   async function onSubmit() {
     try {
-      const note = await createNote.mutateAsync({
-        purchase_invoice_id: purchaseInvoiceId,
-        debit_note_date: date || null,
-        reason_code: reason,
-        notes: notes.trim() || null,
-      });
+      const note = fromReturn
+        ? await createFromReturn.mutateAsync({
+            purchase_return_id: purchaseReturnId!,
+            debit_note_date: date || null,
+            reason_code: reason,
+            notes: notes.trim() || null,
+          })
+        : await createFromInvoice.mutateAsync({
+            purchase_invoice_id: purchaseInvoiceId!,
+            debit_note_date: date || null,
+            reason_code: reason,
+            notes: notes.trim() || null,
+          });
       toast.success("Debit note created");
       onOpenChange(false);
       router.push(`/debit-notes/${note.id}`);
@@ -69,12 +92,22 @@ export function CreateDebitNoteDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next) {
+          resetFields();
+        }
+        onOpenChange(next);
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create debit note</DialogTitle>
           <DialogDescription>
-            Stock will not move. The original bill stays posted; this note reduces the payable.
+            {fromReturn
+              ? "Stock already moved on the purchase return. This note reduces the payable only."
+              : "Stock will not move. The original bill stays posted; this note reduces the payable."}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
@@ -111,8 +144,8 @@ export function CreateDebitNoteDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" disabled={createNote.isPending} onClick={() => void onSubmit()}>
-            {createNote.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+          <Button type="button" disabled={pending} onClick={() => void onSubmit()}>
+            {pending ? <Loader2 className="size-4 animate-spin" /> : null}
             Create debit note
           </Button>
         </DialogFooter>

@@ -25,6 +25,8 @@ export function CashFlowScreen() {
   const reportQuery = useCashFlow(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
+  const showComparative = Boolean(report?.comparative_from);
+  const columnCount = COLUMN_COUNT + Number(showComparative);
 
   return (
     <ReportShell
@@ -52,12 +54,13 @@ export function CashFlowScreen() {
           <TableRow>
             <TableHead>Line</TableHead>
             <TableHead>Amount</TableHead>
+            {showComparative ? <TableHead>Comparative</TableHead> : null}
           </TableRow>
         </TableHeader>
         <TableBody>
           {!from || !to ? (
             <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
+              <TableCell colSpan={columnCount}>
                 <DataTableEmpty
                   title="Select a date range"
                   message="Choose from and to dates to load the cash flow."
@@ -67,14 +70,14 @@ export function CashFlowScreen() {
           ) : reportQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={COLUMN_COUNT}>
+                <TableCell colSpan={columnCount}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : reportQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
+              <TableCell colSpan={columnCount}>
                 <DataTableError
                   message={getErrorMessage(reportQuery.error)}
                   onRetry={() => reportQuery.refetch()}
@@ -83,7 +86,7 @@ export function CashFlowScreen() {
             </TableRow>
           ) : !report || report.lines.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
+              <TableCell colSpan={columnCount}>
                 <DataTableEmpty title="No cash flow" message="No posted cash activity in this range." />
               </TableCell>
             </TableRow>
@@ -101,23 +104,38 @@ export function CashFlowScreen() {
                     )}
                   </TableCell>
                   <TableCell>{formatDecimal(line.amount)}</TableCell>
+                  {showComparative ? (
+                    <TableCell>
+                      {line.comparative_amount ? formatDecimal(line.comparative_amount) : "—"}
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))}
               <TableRow>
                 <TableCell className="font-medium">Net profit</TableCell>
                 <TableCell className="font-medium">{formatDecimal(report.net_profit)}</TableCell>
+                {showComparative ? <TableCell /> : null}
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Opening cash</TableCell>
                 <TableCell className="font-medium">{formatDecimal(report.cash_opening)}</TableCell>
+                {showComparative ? <TableCell /> : null}
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Closing cash</TableCell>
                 <TableCell className="font-medium">{formatDecimal(report.cash_closing)}</TableCell>
+                {showComparative ? <TableCell /> : null}
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Net change</TableCell>
                 <TableCell className="font-medium">{formatDecimal(report.net_change)}</TableCell>
+                {showComparative ? (
+                  <TableCell className="font-medium">
+                    {report.comparative_net_change
+                      ? formatDecimal(report.comparative_net_change)
+                      : "—"}
+                  </TableCell>
+                ) : null}
               </TableRow>
             </>
           )}

@@ -1,8 +1,8 @@
 export const debitNotePermissions = {
-  read: "erp.debit_note.read",
-  create: "erp.debit_note.create",
-  update: "erp.debit_note.update",
-  delete: "erp.debit_note.delete",
-  post: "erp.debit_note.post",
-  cancel: "erp.debit_note.cancel",
+  read: "purchase.debit_note.read",
+  create: "purchase.debit_note.create",
+  update: "purchase.debit_note.update",
+  delete: "purchase.debit_note.delete",
+  post: "purchase.debit_note.post",
+  cancel: "purchase.debit_note.cancel",
 } as const;

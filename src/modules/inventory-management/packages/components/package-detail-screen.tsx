@@ -19,6 +19,7 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
+import { printHref } from "@/shared/lib/print";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
@@ -114,6 +115,7 @@ function PackageDetailLoaded({
         title={number ?? "Package"}
         listHref="/packages"
         viewHref={viewHref}
+        printHref={printHref("packages", pkg.id)}
         editHref={canEditDraft ? `${viewHref}/edit` : undefined}
         canUpdate={canEditDraft}
         mode={mode}

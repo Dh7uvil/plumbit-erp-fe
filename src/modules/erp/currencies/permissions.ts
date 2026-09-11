@@ -1,6 +1,6 @@
 export const currencyPermissions = {
-  read: "erp.currency.read",
-  create: "erp.currency.create",
-  update: "erp.currency.update",
-  delete: "erp.currency.delete",
+  read: "masters.currency.read",
+  create: "masters.currency.create",
+  update: "masters.currency.update",
+  delete: "masters.currency.delete",
 } as const;

@@ -1,6 +1,6 @@
 export const qualityInspectionPermissions = {
-  read: "inventory.quality_inspection.read",
-  create: "inventory.quality_inspection.create",
-  update: "inventory.quality_inspection.update",
-  approve: "inventory.quality_inspection.approve",
+  read: "purchase.quality_inspection.read",
+  create: "purchase.quality_inspection.create",
+  update: "purchase.quality_inspection.update",
+  approve: "purchase.quality_inspection.approve",
 } as const;

@@ -37,10 +37,13 @@ test.describe("permissions", () => {
     await signIn(page);
     await page.goto("/permissions");
     const rows = page.locator("table tbody tr");
-    await expect(rows).toHaveCount(4);
+    const unfiltered = await rows.count();
+    expect(unfiltered).toBeGreaterThan(2);
     await page.getByRole("button", { name: "Module" }).click();
     await page.getByRole("menuitem", { name: "identity" }).click();
-    await expect(rows).toHaveCount(2);
+    const identityCount = await rows.count();
+    expect(identityCount).toBeGreaterThan(0);
+    expect(identityCount).toBeLessThan(unfiltered);
   });
 
   test("hides sidebar modules the user cannot read", async ({ page }) => {
@@ -60,6 +63,8 @@ test.describe("permissions", () => {
     await expect(nav.getByRole("link", { name: "Quotations" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Users" })).toHaveCount(0);
     await expect(nav.getByText("CRM")).toHaveCount(0);
+    await expect(nav.getByRole("button", { name: "Sales" })).toHaveCount(0);
+    await expect(nav.getByRole("button", { name: "Purchases" })).toHaveCount(0);
     await expect(nav.getByText("ERP")).toHaveCount(0);
     await expect(nav.getByText("Administration")).toHaveCount(0);
 

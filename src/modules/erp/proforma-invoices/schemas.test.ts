@@ -82,18 +82,18 @@ describe("visibleActions", () => {
     {
       action: "revise",
       label: "Revise",
-      permission: "erp.quotation.revise",
+      permission: "sales.quotation.revise",
       reasonField: { placeholder: "Why", required: true },
     },
-    { action: "acknowledge", label: "Acknowledge", permission: "erp.sales_order.acknowledge" },
-    { action: "confirm", label: "Confirm", permission: "erp.sales_order.confirm" },
+    { action: "acknowledge", label: "Acknowledge", permission: "sales.sales_order.acknowledge" },
+    { action: "confirm", label: "Confirm", permission: "sales.sales_order.confirm" },
   ];
 
   it("includes revise and acknowledge only when listed and permitted", () => {
     const visible = visibleActions(
       ["confirm", "revise", "acknowledge"],
       registry,
-      (permission) => permission !== "erp.quotation.revise",
+      (permission) => permission !== "sales.quotation.revise",
     );
     expect(visible.map((spec) => spec.action)).toEqual(["confirm", "acknowledge"]);
   });

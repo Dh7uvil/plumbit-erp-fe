@@ -82,6 +82,7 @@ export const CustomerPaymentSchema = z.object({
   journal_entry_id: z.string().uuid().nullable(),
   reversal_journal_entry_id: z.string().uuid().nullable(),
   refund_journal_entry_id: z.string().uuid().nullable(),
+  realized_fx_amount: MoneySchema.nullable().optional().default(null),
   tax_id: z.string().uuid().nullable(),
   tax_amount: MoneySchema,
   notes: z.string().nullable(),
