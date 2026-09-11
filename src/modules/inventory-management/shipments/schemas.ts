@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { RelatedDocumentRefSchema } from "@/shared/components/document/schemas";
 import { NullableDecimalStringSchema } from "@/shared/lib/money";
 
 export const SHIPMENT_STATUSES = [
@@ -112,6 +113,7 @@ export const ShipmentSchema = z.object({
   total_packages: z.number().int().nullable(),
   notes: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
 });

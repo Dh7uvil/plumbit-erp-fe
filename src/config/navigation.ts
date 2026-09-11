@@ -46,6 +46,7 @@ import { journalPermissions } from "@/modules/erp/accounting/journals/permission
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
+import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
@@ -295,6 +296,12 @@ export const navigation: NavigationGroup[] = [
         icon: CircleDollarSign,
       },
       {
+        label: "Landed costs",
+        href: "/landed-costs",
+        permission: landedCostPermissions.read,
+        icon: PackageCheck,
+      },
+      {
         label: "Trial balance",
         href: "/reports/trial-balance",
         permission: reportPermissions.ledger,
@@ -347,6 +354,72 @@ export const navigation: NavigationGroup[] = [
         href: "/reports/supplier-statement",
         permission: reportPermissions.arAp,
         icon: FileSpreadsheet,
+      },
+      {
+        label: "Stock valuation",
+        href: "/reports/stock-valuation",
+        permission: reportPermissions.inventory,
+        icon: Boxes,
+      },
+      {
+        label: "Stock valuation vs GL",
+        href: "/reports/stock-valuation-gl",
+        permission: reportPermissions.inventory,
+        icon: Scale,
+      },
+      {
+        label: "Stock movement",
+        href: "/reports/stock-movement",
+        permission: reportPermissions.inventory,
+        icon: ArrowLeftRight,
+      },
+      {
+        label: "Stock aging",
+        href: "/reports/stock-aging",
+        permission: reportPermissions.inventory,
+        icon: History,
+      },
+      {
+        label: "Purchase suggestions",
+        href: "/reports/purchase-suggestions",
+        permission: reportPermissions.inventory,
+        icon: ShoppingCart,
+      },
+      {
+        label: "Profit and loss",
+        href: "/reports/profit-and-loss",
+        permission: reportPermissions.financial,
+        icon: FileSpreadsheet,
+      },
+      {
+        label: "Balance sheet",
+        href: "/reports/balance-sheet",
+        permission: reportPermissions.financial,
+        icon: Scale,
+      },
+      {
+        label: "Cash flow",
+        href: "/reports/cash-flow",
+        permission: reportPermissions.financial,
+        icon: Banknote,
+      },
+      {
+        label: "Sales register",
+        href: "/reports/sales-register",
+        permission: reportPermissions.tax,
+        icon: FileText,
+      },
+      {
+        label: "Purchase register",
+        href: "/reports/purchase-register",
+        permission: reportPermissions.tax,
+        icon: FileText,
+      },
+      {
+        label: "VAT 201",
+        href: "/reports/vat-201",
+        permission: reportPermissions.tax,
+        icon: Percent,
       },
     ],
   },

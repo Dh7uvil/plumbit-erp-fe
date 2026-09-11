@@ -140,8 +140,18 @@ function toFormLines(purchaseOrder: PurchaseOrder | null): PurchaseOrderLineForm
   }));
 }
 
-function toFormValues(purchaseOrder: PurchaseOrder | null): PurchaseOrderFormValues {
-  return {
+export type PurchaseOrderSuggestionCompose = {
+  supplierId?: string;
+  warehouseId?: string;
+  productId?: string;
+  quantity?: string;
+};
+
+function toFormValues(
+  purchaseOrder: PurchaseOrder | null,
+  suggestionCompose?: PurchaseOrderSuggestionCompose | null,
+): PurchaseOrderFormValues {
+  const values: PurchaseOrderFormValues = {
     supplier_id: purchaseOrder?.supplier_id ?? OPTIONAL_SELECT_NONE,
     contact_id: purchaseOrder?.contact_id ?? OPTIONAL_SELECT_NONE,
     branch_id: purchaseOrder?.branch_id ?? OPTIONAL_SELECT_NONE,
@@ -164,6 +174,23 @@ function toFormValues(purchaseOrder: PurchaseOrder | null): PurchaseOrderFormVal
     supplier_address_snapshot: purchaseOrder?.supplier_address_snapshot ?? "",
     deliver_to_snapshot: purchaseOrder?.deliver_to_snapshot ?? "",
     lines: toFormLines(purchaseOrder),
+  };
+  if (purchaseOrder || !suggestionCompose) {
+    return values;
+  }
+  return {
+    ...values,
+    supplier_id: suggestionCompose.supplierId ?? values.supplier_id,
+    warehouse_id: suggestionCompose.warehouseId ?? values.warehouse_id,
+    lines: suggestionCompose.productId
+      ? [
+          {
+            ...emptyDocumentLine(),
+            product_id: suggestionCompose.productId,
+            quantity: suggestionCompose.quantity?.trim() || "1",
+          },
+        ]
+      : values.lines,
   };
 }
 
@@ -216,10 +243,12 @@ export function PurchaseOrderForm({
   purchaseOrder,
   disabled = false,
   onSuccess,
+  suggestionCompose = null,
 }: {
   purchaseOrder: PurchaseOrder | null;
   disabled?: boolean;
   onSuccess?: () => void;
+  suggestionCompose?: PurchaseOrderSuggestionCompose | null;
 }) {
   const router = useRouter();
   const can = useCan();
@@ -248,10 +277,16 @@ export function PurchaseOrderForm({
 
   const form = useForm<PurchaseOrderFormValues>({
     resolver: zodResolver(PurchaseOrderFormSchema),
-    defaultValues: toFormValues(purchaseOrder),
+    defaultValues: toFormValues(purchaseOrder, suggestionCompose),
     values: purchaseOrder ? toFormValues(purchaseOrder) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+
+  useEffect(() => {
+    if (suggestionCompose?.warehouseId) {
+      dirtyCompose.current.add("warehouse_id");
+    }
+  }, [suggestionCompose?.warehouseId]);
 
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
   const selectedSupplierId = optionalUuid(supplierId);

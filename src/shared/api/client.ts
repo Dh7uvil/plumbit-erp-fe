@@ -290,10 +290,112 @@ async function requestList<T>(
   return { data, meta: parseListMeta(envelope.meta, itemCount) };
 }
 
+function filenameFromDisposition(header: string | null, fallback: string): string {
+  if (!header) {
+    return fallback;
+  }
+  const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utfMatch?.[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1].trim());
+    } catch {
+      return utfMatch[1].trim();
+    }
+  }
+  const quoted = /filename="([^"]+)"/i.exec(header);
+  if (quoted?.[1]) {
+    return quoted[1];
+  }
+  const plain = /filename=([^;]+)/i.exec(header);
+  return plain?.[1]?.trim() ?? fallback;
+}
+
+async function downloadCsv(
+  path: string,
+  config: RequestConfig & { filename: string },
+  basePrefix: string,
+  skipRefresh: boolean,
+  hasRetried = false,
+): Promise<void> {
+  if (!isBrowser()) {
+    throw new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), 0);
+  }
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const url = buildUrl(path, basePrefix, { ...config.params, format: "csv" });
+  const headers = new Headers(config.headers);
+  headers.set("Accept", "text/csv");
+  if (!headers.has("x-request-id")) {
+    headers.set("x-request-id", randomUuid());
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers,
+      credentials: "include",
+      signal: mergeSignals(timeoutMs, config.signal),
+    });
+  } catch (error) {
+    const apiError = new ApiError("NETWORK_ERROR", getErrorMessage("NETWORK_ERROR"), 0, error);
+    reportError(apiError, { path, method: "GET" });
+    throw apiError;
+  }
+
+  if (response.status === 401 && !hasRetried && !skipRefresh) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      return downloadCsv(path, config, basePrefix, skipRefresh, true);
+    }
+    if (!window.location.pathname.startsWith("/login")) {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard fallback after failed refresh
+      window.location.assign("/login");
+    }
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    const rawText = await response.text();
+    let payload: unknown = null;
+    if (rawText) {
+      try {
+        payload = JSON.parse(rawText) as unknown;
+      } catch (error) {
+        const apiError = new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), response.status);
+        reportError(error, { path, method: "GET", http_status: response.status });
+        throw apiError;
+      }
+    }
+    const envelope = parseEnvelope(payload);
+    const code = envelope.error?.code ?? "UNKNOWN";
+    throw new ApiError(code, getErrorMessage(code), response.status, envelope.error?.details);
+  }
+
+  if (!response.ok) {
+    throw new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), response.status);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filenameFromDisposition(
+    response.headers.get("content-disposition"),
+    config.filename.endsWith(".csv") ? config.filename : `${config.filename}.csv`,
+  );
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 function createClient(basePrefix: string, skipRefresh = false) {
   return {
     get<T>(path: string, config: RequestConfig = {}): Promise<T> {
       return request<T>(path, { ...config, method: "GET", basePrefix, skipRefresh });
+    },
+    downloadCsv(path: string, config: RequestConfig & { filename: string }): Promise<void> {
+      return downloadCsv(path, config, basePrefix, skipRefresh);
     },
     getList<T>(path: string, config: RequestConfig = {}): Promise<ListResponse<T>> {
       return requestList<T>(path, { ...config, method: "GET", basePrefix, skipRefresh });

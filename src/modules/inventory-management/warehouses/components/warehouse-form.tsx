@@ -45,6 +45,7 @@ function toFormValues(warehouse: Warehouse | null): WarehouseFormValues {
     phone: warehouse?.phone ?? "",
     address: warehouse ? addressToFormValues(warehouse.address) : EMPTY_ADDRESS_FORM,
     is_default: warehouse?.is_default ?? false,
+    is_designated_zone: warehouse?.is_designated_zone ?? false,
     is_active: warehouse?.is_active ?? true,
   };
 }
@@ -56,6 +57,7 @@ function toCreateRequest(values: WarehouseFormValues): WarehouseCreateRequest {
     phone: emptyToNull(values.phone),
     address: toAddressPayload(values.address),
     is_default: values.is_default,
+    is_designated_zone: values.is_designated_zone,
   };
 }
 
@@ -94,6 +96,7 @@ export function WarehouseForm({
             phone: emptyToNull(values.phone),
             address: toAddressPayload(values.address),
             is_default: values.is_default,
+            is_designated_zone: values.is_designated_zone,
             is_active: values.is_active,
           },
         });
@@ -189,6 +192,22 @@ export function WarehouseForm({
                     />
                   </FormControl>
                   <FormLabel>Default warehouse</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="is_designated_zone"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={disabled}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel>Designated zone</FormLabel>
                 </FormItem>
               )}
             />

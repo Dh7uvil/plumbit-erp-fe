@@ -19,6 +19,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   SALES_RETURN: "Sales return",
   CUSTOMER_PAYMENT: "Customer receipt",
   SUPPLIER_PAYMENT: "Supplier payment",
+  LANDED_COST: "Landed cost",
   OPENING_AR: "Opening AR",
   OPENING_AP: "Opening AP",
 };
@@ -53,6 +54,7 @@ const DOCUMENT_HREF: Record<string, (id: string) => string> = {
   DEBIT_NOTE: (id) => `/debit-notes/${id}`,
   CUSTOMER_PAYMENT: (id) => `/customer-payments/${id}`,
   SUPPLIER_PAYMENT: (id) => `/supplier-payments/${id}`,
+  LANDED_COST: (id) => `/landed-costs/${id}`,
 };
 
 export function documentDetailHref(documentType: string, documentId: string): string | null {

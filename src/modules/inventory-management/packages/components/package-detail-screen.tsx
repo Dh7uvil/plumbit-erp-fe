@@ -20,6 +20,7 @@ import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/c
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import {
   Dialog,
@@ -166,6 +167,7 @@ function PackageDetailLoaded({
           />
         }
         activity={<ActivityFeed entityType="package" entityId={pkg.id} revision={pkg.version} />}
+        panels={<RelatedDocumentsCard documents={pkg.related_documents} />}
       >
         <PackageForm pkg={pkg} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
       </DocumentRecordShell>

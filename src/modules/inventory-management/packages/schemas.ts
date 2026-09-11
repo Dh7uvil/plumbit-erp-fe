@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { RelatedDocumentRefSchema } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, NullableDecimalStringSchema } from "@/shared/lib/money";
 
 export const PACKAGE_STATUSES = ["DRAFT", "PACKED", "CANCELLED"] as const;
@@ -51,6 +52,7 @@ export const PackageSchema = z.object({
   shipping_marks: z.string().nullable(),
   notes: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(PackageLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

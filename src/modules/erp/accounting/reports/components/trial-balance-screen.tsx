@@ -1,6 +1,5 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { useTrialBalance } from "@/modules/erp/accounting/reports/queries";
@@ -10,10 +9,7 @@ import { DateRangeFilter } from "@/shared/components/data-table/date-range-filte
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
-import { ListPage } from "@/shared/components/layout/list-page";
-import { PageHeader } from "@/shared/components/layout/page-header";
-import { Alert, AlertDescription } from "@/shared/components/ui/alert";
+import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
@@ -34,7 +30,9 @@ export function TrialBalanceScreen() {
   const to = filters.to ?? "";
   const includeZero = filters.include_zero === "true";
   const branchId = filters.branch_id;
-  const reportQuery = useTrialBalance(from && to ? { from, to, branch_id: branchId, include_zero: includeZero } : null);
+  const reportQuery = useTrialBalance(
+    from && to ? { from, to, branch_id: branchId, include_zero: includeZero } : null,
+  );
   const branchesQuery = useAllBranches(can("identity.branch.read"));
   const report = reportQuery.data;
   const branches = branchesQuery.data ?? [];
@@ -52,65 +50,63 @@ export function TrialBalanceScreen() {
   }
 
   return (
-    <ListPage>
-      <PageHeader title="Trial balance" subtitle="Opening, period, and closing balances in base currency" />
-      <DataTableToolbar>
-        <DateRangeFilter
-          layout="inline"
-          fromId="tb-from"
-          toId="tb-to"
-          from={from}
-          to={to}
-          onFromChange={(value) => setParams({ filters: { from: value || null } })}
-          onToChange={(value) => setParams({ filters: { to: value || null } })}
-        />
-        <FilterSelect
-          className="w-44"
-          placeholder="Branch"
-          aria-label="Filter by branch"
-          value={branchId ?? ALL}
-          onValueChange={(value) => setParams({ filters: { branch_id: value === ALL ? null : value } })}
-          options={[
-            { value: ALL, label: "All branches" },
-            ...branches.map((branch) => ({
-              value: branch.id,
-              label: `${branch.code} — ${branch.name}`,
-            })),
-          ]}
-        />
-        <div className="flex h-9 items-center gap-2">
-          <Checkbox
-            id="tb-zero"
-            checked={includeZero}
-            onCheckedChange={(checked) =>
-              setParams({ filters: { include_zero: checked === true ? "true" : null } })
-            }
+    <ReportShell
+      title="Trial balance"
+      subtitle="Opening, period, and closing balances in base currency"
+      isBalanced={report?.is_balanced}
+      toolbar={
+        <>
+          <DateRangeFilter
+            layout="inline"
+            fromId="tb-from"
+            toId="tb-to"
+            from={from}
+            to={to}
+            onFromChange={(value) => setParams({ filters: { from: value || null } })}
+            onToChange={(value) => setParams({ filters: { to: value || null } })}
           />
-          <Label htmlFor="tb-zero">Include zeros</Label>
-        </div>
-        {from || to || branchId || includeZero ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-9"
-            onClick={() =>
-              setParams({ filters: { from: null, to: null, branch_id: null, include_zero: null } })
+          <FilterSelect
+            className="w-44"
+            placeholder="Branch"
+            aria-label="Filter by branch"
+            value={branchId ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { branch_id: value === ALL ? null : value } })
             }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
-      {report && !report.is_balanced ? (
-        <Alert variant="destructive">
-          <AlertCircle />
-          <AlertDescription>
-            This trial balance does not balance. Totals come from the server — do not post until
-            the ledger is investigated.
-          </AlertDescription>
-        </Alert>
-      ) : null}
+            options={[
+              { value: ALL, label: "All branches" },
+              ...branches.map((branch) => ({
+                value: branch.id,
+                label: `${branch.code} — ${branch.name}`,
+              })),
+            ]}
+          />
+          <div className="flex h-9 items-center gap-2">
+            <Checkbox
+              id="tb-zero"
+              checked={includeZero}
+              onCheckedChange={(checked) =>
+                setParams({ filters: { include_zero: checked === true ? "true" : null } })
+              }
+            />
+            <Label htmlFor="tb-zero">Include zeros</Label>
+          </div>
+          {from || to || branchId || includeZero ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9"
+              onClick={() =>
+                setParams({ filters: { from: null, to: null, branch_id: null, include_zero: null } })
+              }
+            >
+              Clear
+            </Button>
+          ) : null}
+        </>
+      }
+    >
       <DataTable>
         <TableHeader>
           <TableRow>
@@ -204,6 +200,6 @@ export function TrialBalanceScreen() {
           )}
         </TableBody>
       </DataTable>
-    </ListPage>
+    </ReportShell>
   );
 }

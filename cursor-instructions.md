@@ -63,10 +63,11 @@ src/
 │   │                             terms-templates, document-sequences, suppliers, quotations,
 │   │                             period-lock, sales-orders, purchase-orders, supplier-products,
 │   │                             accounting (COA, journals, opening-balances, ledger reports,
+│   │                             inventory reports, financial statements, tax registers, VAT 201,
 │   │                             export-evidence-exceptions, invoiced-not-dispatched),
-│   │                             sales-invoices, purchase-invoices, credit-notes, debit-notes
-│   │                             planned: customer-payments, supplier-payments,
-│   │                             logistics, einvoicing status UX on invoices and credit notes
+│   │                             sales-invoices, purchase-invoices, credit-notes, debit-notes,
+│   │                             customer-payments, supplier-payments, landed-costs
+│   │                             planned: logistics, einvoicing status UX on invoices and credit notes
 │   ├── communication-service/    planned: email, whatsapp, chat, meetings
 │   └── notifications-service/    planned: notifications, templates, delivery
 ├── shared/                       api/ auth/ components/ hooks/ lib/ providers/ types/
@@ -78,10 +79,10 @@ Directories and files are `kebab-case`; components, types and Zod schemas are `P
 are a code concept only — they never appear in the URL, which mirrors the backend's flat set of
 hyphenated plural resources (`src/modules/erp/purchase-invoices/` → `/purchase-invoices` →
 `/api/v1/purchase-invoices`). Keep `/credit-notes`, `/debit-notes`, `/customer-payments`,
-`/supplier-payments`, `/delivery-notes` unique.
+`/supplier-payments`, `/delivery-notes`, `/landed-costs` unique.
 
 Document-number prefixes (backend-generated): `QUO`, `SO`, `DN` (delivery), `PKG`, `SHP`, `SR`,
-`INV`, `CN`, `PO`, `GRN`, `BILL`, `SDN` (debit notes), `JV` (journals).
+`INV`, `CN`, `PO`, `GRN`, `BILL`, `SDN` (debit notes), `JV` (journals), `LC` (landed costs).
 
 Exchange rates stay dialog-based (create/edit in a modal). The OpenAPI contract has no
 `GET /exchange-rates/{id}`, so there is no detail or `/edit` route for that slice.

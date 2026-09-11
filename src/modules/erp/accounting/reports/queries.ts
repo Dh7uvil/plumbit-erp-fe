@@ -6,10 +6,17 @@ import { reportsApi } from "@/modules/erp/accounting/reports/api";
 import type {
   AccountStatementParams,
   AgingParams,
+  BalanceSheetParams,
+  CashFlowParams,
   CustomerStatementParams,
   ExportEvidenceExceptionParams,
   GeneralLedgerParams,
+  InventoryAsOfParams,
+  InventoryRangeParams,
+  ProfitAndLossParams,
+  PurchaseSuggestionParams,
   SupplierStatementParams,
+  TaxRegisterParams,
   TrialBalanceParams,
 } from "@/modules/erp/accounting/reports/schemas";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
@@ -31,6 +38,25 @@ export const reportKeys = {
     [...reportKeys.all, "customer-statement", params] as const,
   supplierStatement: (params: SupplierStatementParams) =>
     [...reportKeys.all, "supplier-statement", params] as const,
+  stockValuation: (params: InventoryAsOfParams) =>
+    [...reportKeys.all, "stock-valuation", params] as const,
+  stockValuationGl: (params: InventoryAsOfParams) =>
+    [...reportKeys.all, "stock-valuation-gl", params] as const,
+  stockMovement: (params: InventoryRangeParams) =>
+    [...reportKeys.all, "stock-movement", params] as const,
+  stockAging: (params: InventoryAsOfParams) => [...reportKeys.all, "stock-aging", params] as const,
+  purchaseSuggestions: (params: PurchaseSuggestionParams) =>
+    [...reportKeys.all, "purchase-suggestions", params] as const,
+  profitAndLoss: (params: ProfitAndLossParams) =>
+    [...reportKeys.all, "profit-and-loss", params] as const,
+  balanceSheet: (params: BalanceSheetParams) =>
+    [...reportKeys.all, "balance-sheet", params] as const,
+  cashFlow: (params: CashFlowParams) => [...reportKeys.all, "cash-flow", params] as const,
+  salesRegister: (params: TaxRegisterParams) =>
+    [...reportKeys.all, "sales-register", params] as const,
+  purchaseRegister: (params: TaxRegisterParams) =>
+    [...reportKeys.all, "purchase-register", params] as const,
+  vat201: (params: TaxRegisterParams) => [...reportKeys.all, "vat-201", params] as const,
 };
 
 export function useTrialBalance(params: TrialBalanceParams | null) {
@@ -114,3 +140,93 @@ export function useSupplierStatement(params: SupplierStatementParams | null) {
     enabled: Boolean(params?.supplier_id && params.from && params.to),
   });
 }
+
+export function useStockValuation(params: InventoryAsOfParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.stockValuation(params ?? {})),
+    queryFn: () => reportsApi.stockValuation(params ?? {}),
+    enabled: Boolean(params),
+  });
+}
+
+export function useStockValuationGl(params: InventoryAsOfParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.stockValuationGl(params ?? {})),
+    queryFn: () => reportsApi.stockValuationGl(params ?? {}),
+    enabled: Boolean(params),
+  });
+}
+
+export function useStockMovementReport(params: InventoryRangeParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(
+      reportKeys.stockMovement(params ?? { from: "", to: "" }),
+    ),
+    queryFn: () => reportsApi.stockMovement(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useStockAging(params: InventoryAsOfParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.stockAging(params ?? {})),
+    queryFn: () => reportsApi.stockAging(params ?? {}),
+    enabled: Boolean(params),
+  });
+}
+
+export function usePurchaseSuggestions(params: PurchaseSuggestionParams = {}) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.purchaseSuggestions(params)),
+    queryFn: () => reportsApi.purchaseSuggestions(params),
+  });
+}
+
+export function useProfitAndLoss(params: ProfitAndLossParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.profitAndLoss(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.profitAndLoss(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useBalanceSheet(params: BalanceSheetParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.balanceSheet(params ?? { as_of: "" })),
+    queryFn: () => reportsApi.balanceSheet(params!),
+    enabled: Boolean(params?.as_of),
+  });
+}
+
+export function useCashFlow(params: CashFlowParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.cashFlow(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.cashFlow(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useSalesRegister(params: TaxRegisterParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.salesRegister(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.salesRegister(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function usePurchaseRegister(params: TaxRegisterParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.purchaseRegister(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.purchaseRegister(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useVat201(params: TaxRegisterParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.vat201(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.vat201(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+

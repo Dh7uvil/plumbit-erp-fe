@@ -41,6 +41,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   EINVOICE_REJECTED: "The e-invoice was rejected. Review the message and issue a credit note.",
   EINVOICE_ASP_UNAVAILABLE: "The e-invoicing service is unavailable. Please try again later.",
   EINVOICE_ALREADY_EXCHANGED: "This e-invoice has already been exchanged and cannot be changed.",
+  LANDED_COST_WEIGHT_REQUIRED: "Net weight is required on goods receipt lines for weight allocation.",
   ACCOUNT_ROLE_UNMAPPED: "A required system account is not mapped. Map it before posting.",
   ACCOUNT_NOT_POSTABLE: "This account cannot be posted to. Choose a postable account.",
   JOURNAL_LINE_INVALID: "Each journal line must have either a debit or a credit, not both.",

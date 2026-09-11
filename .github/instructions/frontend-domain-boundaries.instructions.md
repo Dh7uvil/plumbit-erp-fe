@@ -156,9 +156,10 @@ users-management        Identity (BE: app/auth/): Auth, Users, Roles, Permission
                         edited through `/period-lock`.
 erp                     Implemented: Quotations, Sales Orders, Purchase Orders, Currencies, Exchange Rates, Taxes,
                         Payment Terms, Terms Templates, Document Sequences, Suppliers, Supplier Products, Period Lock,
-                        Accounting (Accounts, Journals, Opening Balances, ledger reports, export-evidence-exceptions,
+                        Accounting (Accounts, Journals, Opening Balances, ledger reports, inventory reports,
+                        financial statements, tax registers, VAT 201, export-evidence-exceptions,
                         invoiced-not-dispatched, AR/AP aging, customer/supplier statements), Sales Invoices, Purchase
-                        Invoices, Credit Notes, Debit Notes, Customer Payments, Supplier Payments.
+                        Invoices, Credit Notes, Debit Notes, Customer Payments, Supplier Payments, Landed Costs.
                         Planned: Logistics (Imports, Exports, Shipments, Containers),
                         e-invoicing status UX on sales invoices and credit notes.
 inventory-management    Implemented: Units, Categories, Products, Price Lists, Warehouses,
