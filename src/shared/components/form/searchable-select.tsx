@@ -85,6 +85,8 @@ export function SearchableSelect({
   asFormControl = true,
   id,
   "aria-label": ariaLabel,
+  onQueryChange,
+  loading = false,
 }: {
   options: SearchableSelectOption[];
   value: string;
@@ -98,11 +100,19 @@ export function SearchableSelect({
   asFormControl?: boolean;
   id?: string;
   "aria-label"?: string;
+  onQueryChange?: (query: string) => void;
+  loading?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const onQueryChangeRef = useRef(onQueryChange);
+  const skipQueryChange = useRef(true);
   const selected = options.find((option) => option.value === value);
+
+  useEffect(() => {
+    onQueryChangeRef.current = onQueryChange;
+  }, [onQueryChange]);
 
   useEffect(() => {
     if (!open) {
@@ -113,7 +123,25 @@ export function SearchableSelect({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [open]);
+
+  useEffect(() => {
+    if (!onQueryChangeRef.current) {
+      return;
+    }
+    if (skipQueryChange.current) {
+      skipQueryChange.current = false;
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      onQueryChangeRef.current?.(query);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
+
   const filtered = useMemo(() => {
+    if (onQueryChange) {
+      return options;
+    }
     const needle = query.trim().toLowerCase();
     if (!needle) {
       return options;
@@ -122,7 +150,7 @@ export function SearchableSelect({
       (option) =>
         option.label.toLowerCase().includes(needle) || option.value.toLowerCase().includes(needle),
     );
-  }, [options, query]);
+  }, [onQueryChange, options, query]);
 
   const triggerProps = {
     disabled,
@@ -187,7 +215,9 @@ export function SearchableSelect({
         </div>
         <div className="max-h-60 overflow-y-auto p-1">
           {filtered.length === 0 ? (
-            <p className="text-muted-foreground px-2 py-1.5 text-sm">{emptyText}</p>
+            <p className="text-muted-foreground px-2 py-1.5 text-sm">
+              {loading ? "Searching…" : emptyText}
+            </p>
           ) : (
             filtered.map((option) => (
               <DropdownMenuItem

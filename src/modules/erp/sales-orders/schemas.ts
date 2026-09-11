@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import {
+  ConversionLineInputSchema,
+  QuantityProgressSchema,
+  RelatedDocumentRefSchema,
+} from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export const SALES_ORDER_STATUSES = [
@@ -146,7 +151,11 @@ export const SalesOrderLineSchema = z.object({
   qty_returned: DecimalStringSchema.optional().default("0"),
   qty_reserved: DecimalStringSchema.optional().default("0"),
   qty_invoiced: DecimalStringSchema,
+  qty_converted: DecimalStringSchema.optional().default("0"),
+  qty_remaining_to_deliver: DecimalStringSchema.optional(),
+  qty_remaining_to_invoice: DecimalStringSchema.optional(),
   source_quotation_line_id: z.string().uuid().nullable(),
+  source_proforma_invoice_line_id: z.string().uuid().nullable().optional().default(null),
 });
 export type SalesOrderLine = z.infer<typeof SalesOrderLineSchema>;
 
@@ -204,6 +213,8 @@ export const SalesOrderSchema = z.object({
   acknowledged_at: z.string().nullable().optional().default(null),
   acknowledged_by: z.string().uuid().nullable().optional().default(null),
   available_actions: z.array(z.string()).default([]),
+  quantity_progress: QuantityProgressSchema.nullable().optional().default(null),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(SalesOrderLineSchema).optional().default([]),
   reservation_shortfalls: z.array(ReservationShortfallSchema).optional().default([]),
   created_at: z.string(),
@@ -293,6 +304,16 @@ export const SalesOrderUpdateRequestSchema = z.object({
   version: z.number().int().optional(),
 });
 export type SalesOrderUpdateRequest = z.infer<typeof SalesOrderUpdateRequestSchema>;
+
+export const ConvertSalesOrderToProformaInvoiceRequestSchema = z.object({
+  proforma_date: z.string().nullable().optional(),
+  valid_until: z.string().nullable().optional(),
+  version: z.number().int().optional(),
+  lines: z.array(ConversionLineInputSchema).nullable().optional(),
+});
+export type ConvertSalesOrderToProformaInvoiceRequest = z.infer<
+  typeof ConvertSalesOrderToProformaInvoiceRequestSchema
+>;
 
 export const SalesOrderLineFormSchema = z.object({
   product_id: z.string(),

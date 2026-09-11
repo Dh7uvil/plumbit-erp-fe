@@ -27,6 +27,7 @@ import {
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_LABELS,
+  RelatedDocumentRefSchema,
   type ExpenseCategory,
 } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
@@ -152,7 +153,11 @@ export const PurchaseInvoiceSchema = z.object({
   cancelled_at: z.string().nullable(),
   cancelled_by: z.string().uuid().nullable(),
   cancel_reason: z.string().nullable(),
+  is_overdue: z.boolean().optional().default(false),
+  is_partially_debited: z.boolean().optional().default(false),
+  is_fully_debited: z.boolean().optional().default(false),
   available_actions: z.array(z.string()).default([]),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(PurchaseInvoiceLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
@@ -375,6 +380,9 @@ export function purchaseInvoiceDisplayNumber(
 }
 
 export function isPurchaseInvoiceOverdue(invoice: PurchaseInvoice, today: string): boolean {
+  if (invoice.is_overdue) {
+    return true;
+  }
   if (invoice.status !== "POSTED" || invoice.payment_status === "PAID" || !invoice.due_date) {
     return false;
   }

@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { proformaInvoicesApi } from "@/modules/erp/proforma-invoices/api";
 import { proformaInvoiceKeys } from "@/modules/erp/proforma-invoices/queries";
 import { quotationKeys } from "@/modules/erp/quotations/queries";
+import { salesInvoiceKeys } from "@/modules/erp/sales-invoices/queries";
 import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { isApiError } from "@/shared/api/errors";
 
@@ -148,6 +149,27 @@ export function useConvertProformaInvoiceToSalesOrder() {
     onSuccess: async (_data, { id }) => {
       await invalidateProformaInvoices(queryClient, id);
       await queryClient.invalidateQueries({ queryKey: salesOrderKeys.all });
+      await queryClient.invalidateQueries({ queryKey: quotationKeys.all });
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}
+
+export function useConvertProformaInvoiceToSalesInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      values,
+    }: ProformaInvoiceWriteVars & {
+      values?: Parameters<typeof proformaInvoicesApi.convertToSalesInvoice>[1]["values"];
+    }) => proformaInvoicesApi.convertToSalesInvoice(id, { version, values }),
+    onSuccess: async (_data, { id }) => {
+      await invalidateProformaInvoices(queryClient, id);
+      await queryClient.invalidateQueries({ queryKey: salesInvoiceKeys.all });
       await queryClient.invalidateQueries({ queryKey: quotationKeys.all });
     },
     onError: async (error, { id }) => {

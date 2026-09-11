@@ -12,6 +12,8 @@ import {
   type DeliveryNote,
 } from "@/modules/inventory-management/delivery-notes/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { ListSearch } from "@/shared/components/data-table/list-search";
+import { CONVERT_FROM_DIALOG_CLASSNAME } from "@/shared/components/document/convert-from-menu";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
@@ -47,8 +49,9 @@ export function CreateInvoiceFromDeliveryNotesDialog({
 }) {
   const router = useRouter();
   const createInvoice = useCreateSalesInvoiceFromDeliveryNotes();
+  const [search, setSearch] = useState("");
   const notesQuery = useDeliveryNotes(
-    { status: "POSTED", page_size: 100, customer_id: customerId },
+    { status: "POSTED", page_size: 50, customer_id: customerId, search: search || undefined },
     open,
   );
   const notes = notesQuery.data?.data ?? [];
@@ -89,11 +92,12 @@ export function CreateInvoiceFromDeliveryNotesDialog({
       onOpenChange={(next) => {
         if (next) {
           setSelected(presetNoteIds);
+          setSearch("");
         }
         onOpenChange(next);
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className={CONVERT_FROM_DIALOG_CLASSNAME}>
         <DialogHeader>
           <DialogTitle>Create invoice from delivery notes</DialogTitle>
           <DialogDescription>
@@ -111,27 +115,35 @@ export function CreateInvoiceFromDeliveryNotesDialog({
               onChange={(event) => setInvoiceDate(event.target.value)}
             />
           </div>
-          <fieldset className="flex max-h-56 flex-col gap-2 overflow-y-auto rounded-md border p-3">
-            <legend className="text-sm font-medium">Posted delivery notes</legend>
-            {notesQuery.isLoading ? (
-              <p className="text-muted-foreground text-sm">Loading delivery notes…</p>
-            ) : notes.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No posted delivery notes available.</p>
-            ) : (
-              notes.map((note: DeliveryNote) => (
-                <label key={note.id} className="flex items-start gap-2 text-sm">
-                  <Checkbox
-                    checked={selectedSet.has(note.id)}
-                    onCheckedChange={(checked) => toggle(note.id, checked === true)}
-                  />
-                  <span>
-                    {deliveryNoteDisplayNumber(note) ?? "Delivery note"} ·{" "}
-                    {formatDate(note.document_date)}
-                  </span>
-                </label>
-              ))
-            )}
-          </fieldset>
+          <div className="flex flex-col gap-1.5">
+            <Label>Posted delivery notes</Label>
+            <ListSearch
+              value={search}
+              onChange={setSearch}
+              placeholder="Search delivery notes…"
+            />
+            <fieldset className="flex max-h-56 flex-col gap-2 overflow-y-auto rounded-md border p-3">
+              <legend className="sr-only">Posted delivery notes</legend>
+              {notesQuery.isLoading ? (
+                <p className="text-muted-foreground text-sm">Loading delivery notes…</p>
+              ) : notes.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No posted delivery notes available.</p>
+              ) : (
+                notes.map((note: DeliveryNote) => (
+                  <label key={note.id} className="flex items-start gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedSet.has(note.id)}
+                      onCheckedChange={(checked) => toggle(note.id, checked === true)}
+                    />
+                    <span>
+                      {deliveryNoteDisplayNumber(note) ?? "Delivery note"} ·{" "}
+                      {formatDate(note.document_date)}
+                    </span>
+                  </label>
+                ))
+              )}
+            </fieldset>
+          </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="si-from-dn-notes">Notes</Label>
             <Textarea

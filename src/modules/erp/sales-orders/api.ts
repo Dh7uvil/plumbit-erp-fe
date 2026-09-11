@@ -1,5 +1,6 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  ConvertSalesOrderToProformaInvoiceRequestSchema,
   CustomerPoDuplicateListSchema,
   DeliverableLineListSchema,
   OrderTrackerSchema,
@@ -12,6 +13,7 @@ import {
   SalesOrderListSchema,
   SalesOrderSchema,
   SalesOrderUpdateRequestSchema,
+  type ConvertSalesOrderToProformaInvoiceRequest,
   type CustomerPoDuplicate,
   type DeliverableLine,
   type OrderTracker,
@@ -26,6 +28,7 @@ import {
   type SalesOrderUpdateRequest,
 } from "@/modules/erp/sales-orders/schemas";
 import { PurchaseOrderListSchema, type PurchaseOrder } from "@/modules/erp/purchase-orders/schemas";
+import { ProformaInvoiceSchema, type ProformaInvoice } from "@/modules/erp/proforma-invoices/schemas";
 import { apiClient } from "@/shared/api/client";
 import { ifMatchHeaders } from "@/shared/api/concurrency";
 import type { ListResponse } from "@/shared/api/envelope";
@@ -141,6 +144,20 @@ export const salesOrdersApi = {
       await apiClient.post(`/sales-orders/${id}/acknowledge`, undefined, {
         headers: ifMatchHeaders(options.version),
       }),
+    ),
+  convertToProformaInvoice: async (
+    id: string,
+    options: SalesOrderWriteOptions & { values?: ConvertSalesOrderToProformaInvoiceRequest },
+  ): Promise<ProformaInvoice> =>
+    ProformaInvoiceSchema.parse(
+      await apiClient.post(
+        `/sales-orders/${id}/convert-to-proforma-invoice`,
+        ConvertSalesOrderToProformaInvoiceRequestSchema.parse({
+          ...(options.values ?? {}),
+          version: options.version,
+        }),
+        { headers: ifMatchHeaders(options.version) },
+      ),
     ),
   checkCustomerPo: async (params: {
     customer_id: string;

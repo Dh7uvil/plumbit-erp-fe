@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import {
+  QuantityProgressSchema,
+  RelatedDocumentRefSchema,
+} from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export const PURCHASE_ORDER_STATUSES = [
@@ -134,6 +138,8 @@ export const PurchaseOrderLineSchema = z.object({
   amount: MoneySchema,
   qty_received: DecimalStringSchema,
   qty_billed: DecimalStringSchema,
+  qty_remaining_to_receive: DecimalStringSchema.optional(),
+  qty_remaining_to_bill: DecimalStringSchema.optional(),
   source_sales_order_line_id: z.string().uuid().nullable().optional().default(null),
 });
 export type PurchaseOrderLine = z.infer<typeof PurchaseOrderLineSchema>;
@@ -185,6 +191,8 @@ export const PurchaseOrderSchema = z.object({
   cancel_reason: z.string().nullable(),
   source_sales_order_id: z.string().uuid().nullable().optional().default(null),
   available_actions: z.array(z.string()).default([]),
+  quantity_progress: QuantityProgressSchema.nullable().optional().default(null),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(PurchaseOrderLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

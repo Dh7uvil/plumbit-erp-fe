@@ -6,11 +6,11 @@ import { useEffect, useState } from "react";
 
 import { CreateInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-invoices/components/create-from-sales-order-dialog";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
-
-import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
+import { CreateProformaInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-orders/components/create-proforma-invoice-dialog";
 import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sales-order-coverage-card";
-import { SalesOrderTrackerCard } from "@/modules/erp/sales-orders/components/sales-order-tracker-card";
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
+import { SalesOrderTrackerCard } from "@/modules/erp/sales-orders/components/sales-order-tracker-card";
+import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrder } from "@/modules/erp/sales-orders/queries";
 import {
@@ -20,16 +20,26 @@ import {
   FULFILLMENT_STATUS_VARIANTS,
   SALES_ORDER_STATUS_LABELS,
   SALES_ORDER_STATUS_VARIANTS,
+  TAX_TREATMENT_LABELS,
   salesOrderDisplayNumber,
   type SalesOrder,
 } from "@/modules/erp/sales-orders/schemas";
-import { SALES_ORDER_ACTION_REGISTRY } from "@/modules/erp/sales-orders/workflow";
+import {
+  SALES_ORDER_ACTION_REGISTRY,
+  type SalesOrderWorkflowAction,
+} from "@/modules/erp/sales-orders/workflow";
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
-import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import {
+  DocumentWorkflowButtons,
+  type DocumentWorkflowExtras,
+} from "@/shared/components/document/document-workflow-buttons";
+import { QuantityProgressStrip } from "@/shared/components/document/quantity-progress-strip";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
 import { formatDate, formatDateTime } from "@/shared/lib/format";
@@ -106,9 +116,18 @@ function SalesOrderDetailLoaded({
   const number = salesOrderDisplayNumber(salesOrder);
   const onAction = useSalesOrderWorkflow(salesOrder);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [proformaOpen, setProformaOpen] = useState(false);
   const canCreateInvoice =
     (salesOrder.status === "CONFIRMED" || salesOrder.status === "CLOSED") &&
     can(salesInvoicePermissions.create);
+
+  async function handleAction(action: SalesOrderWorkflowAction, extras: DocumentWorkflowExtras) {
+    if (action === "create_proforma") {
+      setProformaOpen(true);
+      return;
+    }
+    await onAction(action, extras);
+  }
 
   return (
     <DocumentRecordShell
@@ -156,12 +175,25 @@ function SalesOrderDetailLoaded({
             registry={SALES_ORDER_ACTION_REGISTRY}
             documentKind="sales order"
             documentLabel={number ?? "sales order"}
-            onAction={onAction}
+            onAction={handleAction}
           />
         </div>
       }
       banner={
         <div className="flex flex-col gap-1">
+          <AppliedCommercialTerms
+            currencyId={salesOrder.currency_id}
+            exchangeRate={salesOrder.exchange_rate}
+            taxTreatmentLabel={TAX_TREATMENT_LABELS[salesOrder.tax_treatment]}
+            paymentTermsId={salesOrder.payment_terms_id}
+          />
+          {salesOrder.quantity_progress ? (
+            <QuantityProgressStrip
+              progress={salesOrder.quantity_progress}
+              fulfilledLabel="Delivered"
+              remainingFulfillLabel="Remaining to deliver"
+            />
+          ) : null}
           {salesOrder.customer_po_number ? (
             <p className="text-sm">
               Customer PO {salesOrder.customer_po_number}
@@ -206,6 +238,7 @@ function SalesOrderDetailLoaded({
       formTitle={isEdit ? "Edit sales order" : "Sales order"}
       panels={
         <>
+          <RelatedDocumentsCard documents={salesOrder.related_documents} />
           <SalesOrderCoverageCard salesOrder={salesOrder} />
           <SalesOrderTrackerCard salesOrderId={salesOrder.id} />
         </>
@@ -232,9 +265,14 @@ function SalesOrderDetailLoaded({
         onSuccess={() => router.push(viewHref)}
       />
       <CreateInvoiceFromSalesOrderDialog
-        salesOrderId={salesOrder.id}
+        salesOrder={salesOrder}
         open={invoiceOpen}
         onOpenChange={setInvoiceOpen}
+      />
+      <CreateProformaInvoiceFromSalesOrderDialog
+        salesOrder={salesOrder}
+        open={proformaOpen}
+        onOpenChange={setProformaOpen}
       />
     </DocumentRecordShell>
   );

@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateSalesInvoiceFromSalesOrder } from "@/modules/erp/sales-invoices/mutations";
-import { useSalesOrder, useSalesOrders } from "@/modules/erp/sales-orders/queries";
-import { salesOrderDisplayNumber, type SalesOrder } from "@/modules/erp/sales-orders/schemas";
+import { useConvertQuotationToSalesInvoice } from "@/modules/erp/quotations/mutations";
+import { useQuotation, useQuotations } from "@/modules/erp/quotations/queries";
+import {
+  quotationDisplayNumber,
+  type Quotation,
+} from "@/modules/erp/quotations/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import {
   ConversionLinePicker,
@@ -40,73 +43,74 @@ function todayIsoDate(): string {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
-function isInvoiceableSalesOrder(order: Pick<SalesOrder, "status">): boolean {
-  return order.status === "CONFIRMED" || order.status === "CLOSED";
-}
-
-export function CreateInvoiceFromSalesOrderDialog({
-  salesOrder,
+export function CreateSalesInvoiceFromQuotationDialog({
+  quotation,
   open,
   onOpenChange,
 }: {
-  salesOrder?: SalesOrder;
+  quotation?: Quotation;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {open ? (
-        <CreateInvoiceFromSalesOrderBody salesOrder={salesOrder} onOpenChange={onOpenChange} />
+        <CreateSalesInvoiceFromQuotationBody
+          quotation={quotation}
+          onOpenChange={onOpenChange}
+        />
       ) : null}
     </Dialog>
   );
 }
 
-function CreateInvoiceFromSalesOrderBody({
-  salesOrder,
+function CreateSalesInvoiceFromQuotationBody({
+  quotation,
   onOpenChange,
 }: {
-  salesOrder?: SalesOrder;
+  quotation?: Quotation;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [pickedId, setPickedId] = useState(salesOrder?.id ?? "");
+  const [pickedId, setPickedId] = useState(quotation?.id ?? "");
   const [search, setSearch] = useState("");
-  const listQuery = useSalesOrders({ page_size: 50, search: search || undefined }, !salesOrder);
-  const convertible = (listQuery.data?.data ?? []).filter(isInvoiceableSalesOrder);
-  const detailQuery = useSalesOrder(salesOrder ? null : pickedId || null);
-  const resolved = salesOrder ?? detailQuery.data ?? null;
+  const listQuery = useQuotations({ page_size: 50, search: search || undefined }, !quotation);
+  const convertible = (listQuery.data?.data ?? []).filter((row) =>
+    row.available_actions.includes("create_sales_invoice"),
+  );
+  const detailQuery = useQuotation(quotation ? null : pickedId || null);
+  const resolved = quotation ?? detailQuery.data ?? null;
 
   return (
     <DialogContent className={CONVERT_FROM_DIALOG_CLASSNAME}>
       <DialogHeader>
-        <DialogTitle>Create sales invoice from sales order</DialogTitle>
+        <DialogTitle>Create sales invoice from quotation</DialogTitle>
         <DialogDescription>
-          Creates a draft invoice from a confirmed sales order. Omit line quantities to convert all
+          Creates a draft invoice from an accepted quotation. Omit line quantities to convert all
           remaining quantity. Stock will not move.
         </DialogDescription>
       </DialogHeader>
-      {salesOrder ? null : (
+      {quotation ? null : (
         <ConversionSourceSelect
-          label="Sales order"
+          label="Quotation"
           value={pickedId}
           onValueChange={setPickedId}
           onSearch={setSearch}
           loading={listQuery.isFetching}
-          placeholder="Select a sales order"
+          placeholder="Select a quotation"
           options={convertible.map((row) => ({
             value: row.id,
-            label: `${salesOrderDisplayNumber(row) ?? "Sales order"} · ${formatDate(row.document_date)}`,
+            label: `${quotationDisplayNumber(row) ?? "Quotation"} · ${formatDate(row.document_date ?? row.quote_date)}`,
           }))}
-          emptyText="No confirmed sales orders are available to invoice."
+          emptyText="No quotations are available to convert to a sales invoice."
         />
       )}
       {pickedId && !resolved && detailQuery.isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading sales order…</p>
+        <p className="text-muted-foreground text-sm">Loading quotation…</p>
       ) : null}
       {resolved ? (
-        <CreateInvoiceFromSalesOrderForm
+        <CreateSalesInvoiceFromQuotationForm
           key={resolved.id}
-          salesOrder={resolved}
+          quotation={resolved}
           onOpenChange={onOpenChange}
         />
       ) : (
@@ -120,30 +124,26 @@ function CreateInvoiceFromSalesOrderBody({
   );
 }
 
-function CreateInvoiceFromSalesOrderForm({
-  salesOrder,
+function CreateSalesInvoiceFromQuotationForm({
+  quotation,
   onOpenChange,
 }: {
-  salesOrder: SalesOrder;
+  quotation: Quotation;
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const createInvoice = useCreateSalesInvoiceFromSalesOrder();
+  const convert = useConvertQuotationToSalesInvoice();
   const lines = useMemo<ConversionSourceLine[]>(
     () =>
-      salesOrder.lines.map((line) => ({
+      quotation.lines.map((line) => ({
         id: line.id,
         line_number: line.line_number,
         description: line.description,
         quantity: line.quantity,
-        qty_converted: line.qty_invoiced,
-        qty_remaining: remainingConversionQty({
-          quantity: line.quantity,
-          qty_converted: line.qty_invoiced,
-          qty_remaining: line.qty_remaining_to_invoice,
-        }),
+        qty_converted: line.qty_converted,
+        qty_remaining: remainingConversionQty(line),
       })),
-    [salesOrder.lines],
+    [quotation.lines],
   );
   const [invoiceDate, setInvoiceDate] = useState(todayIsoDate);
   const [notes, setNotes] = useState("");
@@ -158,11 +158,14 @@ function CreateInvoiceFromSalesOrderForm({
       return;
     }
     try {
-      const invoice = await createInvoice.mutateAsync({
-        sales_order_id: salesOrder.id,
-        invoice_date: invoiceDate || null,
-        notes: notes.trim() || null,
-        lines: isFullRemainingConversion(lines, quantities) ? undefined : selected,
+      const invoice = await convert.mutateAsync({
+        id: quotation.id,
+        version: quotation.version,
+        values: {
+          invoice_date: invoiceDate || null,
+          notes: notes.trim() || null,
+          lines: isFullRemainingConversion(lines, quantities) ? undefined : selected,
+        },
       });
       toast.success("Sales invoice created");
       onOpenChange(false);
@@ -176,18 +179,18 @@ function CreateInvoiceFromSalesOrderForm({
     <>
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="si-from-so-date">Invoice date</Label>
+          <Label htmlFor="quote-si-date">Invoice date</Label>
           <Input
-            id="si-from-so-date"
+            id="quote-si-date"
             type="date"
             value={invoiceDate}
             onChange={(event) => setInvoiceDate(event.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="si-from-so-notes">Notes</Label>
+          <Label htmlFor="quote-si-notes">Notes</Label>
           <Textarea
-            id="si-from-so-notes"
+            id="quote-si-notes"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
           />
@@ -195,7 +198,6 @@ function CreateInvoiceFromSalesOrderForm({
         <ConversionLinePicker
           lines={lines}
           values={quantities}
-          convertedLabel="Already invoiced"
           onChange={(lineId, quantity) =>
             setQuantities((current) => ({ ...current, [lineId]: quantity }))
           }
@@ -205,8 +207,8 @@ function CreateInvoiceFromSalesOrderForm({
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           Cancel
         </Button>
-        <Button type="button" disabled={createInvoice.isPending} onClick={() => void onSubmit()}>
-          {createInvoice.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+        <Button type="button" disabled={convert.isPending} onClick={() => void onSubmit()}>
+          {convert.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
           Create invoice
         </Button>
       </DialogFooter>

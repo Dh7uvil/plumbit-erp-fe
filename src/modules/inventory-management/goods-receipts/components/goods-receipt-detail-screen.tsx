@@ -38,6 +38,7 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -229,7 +230,12 @@ function GoodsReceiptDetailLoaded({
         </div>
       }
       formTitle={isEdit ? "Edit goods receipt" : "Goods receipt"}
-      panels={<DocumentLedgerCard journalEntryId={receipt.journal_entry_id} />}
+      panels={
+        <>
+          <RelatedDocumentsCard documents={receipt.related_documents} />
+          <DocumentLedgerCard journalEntryId={receipt.journal_entry_id} />
+        </>
+      }
       attachments={
         <EntityAttachmentsPanel
           entityType="GOODS_RECEIPT"

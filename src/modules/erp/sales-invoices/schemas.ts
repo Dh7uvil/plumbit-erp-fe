@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import {
+  ConversionLineInputSchema,
+  RelatedDocumentRefSchema,
+} from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export const INVOICE_DOCUMENT_STATUSES = ["DRAFT", "POSTED", "CANCELLED"] as const;
@@ -103,6 +107,8 @@ export const SalesInvoiceLineSchema = z.object({
   unit_id: z.string().uuid().nullable(),
   rate: MoneySchema,
   sales_order_line_id: z.string().uuid().nullable(),
+  source_quotation_line_id: z.string().uuid().nullable().optional().default(null),
+  source_proforma_invoice_line_id: z.string().uuid().nullable().optional().default(null),
   delivery_note_id: z.string().uuid().nullable(),
   delivery_note_line_id: z.string().uuid().nullable(),
   discount_type: DiscountTypeSchema.nullable(),
@@ -135,6 +141,8 @@ export const SalesInvoiceSchema = z.object({
   branch_id: z.string().uuid().nullable(),
   salesperson_id: z.string().uuid().nullable(),
   sales_order_id: z.string().uuid().nullable(),
+  source_quotation_id: z.string().uuid().nullable().optional().default(null),
+  source_proforma_invoice_id: z.string().uuid().nullable().optional().default(null),
   payment_terms_id: z.string().uuid().nullable(),
   due_date: z.string().nullable(),
   tax_treatment: TaxTreatmentSchema,
@@ -173,7 +181,11 @@ export const SalesInvoiceSchema = z.object({
   cancelled_at: z.string().nullable(),
   cancelled_by: z.string().uuid().nullable(),
   cancel_reason: z.string().nullable(),
+  is_overdue: z.boolean().optional().default(false),
+  is_partially_credited: z.boolean().optional().default(false),
+  is_fully_credited: z.boolean().optional().default(false),
   available_actions: z.array(z.string()).default([]),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(SalesInvoiceLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
@@ -243,6 +255,7 @@ export const SalesInvoiceCreateFromSalesOrderSchema = z.object({
   sales_order_id: z.string().uuid(),
   invoice_date: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  lines: z.array(ConversionLineInputSchema).nullable().optional(),
 });
 export type SalesInvoiceCreateFromSalesOrder = z.infer<
   typeof SalesInvoiceCreateFromSalesOrderSchema
@@ -381,6 +394,9 @@ export function salesInvoiceDisplayNumber(
 }
 
 export function isSalesInvoiceOverdue(invoice: SalesInvoice, today: string): boolean {
+  if (invoice.is_overdue) {
+    return true;
+  }
   if (invoice.status !== "POSTED" || invoice.payment_status === "PAID" || !invoice.due_date) {
     return false;
   }

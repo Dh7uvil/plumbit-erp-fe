@@ -4,19 +4,22 @@ export function PageHeader({
   title,
   subtitle,
   code,
+  badges,
   actions,
 }: {
   title: string;
   subtitle?: string;
   code?: string | null;
+  badges?: ReactNode;
   actions?: ReactNode;
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>
           {code ? <span className="text-muted-foreground font-mono text-sm">{code}</span> : null}
+          {badges ? <div className="flex flex-wrap items-center gap-2">{badges}</div> : null}
         </div>
         {subtitle ? <p className="text-muted-foreground mt-0.5 text-sm">{subtitle}</p> : null}
       </div>

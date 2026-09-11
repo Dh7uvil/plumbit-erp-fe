@@ -18,7 +18,13 @@ import { ActivityFeed } from "@/modules/users-management/activity/components/act
 import { useAddCustomerAddress, useDeleteCustomerAddress } from "@/modules/crm/customers/mutations";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { useCustomer } from "@/modules/crm/customers/queries";
+import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
+import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
+import { quotationPermissions } from "@/modules/erp/quotations/permissions";
+import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
+import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
+import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
 import {
   ExtraAddressFormSchema,
   type CustomerExtraAddress,
@@ -33,6 +39,7 @@ import {
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { PartyDocumentsCard } from "@/shared/components/document/party-documents-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -303,6 +310,41 @@ export function CustomerDetailScreen({
             </CardContent>
           </Card>
           <ContactsPanel customerId={customer.id} />
+          <PartyDocumentsCard
+            title="Related documents"
+            links={[
+              {
+                href: `/quotations?customer_id=${customer.id}`,
+                label: "Quotations",
+                permission: quotationPermissions.read,
+              },
+              {
+                href: `/proforma-invoices?customer_id=${customer.id}`,
+                label: "Proforma invoices",
+                permission: proformaInvoicePermissions.read,
+              },
+              {
+                href: `/sales-orders?customer_id=${customer.id}`,
+                label: "Sales orders",
+                permission: salesOrderPermissions.read,
+              },
+              {
+                href: `/sales-invoices?customer_id=${customer.id}`,
+                label: "Sales invoices",
+                permission: salesInvoicePermissions.read,
+              },
+              {
+                href: `/credit-notes?customer_id=${customer.id}`,
+                label: "Credit notes",
+                permission: creditNotePermissions.read,
+              },
+              {
+                href: `/delivery-notes?customer_id=${customer.id}`,
+                label: "Delivery notes",
+                permission: deliveryNotePermissions.read,
+              },
+            ]}
+          />
           <CustomerSoldItemsCard customerId={customer.id} />
           <CustomerSalesHistoryCard customerId={customer.id} />
           <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />

@@ -15,11 +15,12 @@ export const proformaInvoiceKeys = {
     [...proformaInvoiceKeys.all, "compose-defaults", customerId] as const,
 };
 
-export function useProformaInvoices(params: ProformaInvoiceListParams) {
+export function useProformaInvoices(params: ProformaInvoiceListParams, enabled = true) {
   return useQuery({
     queryKey: useTenantQueryKey(proformaInvoiceKeys.list(params)),
     queryFn: () => proformaInvoicesApi.list(params),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

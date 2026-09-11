@@ -3,6 +3,32 @@ import { z } from "zod";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
+export const ConversionLineInputSchema = z.object({
+  source_line_id: z.string().uuid(),
+  quantity: DecimalStringSchema,
+});
+export type ConversionLineInput = z.infer<typeof ConversionLineInputSchema>;
+
+export const RelatedDocumentRefSchema = z.object({
+  document_type: z.string(),
+  document_id: z.string().uuid(),
+  document_number: z.string(),
+  status: z.string(),
+  relationship: z.string(),
+  document_date: z.string().nullable().optional().default(null),
+  quantity_summary: z.string().nullable().optional().default(null),
+});
+export type RelatedDocumentRef = z.infer<typeof RelatedDocumentRefSchema>;
+
+export const QuantityProgressSchema = z.object({
+  ordered: DecimalStringSchema,
+  fulfilled: DecimalStringSchema,
+  invoiced: DecimalStringSchema,
+  remaining_to_fulfill: DecimalStringSchema,
+  remaining_to_invoice: DecimalStringSchema,
+});
+export type QuantityProgress = z.infer<typeof QuantityProgressSchema>;
+
 export const DocumentBaseSchema = z.object({
   id: z.string().uuid(),
   document_number: z.string(),

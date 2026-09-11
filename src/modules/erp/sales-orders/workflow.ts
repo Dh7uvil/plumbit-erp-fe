@@ -1,3 +1,4 @@
+import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
@@ -9,6 +10,7 @@ export const SALES_ORDER_WORKFLOW_ACTIONS = [
   "confirm",
   "close",
   "acknowledge",
+  "create_proforma",
   "cancel",
   "clone",
   "delete",
@@ -52,6 +54,11 @@ export const SALES_ORDER_ACTION_REGISTRY: DocumentActionSpec<SalesOrderWorkflowA
     permission: salesOrderPermissions.acknowledge,
     confirmCopy: (documentNumber) =>
       `Acknowledgement of ${documentNumber} is recorded against the customer's PO. This does not change the order status.`,
+  },
+  {
+    action: "create_proforma",
+    label: "Create proforma invoice",
+    permission: proformaInvoicePermissions.create,
   },
   {
     action: "cancel",

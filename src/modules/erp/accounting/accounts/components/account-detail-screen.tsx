@@ -67,12 +67,12 @@ export function AccountDetailScreen({
         editHref={`${viewHref}/edit`}
         canUpdate={canUpdate}
         mode={mode}
-        extraActions={
-          <div className="flex flex-wrap gap-1">
+        badges={
+          <>
             {account.is_group ? <Badge variant="secondary">Group</Badge> : null}
             {account.is_system ? <Badge variant="info">System</Badge> : null}
             {account.system_role ? <Badge variant="outline">{account.system_role}</Badge> : null}
-          </div>
+          </>
         }
       />
       <Card>

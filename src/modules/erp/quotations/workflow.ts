@@ -1,4 +1,5 @@
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
+import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
@@ -13,6 +14,7 @@ export const QUOTATION_WORKFLOW_ACTIONS = [
   "decline",
   "revise",
   "create_proforma",
+  "create_sales_invoice",
   "convert",
   "cancel",
   "clone",
@@ -74,6 +76,11 @@ export const QUOTATION_ACTION_REGISTRY: DocumentActionSpec<QuotationWorkflowActi
     action: "create_proforma",
     label: "Create proforma invoice",
     permission: proformaInvoicePermissions.create,
+  },
+  {
+    action: "create_sales_invoice",
+    label: "Create sales invoice",
+    permission: salesInvoicePermissions.create,
   },
   {
     action: "convert",

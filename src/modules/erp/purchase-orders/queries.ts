@@ -14,11 +14,12 @@ export const purchaseOrderKeys = {
     [...purchaseOrderKeys.all, "compose-defaults", supplierId] as const,
 };
 
-export function usePurchaseOrders(params: PurchaseOrderListParams) {
+export function usePurchaseOrders(params: PurchaseOrderListParams, enabled = true) {
   return useQuery({
     queryKey: useTenantQueryKey(purchaseOrderKeys.list(params)),
     queryFn: () => purchaseOrdersApi.list(params),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

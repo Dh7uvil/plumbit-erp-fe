@@ -11,6 +11,7 @@ import { CreateBillFromPurchaseOrderDialog } from "@/modules/erp/purchase-invoic
 import { useDeletePurchaseInvoice } from "@/modules/erp/purchase-invoices/mutations";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
 import { usePurchaseInvoices } from "@/modules/erp/purchase-invoices/queries";
+import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
 import {
   BILL_TYPE_LABELS,
   BILL_TYPES,
@@ -29,6 +30,7 @@ import {
 } from "@/modules/erp/purchase-invoices/schemas";
 import { PURCHASE_INVOICE_ACTION_REGISTRY } from "@/modules/erp/purchase-invoices/workflow";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
+import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -46,6 +48,7 @@ import {
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -53,10 +56,17 @@ import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
+import { useCan } from "@/shared/providers/session-provider";
 
 const COLUMN_HEADERS = [
   "Number",
@@ -104,6 +114,7 @@ export function PurchaseInvoicesScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(
     purchaseInvoicePermissions,
   );
+  const can = useCan();
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
@@ -170,12 +181,30 @@ export function PurchaseInvoicesScreen() {
         actions={
           canCreate ? (
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setFromPo(true)}>
-                From purchase order
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setFromGrn(true)}>
-                From goods receipt
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                  >
+                    Convert from
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                  {can(purchaseOrderPermissions.read) ? (
+                    <DropdownMenuItem onSelect={() => setFromPo(true)}>
+                      Purchase order
+                    </DropdownMenuItem>
+                  ) : null}
+                  {can(goodsReceiptPermissions.read) ? (
+                    <DropdownMenuItem onSelect={() => setFromGrn(true)}>
+                      Goods receipt
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button type="button" size="sm" asChild>
                 <Link href="/purchase-invoices/new">
                   <Plus className="size-3.5" />
@@ -395,11 +424,26 @@ export function PurchaseInvoicesScreen() {
                   </TableCell>
                   <TableCell>{BILL_TYPE_LABELS[invoice.bill_type]}</TableCell>
                   <TableCell>
-                    <DocumentStatusBadge
-                      status={invoice.status}
-                      labels={INVOICE_DOCUMENT_STATUS_LABELS}
-                      variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
-                    />
+                    <div className="flex flex-wrap items-center gap-1">
+                      <DocumentStatusBadge
+                        status={invoice.status}
+                        labels={INVOICE_DOCUMENT_STATUS_LABELS}
+                        variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
+                      />
+                      {invoice.is_fully_debited ? (
+                        <DocumentStatusBadge
+                          status="DEBITED"
+                          labels={{ DEBITED: "Debited" }}
+                          variants={{ DEBITED: "secondary" }}
+                        />
+                      ) : invoice.is_partially_debited ? (
+                        <DocumentStatusBadge
+                          status="PARTIALLY_DEBITED"
+                          labels={{ PARTIALLY_DEBITED: "Partially debited" }}
+                          variants={{ PARTIALLY_DEBITED: "warning" }}
+                        />
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <DocumentStatusBadge

@@ -10,6 +10,10 @@ import { toast } from "sonner";
 
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
+import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
+import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
+import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
+import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { SupplierPurchaseHistoryCard } from "@/modules/inventory-management/history/components/trading-history-cards";
 import { SupplierProductsPanel } from "@/modules/erp/supplier-products/components/supplier-products-panel";
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
@@ -31,6 +35,7 @@ import {
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { PartyDocumentsCard } from "@/shared/components/document/party-documents-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -301,6 +306,31 @@ export function SupplierDetailScreen({
             </CardContent>
           </Card>
           <ContactsPanel customerId={supplier.id} />
+          <PartyDocumentsCard
+            title="Related documents"
+            links={[
+              {
+                href: `/purchase-orders?supplier_id=${supplier.id}`,
+                label: "Purchase orders",
+                permission: purchaseOrderPermissions.read,
+              },
+              {
+                href: `/purchase-invoices?supplier_id=${supplier.id}`,
+                label: "Purchase invoices",
+                permission: purchaseInvoicePermissions.read,
+              },
+              {
+                href: `/debit-notes?supplier_id=${supplier.id}`,
+                label: "Debit notes",
+                permission: debitNotePermissions.read,
+              },
+              {
+                href: `/goods-receipts?supplier_id=${supplier.id}`,
+                label: "Goods receipts",
+                permission: goodsReceiptPermissions.read,
+              },
+            ]}
+          />
           <SupplierProductsPanel supplierId={supplier.id} />
           <SupplierPurchaseHistoryCard supplierId={supplier.id} />
           <EntityAttachmentsPanel entityType="SUPPLIER" entityId={supplier.id} />

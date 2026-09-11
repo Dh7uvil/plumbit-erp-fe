@@ -12,6 +12,7 @@ import {
   CREDIT_NOTE_REASON_LABELS,
   INVOICE_DOCUMENT_STATUS_LABELS,
   INVOICE_DOCUMENT_STATUS_VARIANTS,
+  TAX_TREATMENT_LABELS,
   creditNoteDisplayNumber,
   type CreditNote,
 } from "@/modules/erp/credit-notes/schemas";
@@ -23,10 +24,12 @@ import {
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function CreditNoteDetailScreen({
@@ -143,40 +146,50 @@ function CreditNoteDetailLoaded({
         />
       }
       banner={
-        <p className="text-muted-foreground text-sm">
-          {CREDIT_NOTE_REASON_LABELS[note.reason_code]}
-          {note.sales_invoice_id ? (
-            <>
-              {" · "}
-              Against{" "}
-              <Link
-                href={`/sales-invoices/${note.sales_invoice_id}`}
-                className="text-foreground underline-offset-4 hover:underline"
-              >
-                sales invoice
-              </Link>
-            </>
-          ) : null}
-          {note.sales_return_id ? (
-            <>
-              {" · "}
-              <Link
-                href={`/sales-returns/${note.sales_return_id}`}
-                className="text-foreground underline-offset-4 hover:underline"
-              >
-                sales return
-              </Link>
-            </>
-          ) : null}
-          . Stock will not move.
-        </p>
+        <div className="flex flex-col gap-2">
+          <AppliedCommercialTerms
+            currencyId={note.currency_id}
+            exchangeRate={note.exchange_rate}
+            taxTreatmentLabel={TAX_TREATMENT_LABELS[note.tax_treatment]}
+          />
+          <p className="text-muted-foreground text-sm">
+            {CREDIT_NOTE_REASON_LABELS[note.reason_code]}
+            {note.sales_invoice_id ? (
+              <>
+                {" · "}
+                Against{" "}
+                <Link
+                  href={`/sales-invoices/${note.sales_invoice_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  sales invoice
+                </Link>
+              </>
+            ) : null}
+            {note.sales_return_id ? (
+              <>
+                {" · "}
+                <Link
+                  href={`/sales-returns/${note.sales_return_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  sales return
+                </Link>
+              </>
+            ) : null}
+            . Stock will not move.
+          </p>
+        </div>
       }
       formTitle={isEdit ? "Edit credit note" : "Credit note"}
       panels={
-        <DocumentLedgerCard
-          journalEntryId={note.journal_entry_id}
-          reversalJournalEntryId={note.reversal_journal_entry_id}
-        />
+        <>
+          <RelatedDocumentsCard documents={note.related_documents} />
+          <DocumentLedgerCard
+            journalEntryId={note.journal_entry_id}
+            reversalJournalEntryId={note.reversal_journal_entry_id}
+          />
+        </>
       }
       attachments={
         <EntityAttachmentsPanel

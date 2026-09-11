@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import {
+  ConversionLineInputSchema,
+  RelatedDocumentRefSchema,
+} from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export const PROFORMA_INVOICE_STATUSES = [
@@ -10,6 +14,7 @@ export const PROFORMA_INVOICE_STATUSES = [
   "DECLINED",
   "EXPIRED",
   "CANCELLED",
+  "PARTIALLY_CONVERTED",
   "CONVERTED",
 ] as const;
 export const ProformaInvoiceStatusSchema = z.enum(PROFORMA_INVOICE_STATUSES);
@@ -22,6 +27,7 @@ export const PROFORMA_INVOICE_STATUS_LABELS: Record<ProformaInvoiceStatus, strin
   DECLINED: "Declined",
   EXPIRED: "Expired",
   CANCELLED: "Cancelled",
+  PARTIALLY_CONVERTED: "Partially converted",
   CONVERTED: "Converted",
 };
 
@@ -35,6 +41,7 @@ export const PROFORMA_INVOICE_STATUS_VARIANTS: Record<
   DECLINED: "destructive",
   EXPIRED: "destructive",
   CANCELLED: "destructive",
+  PARTIALLY_CONVERTED: "warning",
   CONVERTED: "secondary",
 };
 
@@ -151,6 +158,9 @@ export const ProformaInvoiceLineSchema = z.object({
   amount: MoneySchema,
   hs_code: z.string().nullable().optional().default(null),
   source_quotation_line_id: z.string().uuid().nullable().optional().default(null),
+  source_sales_order_line_id: z.string().uuid().nullable().optional().default(null),
+  qty_converted: DecimalStringSchema.optional().default("0"),
+  qty_remaining: DecimalStringSchema.optional(),
 });
 export type ProformaInvoiceLine = z.infer<typeof ProformaInvoiceLineSchema>;
 
@@ -206,6 +216,7 @@ export const ProformaInvoiceSchema = z.object({
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   source_quotation_id: z.string().uuid().nullable().optional().default(null),
+  source_sales_order_id: z.string().uuid().nullable().optional().default(null),
   incoterm: IncotermSchema.nullable().optional().default(null),
   incoterm_place: z.string().nullable().optional().default(null),
   port_of_loading: z.string().nullable().optional().default(null),
@@ -231,6 +242,7 @@ export const ProformaInvoiceSchema = z.object({
   converted_document_id: z.string().uuid().nullable(),
   advance_required_amount: MoneySchema.optional().default("0"),
   available_actions: z.array(z.string()).default([]),
+  related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   lines: z.array(ProformaInvoiceLineSchema).optional().default([]),
   milestones: z.array(ProformaInvoiceMilestoneSchema).optional().default([]),
   created_at: z.string(),
@@ -357,9 +369,20 @@ export const ConvertProformaToSalesOrderRequestSchema = z.object({
   warehouse_id: z.string().uuid().nullable().optional(),
   branch_id: z.string().uuid().nullable().optional(),
   version: z.number().int().optional(),
+  lines: z.array(ConversionLineInputSchema).nullable().optional(),
 });
 export type ConvertProformaToSalesOrderRequest = z.infer<
   typeof ConvertProformaToSalesOrderRequestSchema
+>;
+
+export const ConvertProformaToSalesInvoiceRequestSchema = z.object({
+  invoice_date: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  version: z.number().int().optional(),
+  lines: z.array(ConversionLineInputSchema).nullable().optional(),
+});
+export type ConvertProformaToSalesInvoiceRequest = z.infer<
+  typeof ConvertProformaToSalesInvoiceRequestSchema
 >;
 
 export const ProformaInvoiceLineFormSchema = z.object({
