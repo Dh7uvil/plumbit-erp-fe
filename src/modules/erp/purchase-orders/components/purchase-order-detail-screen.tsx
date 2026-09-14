@@ -123,7 +123,10 @@ function PurchaseOrderDetailLoaded({
   ) {
     fallbackActions.push("create_goods_receipt");
   }
-  if (purchaseOrder.status === "ISSUED" || purchaseOrder.status === "CLOSED") {
+  if (
+    (purchaseOrder.status === "ISSUED" || purchaseOrder.status === "CLOSED") &&
+    purchaseOrder.billing_status !== "INVOICED"
+  ) {
     fallbackActions.push("create_bill");
   }
   const workflowActions = appendMissingActions(purchaseOrder.available_actions, fallbackActions);

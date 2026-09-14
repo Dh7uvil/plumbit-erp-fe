@@ -24,6 +24,7 @@ export function SupplierPaymentNewScreen() {
     supplierId: optionalUuid(searchParams.get("supplier_id")),
     invoiceId: optionalUuid(searchParams.get("invoice_id")),
     purchaseOrderId: optionalUuid(searchParams.get("purchase_order_id")),
+    currencyId: optionalUuid(searchParams.get("currency_id")),
   };
 
   return (

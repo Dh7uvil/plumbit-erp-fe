@@ -141,7 +141,9 @@ export function DocumentWorkflowButtons<TAction extends string>({
             </div>
           ) : null
         }
-        confirmLabel={confirming?.label ?? "Confirm"}
+        confirmLabel={
+          confirming?.action === "cancel" ? "Confirm cancel" : (confirming?.label ?? "Confirm")
+        }
         pending={pending}
         confirmDisabled={confirmDisabled}
         variant={confirming?.variant === "destructive" ? "destructive" : "default"}

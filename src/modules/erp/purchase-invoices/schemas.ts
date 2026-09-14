@@ -397,7 +397,7 @@ export function lineHasPurchasePriceVariance(line: PurchaseInvoiceLine): boolean
   }
   const grn = Number(line.grn_unit_cost);
   const rate = Number(line.rate);
-  if (!Number.isFinite(grn) || !Number.isFinite(rate)) {
+  if (!Number.isFinite(grn) || !Number.isFinite(rate) || grn === 0) {
     return false;
   }
   return grn !== rate;

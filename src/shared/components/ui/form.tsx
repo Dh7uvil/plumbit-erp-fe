@@ -203,7 +203,7 @@ function FormMessage({ className, children, ...props }: React.ComponentProps<"p"
       id={formMessageId}
       title={text || undefined}
       className={cn(
-        "text-destructive min-w-0 truncate text-sm leading-5",
+        "text-destructive min-w-0 text-sm leading-5",
         body ? "min-h-5" : "hidden",
         className,
       )}

@@ -360,7 +360,7 @@ export function QualityInspectionForm({
                         {(
                           ["qty_inspected", "qty_accepted", "qty_rejected", "qty_rework"] as const
                         ).map((name) => (
-                          <td key={name} className="w-28 px-3 py-2 align-top">
+                          <td key={name} className="min-w-28 w-28 px-3 py-2 align-top">
                             <FormField
                               control={form.control}
                               name={`lines.${index}.${name}`}
@@ -369,7 +369,7 @@ export function QualityInspectionForm({
                                   <FormControl>
                                     <DecimalInput
                                       kind="quantity"
-                                      className="text-right"
+                                      className="w-full min-w-0 text-right"
                                       disabled={disabled}
                                       aria-label={`Line ${index + 1} ${name.replace("qty_", "")}`}
                                       {...qtyField}

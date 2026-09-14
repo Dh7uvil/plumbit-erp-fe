@@ -355,9 +355,6 @@ export function SupplierPaymentsScreen() {
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatMoney(payment.amount_paid, currencyCode ?? "AED")}
-                    {currencyCode ? (
-                      <span className="text-muted-foreground ml-1 text-xs">{currencyCode}</span>
-                    ) : null}
                   </TableCell>
                   {showActions ? (
                     <TableCell>

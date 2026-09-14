@@ -338,7 +338,7 @@ export function PurchaseReturnForm({
                         <td className="px-3 py-2 text-right tabular-nums">
                           {receiptLine ? formatQuantity(receiptLine.quantity) : "—"}
                         </td>
-                        <td className="w-28 px-3 py-2 align-top">
+                        <td className="min-w-28 w-28 px-3 py-2 align-top">
                           <FormField
                             control={form.control}
                             name={`lines.${index}.quantity`}
@@ -347,7 +347,7 @@ export function PurchaseReturnForm({
                                 <FormControl>
                                   <DecimalInput
                                     kind="quantity"
-                                    className="text-right"
+                                    className="w-full min-w-0 text-right"
                                     disabled={disabled}
                                     aria-label={`Line ${index + 1} quantity`}
                                     {...qtyField}

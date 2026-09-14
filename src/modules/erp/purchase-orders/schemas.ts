@@ -137,6 +137,7 @@ export const PurchaseOrderLineSchema = z.object({
   tax_amount: MoneySchema,
   amount: MoneySchema,
   qty_received: DecimalStringSchema,
+  qty_returned: DecimalStringSchema.optional(),
   qty_billed: DecimalStringSchema,
   qty_remaining_to_receive: DecimalStringSchema.optional(),
   qty_remaining_to_bill: DecimalStringSchema.optional(),

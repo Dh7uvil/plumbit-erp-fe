@@ -491,58 +491,58 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         )}
                       />
                     </TableCell>
-                    <TableCell className="min-w-32 align-top">
-                      <FormField
-                        control={form.control}
-                        name={linePath<TFieldValues>(index, "rate")}
-                        render={({ field: rateField }) => (
-                          <FormItem>
-                            <FormControl>
-                              <DecimalInput
-                                kind="money"
-                                className="min-w-32 text-right"
-                                disabled={disabled}
-                                aria-label={`Line ${index + 1} amount`}
-                                {...rateField}
-                              />
+                  <TableCell className="w-28 min-w-28 align-top">
+                    <FormField
+                      control={form.control}
+                      name={linePath<TFieldValues>(index, "rate")}
+                      render={({ field: rateField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <DecimalInput
+                              kind="money"
+                              className="w-full min-w-0 text-right"
+                              disabled={disabled}
+                              aria-label={`Line ${index + 1} amount`}
+                              {...rateField}
+                            />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </TableCell>
-                    <TableCell className="min-w-36 align-top">
-                      <FormField
-                        control={form.control}
-                        name={linePath<TFieldValues>(index, "tax_id")}
-                        render={({ field: taxField }) => (
-                          <FormItem>
-                            <MasterSelect
-                              compact
-                              value={String(taxField.value ?? OPTIONAL_SELECT_NONE)}
-                              onValueChange={taxField.onChange}
-                              disabled={disabled || taxesQuery.isLoading}
-                              placeholder="None"
-                              searchPlaceholder="Search tax…"
-                              createLabel="Create tax"
-                              onCreate={
-                                can(taxPermissions.create)
-                                  ? () => setLineCreate({ type: "tax", index })
-                                  : undefined
-                              }
-                              options={[
-                                { value: OPTIONAL_SELECT_NONE, label: "None" },
-                                ...taxes.map((tax) => ({
-                                  value: tax.id,
-                                  label: tax.name,
-                                })),
-                              ]}
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </TableCell>
+                  <TableCell className="min-w-44 align-top">
+                    <FormField
+                      control={form.control}
+                      name={linePath<TFieldValues>(index, "tax_id")}
+                      render={({ field: taxField }) => (
+                        <FormItem>
+                          <MasterSelect
+                            compact
+                            value={String(taxField.value ?? OPTIONAL_SELECT_NONE)}
+                            onValueChange={taxField.onChange}
+                            disabled={disabled || taxesQuery.isLoading}
+                            placeholder="None"
+                            searchPlaceholder="Search tax…"
+                            createLabel="Create tax"
+                            onCreate={
+                              can(taxPermissions.create)
+                                ? () => setLineCreate({ type: "tax", index })
+                                : undefined
+                            }
+                            options={[
+                              { value: OPTIONAL_SELECT_NONE, label: "None" },
+                              ...taxes.map((tax) => ({
+                                value: tax.id,
+                                label: tax.name,
+                              })),
+                            ]}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TableCell>
                     <TableCell className="align-top">
                       {disabled ? null : (
                         <Button
@@ -676,7 +676,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="min-w-28 align-top">
+                  <TableCell className="w-24 min-w-24 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "quantity")}
@@ -685,7 +685,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           <FormControl>
                             <DecimalInput
                               kind="quantity"
-                              className="min-w-28 text-right"
+                              className="w-full min-w-0 text-right"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} quantity`}
                               {...quantityField}
@@ -728,7 +728,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="min-w-32 align-top">
+                  <TableCell className="w-28 min-w-28 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "rate")}
@@ -737,7 +737,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           <FormControl>
                             <DecimalInput
                               kind="money"
-                              className="min-w-32 text-right"
+                              className="w-full min-w-0 text-right"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} rate`}
                               {...rateField}
@@ -758,7 +758,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                   </TableCell>
                   {isReceive ? (
                     <>
-                      <TableCell className="min-w-28 align-top">
+                      <TableCell className="w-24 min-w-24 align-top">
                         <FormField
                           control={form.control}
                           name={linePath<TFieldValues>(index, "net_weight")}
@@ -767,7 +767,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                               <FormControl>
                                 <DecimalInput
                                   kind="quantity"
-                                  className="min-w-28 text-right"
+                                  className="w-full min-w-0 text-right"
                                   disabled={disabled}
                                   aria-label={`Line ${index + 1} net weight`}
                                   {...weightField}
@@ -778,7 +778,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           )}
                         />
                       </TableCell>
-                      <TableCell className="min-w-28 align-top">
+                      <TableCell className="w-24 min-w-24 align-top">
                         <FormField
                           control={form.control}
                           name={linePath<TFieldValues>(index, "gross_weight")}
@@ -787,7 +787,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                               <FormControl>
                                 <DecimalInput
                                   kind="quantity"
-                                  className="min-w-28 text-right"
+                                  className="w-full min-w-0 text-right"
                                   disabled={disabled}
                                   aria-label={`Line ${index + 1} gross weight`}
                                   {...weightField}
@@ -831,7 +831,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="min-w-28 align-top">
+                  <TableCell className="w-24 min-w-24 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "discount_value")}
@@ -840,7 +840,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           <FormControl>
                             <DecimalInput
                               kind="money"
-                              className="min-w-28 text-right"
+                              className="w-full min-w-0 text-right"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} discount`}
                               {...discountField}
@@ -851,7 +851,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="min-w-36 align-top">
+                  <TableCell className="min-w-44 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "tax_id")}
@@ -886,7 +886,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                     </>
                   )}
                   {!isReceive && !isExpense ? (
-                    <TableCell className="min-w-32 align-top">
+                    <TableCell className="w-28 min-w-28 align-top">
                       <LineAmountCell form={form} index={index} />
                     </TableCell>
                   ) : null}
@@ -900,7 +900,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           ["weight", "Weight", true],
                         ] as const
                       ).map(([name, label, decimal]) => (
-                        <TableCell key={name} className="min-w-28 align-top">
+                        <TableCell key={name} className="w-24 min-w-24 align-top">
                           <FormField
                             control={form.control}
                             name={linePath<TFieldValues>(index, name)}
@@ -910,7 +910,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                                   {decimal ? (
                                     <DecimalInput
                                       kind="quantity"
-                                      className="min-w-28 text-right"
+                                      className="w-full min-w-0 text-right"
                                       disabled={disabled}
                                       aria-label={`Line ${index + 1} ${label}`}
                                       {...packingField}
@@ -918,7 +918,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                                   ) : (
                                     <Input
                                       disabled={disabled}
-                                      className="min-w-28"
+                                      className="w-full min-w-0"
                                       aria-label={`Line ${index + 1} ${label}`}
                                       {...packingField}
                                     />
