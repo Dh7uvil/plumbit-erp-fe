@@ -211,7 +211,7 @@ export function SalesReturnForm({
     <Form {...form}>
       <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
         <StockWriteAlert error={writeError} />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="delivery_note_id"
@@ -344,7 +344,7 @@ export function SalesReturnForm({
                         <td className="px-3 py-2 text-right tabular-nums">
                           {noteLine ? formatQuantity(noteLine.quantity) : "—"}
                         </td>
-                        <td className="w-28 px-3 py-2 align-top">
+                        <td className="min-w-28 px-3 py-2 align-top">
                           <FormField
                             control={form.control}
                             name={`lines.${index}.quantity`}
@@ -353,7 +353,7 @@ export function SalesReturnForm({
                                 <FormControl>
                                   <DecimalInput
                                     kind="quantity"
-                                    className="text-right"
+                                    className="min-w-28 text-right"
                                     disabled={disabled}
                                     aria-label={`Line ${index + 1} quantity`}
                                     {...qtyField}

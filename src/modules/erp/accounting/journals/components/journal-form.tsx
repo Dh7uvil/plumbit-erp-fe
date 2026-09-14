@@ -161,7 +161,7 @@ export function JournalForm({
       <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <StockWriteAlert periodLocked={journal?.period_locked} error={writeError} />
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
           <FormField
             control={form.control}
             name="entry_date"

@@ -217,7 +217,7 @@ export function DeliveryNoteForm({
     <Form {...form}>
       <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
         <StockWriteAlert error={writeError} />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="sales_order_id"
@@ -384,13 +384,13 @@ export function DeliveryNoteForm({
           )}
         />
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-max min-w-full text-sm">
             <TableHeader>
               <TableRow>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right">Outstanding</TableHead>
-                <TableHead className="w-32">Qty</TableHead>
-                <TableHead className="w-32">Rate</TableHead>
+                <TableHead className="min-w-32">Qty</TableHead>
+                <TableHead className="min-w-32">Rate</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -400,28 +400,38 @@ export function DeliveryNoteForm({
                   <TableCell className="text-right tabular-nums">
                     {formatQuantity(watchedLines?.[index]?.outstanding || "0")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="min-w-32">
                     <FormField
                       control={form.control}
                       name={`lines.${index}.quantity`}
                       render={({ field: qtyField }) => (
                         <FormItem>
                           <FormControl>
-                            <DecimalInput kind="quantity" disabled={disabled} {...qtyField} />
+                            <DecimalInput
+                              kind="quantity"
+                              className="min-w-32 text-right"
+                              disabled={disabled}
+                              {...qtyField}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="min-w-32">
                     <FormField
                       control={form.control}
                       name={`lines.${index}.rate`}
                       render={({ field: rateField }) => (
                         <FormItem>
                           <FormControl>
-                            <DecimalInput kind="money" disabled={disabled} {...rateField} />
+                            <DecimalInput
+                              kind="money"
+                              className="min-w-32 text-right"
+                              disabled={disabled}
+                              {...rateField}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

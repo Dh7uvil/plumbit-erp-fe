@@ -84,7 +84,7 @@ export function MoreFiltersDialog({
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>
+          <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">{children}</div>
           <DialogFooter className="gap-2 sm:justify-between">
             {draftCount > 0 ? (
               <Button type="button" variant="ghost" onClick={onClearDraft}>

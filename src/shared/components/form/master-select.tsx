@@ -60,7 +60,7 @@ export function MasterSelect({
   const canCreate = !disabled && actions.length > 0;
 
   return (
-    <div className={cn("flex items-start gap-1", className)}>
+    <div className={cn("flex w-full items-center gap-1", className)}>
       <div className="min-w-0 flex-1">
         <SearchableSelect
           options={options}

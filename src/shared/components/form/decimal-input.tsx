@@ -17,13 +17,29 @@ export function DecimalInput({
   kind,
   onBlur,
   onChange,
+  value,
+  disabled,
+  readOnly,
   ...props
 }: Omit<ComponentProps<typeof Input>, "type" | "inputMode"> & {
   kind: DecimalInputKind;
 }) {
+  const digits = KIND_DIGITS[kind];
+  const raw = value == null ? "" : String(value);
+  const fraction = raw.includes(".") ? raw.split(".")[1] ?? "" : "";
+  const shouldNormalizeDisplay =
+    raw !== "" &&
+    (Boolean(disabled || readOnly) || fraction.length > digits);
+  const displayValue = shouldNormalizeDisplay
+    ? normalizeDecimalInput(raw, digits) || value
+    : value;
+
   return (
     <Input
       {...props}
+      value={displayValue}
+      disabled={disabled}
+      readOnly={readOnly}
       type="text"
       inputMode="decimal"
       onChange={onChange}

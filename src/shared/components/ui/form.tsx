@@ -71,12 +71,40 @@ type FormItemContextValue = {
 
 const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 
+const FORM_GRID_COLUMNS = {
+  1: "grid-cols-1",
+  2: "grid-cols-1 sm:grid-cols-2",
+  3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+} as const;
+
+function FormGrid({
+  columns = 3,
+  className,
+  ...props
+}: React.ComponentProps<"div"> & { columns?: 1 | 2 | 3 }) {
+  return (
+    <div
+      data-slot="form-grid"
+      className={cn("grid gap-x-3 gap-y-2", FORM_GRID_COLUMNS[columns], className)}
+      {...props}
+    />
+  );
+}
+
 function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   const id = React.useId();
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div data-slot="form-item" className={cn("grid min-w-0 gap-2", className)} {...props} />
+      <div
+        data-slot="form-item"
+        className={cn(
+          "grid min-w-0 gap-2",
+          "in-data-[slot=form-grid]:row-span-3 in-data-[slot=form-grid]:grid-rows-subgrid in-data-[slot=form-grid]:content-start in-data-[slot=form-grid]:gap-0",
+          className,
+        )}
+        {...props}
+      />
     </FormItemContext.Provider>
   );
 }
@@ -115,7 +143,10 @@ function FormLabel({
     <Label
       data-slot="form-label"
       data-error={!!error}
-      className={cn("data-[error=true]:text-destructive", className)}
+      className={cn(
+        "data-[error=true]:text-destructive in-data-[slot=form-grid]:self-end in-data-[slot=form-grid]:min-w-0",
+        className,
+      )}
       htmlFor={formItemId}
       {...props}
     >
@@ -172,8 +203,8 @@ function FormMessage({ className, children, ...props }: React.ComponentProps<"p"
       id={formMessageId}
       title={text || undefined}
       className={cn(
-        "text-destructive min-h-5 min-w-0 truncate text-sm leading-5",
-        !body && "invisible",
+        "text-destructive min-w-0 truncate text-sm leading-5",
+        body ? "min-h-5" : "hidden",
         className,
       )}
       {...props}
@@ -186,6 +217,7 @@ function FormMessage({ className, children, ...props }: React.ComponentProps<"p"
 export {
   useFormField,
   Form,
+  FormGrid,
   FormItem,
   FormLabel,
   FormControl,

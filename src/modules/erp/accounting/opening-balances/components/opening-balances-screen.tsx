@@ -118,7 +118,7 @@ function CommittedOpeningBalances() {
         <CardHeader>
           <CardTitle className="text-base">Committed state</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <CardContent data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
           <p className="text-sm">
             Books start {state?.books_start_date ? formatDate(state.books_start_date) : "—"}
           </p>
@@ -278,7 +278,7 @@ function OpeningBalanceWizard() {
               <CardHeader>
                 <CardTitle className="text-base">Fiscal year and books start</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <CardContent data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
                 <div>
                   <p className="text-muted-foreground text-xs font-medium">Fiscal year start</p>
                   <p className="text-sm">{fiscalLabel}</p>

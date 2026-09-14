@@ -167,11 +167,11 @@ export function DepartmentFormDialog({
             className="flex flex-col gap-3"
           >
             {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-            <div
+            <div data-slot="form-grid"
               className={
                 hasRecord
-                  ? "grid grid-cols-1 gap-3 sm:grid-cols-2"
-                  : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                  ? "grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+                  : "grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
               }
             >
               <FormField

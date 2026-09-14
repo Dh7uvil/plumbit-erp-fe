@@ -214,7 +214,7 @@ export function LandedCostForm({
       >
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
         <StockWriteAlert periodLocked={document?.period_locked} error={writeError} />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="document_date"

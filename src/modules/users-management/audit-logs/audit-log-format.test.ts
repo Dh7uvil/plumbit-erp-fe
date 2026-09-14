@@ -17,6 +17,12 @@ describe("formatAuditValue", () => {
     expect(formatAuditValue(false)).toEqual({ kind: "text", text: "No" });
   });
 
+  it("trims padded decimal strings without rounding leftover fils", () => {
+    expect(formatAuditValue("497.5000")).toEqual({ kind: "text", text: "497.50" });
+    expect(formatAuditValue("10.000000")).toEqual({ kind: "text", text: "10.00" });
+    expect(formatAuditValue("473.8750")).toEqual({ kind: "text", text: "473.875" });
+  });
+
   it("formats primitive arrays as a stacked list", () => {
     expect(formatAuditValue(["Sales Manager"])).toEqual({
       kind: "list",

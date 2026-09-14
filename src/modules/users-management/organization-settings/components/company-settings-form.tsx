@@ -587,7 +587,7 @@ export function CompanySettingsForm() {
             ) : null}
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
               <TextField
                 control={form.control}
                 name="name"
@@ -689,7 +689,7 @@ export function CompanySettingsForm() {
               </CardAction>
             ) : null}
           </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <CardContent data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
             {canReadCurrencies && !currenciesQuery.isError ? (
               <FormField
                 control={form.control}

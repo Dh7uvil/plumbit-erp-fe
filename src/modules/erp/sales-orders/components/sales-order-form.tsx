@@ -384,7 +384,7 @@ export function SalesOrderForm({
         {composeQuery.isFetching && !isEdit ? (
           <p className="text-muted-foreground text-sm">Loading customer defaults…</p>
         ) : null}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
           <FormField
             control={form.control}
             name="customer_id"
@@ -543,16 +543,18 @@ export function SalesOrderForm({
             control={form.control}
             name="reference_number"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Internal reference</FormLabel>
-                <FormControl>
-                  <Input maxLength={60} disabled={disabled} {...field} />
-                </FormControl>
+            <FormItem>
+              <FormLabel>Internal reference</FormLabel>
+              <FormControl>
+                <Input maxLength={60} disabled={disabled} {...field} />
+              </FormControl>
+              <div className="flex min-w-0 flex-col">
                 <FormDescription>
                   Internal note only. The customer PO number is captured separately.
                 </FormDescription>
                 <FormMessage />
-              </FormItem>
+              </div>
+            </FormItem>
             )}
           />
           <FormField
@@ -796,8 +798,9 @@ export function SalesOrderForm({
             <Input value={customerTrn || "—"} disabled />
           </FormItem>
           <div
+            data-slot="form-grid"
             className={
-              isEdit ? "col-span-full" : "col-span-full grid grid-cols-1 gap-3 sm:grid-cols-2"
+              isEdit ? "col-span-full" : "col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
             }
           >
             <FormItem>

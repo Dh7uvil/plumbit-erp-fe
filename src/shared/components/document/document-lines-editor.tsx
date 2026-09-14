@@ -57,7 +57,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatMoney } from "@/shared/lib/format";
+import { formatFixedDecimal, formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const BASE_LINE_HEADERS = [
@@ -69,6 +69,7 @@ const BASE_LINE_HEADERS = [
   "Discount type",
   "Discount",
   "Tax",
+  "Amount",
   "",
 ] as const;
 
@@ -115,6 +116,7 @@ function lineHeaders(
       "Discount type",
       "Discount",
       "Tax",
+      "Amount",
       "",
     ];
   }
@@ -172,6 +174,69 @@ function productSelectOptions(products: Product[], catalog: SupplierProduct[]) {
     }
     return left.label.localeCompare(right.label);
   });
+}
+
+function previewLineAmount(
+  quantity: string,
+  rate: string,
+  discountType: string | null | undefined,
+  discountValue: string | null | undefined,
+): string | null {
+  const qty = Number(quantity);
+  const unitRate = Number(rate);
+  if (!Number.isFinite(qty) || !Number.isFinite(unitRate) || rate.trim() === "") {
+    return null;
+  }
+  let net = qty * unitRate;
+  const type = discountType && discountType !== OPTIONAL_SELECT_NONE ? discountType : "";
+  const disc = Number(discountValue ?? "");
+  if (Number.isFinite(disc) && disc !== 0) {
+    if (type === "PERCENTAGE") {
+      net -= net * (disc / 100);
+    } else if (type === "AMOUNT") {
+      net -= disc;
+    }
+  }
+  if (!Number.isFinite(net)) {
+    return null;
+  }
+  return net.toFixed(2);
+}
+
+function LineAmountCell<TFieldValues extends FieldValues>({
+  form,
+  index,
+}: {
+  form: UseFormReturn<TFieldValues>;
+  index: number;
+}) {
+  const quantity = useWatch({
+    control: form.control,
+    name: linePath<TFieldValues>(index, "quantity"),
+  });
+  const rate = useWatch({
+    control: form.control,
+    name: linePath<TFieldValues>(index, "rate"),
+  });
+  const discountType = useWatch({
+    control: form.control,
+    name: linePath<TFieldValues>(index, "discount_type"),
+  });
+  const discountValue = useWatch({
+    control: form.control,
+    name: linePath<TFieldValues>(index, "discount_value"),
+  });
+  const amount = previewLineAmount(
+    String(quantity ?? ""),
+    String(rate ?? ""),
+    String(discountType ?? ""),
+    String(discountValue ?? ""),
+  );
+  return (
+    <span className="block min-h-9 py-2 text-right text-sm tabular-nums">
+      {amount ? formatFixedDecimal(amount, 2) : "—"}
+    </span>
+  );
 }
 
 function CatalogRateHint<TFieldValues extends FieldValues>({
@@ -331,11 +396,13 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   return (
     <div className="flex flex-col gap-2">
       <div className="overflow-x-auto rounded-md border">
-        <table className="w-full caption-bottom text-sm">
+        <table className="w-max min-w-full caption-bottom text-sm">
           <TableHeader>
             <TableRow>
               {headers.map((header) => (
-                <TableHead key={header || "actions"}>{header}</TableHead>
+                <TableHead key={header || "actions"} className="whitespace-nowrap">
+                  {header}
+                </TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -350,7 +417,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
               fields.map((field, index) =>
                 isExpense ? (
                   <TableRow key={field.id}>
-                    <TableCell className="min-w-48 align-top">
+                    <TableCell className="min-w-56 align-top">
                       <FormField
                         control={form.control}
                         name={linePath<TFieldValues>(index, "expense_account_id")}
@@ -406,7 +473,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         )}
                       />
                     </TableCell>
-                    <TableCell className="min-w-56 align-top">
+                    <TableCell className="min-w-64 align-top">
                       <FormField
                         control={form.control}
                         name={linePath<TFieldValues>(index, "description")}
@@ -424,7 +491,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         )}
                       />
                     </TableCell>
-                    <TableCell className="w-28 align-top">
+                    <TableCell className="min-w-32 align-top">
                       <FormField
                         control={form.control}
                         name={linePath<TFieldValues>(index, "rate")}
@@ -433,7 +500,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                             <FormControl>
                               <DecimalInput
                                 kind="money"
-                                className="text-right"
+                                className="min-w-32 text-right"
                                 disabled={disabled}
                                 aria-label={`Line ${index + 1} amount`}
                                 {...rateField}
@@ -493,7 +560,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                   </TableRow>
                 ) : (
                 <TableRow key={field.id}>
-                  <TableCell className="min-w-48 align-top">
+                  <TableCell className="min-w-56 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "product_id")}
@@ -591,7 +658,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     </TableCell>
                   ) : null}
-                  <TableCell className="min-w-56 align-top">
+                  <TableCell className="min-w-64 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "description")}
@@ -609,7 +676,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="w-24 align-top">
+                  <TableCell className="min-w-28 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "quantity")}
@@ -618,7 +685,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           <FormControl>
                             <DecimalInput
                               kind="quantity"
-                              className="text-right"
+                              className="min-w-28 text-right"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} quantity`}
                               {...quantityField}
@@ -661,7 +728,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="w-28 align-top">
+                  <TableCell className="min-w-32 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "rate")}
@@ -670,7 +737,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           <FormControl>
                             <DecimalInput
                               kind="money"
-                              className="text-right"
+                              className="min-w-32 text-right"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} rate`}
                               {...rateField}
@@ -691,7 +758,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                   </TableCell>
                   {isReceive ? (
                     <>
-                      <TableCell className="w-28 align-top">
+                      <TableCell className="min-w-28 align-top">
                         <FormField
                           control={form.control}
                           name={linePath<TFieldValues>(index, "net_weight")}
@@ -700,7 +767,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                               <FormControl>
                                 <DecimalInput
                                   kind="quantity"
-                                  className="text-right"
+                                  className="min-w-28 text-right"
                                   disabled={disabled}
                                   aria-label={`Line ${index + 1} net weight`}
                                   {...weightField}
@@ -711,7 +778,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           )}
                         />
                       </TableCell>
-                      <TableCell className="w-28 align-top">
+                      <TableCell className="min-w-28 align-top">
                         <FormField
                           control={form.control}
                           name={linePath<TFieldValues>(index, "gross_weight")}
@@ -720,7 +787,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                               <FormControl>
                                 <DecimalInput
                                   kind="quantity"
-                                  className="text-right"
+                                  className="min-w-28 text-right"
                                   disabled={disabled}
                                   aria-label={`Line ${index + 1} gross weight`}
                                   {...weightField}
@@ -764,7 +831,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="w-28 align-top">
+                  <TableCell className="min-w-28 align-top">
                     <FormField
                       control={form.control}
                       name={linePath<TFieldValues>(index, "discount_value")}
@@ -773,8 +840,9 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           <FormControl>
                             <DecimalInput
                               kind="money"
-                              className="text-right"
+                              className="min-w-28 text-right"
                               disabled={disabled}
+                              aria-label={`Line ${index + 1} discount`}
                               {...discountField}
                             />
                           </FormControl>
@@ -817,6 +885,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                   </TableCell>
                     </>
                   )}
+                  {!isReceive && !isExpense ? (
+                    <TableCell className="min-w-32 align-top">
+                      <LineAmountCell form={form} index={index} />
+                    </TableCell>
+                  ) : null}
                   {showPacking && !isReceive && !isExpense
                     ? (
                         [
@@ -827,7 +900,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           ["weight", "Weight", true],
                         ] as const
                       ).map(([name, label, decimal]) => (
-                        <TableCell key={name} className="w-24 align-top">
+                        <TableCell key={name} className="min-w-28 align-top">
                           <FormField
                             control={form.control}
                             name={linePath<TFieldValues>(index, name)}
@@ -837,7 +910,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                                   {decimal ? (
                                     <DecimalInput
                                       kind="quantity"
-                                      className="text-right"
+                                      className="min-w-28 text-right"
                                       disabled={disabled}
                                       aria-label={`Line ${index + 1} ${label}`}
                                       {...packingField}
@@ -845,6 +918,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                                   ) : (
                                     <Input
                                       disabled={disabled}
+                                      className="min-w-28"
                                       aria-label={`Line ${index + 1} ${label}`}
                                       {...packingField}
                                     />
