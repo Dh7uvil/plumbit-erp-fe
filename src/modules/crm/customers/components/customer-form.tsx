@@ -37,6 +37,7 @@ import { useAllPriceLists } from "@/modules/inventory-management/price-lists/que
 import { EmployeeSelect } from "@/modules/users-management/employees/components/employee-select";
 import {
   addressToFormValues,
+  addressesMatch,
   EMPTY_ADDRESS_FORM,
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -74,6 +75,12 @@ function toCustomerCompanyType(type: Customer["company_type"] | undefined): Cust
 }
 
 function toFormValues(customer: Customer | null, defaultCurrencyId: string): CustomerFormValues {
+  const billing_address = customer
+    ? addressToFormValues(customer.billing_address)
+    : EMPTY_ADDRESS_FORM;
+  const shipping_address = customer
+    ? addressToFormValues(customer.shipping_address)
+    : EMPTY_ADDRESS_FORM;
   return {
     name: customer?.name ?? "",
     company_type: toCustomerCompanyType(customer?.company_type),
@@ -86,11 +93,9 @@ function toFormValues(customer: Customer | null, defaultCurrencyId: string): Cus
     salesperson_id: customer?.salesperson_id ?? OPTIONAL_SELECT_NONE,
     receivable_account_id: customer?.receivable_account_id ?? OPTIONAL_SELECT_NONE,
     payable_account_id: customer?.payable_account_id ?? OPTIONAL_SELECT_NONE,
-    billing_address: customer ? addressToFormValues(customer.billing_address) : EMPTY_ADDRESS_FORM,
-    shipping_address: customer
-      ? addressToFormValues(customer.shipping_address)
-      : EMPTY_ADDRESS_FORM,
-    same_as_billing: false,
+    billing_address,
+    shipping_address,
+    same_as_billing: Boolean(customer) && addressesMatch(billing_address, shipping_address),
     notes: customer?.notes ?? "",
     is_active: customer?.is_active ?? true,
     initial_contact_name: "",
@@ -153,6 +158,7 @@ export function CustomerForm({
     resolver: zodResolver(CustomerFormSchema),
     values: toFormValues(customer, defaultCurrencyId),
   });
+  const taxTreatment = form.watch("tax_treatment");
   useDirtyFormGuard(form.formState.isDirty && !disabled);
 
   async function onSubmit(values: CustomerFormValues) {
@@ -366,7 +372,7 @@ export function CustomerForm({
               name="trn"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>TRN</FormLabel>
+                  <FormLabel required={taxTreatment === "REGISTERED"}>TRN</FormLabel>
                   <FormControl>
                     <Input maxLength={50} disabled={disabled} {...field} />
                   </FormControl>

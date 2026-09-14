@@ -27,7 +27,7 @@ export function EmployeeSelect({
 }) {
   const can = useCan();
   const canRead = can(employeePermissions.read);
-  const employeesQuery = useActiveEmployees(canRead && !disabled);
+  const employeesQuery = useActiveEmployees(canRead);
   const employees = employeesQuery.data ?? [];
   const selected = employees.find((employee) => employee.id === value);
   const options = [

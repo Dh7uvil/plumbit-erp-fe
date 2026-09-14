@@ -91,11 +91,13 @@ export function AddressFields<TFieldValues extends FieldValues>({
               control={control}
               name={`${name}.country_code` as FieldPath<TFieldValues>}
               render={({ field: codeField }) => {
-                const selectedCode =
-                  String(codeField.value ?? "").trim() ||
-                  countryCodeForName(String(countryField.value ?? ""), countries) ||
-                  "";
+                const rawCode = String(codeField.value ?? "").trim();
                 const selectedName = String(countryField.value ?? "").trim();
+                const isoFromCode = countryOptions.some((option) => option.value === rawCode)
+                  ? rawCode
+                  : "";
+                const selectedCode =
+                  isoFromCode || countryCodeForName(selectedName, countries) || "";
                 const options =
                   selectedName && !countryOptions.some((option) => option.value === selectedCode)
                     ? [{ value: selectedName, label: selectedName }, ...countryOptions]

@@ -37,6 +37,7 @@ import { useAllPriceLists } from "@/modules/inventory-management/price-lists/que
 import { EmployeeSelect } from "@/modules/users-management/employees/components/employee-select";
 import {
   addressToFormValues,
+  addressesMatch,
   EMPTY_ADDRESS_FORM,
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -71,6 +72,12 @@ function toSupplierCompanyType(type: Supplier["company_type"] | undefined): Supp
 }
 
 function toFormValues(supplier: Supplier | null, defaultCurrencyId: string): SupplierFormValues {
+  const billing_address = supplier
+    ? addressToFormValues(supplier.billing_address)
+    : EMPTY_ADDRESS_FORM;
+  const shipping_address = supplier
+    ? addressToFormValues(supplier.shipping_address)
+    : EMPTY_ADDRESS_FORM;
   return {
     name: supplier?.name ?? "",
     company_type: toSupplierCompanyType(supplier?.company_type),
@@ -83,11 +90,9 @@ function toFormValues(supplier: Supplier | null, defaultCurrencyId: string): Sup
     salesperson_id: supplier?.salesperson_id ?? OPTIONAL_SELECT_NONE,
     receivable_account_id: supplier?.receivable_account_id ?? OPTIONAL_SELECT_NONE,
     payable_account_id: supplier?.payable_account_id ?? OPTIONAL_SELECT_NONE,
-    billing_address: supplier ? addressToFormValues(supplier.billing_address) : EMPTY_ADDRESS_FORM,
-    shipping_address: supplier
-      ? addressToFormValues(supplier.shipping_address)
-      : EMPTY_ADDRESS_FORM,
-    same_as_billing: false,
+    billing_address,
+    shipping_address,
+    same_as_billing: Boolean(supplier) && addressesMatch(billing_address, shipping_address),
     notes: supplier?.notes ?? "",
     is_active: supplier?.is_active ?? true,
     initial_contact_name: "",
