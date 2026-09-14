@@ -4,7 +4,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { reportsApi } from "@/modules/erp/accounting/reports/api";
-import { InventoryReportFilters, todayIsoDate } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
+import {
+  InventoryReportFilters,
+  todayIsoDate,
+} from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { glHref } from "@/modules/erp/accounting/reports/schemas";
 import { useStockValuationGl } from "@/modules/erp/accounting/reports/queries";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
@@ -14,9 +17,15 @@ import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function StockValuationGlScreen() {
@@ -111,17 +120,17 @@ export function StockValuationGlScreen() {
           ) : (
             <TableRow>
               <TableCell>{report.as_of}</TableCell>
-              <TableCell>{formatDecimal(report.valuation_total)}</TableCell>
+              <TableCell>{formatReportMoney(report.valuation_total)}</TableCell>
               <TableCell>
                 {report.inventory_account_id ? (
                   <RecordLink href={glHref(report.inventory_account_id, asOf, asOf)}>
-                    {formatDecimal(report.gl_balance)}
+                    {formatReportMoney(report.gl_balance)}
                   </RecordLink>
                 ) : (
-                  formatDecimal(report.gl_balance)
+                  formatReportMoney(report.gl_balance)
                 )}
               </TableCell>
-              <TableCell>{formatDecimal(report.difference)}</TableCell>
+              <TableCell>{formatReportMoney(report.difference)}</TableCell>
             </TableRow>
           )}
         </TableBody>

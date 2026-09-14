@@ -21,9 +21,15 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
 const ALL = "all";
 const COLUMN_COUNT = 7;
@@ -33,8 +39,7 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
   const period = useReportPeriod();
   const from = filters.from ?? period.from;
   const to = filters.to ?? period.to;
-  const partyId =
-    kind === "customer" ? (filters.customer_id ?? "") : (filters.supplier_id ?? "");
+  const partyId = kind === "customer" ? (filters.customer_id ?? "") : (filters.supplier_id ?? "");
   const customersQuery = useAllCustomers(kind === "customer");
   const suppliersQuery = useAllSuppliers(kind === "supplier");
   const parties = kind === "customer" ? (customersQuery.data ?? []) : (suppliersQuery.data ?? []);
@@ -126,8 +131,8 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
       </DataTableToolbar>
       {report ? (
         <p className="text-muted-foreground text-sm">
-          {report.party_name}. Opening {formatDecimal(report.opening_balance)}. Closing{" "}
-          {formatDecimal(report.closing_balance)}.
+          {report.party_name}. Opening {formatReportMoney(report.opening_balance)}. Closing{" "}
+          {formatReportMoney(report.closing_balance)}.
         </p>
       ) : null}
       <DataTable>
@@ -190,9 +195,11 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
                   </TableCell>
                   <TableCell>{line.due_date ? formatDate(line.due_date) : "—"}</TableCell>
                   <TableCell className="max-w-xs truncate">{line.description ?? "—"}</TableCell>
-                  <TableCell className="tabular-nums">{formatDecimal(line.debit)}</TableCell>
-                  <TableCell className="tabular-nums">{formatDecimal(line.credit)}</TableCell>
-                  <TableCell className="tabular-nums">{formatDecimal(line.running_balance)}</TableCell>
+                  <TableCell className="tabular-nums">{formatReportMoney(line.debit)}</TableCell>
+                  <TableCell className="tabular-nums">{formatReportMoney(line.credit)}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {formatReportMoney(line.running_balance)}
+                  </TableCell>
                 </TableRow>
               );
             })

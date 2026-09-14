@@ -14,7 +14,11 @@ import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
-import { useAllSuppliers, useSupplier, useSupplierOpenItems } from "@/modules/erp/suppliers/queries";
+import {
+  useAllSuppliers,
+  useSupplier,
+  useSupplierOpenItems,
+} from "@/modules/erp/suppliers/queries";
 import {
   useCreateSupplierPayment,
   useUpdateSupplierPayment,
@@ -48,6 +52,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -89,7 +94,8 @@ function toFormValues(
     payment_account_id: payment?.payment_account_id ?? OPTIONAL_SELECT_NONE,
     payment_method: payment?.payment_method ?? "TT",
     reference: payment?.reference ?? "",
-    purchase_order_id: payment?.purchase_order_id ?? defaults?.purchaseOrderId ?? OPTIONAL_SELECT_NONE,
+    purchase_order_id:
+      payment?.purchase_order_id ?? defaults?.purchaseOrderId ?? OPTIONAL_SELECT_NONE,
     notes: payment?.notes ?? "",
   };
 }
@@ -291,7 +297,7 @@ export function SupplierPaymentForm({
               <FormItem>
                 <FormLabel>Amount paid</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -304,7 +310,7 @@ export function SupplierPaymentForm({
               <FormItem>
                 <FormLabel>Bank charges</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

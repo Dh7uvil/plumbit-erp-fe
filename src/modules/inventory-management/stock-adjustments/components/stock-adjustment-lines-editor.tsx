@@ -20,6 +20,7 @@ import { useAllUnits } from "@/modules/inventory-management/units/queries";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   TableBody,
@@ -28,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function emptyAdjustmentLine(): StockAdjustmentLineFormValues {
@@ -193,8 +194,8 @@ export function StockAdjustmentLinesEditor({
                           render={({ field: countedField }) => (
                             <FormItem>
                               <FormControl>
-                                <Input
-                                  inputMode="decimal"
+                                <DecimalInput
+                                  kind="quantity"
                                   className="text-right"
                                   disabled={disabled}
                                   aria-label={`Line ${index + 1} counted quantity`}
@@ -213,8 +214,8 @@ export function StockAdjustmentLinesEditor({
                           render={({ field: deltaField }) => (
                             <FormItem>
                               <FormControl>
-                                <Input
-                                  inputMode="decimal"
+                                <DecimalInput
+                                  kind="quantity"
                                   className="text-right"
                                   disabled={disabled}
                                   aria-label={`Line ${index + 1} adjust by`}
@@ -235,8 +236,8 @@ export function StockAdjustmentLinesEditor({
                         render={({ field: costField }) => (
                           <FormItem>
                             <FormControl>
-                              <Input
-                                inputMode="decimal"
+                              <DecimalInput
+                                kind="money"
                                 className="text-right"
                                 disabled={disabled}
                                 aria-label={`Line ${index + 1} unit cost`}
@@ -250,12 +251,12 @@ export function StockAdjustmentLinesEditor({
                     </TableCell>
                     {showBooked ? (
                       <TableCell className="text-right tabular-nums">
-                        {formatDecimal(booked ?? null)}
+                        {formatQuantity(booked ?? null)}
                       </TableCell>
                     ) : null}
                     {showBooked && isCount ? (
                       <TableCell className="text-right tabular-nums">
-                        {formatDecimal(form.watch(`lines.${index}.qty_delta`) || null)}
+                        {formatQuantity(form.watch(`lines.${index}.qty_delta`) || null)}
                       </TableCell>
                     ) : null}
                     <TableCell className="min-w-40 align-top">

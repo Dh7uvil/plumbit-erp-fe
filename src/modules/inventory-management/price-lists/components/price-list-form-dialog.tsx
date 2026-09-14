@@ -30,6 +30,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -153,8 +154,8 @@ export function PriceListFormDialog({
                     <FormItem>
                       <FormLabel>Percent</FormLabel>
                       <FormControl>
-                        <Input
-                          inputMode="decimal"
+                        <DecimalInput
+                          kind="percent"
                           placeholder="10"
                           disabled={!canCreate}
                           {...field}

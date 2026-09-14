@@ -17,9 +17,15 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
 const ALL = "all";
 const COLUMN_COUNT = 7;
@@ -33,7 +39,8 @@ export function AccountStatementScreen() {
   const partyId = filters.party_id ?? "";
   const customersQuery = useAllCustomers(partyType === "CUSTOMER");
   const suppliersQuery = useAllSuppliers(partyType === "SUPPLIER");
-  const parties = partyType === "CUSTOMER" ? (customersQuery.data ?? []) : (suppliersQuery.data ?? []);
+  const parties =
+    partyType === "CUSTOMER" ? (customersQuery.data ?? []) : (suppliersQuery.data ?? []);
   const reportQuery = useAccountStatement(
     partyId ? { party_type: partyType, party_id: partyId, from, to } : null,
   );
@@ -125,8 +132,8 @@ export function AccountStatementScreen() {
       </DataTableToolbar>
       {report ? (
         <p className="text-muted-foreground text-sm">
-          Opening {formatDecimal(report.opening_balance)}. Closing{" "}
-          {formatDecimal(report.closing_balance)}.
+          Opening {formatReportMoney(report.opening_balance)}. Closing{" "}
+          {formatReportMoney(report.closing_balance)}.
         </p>
       ) : null}
       <DataTable>
@@ -185,9 +192,9 @@ export function AccountStatementScreen() {
                 </TableCell>
                 <TableCell>{formatDate(line.due_date)}</TableCell>
                 <TableCell>{line.external_reference ?? "—"}</TableCell>
-                <TableCell>{formatDecimal(line.debit)}</TableCell>
-                <TableCell>{formatDecimal(line.credit)}</TableCell>
-                <TableCell>{formatDecimal(line.running_balance)}</TableCell>
+                <TableCell>{formatReportMoney(line.debit)}</TableCell>
+                <TableCell>{formatReportMoney(line.credit)}</TableCell>
+                <TableCell>{formatReportMoney(line.running_balance)}</TableCell>
               </TableRow>
             ))
           )}

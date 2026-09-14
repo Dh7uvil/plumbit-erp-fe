@@ -35,7 +35,7 @@ import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { useIsClient } from "@/shared/hooks/use-is-client";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const REASON_MIN_LENGTH = 10;
@@ -97,7 +97,7 @@ function NegativeBalanceList({
       <ul className="text-muted-foreground list-disc pl-5 text-sm">
         {balances.map((row) => (
           <li key={`${row.warehouse_id}-${row.product_id}`}>
-            {row.warehouse_code} · {row.sku} · {formatDecimal(row.qty_on_hand)}
+            {row.warehouse_code} · {row.sku} · {formatQuantity(row.qty_on_hand)}
           </li>
         ))}
       </ul>

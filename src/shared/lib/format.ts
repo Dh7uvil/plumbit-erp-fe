@@ -46,30 +46,99 @@ function parseDecimalParts(value: string): { negative: boolean; whole: string; f
   return { negative, whole, fraction };
 }
 
+function isZeroParts(whole: string, fraction: string): boolean {
+  return whole === "0" && !/[1-9]/.test(fraction);
+}
+
+function signedGrouped(negative: boolean, whole: string, fraction: string): string {
+  const grouped = new Intl.NumberFormat(undefined, { useGrouping: true }).format(BigInt(whole));
+  const sign = negative && !isZeroParts(whole, fraction) ? "-" : "";
+  return fraction ? `${sign}${grouped}.${fraction}` : `${sign}${grouped}`;
+}
+
+function roundHalfUp(
+  whole: string,
+  fraction: string,
+  fractionDigits: number,
+): { whole: string; fraction: string } {
+  const padded = fraction.padEnd(Math.max(fractionDigits, 0) + 1, "0");
+  const kept = padded.slice(0, fractionDigits);
+  const nextDigit = padded[fractionDigits] ?? "0";
+  if (nextDigit < "5") {
+    return { whole, fraction: kept };
+  }
+  if (fractionDigits === 0) {
+    return { whole: (BigInt(whole) + BigInt(1)).toString(), fraction: "" };
+  }
+  const digits = `${whole}${kept}`;
+  const incremented = (BigInt(digits) + BigInt(1)).toString();
+  if (incremented.length > digits.length) {
+    return {
+      whole: incremented.slice(0, incremented.length - fractionDigits),
+      fraction: incremented.slice(-fractionDigits),
+    };
+  }
+  const paddedIncremented = incremented.padStart(digits.length, "0");
+  return {
+    whole: paddedIncremented.slice(0, paddedIncremented.length - fractionDigits) || "0",
+    fraction: paddedIncremented.slice(-fractionDigits),
+  };
+}
+
+export function formatFixedDecimal(value: string | null | undefined, fractionDigits = 2): string {
+  if (value == null || value === "") {
+    return "—";
+  }
+  try {
+    const { negative, whole, fraction } = parseDecimalParts(value);
+    const rounded = roundHalfUp(whole, fraction, fractionDigits);
+    return signedGrouped(negative, rounded.whole, rounded.fraction);
+  } catch {
+    return value;
+  }
+}
+
 export function formatDecimal(value: string | null | undefined): string {
   if (value == null || value === "") {
     return "—";
   }
   try {
     const { negative, whole, fraction } = parseDecimalParts(value);
-    const grouped = new Intl.NumberFormat(undefined, { useGrouping: true }).format(BigInt(whole));
-    const sign = negative && whole !== "0" ? "-" : "";
-    return fraction ? `${sign}${grouped}.${fraction}` : `${sign}${grouped}`;
+    return signedGrouped(negative, whole, fraction);
   } catch {
     return value;
   }
 }
 
-export function formatQuantity(value: string | null | undefined, maxFractionDigits = 4): string {
+export function formatQuantity(value: string | null | undefined): string {
+  return formatFixedDecimal(value, 2);
+}
+
+export function formatPercent(value: string | null | undefined): string {
   if (value == null || value === "") {
     return "—";
   }
   try {
-    const { negative, whole, fraction } = parseDecimalParts(value);
-    const trimmedFraction = fraction.replace(/0+$/, "").slice(0, maxFractionDigits);
-    const grouped = new Intl.NumberFormat(undefined, { useGrouping: true }).format(BigInt(whole));
-    const sign = negative && whole !== "0" ? "-" : "";
-    return trimmedFraction ? `${sign}${grouped}.${trimmedFraction}` : `${sign}${grouped}`;
+    parseDecimalParts(value);
+  } catch {
+    return value;
+  }
+  return `${formatFixedDecimal(value, 2)}%`;
+}
+
+export function normalizeDecimalInput(value: string, fractionDigits = 2): string {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return "";
+  }
+  try {
+    const { negative, whole, fraction } = parseDecimalParts(trimmed);
+    const rounded = roundHalfUp(whole, fraction, fractionDigits);
+    const sign = negative && !isZeroParts(rounded.whole, rounded.fraction) ? "-" : "";
+    if (fractionDigits === 0) {
+      return `${sign}${rounded.whole}`;
+    }
+    return `${sign}${rounded.whole}.${rounded.fraction}`;
   } catch {
     return value;
   }
@@ -106,11 +175,13 @@ export function formatMoney(value: string | null | undefined, currencyCode: stri
       currency,
     });
     const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
-    const paddedFraction = (fraction + "0".repeat(fractionDigits)).slice(0, fractionDigits);
+    const rounded = roundHalfUp(whole, fraction, fractionDigits);
     const groupedWhole = new Intl.NumberFormat(undefined, { useGrouping: true }).format(
-      BigInt(whole),
+      BigInt(rounded.whole),
     );
-    const parts = formatter.formatToParts(negative && whole !== "0" ? -1 : 1);
+    const paddedFraction = rounded.fraction;
+    const showNegative = negative && !isZeroParts(rounded.whole, rounded.fraction);
+    const parts = formatter.formatToParts(showNegative ? -1 : 1);
     return parts
       .map((part) => {
         if (part.type === "integer") {

@@ -34,6 +34,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { formatPercent } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["Name", "Category", "Rate", "Default", "Status"] as const;
 const SORT_FIELDS = [
@@ -208,7 +209,7 @@ export function TaxesScreen() {
                     {TAX_CATEGORY_LABELS[tax.tax_category]}
                   </RecordLink>
                 </TableCell>
-                <TableCell>{`${tax.rate}%`}</TableCell>
+                <TableCell>{formatPercent(tax.rate)}</TableCell>
                 <TableCell>
                   {tax.is_default ? <Badge variant="info">Default</Badge> : "—"}
                 </TableCell>

@@ -41,6 +41,7 @@ import {
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -430,8 +431,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         render={({ field: rateField }) => (
                           <FormItem>
                             <FormControl>
-                              <Input
-                                inputMode="decimal"
+                              <DecimalInput
+                                kind="money"
                                 className="text-right"
                                 disabled={disabled}
                                 aria-label={`Line ${index + 1} amount`}
@@ -615,8 +616,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       render={({ field: quantityField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input
-                              inputMode="decimal"
+                            <DecimalInput
+                              kind="quantity"
                               className="text-right"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} quantity`}
@@ -667,8 +668,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       render={({ field: rateField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input
-                              inputMode="decimal"
+                            <DecimalInput
+                              kind="money"
                               className="text-right"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} rate`}
@@ -697,8 +698,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           render={({ field: weightField }) => (
                             <FormItem>
                               <FormControl>
-                                <Input
-                                  inputMode="decimal"
+                                <DecimalInput
+                                  kind="quantity"
                                   className="text-right"
                                   disabled={disabled}
                                   aria-label={`Line ${index + 1} net weight`}
@@ -717,8 +718,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           render={({ field: weightField }) => (
                             <FormItem>
                               <FormControl>
-                                <Input
-                                  inputMode="decimal"
+                                <DecimalInput
+                                  kind="quantity"
                                   className="text-right"
                                   disabled={disabled}
                                   aria-label={`Line ${index + 1} gross weight`}
@@ -770,8 +771,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       render={({ field: discountField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input
-                              inputMode="decimal"
+                            <DecimalInput
+                              kind="money"
                               className="text-right"
                               disabled={disabled}
                               {...discountField}
@@ -833,13 +834,21 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                             render={({ field: packingField }) => (
                               <FormItem>
                                 <FormControl>
-                                  <Input
-                                    inputMode={decimal ? "decimal" : undefined}
-                                    className={decimal ? "text-right" : undefined}
-                                    disabled={disabled}
-                                    aria-label={`Line ${index + 1} ${label}`}
-                                    {...packingField}
-                                  />
+                                  {decimal ? (
+                                    <DecimalInput
+                                      kind="quantity"
+                                      className="text-right"
+                                      disabled={disabled}
+                                      aria-label={`Line ${index + 1} ${label}`}
+                                      {...packingField}
+                                    />
+                                  ) : (
+                                    <Input
+                                      disabled={disabled}
+                                      aria-label={`Line ${index + 1} ${label}`}
+                                      {...packingField}
+                                    />
+                                  )}
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

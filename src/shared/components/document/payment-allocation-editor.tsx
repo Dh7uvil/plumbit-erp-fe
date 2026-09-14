@@ -7,7 +7,7 @@ import {
   type OpenItemType,
   type PaymentAllocationInput,
 } from "@/shared/components/document/schemas";
-import { Input } from "@/shared/components/ui/input";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import {
   Table,
   TableBody,
@@ -187,9 +187,9 @@ export function PaymentAllocationEditor({
                   {formatMoney(item.balance, currencyCode)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Input
+                  <DecimalInput
+                    kind="money"
                     className="ml-auto h-8 w-28 text-right"
-                    inputMode="decimal"
                     disabled={disabled}
                     value={values[item.document_id] ?? ""}
                     onChange={(event) => onChange(item.document_id, event.target.value)}

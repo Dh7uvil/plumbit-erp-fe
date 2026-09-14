@@ -13,9 +13,15 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 function createPurchaseOrderHref(line: {
@@ -119,12 +125,12 @@ export function PurchaseSuggestionsScreen() {
                 <TableCell>
                   <RecordLink href={`/stock/${line.product_id}`}>{line.product_name}</RecordLink>
                 </TableCell>
-                <TableCell>{formatDecimal(line.qty_on_hand)}</TableCell>
-                <TableCell>{formatDecimal(line.qty_available)}</TableCell>
-                <TableCell>{formatDecimal(line.suggested_qty)}</TableCell>
+                <TableCell>{formatQuantity(line.qty_on_hand)}</TableCell>
+                <TableCell>{formatQuantity(line.qty_available)}</TableCell>
+                <TableCell>{formatQuantity(line.suggested_qty)}</TableCell>
                 <TableCell>
-                  {line.reorder_level ? formatDecimal(line.reorder_level) : "—"}
-                  {line.reorder_qty ? ` / ${formatDecimal(line.reorder_qty)}` : ""}
+                  {line.reorder_level ? formatQuantity(line.reorder_level) : "—"}
+                  {line.reorder_qty ? ` / ${formatQuantity(line.reorder_qty)}` : ""}
                 </TableCell>
                 <TableCell>
                   {line.preferred_supplier_id && line.preferred_supplier_name ? (

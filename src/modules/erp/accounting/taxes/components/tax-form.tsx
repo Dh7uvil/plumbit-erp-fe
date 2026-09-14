@@ -26,6 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -163,7 +164,7 @@ export function TaxForm({
               <FormItem>
                 <FormLabel>Rate</FormLabel>
                 <FormControl>
-                  <Input placeholder="5" disabled={disabled} {...field} />
+                  <DecimalInput kind="percent" placeholder="5" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

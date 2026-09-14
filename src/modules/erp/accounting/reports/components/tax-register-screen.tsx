@@ -13,9 +13,15 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
 const COLUMN_COUNT = 11;
 
@@ -74,9 +80,7 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
         </>
       }
     >
-      {box ? (
-        <p className="text-muted-foreground text-sm">Filtered to VAT 201 box {box}.</p>
-      ) : null}
+      {box ? <p className="text-muted-foreground text-sm">Filtered to VAT 201 box {box}.</p> : null}
       <DataTable>
         <TableHeader>
           <TableRow>
@@ -114,7 +118,10 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
           ) : lines.length === 0 ? (
             <TableRow>
               <TableCell colSpan={COLUMN_COUNT}>
-                <DataTableEmpty title="No documents" message="No posted tax documents in this range." />
+                <DataTableEmpty
+                  title="No documents"
+                  message="No posted tax documents in this range."
+                />
               </TableCell>
             </TableRow>
           ) : (
@@ -133,7 +140,11 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
                     </TableCell>
                     <TableCell>
                       <RecordLink
-                        href={kind === "sales" ? `/customers/${line.party_id}` : `/suppliers/${line.party_id}`}
+                        href={
+                          kind === "sales"
+                            ? `/customers/${line.party_id}`
+                            : `/suppliers/${line.party_id}`
+                        }
                       >
                         {line.party_name}
                       </RecordLink>
@@ -142,9 +153,9 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
                     <TableCell>{line.tax_treatment}</TableCell>
                     <TableCell>{line.tax_category || "—"}</TableCell>
                     <TableCell>{line.place_of_supply}</TableCell>
-                    <TableCell>{formatDecimal(line.net_amount)}</TableCell>
-                    <TableCell>{formatDecimal(line.tax_amount)}</TableCell>
-                    <TableCell>{formatDecimal(line.grand_total)}</TableCell>
+                    <TableCell>{formatReportMoney(line.net_amount)}</TableCell>
+                    <TableCell>{formatReportMoney(line.tax_amount)}</TableCell>
+                    <TableCell>{formatReportMoney(line.grand_total)}</TableCell>
                     <TableCell>
                       {[
                         line.is_export ? "Export" : null,
@@ -162,9 +173,15 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
                   <TableCell colSpan={7} className="font-medium">
                     Totals
                   </TableCell>
-                  <TableCell className="font-medium">{formatDecimal(report.total_net)}</TableCell>
-                  <TableCell className="font-medium">{formatDecimal(report.total_tax)}</TableCell>
-                  <TableCell className="font-medium">{formatDecimal(report.total_grand)}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatReportMoney(report.total_net)}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {formatReportMoney(report.total_tax)}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {formatReportMoney(report.total_grand)}
+                  </TableCell>
                   <TableCell />
                 </TableRow>
               ) : null}

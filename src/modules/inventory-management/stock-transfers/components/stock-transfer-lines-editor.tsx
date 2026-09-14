@@ -20,6 +20,7 @@ import { useAllUnits } from "@/modules/inventory-management/units/queries";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   TableBody,
@@ -28,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function emptyTransferLine(): StockTransferLineFormValues {
@@ -186,8 +187,8 @@ export function StockTransferLinesEditor({
                         render={({ field: qtyField }) => (
                           <FormItem>
                             <FormControl>
-                              <Input
-                                inputMode="decimal"
+                              <DecimalInput
+                                kind="quantity"
                                 className="text-right"
                                 disabled={disabled}
                                 aria-label={`Line ${index + 1} quantity`}
@@ -202,12 +203,12 @@ export function StockTransferLinesEditor({
                     </TableCell>
                     {showLive ? (
                       <TableCell className="text-right tabular-nums">
-                        {formatDecimal(sourceQty ?? null)}
+                        {formatQuantity(sourceQty ?? null)}
                       </TableCell>
                     ) : null}
                     {showLive ? (
                       <TableCell className="text-right tabular-nums">
-                        {formatDecimal(destQty ?? null)}
+                        {formatQuantity(destQty ?? null)}
                       </TableCell>
                     ) : null}
                     <TableCell className="min-w-40 align-top">

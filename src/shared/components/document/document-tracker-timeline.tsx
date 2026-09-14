@@ -12,7 +12,7 @@ import { documentStatusTone } from "@/shared/components/document/document-status
 import { StatusBadge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatDate, formatDecimal, humanizeEnum } from "@/shared/lib/format";
+import { formatDate, formatFixedDecimal, formatQuantity, humanizeEnum } from "@/shared/lib/format";
 
 export type OrderTrackerRow = {
   stage: string;
@@ -142,13 +142,19 @@ export function DocumentTrackerTimeline({
                             {humanizeEnum(row.status)}
                           </StatusBadge>
                           {row.document_date ? (
-                            <span className="text-muted-foreground">{formatDate(row.document_date)}</span>
+                            <span className="text-muted-foreground">
+                              {formatDate(row.document_date)}
+                            </span>
                           ) : null}
                           {row.quantity_summary ? (
-                            <span className="text-muted-foreground">{formatDecimal(row.quantity_summary)}</span>
+                            <span className="text-muted-foreground">
+                              {formatQuantity(row.quantity_summary)}
+                            </span>
                           ) : null}
                           {row.amount_summary ? (
-                            <span className="text-muted-foreground">{formatDecimal(row.amount_summary)}</span>
+                            <span className="text-muted-foreground">
+                              {formatFixedDecimal(row.amount_summary)}
+                            </span>
                           ) : null}
                         </li>
                       );

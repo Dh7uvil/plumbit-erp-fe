@@ -39,6 +39,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import {
@@ -49,7 +50,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function todayPlaceholder(): string {
@@ -70,7 +71,11 @@ function toLineInput(line: PackageFormValues["lines"][number]): PackageLineInput
   };
 }
 
-function toFormValues(pkg: Package | null, salesOrderId?: string, deliveryNoteId?: string): PackageFormValues {
+function toFormValues(
+  pkg: Package | null,
+  salesOrderId?: string,
+  deliveryNoteId?: string,
+): PackageFormValues {
   const lines = pkg?.lines ?? [];
   return {
     sales_order_id: pkg?.sales_order_id ?? salesOrderId ?? OPTIONAL_SELECT_NONE,
@@ -281,7 +286,7 @@ export function PackageForm({
               <FormItem>
                 <FormLabel>Length</FormLabel>
                 <FormControl>
-                  <Input disabled={disabled} inputMode="decimal" {...field} />
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -294,7 +299,7 @@ export function PackageForm({
               <FormItem>
                 <FormLabel>Width</FormLabel>
                 <FormControl>
-                  <Input disabled={disabled} inputMode="decimal" {...field} />
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -307,7 +312,7 @@ export function PackageForm({
               <FormItem>
                 <FormLabel>Height</FormLabel>
                 <FormControl>
-                  <Input disabled={disabled} inputMode="decimal" {...field} />
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -333,7 +338,7 @@ export function PackageForm({
               <FormItem>
                 <FormLabel>Gross weight</FormLabel>
                 <FormControl>
-                  <Input disabled={disabled} inputMode="decimal" {...field} />
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -346,7 +351,7 @@ export function PackageForm({
               <FormItem>
                 <FormLabel>Net weight</FormLabel>
                 <FormControl>
-                  <Input disabled={disabled} inputMode="decimal" {...field} />
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -398,7 +403,7 @@ export function PackageForm({
                 <TableRow key={field.id}>
                   <TableCell>{watchedLines?.[index]?.description || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatDecimal(watchedLines?.[index]?.outstanding || "0")}
+                    {formatQuantity(watchedLines?.[index]?.outstanding || "0")}
                   </TableCell>
                   <TableCell>
                     <FormField
@@ -407,7 +412,7 @@ export function PackageForm({
                       render={({ field: qtyField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input disabled={disabled} inputMode="decimal" {...qtyField} />
+                            <DecimalInput kind="quantity" disabled={disabled} {...qtyField} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

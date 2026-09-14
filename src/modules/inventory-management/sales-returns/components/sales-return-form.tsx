@@ -12,7 +12,10 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { useDeliveryNote, useDeliveryNotes } from "@/modules/inventory-management/delivery-notes/queries";
+import {
+  useDeliveryNote,
+  useDeliveryNotes,
+} from "@/modules/inventory-management/delivery-notes/queries";
 import { deliveryNoteDisplayNumber } from "@/modules/inventory-management/delivery-notes/schemas";
 import {
   useCreateSalesReturn,
@@ -47,6 +50,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -57,7 +61,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function todayIsoDate(): string {
@@ -81,10 +85,7 @@ function toLineInput(line: SalesReturnFormValues["lines"][number]): SalesReturnL
   };
 }
 
-function toFormValues(
-  doc: SalesReturn | null,
-  deliveryNoteId?: string,
-): SalesReturnFormValues {
+function toFormValues(doc: SalesReturn | null, deliveryNoteId?: string): SalesReturnFormValues {
   const lines = doc?.lines ?? [];
   return {
     delivery_note_id: doc?.delivery_note_id ?? deliveryNoteId ?? OPTIONAL_SELECT_NONE,
@@ -341,7 +342,7 @@ export function SalesReturnForm({
                             "Line"}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          {noteLine ? formatDecimal(noteLine.quantity) : "—"}
+                          {noteLine ? formatQuantity(noteLine.quantity) : "—"}
                         </td>
                         <td className="w-28 px-3 py-2 align-top">
                           <FormField
@@ -350,8 +351,8 @@ export function SalesReturnForm({
                             render={({ field: qtyField }) => (
                               <FormItem>
                                 <FormControl>
-                                  <Input
-                                    inputMode="decimal"
+                                  <DecimalInput
+                                    kind="quantity"
                                     className="text-right"
                                     disabled={disabled}
                                     aria-label={`Line ${index + 1} quantity`}

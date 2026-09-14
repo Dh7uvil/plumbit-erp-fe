@@ -56,7 +56,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -160,7 +160,8 @@ export function GoodsReceiptForm({
   }, [form, receipt]);
 
   const issuedOrders = useMemo(
-    () => (issuedOrdersQuery.data?.data ?? []).filter((order) => order.receipt_status !== "RECEIVED"),
+    () =>
+      (issuedOrdersQuery.data?.data ?? []).filter((order) => order.receipt_status !== "RECEIVED"),
     [issuedOrdersQuery.data?.data],
   );
 
@@ -250,7 +251,9 @@ export function GoodsReceiptForm({
                   placeholder="Select supplier"
                   searchPlaceholder="Search supplier…"
                   createLabel="Create supplier"
-                  onCreate={can(supplierPermissions.create) ? () => setCreating("supplier") : undefined}
+                  onCreate={
+                    can(supplierPermissions.create) ? () => setCreating("supplier") : undefined
+                  }
                   options={suppliers.map((supplier) => ({
                     value: supplier.id,
                     label: supplier.name,
@@ -273,7 +276,9 @@ export function GoodsReceiptForm({
                   placeholder="Select warehouse"
                   searchPlaceholder="Search warehouse…"
                   createLabel="Create warehouse"
-                  onCreate={can(warehousePermissions.create) ? () => setCreating("warehouse") : undefined}
+                  onCreate={
+                    can(warehousePermissions.create) ? () => setCreating("warehouse") : undefined
+                  }
                   options={warehouses.map((warehouse) => ({
                     value: warehouse.id,
                     label: `${warehouse.code} — ${warehouse.name}`,
@@ -485,14 +490,18 @@ export function GoodsReceiptForm({
                 {receipt.lines.map((line) => (
                   <tr key={line.id} className="border-b last:border-0">
                     <td className="px-3 py-2">{line.description}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatDecimal(line.quantity)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">
-                      {formatDecimal(line.qty_accepted)}
+                      {formatQuantity(line.quantity)}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
-                      {formatDecimal(line.qty_rejected)}
+                      {formatQuantity(line.qty_accepted)}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatDecimal(line.qty_on_hold)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatQuantity(line.qty_rejected)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatQuantity(line.qty_on_hold)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

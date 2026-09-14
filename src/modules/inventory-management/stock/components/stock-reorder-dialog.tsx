@@ -29,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
-import { Input } from "@/shared/components/ui/input";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 
 function emptyToNull(value: string): string | null {
@@ -102,7 +102,7 @@ export function StockReorderDialog({
                 <FormItem>
                   <FormLabel>Reorder level</FormLabel>
                   <FormControl>
-                    <Input inputMode="decimal" {...field} />
+                    <DecimalInput kind="quantity" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,7 +115,7 @@ export function StockReorderDialog({
                 <FormItem>
                   <FormLabel>Reorder quantity</FormLabel>
                   <FormControl>
-                    <Input inputMode="decimal" {...field} />
+                    <DecimalInput kind="quantity" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -10,7 +10,11 @@ import { toast } from "sonner";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { CustomerFormDialog } from "@/modules/crm/customers/components/customer-form-dialog";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
-import { useAllCustomers, useCustomer, useCustomerOpenItems } from "@/modules/crm/customers/queries";
+import {
+  useAllCustomers,
+  useCustomer,
+  useCustomerOpenItems,
+} from "@/modules/crm/customers/queries";
 import { isCashOrBankAccount } from "@/modules/erp/accounting/accounts/schemas";
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
@@ -50,6 +54,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -72,7 +77,10 @@ function optionalUuid(value: string): string | null {
   return !value || value === OPTIONAL_SELECT_NONE ? null : value;
 }
 
-function toFormValues(payment: CustomerPayment | null, defaults?: CustomerPaymentFormDefaults): CustomerPaymentFormValues {
+function toFormValues(
+  payment: CustomerPayment | null,
+  defaults?: CustomerPaymentFormDefaults,
+): CustomerPaymentFormValues {
   return {
     customer_id: payment?.customer_id ?? defaults?.customerId ?? OPTIONAL_SELECT_NONE,
     payment_date: payment?.payment_date ?? todayIsoDate(),
@@ -82,7 +90,8 @@ function toFormValues(payment: CustomerPayment | null, defaults?: CustomerPaymen
     payment_account_id: payment?.payment_account_id ?? OPTIONAL_SELECT_NONE,
     payment_method: payment?.payment_method ?? "TT",
     reference: payment?.reference ?? "",
-    proforma_invoice_id: payment?.proforma_invoice_id ?? defaults?.proformaInvoiceId ?? OPTIONAL_SELECT_NONE,
+    proforma_invoice_id:
+      payment?.proforma_invoice_id ?? defaults?.proformaInvoiceId ?? OPTIONAL_SELECT_NONE,
     sales_order_id: payment?.sales_order_id ?? defaults?.salesOrderId ?? OPTIONAL_SELECT_NONE,
     tax_id: payment?.tax_id ?? OPTIONAL_SELECT_NONE,
     notes: payment?.notes ?? "",
@@ -303,7 +312,7 @@ export function CustomerPaymentForm({
               <FormItem>
                 <FormLabel>Amount received</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -316,7 +325,7 @@ export function CustomerPaymentForm({
               <FormItem>
                 <FormLabel>Bank charges</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

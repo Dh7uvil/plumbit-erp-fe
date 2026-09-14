@@ -94,7 +94,9 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
               <td className="py-1.5">{line.item_code ?? ""}</td>
               <td className="py-1.5">{line.description}</td>
               {china ? (
-                <td className="py-1.5 text-right tabular-nums">{line.carton_qty ?? ""}</td>
+                <td className="py-1.5 text-right tabular-nums">
+                  {line.carton_qty ? formatQuantity(line.carton_qty) : ""}
+                </td>
               ) : null}
               {china ? <td className="py-1.5">{line.packing_unit ?? ""}</td> : null}
               <td className="py-1.5 text-right tabular-nums">{formatQuantity(line.quantity)}</td>

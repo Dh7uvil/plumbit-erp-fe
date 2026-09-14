@@ -39,10 +39,18 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { cn } from "@/shared/lib/cn";
-import { formatDate, formatDecimal, formatMoney } from "@/shared/lib/format";
+import { formatDate, formatMoney, formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const BASE_COLUMN_HEADERS = ["SKU", "Product", "Warehouse", "Date", "Type", "Qty", "Source"] as const;
+const BASE_COLUMN_HEADERS = [
+  "SKU",
+  "Product",
+  "Warehouse",
+  "Date",
+  "Type",
+  "Qty",
+  "Source",
+] as const;
 const COST_COLUMN_HEADERS = ["Unit cost", "Value"] as const;
 const SORT_FIELDS = [
   { value: "sku", label: "SKU" },
@@ -318,7 +326,11 @@ export function StockMovementsScreen() {
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ Qty: "text-right", "Unit cost": "text-right", Value: "text-right" }}
+              classNameByHeader={{
+                Qty: "text-right",
+                "Unit cost": "text-right",
+                Value: "text-right",
+              }}
             />
           </TableRow>
         </TableHeader>
@@ -367,7 +379,7 @@ export function StockMovementsScreen() {
                     qtyIsNegative(row.qty) && "text-destructive font-medium",
                   )}
                 >
-                  {formatDecimal(row.qty)}
+                  {formatQuantity(row.qty)}
                 </TableCell>
                 {canReadCost ? (
                   <>

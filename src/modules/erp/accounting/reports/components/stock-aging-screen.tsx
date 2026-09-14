@@ -1,6 +1,9 @@
 "use client";
 
-import { InventoryReportFilters, todayIsoDate } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
+import {
+  InventoryReportFilters,
+  todayIsoDate,
+} from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useStockAging } from "@/modules/erp/accounting/reports/queries";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
@@ -10,9 +13,15 @@ import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatQuantity, formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const BUCKET_LABELS: Record<string, string> = {
@@ -109,8 +118,8 @@ export function StockAgingScreen() {
                   <TableCell>{formatDate(line.document_date)}</TableCell>
                   <TableCell>{line.days}</TableCell>
                   <TableCell>{BUCKET_LABELS[line.bucket] ?? line.bucket}</TableCell>
-                  <TableCell>{formatDecimal(line.qty_remaining)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatDecimal(line.stock_value)}</TableCell> : null}
+                  <TableCell>{formatQuantity(line.qty_remaining)}</TableCell>
+                  {canSeeCost ? <TableCell>{formatReportMoney(line.stock_value)}</TableCell> : null}
                 </TableRow>
               ))}
               <TableRow>
@@ -119,7 +128,9 @@ export function StockAgingScreen() {
                 </TableCell>
                 <TableCell />
                 {canSeeCost ? (
-                  <TableCell className="font-medium">{formatDecimal(report.totals.total)}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatReportMoney(report.totals.total)}
+                  </TableCell>
                 ) : null}
               </TableRow>
             </>

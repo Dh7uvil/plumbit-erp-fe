@@ -16,7 +16,7 @@ import {
   type DocumentHistoryColumn,
 } from "@/shared/components/document/document-history-table";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatQuantity, formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 function hrefForDocument(documentNumber: string, documentId: string): string {
@@ -48,11 +48,7 @@ export function TradingHistoryLines({
   const [page, setPage] = useState(1);
   const params = { page, page_size: 10, party_id: partyId, product_id: productId };
   const productSales = useProductSalesHistory(ownerId, params, kind === "product-sales");
-  const productPurchases = useProductPurchaseHistory(
-    ownerId,
-    params,
-    kind === "product-purchases",
-  );
+  const productPurchases = useProductPurchaseHistory(ownerId, params, kind === "product-purchases");
   const customerSales = useCustomerSalesHistory(ownerId, params, kind === "customer-sales");
   const supplierPurchases = useSupplierPurchaseHistory(
     ownerId,
@@ -77,7 +73,11 @@ export function TradingHistoryLines({
         id: "document",
         header: "Document",
         cell: (row) => (
-          <RecordLink href={(documentHref ?? ((item) => hrefForDocument(item.document_number, item.document_id)))(row)}>
+          <RecordLink
+            href={(
+              documentHref ?? ((item) => hrefForDocument(item.document_number, item.document_id))
+            )(row)}
+          >
             {row.document_number}
           </RecordLink>
         ),
@@ -94,11 +94,17 @@ export function TradingHistoryLines({
         header: kind === "product-purchases" ? "Supplier" : "Customer",
         cell: (row) =>
           kind === "product-purchases" ? (
-            <Link href={`/suppliers/${row.party_id}`} className="underline-offset-4 hover:underline">
+            <Link
+              href={`/suppliers/${row.party_id}`}
+              className="underline-offset-4 hover:underline"
+            >
               {row.party_name}
             </Link>
           ) : (
-            <Link href={`/customers/${row.party_id}`} className="underline-offset-4 hover:underline">
+            <Link
+              href={`/customers/${row.party_id}`}
+              className="underline-offset-4 hover:underline"
+            >
               {row.party_name}
             </Link>
           ),
@@ -120,7 +126,7 @@ export function TradingHistoryLines({
         id: "qty",
         header: "Qty",
         className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatDecimal(row.quantity)}</span>,
+        cell: (row) => <span className="tabular-nums">{formatQuantity(row.quantity)}</span>,
       },
       {
         id: "invoiced",
@@ -128,7 +134,7 @@ export function TradingHistoryLines({
         className: "text-right",
         cell: (row) => (
           <span className="tabular-nums">
-            {row.invoiced_quantity != null ? formatDecimal(row.invoiced_quantity) : "—"}
+            {row.invoiced_quantity != null ? formatQuantity(row.invoiced_quantity) : "—"}
           </span>
         ),
       },
@@ -136,14 +142,16 @@ export function TradingHistoryLines({
         id: "rate",
         header: "Rate",
         className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatDecimal(row.rate)}</span>,
+        cell: (row) => <span className="tabular-nums">{formatReportMoney(row.rate)}</span>,
       },
       {
         id: "revenue",
         header: "Revenue",
         className: "text-right",
         cell: (row) => (
-          <span className="tabular-nums">{row.revenue != null ? formatDecimal(row.revenue) : "—"}</span>
+          <span className="tabular-nums">
+            {row.revenue != null ? formatReportMoney(row.revenue) : "—"}
+          </span>
         ),
       },
     );
@@ -155,7 +163,7 @@ export function TradingHistoryLines({
           className: "text-right",
           cell: (row) => (
             <span className="tabular-nums">
-              {row.unit_cost != null ? formatDecimal(row.unit_cost) : "—"}
+              {row.unit_cost != null ? formatReportMoney(row.unit_cost) : "—"}
             </span>
           ),
         },
@@ -165,7 +173,7 @@ export function TradingHistoryLines({
           className: "text-right",
           cell: (row) => (
             <span className="tabular-nums">
-              {row.billed_cost != null ? formatDecimal(row.billed_cost) : "—"}
+              {row.billed_cost != null ? formatReportMoney(row.billed_cost) : "—"}
             </span>
           ),
         },
@@ -174,7 +182,9 @@ export function TradingHistoryLines({
           header: "Margin",
           className: "text-right",
           cell: (row) => (
-            <span className="tabular-nums">{row.margin != null ? formatDecimal(row.margin) : "—"}</span>
+            <span className="tabular-nums">
+              {row.margin != null ? formatReportMoney(row.margin) : "—"}
+            </span>
           ),
         },
       );

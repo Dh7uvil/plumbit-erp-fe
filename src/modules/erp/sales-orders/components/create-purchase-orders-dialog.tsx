@@ -28,9 +28,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 
 type LineDraft = {
   selected: boolean;
@@ -88,7 +89,9 @@ export function CreatePurchaseOrdersDialog({
   if (plan !== draftPlan) {
     setDraftPlan(plan);
     setDrafts(
-      Object.fromEntries((plan?.groups ?? []).map((group) => [group.supplier_id, emptyGroup(group)])),
+      Object.fromEntries(
+        (plan?.groups ?? []).map((group) => [group.supplier_id, emptyGroup(group)]),
+      ),
     );
   }
 
@@ -216,7 +219,7 @@ export function CreatePurchaseOrdersDialog({
 function UnassignedLine({ line }: { line: PurchaseOrderPlanLine }) {
   return (
     <li>
-      {line.description} · uncovered {formatDecimal(line.qty_uncovered)}
+      {line.description} · uncovered {formatQuantity(line.qty_uncovered)}
     </li>
   );
 }
@@ -255,9 +258,7 @@ function SupplierGroupSection({
           <Input
             type="date"
             value={current.expectedDeliveryDate}
-            onChange={(event) =>
-              onChange({ ...current, expectedDeliveryDate: event.target.value })
-            }
+            onChange={(event) => onChange({ ...current, expectedDeliveryDate: event.target.value })}
           />
         </div>
       </div>
@@ -289,12 +290,12 @@ function SupplierGroupSection({
               <div>
                 <p className="text-sm">{line.description}</p>
                 <p className="text-muted-foreground text-xs">
-                  Uncovered {formatDecimal(line.qty_uncovered)}
+                  Uncovered {formatQuantity(line.qty_uncovered)}
                   {line.supplier_sku ? ` · ${line.supplier_sku}` : ""}
                 </p>
               </div>
-              <Input
-                inputMode="decimal"
+              <DecimalInput
+                kind="quantity"
                 value={row.quantity}
                 disabled={!row.selected}
                 onChange={(event) =>
@@ -308,8 +309,8 @@ function SupplierGroupSection({
                 }
                 aria-label={`${line.description} quantity`}
               />
-              <Input
-                inputMode="decimal"
+              <DecimalInput
+                kind="money"
                 value={row.rate}
                 disabled={!row.selected}
                 onChange={(event) =>

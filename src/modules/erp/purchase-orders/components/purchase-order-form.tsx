@@ -66,6 +66,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -76,7 +77,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -687,7 +688,7 @@ export function PurchaseOrderForm({
               <FormItem>
                 <FormLabel>Header discount value</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -700,7 +701,7 @@ export function PurchaseOrderForm({
               <FormItem>
                 <FormLabel>Shipping amount</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -713,7 +714,7 @@ export function PurchaseOrderForm({
               <FormItem>
                 <FormLabel>Adjustment amount</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -796,9 +797,11 @@ export function PurchaseOrderForm({
                 {purchaseOrder.lines.map((line) => (
                   <tr key={line.id} className="border-b last:border-0">
                     <td className="px-3 py-2">{line.description || `Line ${line.line_number}`}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatDecimal(line.quantity)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">
-                      {formatDecimal(line.qty_received)}
+                      {formatQuantity(line.quantity)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatQuantity(line.qty_received)}
                     </td>
                   </tr>
                 ))}

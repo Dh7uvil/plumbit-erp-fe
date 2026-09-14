@@ -16,9 +16,15 @@ import { documentTypeDisplayLabel } from "@/shared/components/document/document-
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
@@ -120,8 +126,9 @@ export function GeneralLedgerScreen() {
     >
       {report ? (
         <p className="text-muted-foreground text-sm">
-          {report.account_code} {report.account_name}. Opening {formatDecimal(report.opening_balance)}.
-          Closing {formatDecimal(report.closing_balance)}.
+          {report.account_code} {report.account_name}. Opening{" "}
+          {formatReportMoney(report.opening_balance)}. Closing{" "}
+          {formatReportMoney(report.closing_balance)}.
         </p>
       ) : null}
       <DataTable>
@@ -181,7 +188,11 @@ export function GeneralLedgerScreen() {
                 <TableCell>
                   {line.source_id ? (
                     <RecordLink
-                      href={sourceDocumentHref(line.source_type, line.source_id, line.journal_entry_id)}
+                      href={sourceDocumentHref(
+                        line.source_type,
+                        line.source_id,
+                        line.journal_entry_id,
+                      )}
                     >
                       {line.source_type ? documentTypeDisplayLabel(line.source_type) : "Journal"}
                     </RecordLink>
@@ -189,9 +200,9 @@ export function GeneralLedgerScreen() {
                     "—"
                   )}
                 </TableCell>
-                <TableCell>{formatDecimal(line.debit_base)}</TableCell>
-                <TableCell>{formatDecimal(line.credit_base)}</TableCell>
-                <TableCell>{formatDecimal(line.running_balance)}</TableCell>
+                <TableCell>{formatReportMoney(line.debit_base)}</TableCell>
+                <TableCell>{formatReportMoney(line.credit_base)}</TableCell>
+                <TableCell>{formatReportMoney(line.running_balance)}</TableCell>
                 <TableCell>{line.narration ?? line.description ?? "—"}</TableCell>
               </TableRow>
             ))

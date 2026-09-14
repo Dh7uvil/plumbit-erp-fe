@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -107,10 +107,7 @@ function ComposeFromBillsBody({
     !purchaseInvoiceId,
   );
   const billQuery = usePurchaseInvoice(selectedBillId || null);
-  const receiptsQuery = useGoodsReceipts(
-    { status: "POSTED", page_size: 50 },
-    !goodsReceiptId,
-  );
+  const receiptsQuery = useGoodsReceipts({ status: "POSTED", page_size: 50 }, !goodsReceiptId);
   const bills = billsQuery.data?.data ?? [];
   const receipts = receiptsQuery.data?.data ?? [];
   const invoice = billQuery.data;
@@ -196,8 +193,8 @@ function ComposeFromBillsBody({
                   />
                   <span>
                     {line.description || line.expense_category || "Expense"} ·{" "}
-                    {formatDecimal(line.amount)}
-                    {remaining != null ? ` · remaining ${formatDecimal(remaining)}` : ""}
+                    {formatReportMoney(line.amount)}
+                    {remaining != null ? ` · remaining ${formatReportMoney(remaining)}` : ""}
                   </span>
                 </label>
               );
