@@ -8,7 +8,6 @@ import { ShipmentForm } from "@/modules/inventory-management/shipments/component
 import { ShipmentTrackingDialog } from "@/modules/inventory-management/shipments/components/shipment-tracking-dialog";
 import { ShipmentTrackingStrip } from "@/modules/inventory-management/shipments/components/shipment-tracking-strip";
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
-import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { useShipmentWorkflow } from "@/modules/inventory-management/shipments/hooks/use-shipment-workflow";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { useShipment } from "@/modules/inventory-management/shipments/queries";
@@ -26,10 +25,9 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Button } from "@/shared/components/ui/button";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-import { useCan } from "@/shared/providers/session-provider";
 
 function canUpdateTracking(status: Shipment["status"]): boolean {
   return status === "DISPATCHED" || status === "IN_TRANSIT" || status === "ARRIVED";
@@ -101,19 +99,19 @@ function ShipmentDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
-  const can = useCan();
   const isEdit = mode === "edit";
   const number = shipmentDisplayNumber(shipment);
   const [trackingOpen, setTrackingOpen] = useState(false);
   const [landedCostOpen, setLandedCostOpen] = useState(false);
   const onAction = useShipmentWorkflow(shipment, { onTracking: () => setTrackingOpen(true) });
-  const trackingEnabled = canUpdateTracking(shipment.status);
-  const canCreateLandedCost =
-    shipment.status !== "CANCELLED" && can(landedCostPermissions.create);
-  const workflowActions =
-    trackingEnabled && !shipment.available_actions.includes("tracking")
-      ? [...shipment.available_actions, "tracking"]
-      : shipment.available_actions;
+  const fallbackActions: string[] = [];
+  if (canUpdateTracking(shipment.status)) {
+    fallbackActions.push("tracking");
+  }
+  if (shipment.status !== "CANCELLED") {
+    fallbackActions.push("create_landed_cost");
+  }
+  const workflowActions = appendMissingActions(shipment.available_actions, fallbackActions);
 
   return (
     <>
@@ -138,25 +136,19 @@ function ShipmentDetailLoaded({
           />
         }
         workflow={
-          <div className="flex flex-col items-end gap-2">
-            {canCreateLandedCost ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setLandedCostOpen(true)}
-              >
-                Create landed cost
-              </Button>
-            ) : null}
-            <DocumentWorkflowButtons
-              availableActions={workflowActions}
-              registry={SHIPMENT_ACTION_REGISTRY}
-              documentKind="shipment"
-              documentLabel={number ?? "shipment"}
-              onAction={onAction}
-            />
-          </div>
+          <DocumentWorkflowButtons
+            availableActions={workflowActions}
+            registry={SHIPMENT_ACTION_REGISTRY}
+            documentKind="shipment"
+            documentLabel={number ?? "shipment"}
+            onAction={async (action) => {
+              if (action === "create_landed_cost") {
+                setLandedCostOpen(true);
+                return;
+              }
+              await onAction(action);
+            }}
+          />
         }
         banner={
           <p className="text-muted-foreground text-sm">

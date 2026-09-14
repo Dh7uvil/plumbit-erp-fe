@@ -29,7 +29,16 @@ export const currenciesApi = {
     return { data: CurrencyListSchema.parse(result.data), meta: result.meta };
   },
   listAll: (): Promise<Currency[]> =>
-    fetchAllPages((page, pageSize) => currenciesApi.list({ page, page_size: pageSize })),
+    fetchAllPages((page, pageSize) =>
+      currenciesApi.list({ page, page_size: pageSize, sort_by: "code", sort_order: "asc" }),
+    ).then((rows) =>
+      [...rows].sort((left, right) => {
+        if (left.is_base !== right.is_base) {
+          return left.is_base ? -1 : 1;
+        }
+        return left.code.localeCompare(right.code);
+      }),
+    ),
   get: async (id: string): Promise<Currency> =>
     CurrencySchema.parse(await apiClient.get(`/currencies/${id}`)),
   create: async (values: CurrencyCreateRequest): Promise<Currency> =>

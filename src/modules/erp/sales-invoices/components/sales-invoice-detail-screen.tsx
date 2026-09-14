@@ -10,7 +10,6 @@ import {
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
-import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { CreateCreditNoteDialog } from "@/modules/erp/credit-notes/components/create-from-source-dialog";
 import { InvoiceCreditNotesCard } from "@/modules/erp/credit-notes/components/invoice-credit-notes-card";
 import { ApplyCreditsDialog } from "@/modules/erp/sales-invoices/components/apply-credits-dialog";
@@ -41,12 +40,11 @@ import { DocumentSettlementCard } from "@/shared/components/document/document-se
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
+import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
-import { Button } from "@/shared/components/ui/button";
 import { isApiError } from "@/shared/api/errors";
 import { formatDate } from "@/shared/lib/format";
-import { useCan } from "@/shared/providers/session-provider";
 import { toast } from "sonner";
 
 export function SalesInvoiceDetailScreen({
@@ -115,7 +113,6 @@ function SalesInvoiceDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
-  const can = useCan();
   const isEdit = mode === "edit";
   const number = salesInvoiceDisplayNumber(invoice);
   const onAction = useSalesInvoiceWorkflow(invoice);
@@ -129,8 +126,10 @@ function SalesInvoiceDetailLoaded({
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
   const missingExportEvidence =
     invoice.is_export && invoice.status === "POSTED" && !invoice.export_evidence_ok;
-  const canCreateCredit =
-    invoice.status === "POSTED" && can(creditNotePermissions.create);
+  const workflowActions = appendMissingActions(
+    invoice.available_actions,
+    invoice.status === "POSTED" ? ["create_credit_note"] : [],
+  );
 
   return (
     <DocumentRecordShell
@@ -183,46 +182,43 @@ function SalesInvoiceDetailLoaded({
         </>
       }
       workflow={
-        <div className="flex flex-col items-end gap-2">
-          {canCreateCredit ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => setCreditOpen(true)}>
-              Create credit note
-            </Button>
-          ) : null}
-          <DocumentWorkflowButtons
-            availableActions={invoice.available_actions}
-            registry={SALES_INVOICE_ACTION_REGISTRY}
-            documentKind="sales invoice"
-            documentLabel={number ?? "sales invoice"}
-            extra={<StockWriteAlert error={writeError} />}
-            onError={(error) => {
-              if (isStockWriteAlertError(error)) {
-                setWriteError(error);
-                return true;
-              }
-              if (isApiError(error) && error.code === "CREDIT_LIMIT_EXCEEDED") {
-                setCreditBlockError(error);
-                return true;
-              }
-              return false;
-            }}
-            onAction={async (action, extras) => {
-              setWriteError(null);
-              setCreditBlockError(null);
-              if (action === "record_payment") {
-                router.push(
-                  `/customer-payments/new?customer_id=${invoice.customer_id}&invoice_id=${invoice.id}`,
-                );
-                return;
-              }
-              if (action === "apply_credits") {
-                setApplyCreditsOpen(true);
-                return;
-              }
-              await onAction(action, extras);
-            }}
-          />
-        </div>
+        <DocumentWorkflowButtons
+          availableActions={workflowActions}
+          registry={SALES_INVOICE_ACTION_REGISTRY}
+          documentKind="sales invoice"
+          documentLabel={number ?? "sales invoice"}
+          extra={<StockWriteAlert error={writeError} />}
+          onError={(error) => {
+            if (isStockWriteAlertError(error)) {
+              setWriteError(error);
+              return true;
+            }
+            if (isApiError(error) && error.code === "CREDIT_LIMIT_EXCEEDED") {
+              setCreditBlockError(error);
+              return true;
+            }
+            return false;
+          }}
+          onAction={async (action, extras) => {
+            setWriteError(null);
+            setCreditBlockError(null);
+            if (action === "record_payment") {
+              router.push(
+                `/customer-payments/new?customer_id=${invoice.customer_id}&invoice_id=${invoice.id}`,
+              );
+              return;
+            }
+            if (action === "apply_credits") {
+              setApplyCreditsOpen(true);
+              return;
+            }
+            if (action === "create_credit_note") {
+              setCreditOpen(true);
+              return;
+            }
+            await onAction(action, extras);
+          }}
+        />
       }
       banner={
         <div className="flex flex-col gap-2">

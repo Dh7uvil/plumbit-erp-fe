@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 
 import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
 import { CreateInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-invoices/components/create-from-sales-order-dialog";
-import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { CreateProformaInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-orders/components/create-proforma-invoice-dialog";
 import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sales-order-coverage-card";
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
@@ -42,11 +41,10 @@ import {
 } from "@/shared/components/document/document-workflow-buttons";
 import { QuantityProgressStrip } from "@/shared/components/document/quantity-progress-strip";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
+import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-import { Button } from "@/shared/components/ui/button";
 import { isApiError } from "@/shared/api/errors";
 import { formatDate, formatDateTime } from "@/shared/lib/format";
-import { useCan } from "@/shared/providers/session-provider";
 import { toast } from "sonner";
 
 export function SalesOrderDetailScreen({
@@ -115,7 +113,6 @@ function SalesOrderDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
-  const can = useCan();
   const isEdit = mode === "edit";
   const number = salesOrderDisplayNumber(salesOrder);
   const onAction = useSalesOrderWorkflow(salesOrder);
@@ -123,13 +120,20 @@ function SalesOrderDetailLoaded({
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [proformaOpen, setProformaOpen] = useState(false);
   const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
-  const canCreateInvoice =
-    (salesOrder.status === "CONFIRMED" || salesOrder.status === "CLOSED") &&
-    can(salesInvoicePermissions.create);
+  const workflowActions = appendMissingActions(
+    salesOrder.available_actions,
+    salesOrder.status === "CONFIRMED" || salesOrder.status === "CLOSED"
+      ? ["create_sales_invoice"]
+      : [],
+  );
 
   async function handleAction(action: SalesOrderWorkflowAction, extras: DocumentWorkflowExtras) {
     if (action === "create_proforma") {
       setProformaOpen(true);
+      return;
+    }
+    if (action === "create_sales_invoice") {
+      setInvoiceOpen(true);
       return;
     }
     await onAction(action, extras);
@@ -170,30 +174,23 @@ function SalesOrderDetailLoaded({
         </>
       }
       workflow={
-        <div className="flex flex-col items-end gap-2">
-          {canCreateInvoice ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => setInvoiceOpen(true)}>
-              Create invoice
-            </Button>
-          ) : null}
-          <DocumentWorkflowButtons
-            availableActions={salesOrder.available_actions}
-            registry={SALES_ORDER_ACTION_REGISTRY}
-            documentKind="sales order"
-            documentLabel={number ?? "sales order"}
-            onError={(error) => {
-              if (isApiError(error) && error.code === "CREDIT_LIMIT_EXCEEDED") {
-                setCreditBlockError(error);
-                return true;
-              }
-              return false;
-            }}
-            onAction={async (action, extras) => {
-              setCreditBlockError(null);
-              await handleAction(action, extras);
-            }}
-          />
-        </div>
+        <DocumentWorkflowButtons
+          availableActions={workflowActions}
+          registry={SALES_ORDER_ACTION_REGISTRY}
+          documentKind="sales order"
+          documentLabel={number ?? "sales order"}
+          onError={(error) => {
+            if (isApiError(error) && error.code === "CREDIT_LIMIT_EXCEEDED") {
+              setCreditBlockError(error);
+              return true;
+            }
+            return false;
+          }}
+          onAction={async (action, extras) => {
+            setCreditBlockError(null);
+            await handleAction(action, extras);
+          }}
+        />
       }
       banner={
         <div className="flex flex-col gap-1">

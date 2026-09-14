@@ -34,8 +34,10 @@ import {
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import {
+  CUSTOMER_PAYMENT_ALLOCATE_TYPES,
   PaymentAllocationEditor,
   defaultAllocationAmounts,
+  filterOpenItemsForPaymentAllocation,
   paymentAllocationsPayload,
 } from "@/shared/components/document/payment-allocation-editor";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -188,7 +190,11 @@ export function CustomerPaymentForm({
   const currencies = currenciesQuery.data ?? [];
   const paymentAccounts = (accountsQuery.data ?? []).filter(isCashOrBankAccount);
   const taxes = taxesQuery.data ?? [];
-  const openItems = openItemsQuery.data ?? [];
+  const openItems = filterOpenItemsForPaymentAllocation(
+    openItemsQuery.data ?? [],
+    CUSTOMER_PAYMENT_ALLOCATE_TYPES,
+    payment?.id,
+  );
   const currencyCode = currencies.find((currency) => currency.id === currencyId)?.code ?? "";
 
   useEffect(() => {
@@ -204,11 +210,15 @@ export function CustomerPaymentForm({
     if (payment || !defaults?.invoiceId || !openItemsQuery.data) {
       return;
     }
+    const allocatable = filterOpenItemsForPaymentAllocation(
+      openItemsQuery.data,
+      CUSTOMER_PAYMENT_ALLOCATE_TYPES,
+    );
     setAllocationValues((current) => {
       if (Object.values(current).some((value) => value.trim())) {
         return current;
       }
-      return defaultAllocationAmounts(openItemsQuery.data, defaults.invoiceId);
+      return defaultAllocationAmounts(allocatable, defaults.invoiceId);
     });
   }, [defaults?.invoiceId, openItemsQuery.data, payment]);
 
@@ -486,7 +496,7 @@ export function CustomerPaymentForm({
             disabled={disabled}
             emptyMessage={
               selectedCustomerId
-                ? "No open items for this customer."
+                ? "No open invoices or opening AR for this customer."
                 : "Select a customer to load open items."
             }
           />

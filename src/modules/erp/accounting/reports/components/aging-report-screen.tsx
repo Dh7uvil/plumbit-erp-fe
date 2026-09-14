@@ -1,14 +1,13 @@
 "use client";
 
 import { useArAging, useApAging } from "@/modules/erp/accounting/reports/queries";
+import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import type { AgingBucketTotals, AgingPartyRow } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
-import { ListPage } from "@/shared/components/layout/list-page";
-import { PageHeader } from "@/shared/components/layout/page-header";
+import { ReportShell } from "@/shared/components/report/report-shell";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -45,20 +44,25 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
   const reportQuery = kind === "ar" ? arQuery : apQuery;
   const report = reportQuery.data;
   const rows = report?.rows ?? [];
+  const { csvPending, downloadCsv } = useReportCsv();
   const partyHref = (row: AgingPartyRow) =>
     kind === "ar" ? `/customers/${row.party_id}` : `/suppliers/${row.party_id}`;
+  const path = kind === "ar" ? "/reports/ar-aging" : "/reports/ap-aging";
+  const filename = kind === "ar" ? "ar-aging" : "ap-aging";
 
   return (
-    <ListPage>
-      <PageHeader
-        title={kind === "ar" ? "AR aging" : "AP aging"}
-        subtitle={
-          kind === "ar"
-            ? "Open receivables by customer as of the selected date. Totals come from the server."
-            : "Open payables by supplier as of the selected date. Totals come from the server."
-        }
-      />
-      <DataTableToolbar>
+    <ReportShell
+      title={kind === "ar" ? "AR aging" : "AP aging"}
+      subtitle={
+        kind === "ar"
+          ? "Open receivables by customer as of the selected date. Totals come from the server."
+          : "Open payables by supplier as of the selected date. Totals come from the server."
+      }
+      csvPending={csvPending}
+      onDownloadCsv={() => {
+        void downloadCsv(path, { as_of: asOf }, filename);
+      }}
+      toolbar={
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="aging-as-of">As of</Label>
           <Input
@@ -68,7 +72,8 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
             onChange={(event) => setParams({ filters: { as_of: event.target.value || null } })}
           />
         </div>
-      </DataTableToolbar>
+      }
+    >
       <DataTable>
         <TableHeader>
           <TableRow>
@@ -129,6 +134,6 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
           )}
         </TableBody>
       </DataTable>
-    </ListPage>
+    </ReportShell>
   );
 }

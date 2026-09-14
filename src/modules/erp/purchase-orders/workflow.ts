@@ -1,3 +1,4 @@
+import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
@@ -13,6 +14,7 @@ export const PURCHASE_ORDER_WORKFLOW_ACTIONS = [
   "clone",
   "delete",
   "create_goods_receipt",
+  "create_bill",
 ] as const;
 export type PurchaseOrderWorkflowAction = (typeof PURCHASE_ORDER_WORKFLOW_ACTIONS)[number];
 
@@ -74,6 +76,12 @@ export const PURCHASE_ORDER_ACTION_REGISTRY: DocumentActionSpec<PurchaseOrderWor
     action: "create_goods_receipt",
     label: "Create goods receipt",
     permission: goodsReceiptPermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "create_bill",
+    label: "Create bill",
+    permission: purchaseInvoicePermissions.create,
     variant: "outline",
   },
 ];

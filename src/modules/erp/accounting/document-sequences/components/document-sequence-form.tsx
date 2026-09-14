@@ -11,9 +11,9 @@ import {
   useUpdateDocumentSequence,
 } from "@/modules/erp/accounting/document-sequences/mutations";
 import {
-  DOCUMENT_TYPE_LABELS,
   DOCUMENT_TYPES,
   DocumentSequenceFormSchema,
+  documentTypeLabel,
   isDocumentType,
   type DocumentSequence,
   type DocumentSequenceCreateRequest,
@@ -146,7 +146,7 @@ export function DocumentSequenceForm({
                   <SelectContent>
                     {DOCUMENT_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {DOCUMENT_TYPE_LABELS[type]}
+                        {documentTypeLabel(type)}
                       </SelectItem>
                     ))}
                   </SelectContent>

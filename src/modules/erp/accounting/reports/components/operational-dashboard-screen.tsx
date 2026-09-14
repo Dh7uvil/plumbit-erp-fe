@@ -141,13 +141,13 @@ function KpiCard({
   hint?: string;
 }) {
   return (
-    <Link href={href}>
-      <Card className="h-full">
+    <Link href={href} className="block min-w-0">
+        <Card className="h-full min-w-0 overflow-hidden">
         <CardHeader>
           <CardTitle className="text-muted-foreground text-sm font-medium">{title}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-semibold tabular-nums">{value}</p>
+        <CardContent className="min-w-0">
+          <p className="text-xl font-semibold break-all tabular-nums sm:text-2xl">{value}</p>
           {hint ? <p className="text-muted-foreground mt-1 text-xs">{hint}</p> : null}
         </CardContent>
       </Card>

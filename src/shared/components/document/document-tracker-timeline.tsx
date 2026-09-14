@@ -11,7 +11,7 @@ import {
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatDate } from "@/shared/lib/format";
+import { formatDate, formatDecimal, humanizeEnum } from "@/shared/lib/format";
 
 export type OrderTrackerRow = {
   stage: string;
@@ -149,15 +149,15 @@ export function DocumentTrackerTimeline({
                           ) : (
                             <span>{number}</span>
                           )}
-                          <span className="text-muted-foreground">{row.status.replace(/_/g, " ")}</span>
+                          <span className="text-muted-foreground">{humanizeEnum(row.status)}</span>
                           {row.document_date ? (
                             <span className="text-muted-foreground">{formatDate(row.document_date)}</span>
                           ) : null}
                           {row.quantity_summary ? (
-                            <span className="text-muted-foreground">{row.quantity_summary}</span>
+                            <span className="text-muted-foreground">{formatDecimal(row.quantity_summary)}</span>
                           ) : null}
                           {row.amount_summary ? (
-                            <span className="text-muted-foreground">{row.amount_summary}</span>
+                            <span className="text-muted-foreground">{formatDecimal(row.amount_summary)}</span>
                           ) : null}
                         </li>
                       );

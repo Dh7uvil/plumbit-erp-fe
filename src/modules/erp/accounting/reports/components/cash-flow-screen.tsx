@@ -2,6 +2,7 @@
 
 import { StatementReportFilters } from "@/modules/erp/accounting/reports/components/statement-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useCashFlow } from "@/modules/erp/accounting/reports/queries";
 import { glHref } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -18,10 +19,11 @@ const COLUMN_COUNT = 2;
 
 export function CashFlowScreen() {
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
   const branchId = filters.branch_id;
-  const params = from && to ? { from, to, branch_id: branchId } : null;
+  const params = { from, to, branch_id: branchId };
   const reportQuery = useCashFlow(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
@@ -33,13 +35,9 @@ export function CashFlowScreen() {
       title="Cash flow"
       subtitle="Indirect cash flow from posted journals. Totals come from the server."
       csvPending={csvPending}
-      onDownloadCsv={
-        params
-          ? () => {
-              void downloadCsv("/reports/cash-flow", params, "cash-flow");
-            }
-          : undefined
-      }
+      onDownloadCsv={() => {
+        void downloadCsv("/reports/cash-flow", params, "cash-flow");
+      }}
       toolbar={
         <StatementReportFilters
           from={from}
@@ -58,16 +56,7 @@ export function CashFlowScreen() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!from || !to ? (
-            <TableRow>
-              <TableCell colSpan={columnCount}>
-                <DataTableEmpty
-                  title="Select a date range"
-                  message="Choose from and to dates to load the cash flow."
-                />
-              </TableCell>
-            </TableRow>
-          ) : reportQuery.isLoading ? (
+          {reportQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell colSpan={columnCount}>

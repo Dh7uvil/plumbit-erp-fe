@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDecimal, formatMoney } from "@/shared/lib/format";
+import { formatDecimal, formatMoney, humanizeEnum } from "@/shared/lib/format";
 
 describe("formatMoney", () => {
   it("returns a dash for empty values", () => {
@@ -33,5 +33,17 @@ describe("formatDecimal", () => {
 
   it("preserves the decimal string without Number()", () => {
     expect(formatDecimal("1.234567")).toMatch(/1\.234567/);
+  });
+});
+
+describe("humanizeEnum", () => {
+  it("returns a dash for empty values", () => {
+    expect(humanizeEnum(null)).toBe("—");
+    expect(humanizeEnum("")).toBe("—");
+  });
+
+  it("title-cases underscore and hyphen enums", () => {
+    expect(humanizeEnum("CREDIT_LIMIT_EXCEEDED")).toBe("Credit Limit Exceeded");
+    expect(humanizeEnum("in-transit")).toBe("In Transit");
   });
 });

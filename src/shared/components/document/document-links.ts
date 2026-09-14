@@ -2,7 +2,32 @@ export function normalizeDocumentType(value: string): string {
   return value.trim().replace(/[\s-]+/g, "_").toUpperCase();
 }
 
-const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+export const DOCUMENT_TYPES = [
+  "QUOTATION",
+  "PROFORMA_INVOICE",
+  "SALES_ORDER",
+  "DELIVERY_NOTE",
+  "SALES_INVOICE",
+  "CREDIT_NOTE",
+  "PURCHASE_ORDER",
+  "GOODS_RECEIPT",
+  "PURCHASE_INVOICE",
+  "DEBIT_NOTE",
+  "QUALITY_INSPECTION",
+  "PACKAGE",
+  "SHIPMENT",
+  "SALES_RETURN",
+  "PURCHASE_RETURN",
+  "CUSTOMER_PAYMENT",
+  "SUPPLIER_PAYMENT",
+  "LANDED_COST",
+  "OPENING_AR",
+  "OPENING_AP",
+  "JOURNAL",
+] as const;
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   QUOTATION: "Quotation",
   PROFORMA_INVOICE: "Proforma invoice",
   SALES_ORDER: "Sales order",
@@ -23,11 +48,16 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   LANDED_COST: "Landed cost",
   OPENING_AR: "Opening AR",
   OPENING_AP: "Opening AP",
+  JOURNAL: "Journal",
 };
+
+export function isDocumentType(value: string): value is DocumentType {
+  return (DOCUMENT_TYPES as readonly string[]).includes(value);
+}
 
 export function documentTypeDisplayLabel(value: string): string {
   const key = normalizeDocumentType(value);
-  if (DOCUMENT_TYPE_LABELS[key]) {
+  if (isDocumentType(key)) {
     return DOCUMENT_TYPE_LABELS[key];
   }
   return key
@@ -57,6 +87,7 @@ const DOCUMENT_HREF: Record<string, (id: string) => string> = {
   CUSTOMER_PAYMENT: (id) => `/customer-payments/${id}`,
   SUPPLIER_PAYMENT: (id) => `/supplier-payments/${id}`,
   LANDED_COST: (id) => `/landed-costs/${id}`,
+  JOURNAL: (id) => `/journals/${id}`,
 };
 
 export function documentDetailHref(documentType: string, documentId: string): string | null {

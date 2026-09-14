@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { CreateDebitNoteDialog } from "@/modules/erp/debit-notes/components/create-from-source-dialog";
-import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import {
   StockWriteAlert,
   isStockWriteAlertError,
@@ -28,9 +27,8 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
+import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-import { Button } from "@/shared/components/ui/button";
-import { useCan } from "@/shared/providers/session-provider";
 
 export function PurchaseReturnDetailScreen({
   returnId,
@@ -98,13 +96,15 @@ function PurchaseReturnDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
-  const can = useCan();
   const isEdit = mode === "edit";
   const number = purchaseReturnDisplayNumber(doc);
   const onAction = usePurchaseReturnWorkflow(doc);
   const [writeError, setWriteError] = useState<unknown>(null);
   const [debitOpen, setDebitOpen] = useState(false);
-  const canCreateDebit = doc.status === "POSTED" && can(debitNotePermissions.create);
+  const workflowActions = appendMissingActions(
+    doc.available_actions,
+    doc.status === "POSTED" ? ["create_debit_note"] : [],
+  );
 
   return (
     <DocumentRecordShell
@@ -128,31 +128,28 @@ function PurchaseReturnDetailLoaded({
         />
       }
       workflow={
-        <div className="flex flex-col items-end gap-2">
-          {canCreateDebit ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => setDebitOpen(true)}>
-              Create debit note
-            </Button>
-          ) : null}
-          <DocumentWorkflowButtons
-            availableActions={doc.available_actions}
-            registry={PURCHASE_RETURN_ACTION_REGISTRY}
-            documentKind="purchase return"
-            documentLabel={number ?? "purchase return"}
-            extra={<StockWriteAlert periodLocked={doc.period_locked} error={writeError} />}
-            onError={(error) => {
-              if (isStockWriteAlertError(error)) {
-                setWriteError(error);
-                return true;
-              }
-              return false;
-            }}
-            onAction={async (action, extras) => {
-              setWriteError(null);
-              await onAction(action, extras);
-            }}
-          />
-        </div>
+        <DocumentWorkflowButtons
+          availableActions={workflowActions}
+          registry={PURCHASE_RETURN_ACTION_REGISTRY}
+          documentKind="purchase return"
+          documentLabel={number ?? "purchase return"}
+          extra={<StockWriteAlert periodLocked={doc.period_locked} error={writeError} />}
+          onError={(error) => {
+            if (isStockWriteAlertError(error)) {
+              setWriteError(error);
+              return true;
+            }
+            return false;
+          }}
+          onAction={async (action, extras) => {
+            setWriteError(null);
+            if (action === "create_debit_note") {
+              setDebitOpen(true);
+              return;
+            }
+            await onAction(action, extras);
+          }}
+        />
       }
       banner={
         <p className="text-muted-foreground text-sm">

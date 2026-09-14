@@ -9,6 +9,7 @@ import {
   FileText,
   FolderTree,
   History,
+  Inbox,
   Landmark,
   LayoutDashboard,
   ListOrdered,
@@ -80,6 +81,7 @@ import { unitPermissions } from "@/modules/inventory-management/units/permission
 import { warehousePermissions } from "@/modules/inventory-management/warehouses/permissions";
 import { organizationSettingsPermissions } from "@/modules/users-management/organization-settings/permissions";
 import { auditLogPermissions } from "@/modules/users-management/audit-logs/permissions";
+import { outboxPermissions } from "@/modules/users-management/outbox/permissions";
 import { permissionCatalogPermissions } from "@/modules/users-management/permissions/permissions";
 import { rolePermissions } from "@/modules/users-management/roles/permissions";
 import { userPermissions } from "@/modules/users-management/users/permissions";
@@ -521,6 +523,12 @@ export const navigation: NavigationGroup[] = [
         href: "/audit-logs",
         permission: auditLogPermissions.read,
         icon: ClipboardList,
+      },
+      {
+        label: "Outbox",
+        href: "/outbox-events",
+        permission: outboxPermissions.read,
+        icon: Inbox,
       },
     ],
   },

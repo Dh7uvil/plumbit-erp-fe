@@ -1,5 +1,8 @@
 "use client";
 
+import { Download } from "lucide-react";
+
+import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useInvoicedNotDispatched } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
@@ -7,6 +10,7 @@ import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
+import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { formatDate, formatDecimal } from "@/shared/lib/format";
@@ -16,12 +20,27 @@ const COLUMN_COUNT = 6;
 export function InvoicedNotDispatchedScreen() {
   const reportQuery = useInvoicedNotDispatched();
   const lines = reportQuery.data?.lines ?? [];
+  const { csvPending, downloadCsv } = useReportCsv();
 
   return (
     <ListPage>
       <PageHeader
         title="Invoiced not dispatched"
         subtitle="Invoice lines whose COGS is still pending because no delivery note has consumed stock."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void downloadCsv("/reports/invoiced-not-dispatched", {}, "invoiced-not-dispatched");
+            }}
+            disabled={csvPending}
+          >
+            <Download className="size-4" />
+            Download CSV
+          </Button>
+        }
       />
       <DataTable>
         <TableHeader>

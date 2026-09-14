@@ -194,7 +194,7 @@ export function SalesOrdersScreen() {
   return (
     <ListPage>
       <PageHeader
-        title="SalesOrders"
+        title="Sales orders"
         subtitle="Customer orders with server-side totals"
         actions={
           canCreate ? (

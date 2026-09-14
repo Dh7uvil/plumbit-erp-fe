@@ -1,10 +1,13 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import {
   useCustomerStatement,
   useSupplierStatement,
 } from "@/modules/erp/accounting/reports/queries";
+import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
@@ -27,25 +30,26 @@ const COLUMN_COUNT = 7;
 
 export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }) {
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
   const partyId =
     kind === "customer" ? (filters.customer_id ?? "") : (filters.supplier_id ?? "");
   const customersQuery = useAllCustomers(kind === "customer");
   const suppliersQuery = useAllSuppliers(kind === "supplier");
   const parties = kind === "customer" ? (customersQuery.data ?? []) : (suppliersQuery.data ?? []);
   const customerQuery = useCustomerStatement(
-    kind === "customer" && partyId && from && to
-      ? { customer_id: partyId, from, to }
-      : null,
+    kind === "customer" && partyId ? { customer_id: partyId, from, to } : null,
   );
   const supplierQuery = useSupplierStatement(
-    kind === "supplier" && partyId && from && to
-      ? { supplier_id: partyId, from, to }
-      : null,
+    kind === "supplier" && partyId ? { supplier_id: partyId, from, to } : null,
   );
   const reportQuery = kind === "customer" ? customerQuery : supplierQuery;
   const report = reportQuery.data;
+  const { csvPending, downloadCsv } = useReportCsv();
+  const path = kind === "customer" ? "/reports/customer-statement" : "/reports/supplier-statement";
+  const filename = kind === "customer" ? "customer-statement" : "supplier-statement";
+  const partyKey = kind === "customer" ? "customer_id" : "supplier_id";
 
   function setParty(value: string) {
     setParams({
@@ -61,6 +65,22 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
       <PageHeader
         title={kind === "customer" ? "Customer statement" : "Supplier statement"}
         subtitle="Document-level running balance. This is not the GL account statement."
+        actions={
+          partyId ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void downloadCsv(path, { [partyKey]: partyId, from, to }, filename);
+              }}
+              disabled={csvPending}
+            >
+              <Download className="size-4" />
+              Download CSV
+            </Button>
+          ) : null
+        }
       />
       <DataTableToolbar>
         <FilterSelect
@@ -123,12 +143,12 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!partyId || !from || !to ? (
+          {!partyId ? (
             <TableRow>
               <TableCell colSpan={COLUMN_COUNT}>
                 <DataTableEmpty
-                  title={kind === "customer" ? "Select a customer and dates" : "Select a supplier and dates"}
-                  message="Choose a party and a date range."
+                  title={kind === "customer" ? "Select a customer" : "Select a supplier"}
+                  message="Choose a party to load the statement."
                 />
               </TableCell>
             </TableRow>

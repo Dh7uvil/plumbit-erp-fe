@@ -20,9 +20,7 @@ import {
   type DeliveryNote,
 } from "@/modules/inventory-management/delivery-notes/schemas";
 import { DELIVERY_NOTE_ACTION_REGISTRY } from "@/modules/inventory-management/delivery-notes/workflow";
-import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { CreateInvoiceFromDeliveryNotesDialog } from "@/modules/erp/sales-invoices/components/create-from-delivery-notes-dialog";
-import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -32,9 +30,8 @@ import { DocumentLedgerCard } from "@/shared/components/document/document-ledger
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
+import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-import { Button } from "@/shared/components/ui/button";
-import { useCan } from "@/shared/providers/session-provider";
 
 export function DeliveryNoteDetailScreen({
   noteId,
@@ -102,19 +99,17 @@ function DeliveryNoteDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
-  const can = useCan();
   const isEdit = mode === "edit";
   const number = deliveryNoteDisplayNumber(note);
   const onAction = useDeliveryNoteWorkflow(note);
   const [writeError, setWriteError] = useState<unknown>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
-  const canCreateInvoice = note.status === "POSTED" && can(salesInvoicePermissions.create);
-  const workflowActions =
-    note.is_posted &&
-    can(salesReturnPermissions.create) &&
-    !note.available_actions.includes("create_return")
-      ? [...note.available_actions, "create_return"]
-      : note.available_actions;
+  const workflowActions = appendMissingActions(
+    note.available_actions,
+    note.is_posted || note.status === "POSTED"
+      ? ["create_return", "create_sales_invoice"]
+      : [],
+  );
 
   return (
     <DocumentRecordShell
@@ -140,31 +135,28 @@ function DeliveryNoteDetailLoaded({
         />
       }
       workflow={
-        <div className="flex flex-col items-end gap-2">
-          {canCreateInvoice ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => setInvoiceOpen(true)}>
-              Create invoice
-            </Button>
-          ) : null}
-          <DocumentWorkflowButtons
-            availableActions={workflowActions}
-            registry={DELIVERY_NOTE_ACTION_REGISTRY}
-            documentKind="delivery note"
-            documentLabel={number ?? "delivery note"}
-            extra={<StockWriteAlert periodLocked={note.period_locked} error={writeError} />}
-            onError={(error) => {
-              if (isStockWriteAlertError(error)) {
-                setWriteError(error);
-                return true;
-              }
-              return false;
-            }}
-            onAction={async (action, extras) => {
-              setWriteError(null);
-              await onAction(action, extras);
-            }}
-          />
-        </div>
+        <DocumentWorkflowButtons
+          availableActions={workflowActions}
+          registry={DELIVERY_NOTE_ACTION_REGISTRY}
+          documentKind="delivery note"
+          documentLabel={number ?? "delivery note"}
+          extra={<StockWriteAlert periodLocked={note.period_locked} error={writeError} />}
+          onError={(error) => {
+            if (isStockWriteAlertError(error)) {
+              setWriteError(error);
+              return true;
+            }
+            return false;
+          }}
+          onAction={async (action, extras) => {
+            setWriteError(null);
+            if (action === "create_sales_invoice") {
+              setInvoiceOpen(true);
+              return;
+            }
+            await onAction(action, extras);
+          }}
+        />
       }
       banner={
         <p className="text-muted-foreground text-sm">

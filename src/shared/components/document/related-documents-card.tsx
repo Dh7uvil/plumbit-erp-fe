@@ -8,7 +8,7 @@ import {
 } from "@/shared/components/document/document-links";
 import type { RelatedDocumentRef } from "@/shared/components/document/schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatDate } from "@/shared/lib/format";
+import { formatDate, formatDecimal, humanizeEnum } from "@/shared/lib/format";
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   source: "Source",
@@ -16,7 +16,7 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
 };
 
 function relationshipLabel(value: string): string {
-  return RELATIONSHIP_LABELS[value] ?? value.replace(/_/g, " ");
+  return RELATIONSHIP_LABELS[value] ?? humanizeEnum(value);
 }
 
 export function RelatedDocumentsCard({
@@ -54,7 +54,7 @@ export function RelatedDocumentsCard({
                 ) : (
                   <span>{number}</span>
                 )}
-                <span className="text-muted-foreground">{document.status.replace(/_/g, " ")}</span>
+                <span className="text-muted-foreground">{humanizeEnum(document.status)}</span>
                 <span className="text-muted-foreground">
                   {relationshipLabel(document.relationship)}
                 </span>
@@ -62,10 +62,10 @@ export function RelatedDocumentsCard({
                   <span className="text-muted-foreground">{formatDate(document.document_date)}</span>
                 ) : null}
                 {document.quantity_summary ? (
-                  <span className="text-muted-foreground">{document.quantity_summary}</span>
+                  <span className="text-muted-foreground">{formatDecimal(document.quantity_summary)}</span>
                 ) : null}
                 {document.amount_summary ? (
-                  <span className="text-muted-foreground">{document.amount_summary}</span>
+                  <span className="text-muted-foreground">{formatDecimal(document.amount_summary)}</span>
                 ) : null}
               </li>
             );

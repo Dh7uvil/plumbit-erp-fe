@@ -71,7 +71,7 @@ export function useSalesOrderWorkflow(salesOrder: SalesOrder) {
       const cloned = await cloneSalesOrder.mutateAsync(salesOrder.id);
       toast.success("Sales order cloned");
       router.push(`/sales-orders/${cloned.id}`);
-    } else if (action === "create_proforma") {
+    } else if (action === "create_proforma" || action === "create_sales_invoice") {
       return;
     } else if (action === "delete") {
       await deleteSalesOrder.mutateAsync(write);

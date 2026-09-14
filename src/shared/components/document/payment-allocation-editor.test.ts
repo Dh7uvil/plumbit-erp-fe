@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CUSTOMER_PAYMENT_ALLOCATE_TYPES,
+  SUPPLIER_PAYMENT_ALLOCATE_TYPES,
   defaultAllocationAmounts,
+  filterOpenItemsForPaymentAllocation,
   paymentAllocationsPayload,
   sumMoneyStrings,
 } from "@/shared/components/document/payment-allocation-editor";
@@ -44,5 +47,45 @@ describe("payment allocation helpers", () => {
 
   it("sums typed amounts without using floats", () => {
     expect(sumMoneyStrings(["10.10", "0.20", ""])).toBe("10.3");
+  });
+
+  it("keeps only bills and opening AP when allocating a supplier payment", () => {
+    const advance: OpenItemRow = {
+      ...invoice,
+      item_type: "SUPPLIER_PAYMENT",
+      document_id: "44444444-4444-4444-8444-444444444444",
+      document_number: "PAY-1",
+      is_debit: true,
+    };
+    const bill: OpenItemRow = {
+      ...invoice,
+      item_type: "PURCHASE_INVOICE",
+      document_number: "BILL-1",
+      is_debit: false,
+    };
+    expect(
+      filterOpenItemsForPaymentAllocation(
+        [advance, bill],
+        SUPPLIER_PAYMENT_ALLOCATE_TYPES,
+        advance.document_id,
+      ),
+    ).toEqual([bill]);
+  });
+
+  it("keeps only invoices and opening AR when allocating a customer receipt", () => {
+    const receipt: OpenItemRow = {
+      ...invoice,
+      item_type: "CUSTOMER_PAYMENT",
+      document_id: "55555555-5555-4555-8555-555555555555",
+      document_number: "REC-1",
+      is_debit: false,
+    };
+    expect(
+      filterOpenItemsForPaymentAllocation(
+        [receipt, invoice],
+        CUSTOMER_PAYMENT_ALLOCATE_TYPES,
+        receipt.document_id,
+      ),
+    ).toEqual([invoice]);
   });
 });

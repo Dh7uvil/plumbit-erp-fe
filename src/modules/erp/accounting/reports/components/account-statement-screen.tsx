@@ -1,7 +1,10 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
+import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useAccountStatement } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
@@ -23,21 +26,46 @@ const COLUMN_COUNT = 7;
 
 export function AccountStatementScreen() {
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
   const partyType = filters.party_type === "SUPPLIER" ? "SUPPLIER" : "CUSTOMER";
   const partyId = filters.party_id ?? "";
   const customersQuery = useAllCustomers(partyType === "CUSTOMER");
   const suppliersQuery = useAllSuppliers(partyType === "SUPPLIER");
   const parties = partyType === "CUSTOMER" ? (customersQuery.data ?? []) : (suppliersQuery.data ?? []);
   const reportQuery = useAccountStatement(
-    partyId && from && to ? { party_type: partyType, party_id: partyId, from, to } : null,
+    partyId ? { party_type: partyType, party_id: partyId, from, to } : null,
   );
   const report = reportQuery.data;
+  const { csvPending, downloadCsv } = useReportCsv();
 
   return (
     <ListPage>
-      <PageHeader title="Account statement" subtitle="Open-item view over AR/AP control accounts" />
+      <PageHeader
+        title="Account statement"
+        subtitle="Open-item view over AR/AP control accounts"
+        actions={
+          partyId ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void downloadCsv(
+                  "/reports/account-statement",
+                  { party_type: partyType, party_id: partyId, from, to },
+                  "account-statement",
+                );
+              }}
+              disabled={csvPending}
+            >
+              <Download className="size-4" />
+              Download CSV
+            </Button>
+          ) : null
+        }
+      />
       <DataTableToolbar>
         <FilterSelect
           className="w-44"
@@ -114,12 +142,12 @@ export function AccountStatementScreen() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!partyId || !from || !to ? (
+          {!partyId ? (
             <TableRow>
               <TableCell colSpan={COLUMN_COUNT}>
                 <DataTableEmpty
-                  title="Select a party and dates"
-                  message="Choose a customer or supplier and a date range."
+                  title="Select a party"
+                  message="Choose a customer or supplier to load the statement."
                 />
               </TableCell>
             </TableRow>

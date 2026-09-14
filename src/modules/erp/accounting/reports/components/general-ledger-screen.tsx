@@ -1,6 +1,8 @@
 "use client";
 
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
+import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useGeneralLedger } from "@/modules/erp/accounting/reports/queries";
 import { sourceDocumentHref } from "@/modules/erp/accounting/reports/schemas";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
@@ -10,9 +12,8 @@ import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
-import { ListPage } from "@/shared/components/layout/list-page";
-import { PageHeader } from "@/shared/components/layout/page-header";
+import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
+import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
@@ -26,78 +27,97 @@ const COLUMN_COUNT = 7;
 export function GeneralLedgerScreen() {
   const can = useCan();
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
   const accountId = filters.account_id ?? "";
   const branchId = filters.branch_id;
   const accountsQuery = useAllAccounts({ is_group: false });
   const branchesQuery = useAllBranches(can("identity.branch.read"));
   const reportQuery = useGeneralLedger(
-    accountId && from && to
-      ? { account_id: accountId, from, to, branch_id: branchId }
-      : null,
+    accountId ? { account_id: accountId, from, to, branch_id: branchId } : null,
   );
   const accounts = (accountsQuery.data ?? []).filter((row) => !row.is_group);
   const branches = branchesQuery.data ?? [];
   const report = reportQuery.data;
+  const { csvPending, downloadCsv } = useReportCsv();
 
   return (
-    <ListPage>
-      <PageHeader title="General ledger" subtitle="Running balance per posted line" />
-      <DataTableToolbar>
-        <FilterSelect
-          className="w-64"
-          placeholder="Account"
-          aria-label="Account"
-          value={accountId || ALL}
-          onValueChange={(value) =>
-            setParams({ filters: { account_id: value === ALL ? null : value } })
-          }
-          options={[
-            { value: ALL, label: "Select account" },
-            ...accounts.map((account) => ({
-              value: account.id,
-              label: `${account.code} — ${account.name}`,
-            })),
-          ]}
-        />
-        <DateRangeFilter
-          layout="inline"
-          fromId="gl-from"
-          toId="gl-to"
-          from={from}
-          to={to}
-          onFromChange={(value) => setParams({ filters: { from: value || null } })}
-          onToChange={(value) => setParams({ filters: { to: value || null } })}
-        />
-        <FilterSelect
-          className="w-44"
-          placeholder="Branch"
-          aria-label="Filter by branch"
-          value={branchId ?? ALL}
-          onValueChange={(value) => setParams({ filters: { branch_id: value === ALL ? null : value } })}
-          options={[
-            { value: ALL, label: "All branches" },
-            ...branches.map((branch) => ({
-              value: branch.id,
-              label: `${branch.code} — ${branch.name}`,
-            })),
-          ]}
-        />
-        {from || to || accountId || branchId ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-9"
-            onClick={() =>
-              setParams({ filters: { from: null, to: null, account_id: null, branch_id: null } })
+    <ReportShell
+      title="General ledger"
+      subtitle="Running balance per posted line"
+      csvPending={csvPending}
+      csvDisabled={!accountId}
+      onDownloadCsv={
+        accountId
+          ? () => {
+              void downloadCsv(
+                "/reports/general-ledger",
+                { account_id: accountId, from, to, branch_id: branchId },
+                "general-ledger",
+              );
             }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+          : undefined
+      }
+      toolbar={
+        <>
+          <FilterSelect
+            className="w-64"
+            placeholder="Account"
+            aria-label="Account"
+            value={accountId || ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { account_id: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "Select account" },
+              ...accounts.map((account) => ({
+                value: account.id,
+                label: `${account.code} — ${account.name}`,
+              })),
+            ]}
+          />
+          <DateRangeFilter
+            layout="inline"
+            fromId="gl-from"
+            toId="gl-to"
+            from={from}
+            to={to}
+            onFromChange={(value) => setParams({ filters: { from: value || null } })}
+            onToChange={(value) => setParams({ filters: { to: value || null } })}
+          />
+          <FilterSelect
+            className="w-44"
+            placeholder="Branch"
+            aria-label="Filter by branch"
+            value={branchId ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { branch_id: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All branches" },
+              ...branches.map((branch) => ({
+                value: branch.id,
+                label: `${branch.code} — ${branch.name}`,
+              })),
+            ]}
+          />
+          {from || to || accountId || branchId ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9"
+              onClick={() =>
+                setParams({ filters: { from: null, to: null, account_id: null, branch_id: null } })
+              }
+            >
+              Clear
+            </Button>
+          ) : null}
+        </>
+      }
+    >
       {report ? (
         <p className="text-muted-foreground text-sm">
           {report.account_code} {report.account_name}. Opening {formatDecimal(report.opening_balance)}.
@@ -117,12 +137,12 @@ export function GeneralLedgerScreen() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!accountId || !from || !to ? (
+          {!accountId ? (
             <TableRow>
               <TableCell colSpan={COLUMN_COUNT}>
                 <DataTableEmpty
-                  title="Select an account and dates"
-                  message="Choose a postable account and a date range."
+                  title="Select an account"
+                  message="Choose a postable account to load the general ledger."
                 />
               </TableCell>
             </TableRow>
@@ -163,7 +183,7 @@ export function GeneralLedgerScreen() {
                     <RecordLink
                       href={sourceDocumentHref(line.source_type, line.source_id, line.journal_entry_id)}
                     >
-                      {line.source_type ?? "Journal"}
+                      {line.source_type ? documentTypeDisplayLabel(line.source_type) : "Journal"}
                     </RecordLink>
                   ) : (
                     "—"
@@ -178,6 +198,6 @@ export function GeneralLedgerScreen() {
           )}
         </TableBody>
       </DataTable>
-    </ListPage>
+    </ReportShell>
   );
 }

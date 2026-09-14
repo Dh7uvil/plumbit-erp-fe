@@ -68,8 +68,8 @@ export function CurrenciesScreen() {
     page,
     page_size,
     search,
-    sort_by,
-    sort_order,
+    sort_by: sort_by ?? "is_base",
+    sort_order: sort_order ?? "desc",
     is_base: parseBoolFilter(filters.is_base),
     is_active: parseBoolFilter(filters.is_active),
   });

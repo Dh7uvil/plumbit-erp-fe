@@ -4,6 +4,7 @@ import { isPositiveDecimal } from "@/shared/components/document/conversion-line-
 import {
   OPEN_ITEM_TYPE_LABELS,
   type OpenItemRow,
+  type OpenItemType,
   type PaymentAllocationInput,
 } from "@/shared/components/document/schemas";
 import { Input } from "@/shared/components/ui/input";
@@ -54,6 +55,25 @@ export function sumMoneyStrings(values: readonly string[]): string {
     }
   }
   return fromScaled(total);
+}
+
+export const SUPPLIER_PAYMENT_ALLOCATE_TYPES = new Set<OpenItemType>([
+  "PURCHASE_INVOICE",
+  "OPENING_AP",
+]);
+export const CUSTOMER_PAYMENT_ALLOCATE_TYPES = new Set<OpenItemType>([
+  "SALES_INVOICE",
+  "OPENING_AR",
+]);
+
+export function filterOpenItemsForPaymentAllocation(
+  items: readonly OpenItemRow[],
+  allowed: ReadonlySet<OpenItemType>,
+  excludeDocumentId?: string | null,
+): OpenItemRow[] {
+  return items.filter(
+    (item) => allowed.has(item.item_type) && item.document_id !== excludeDocumentId,
+  );
 }
 
 export function paymentAllocationsPayload(

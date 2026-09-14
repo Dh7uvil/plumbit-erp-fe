@@ -1,6 +1,7 @@
 "use client";
 
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { usePurchaseRegister, useSalesRegister } from "@/modules/erp/accounting/reports/queries";
 import { taxRegisterLineMatchesBox } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -20,10 +21,11 @@ const COLUMN_COUNT = 11;
 
 export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
   const box = filters.box;
-  const params = from && to ? { from, to } : null;
+  const params = { from, to };
   const salesQuery = useSalesRegister(kind === "sales" ? params : null);
   const purchaseQuery = usePurchaseRegister(kind === "purchase" ? params : null);
   const reportQuery = kind === "sales" ? salesQuery : purchaseQuery;
@@ -44,13 +46,9 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
           : "Posted bills and debit notes for the selected period"
       }
       csvPending={csvPending}
-      onDownloadCsv={
-        params
-          ? () => {
-              void downloadCsv(path, params, filename);
-            }
-          : undefined
-      }
+      onDownloadCsv={() => {
+        void downloadCsv(path, params, filename);
+      }}
       toolbar={
         <>
           <DateRangeFilter
@@ -96,16 +94,7 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!from || !to ? (
-            <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
-                <DataTableEmpty
-                  title="Select a date range"
-                  message="Choose from and to dates to load the register."
-                />
-              </TableCell>
-            </TableRow>
-          ) : reportQuery.isLoading ? (
+          {reportQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell colSpan={COLUMN_COUNT}>

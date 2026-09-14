@@ -40,7 +40,6 @@ import {
 } from "@/shared/components/document/schemas";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
-import { Checkbox } from "@/shared/components/ui/checkbox";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -136,26 +135,42 @@ function optionalUuid(value: string | null | undefined): string | null {
   return !value || value === OPTIONAL_SELECT_NONE ? null : value;
 }
 
-function catalogProductOptions(rows: SupplierProduct[]) {
+function catalogProductIds(rows: SupplierProduct[]) {
   const seen = new Set<string>();
-  const preferred: Array<{ value: string; label: string }> = [];
-  const rest: Array<{ value: string; label: string }> = [];
+  const preferred: string[] = [];
+  const rest: string[] = [];
   for (const row of rows) {
     if (!row.product_id || seen.has(row.product_id)) {
       continue;
     }
     seen.add(row.product_id);
-    const option = {
-      value: row.product_id,
-      label: `${row.supplier_sku} — ${row.supplier_item_name}`,
-    };
     if (row.is_preferred) {
-      preferred.push(option);
+      preferred.push(row.product_id);
     } else {
-      rest.push(option);
+      rest.push(row.product_id);
     }
   }
   return [...preferred, ...rest];
+}
+
+function productSelectOptions(products: Product[], catalog: SupplierProduct[]) {
+  const options = products.map((product) => ({
+    value: product.id,
+    label: `${product.sku} — ${product.name}`,
+  }));
+  const ranked = catalogProductIds(catalog);
+  if (ranked.length === 0) {
+    return options;
+  }
+  const rank = new Map(ranked.map((id, index) => [id, index]));
+  return [...options].sort((left, right) => {
+    const leftRank = rank.get(left.value) ?? Number.MAX_SAFE_INTEGER;
+    const rightRank = rank.get(right.value) ?? Number.MAX_SAFE_INTEGER;
+    if (leftRank !== rightRank) {
+      return leftRank - rightRank;
+    }
+    return left.label.localeCompare(right.label);
+  });
 }
 
 function CatalogRateHint<TFieldValues extends FieldValues>({
@@ -225,7 +240,6 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
     index: number;
   } | null>(null);
   const [linking, setLinking] = useState<{ row: SupplierProduct; index: number } | null>(null);
-  const [showAllProducts, setShowAllProducts] = useState(false);
   const products = productsQuery.data ?? [];
   const units = unitsQuery.data ?? [];
   const taxes = taxesQuery.data ?? [];
@@ -308,25 +322,13 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
     setLineValue(index, "supplier_sku", "");
   }
 
-  const productOptions =
-    supplierCatalog && supplierId && !showAllProducts
-      ? catalogProductOptions(catalog)
-      : products.map((product) => ({
-          value: product.id,
-          label: `${product.sku} — ${product.name}`,
-        }));
+  const productOptions = productSelectOptions(
+    products,
+    supplierCatalog && supplierId ? catalog : [],
+  );
 
   return (
     <div className="flex flex-col gap-2">
-      {supplierCatalog && supplierId && !disabled ? (
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox
-            checked={showAllProducts}
-            onCheckedChange={(checked) => setShowAllProducts(checked === true)}
-          />
-          Show all products
-        </label>
-      ) : null}
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full caption-bottom text-sm">
           <TableHeader>
@@ -508,6 +510,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                             disabled={disabled || productsQuery.isLoading}
                             placeholder="Custom line"
                             searchPlaceholder="Search product…"
+                            emptyText={
+                              productsQuery.isError
+                                ? "Could not load products"
+                                : "No products"
+                            }
                             createLabel="Create product"
                             onCreate={
                               can(productPermissions.create)
