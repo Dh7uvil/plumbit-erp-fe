@@ -1,5 +1,8 @@
 "use client";
 
+import { Download } from "lucide-react";
+
+import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useThreeWayMatch } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
@@ -7,21 +10,37 @@ import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
+import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatDecimal, humanizeEnum } from "@/shared/lib/format";
 
 const COLUMN_COUNT = 8;
 
 export function ThreeWayMatchScreen() {
   const reportQuery = useThreeWayMatch();
   const lines = reportQuery.data?.lines ?? [];
+  const { csvPending, downloadCsv } = useReportCsv();
 
   return (
     <ListPage>
       <PageHeader
         title="Three-way match"
         subtitle="Ordered, received, and billed quantity and value by purchase order line."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void downloadCsv("/reports/three-way-match", {}, "three-way-match");
+            }}
+            disabled={csvPending}
+          >
+            <Download className="size-4" />
+            Download CSV
+          </Button>
+        }
       />
       <DataTable>
         <TableHeader>
@@ -76,7 +95,7 @@ export function ThreeWayMatchScreen() {
                 <TableCell className="tabular-nums">{formatDecimal(line.ordered_qty)}</TableCell>
                 <TableCell className="tabular-nums">{formatDecimal(line.received_qty)}</TableCell>
                 <TableCell className="tabular-nums">{formatDecimal(line.billed_qty)}</TableCell>
-                <TableCell>{line.status.replaceAll("_", " ")}</TableCell>
+                <TableCell>{humanizeEnum(line.status)}</TableCell>
               </TableRow>
             ))
           )}

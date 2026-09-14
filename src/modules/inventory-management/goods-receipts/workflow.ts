@@ -1,3 +1,5 @@
+import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
+import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
@@ -9,6 +11,8 @@ export const GOODS_RECEIPT_WORKFLOW_ACTIONS = [
   "delete",
   "create_inspection",
   "create_purchase_return",
+  "create_bill",
+  "create_landed_cost",
 ] as const;
 export type GoodsReceiptWorkflowAction = (typeof GOODS_RECEIPT_WORKFLOW_ACTIONS)[number];
 
@@ -47,6 +51,18 @@ export const GOODS_RECEIPT_ACTION_REGISTRY: DocumentActionSpec<GoodsReceiptWorkf
     action: "create_purchase_return",
     label: "Create purchase return",
     permission: purchaseReturnPermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "create_bill",
+    label: "Create bill",
+    permission: purchaseInvoicePermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "create_landed_cost",
+    label: "Create landed cost",
+    permission: landedCostPermissions.create,
     variant: "outline",
   },
 ];

@@ -1,7 +1,13 @@
+import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
-export const SALES_RETURN_WORKFLOW_ACTIONS = ["post", "cancel", "delete"] as const;
+export const SALES_RETURN_WORKFLOW_ACTIONS = [
+  "post",
+  "cancel",
+  "delete",
+  "create_credit_note",
+] as const;
 export type SalesReturnWorkflowAction = (typeof SALES_RETURN_WORKFLOW_ACTIONS)[number];
 
 export const SALES_RETURN_ACTION_REGISTRY: DocumentActionSpec<SalesReturnWorkflowAction>[] = [
@@ -28,5 +34,11 @@ export const SALES_RETURN_ACTION_REGISTRY: DocumentActionSpec<SalesReturnWorkflo
     variant: "destructive",
     confirmCopy: (documentNumber) =>
       `${documentNumber} will be removed. Only draft sales returns can be deleted.`,
+  },
+  {
+    action: "create_credit_note",
+    label: "Create credit note",
+    permission: creditNotePermissions.create,
+    variant: "outline",
   },
 ];

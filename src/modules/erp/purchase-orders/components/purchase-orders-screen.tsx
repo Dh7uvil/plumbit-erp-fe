@@ -188,7 +188,7 @@ export function PurchaseOrdersScreen() {
   return (
     <ListPage>
       <PageHeader
-        title="PurchaseOrders"
+        title="Purchase orders"
         subtitle="Supplier orders with server-side totals"
         actions={
           canCreate ? (

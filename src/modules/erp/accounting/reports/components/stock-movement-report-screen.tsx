@@ -2,6 +2,7 @@
 
 import { InventoryReportFilters } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useStockMovementReport } from "@/modules/erp/accounting/reports/queries";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -19,17 +20,16 @@ export function StockMovementReportScreen() {
   const can = useCan();
   const canSeeCost = can(stockPermissions.costRead);
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
-  const params = from && to
-    ? {
-        from,
-        to,
-        warehouse_id: filters.warehouse_id,
-        product_id: filters.product_id,
-        category_id: filters.category_id,
-      }
-    : null;
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
+  const params = {
+    from,
+    to,
+    warehouse_id: filters.warehouse_id,
+    product_id: filters.product_id,
+    category_id: filters.category_id,
+  };
   const reportQuery = useStockMovementReport(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
@@ -40,13 +40,9 @@ export function StockMovementReportScreen() {
       title="Stock movement"
       subtitle="Opening, inbound, outbound, and closing quantity for the selected period"
       csvPending={csvPending}
-      onDownloadCsv={
-        params
-          ? () => {
-              void downloadCsv("/reports/stock-movement", params, "stock-movement");
-            }
-          : undefined
-      }
+      onDownloadCsv={() => {
+        void downloadCsv("/reports/stock-movement", params, "stock-movement");
+      }}
       toolbar={
         <InventoryReportFilters
           from={from}
@@ -75,16 +71,7 @@ export function StockMovementReportScreen() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!from || !to ? (
-            <TableRow>
-              <TableCell colSpan={columnCount}>
-                <DataTableEmpty
-                  title="Select a date range"
-                  message="Choose from and to dates to load stock movement."
-                />
-              </TableCell>
-            </TableRow>
-          ) : reportQuery.isLoading ? (
+          {reportQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell colSpan={columnCount}>

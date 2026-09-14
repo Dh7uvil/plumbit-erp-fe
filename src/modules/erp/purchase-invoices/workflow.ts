@@ -1,3 +1,5 @@
+import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
+import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
 import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
@@ -8,6 +10,8 @@ export const PURCHASE_INVOICE_WORKFLOW_ACTIONS = [
   "delete",
   "pay_bill",
   "apply_debits",
+  "create_debit_note",
+  "create_landed_cost",
 ] as const;
 export type PurchaseInvoiceWorkflowAction = (typeof PURCHASE_INVOICE_WORKFLOW_ACTIONS)[number];
 
@@ -29,6 +33,18 @@ export const PURCHASE_INVOICE_ACTION_REGISTRY: DocumentActionSpec<PurchaseInvoic
       action: "apply_debits",
       label: "Apply debits",
       permission: purchaseInvoicePermissions.update,
+    },
+    {
+      action: "create_debit_note",
+      label: "Create debit note",
+      permission: debitNotePermissions.create,
+      variant: "outline",
+    },
+    {
+      action: "create_landed_cost",
+      label: "Create landed cost",
+      permission: landedCostPermissions.create,
+      variant: "outline",
     },
     {
       action: "cancel",

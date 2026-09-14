@@ -1,6 +1,7 @@
 "use client";
 
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useVat201 } from "@/modules/erp/accounting/reports/queries";
 import { vat201BoxRegisterHref } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -19,9 +20,10 @@ const COLUMN_COUNT = 4;
 
 export function Vat201Screen() {
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
-  const params = from && to ? { from, to } : null;
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
+  const params = { from, to };
   const reportQuery = useVat201(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
@@ -31,13 +33,9 @@ export function Vat201Screen() {
       title="VAT 201"
       subtitle="FTA-style boxes from posted documents only. Figures come from the server."
       csvPending={csvPending}
-      onDownloadCsv={
-        params
-          ? () => {
-              void downloadCsv("/reports/vat-201", params, "vat-201");
-            }
-          : undefined
-      }
+      onDownloadCsv={() => {
+        void downloadCsv("/reports/vat-201", params, "vat-201");
+      }}
       toolbar={
         <>
           <DateRangeFilter
@@ -73,16 +71,7 @@ export function Vat201Screen() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!from || !to ? (
-            <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
-                <DataTableEmpty
-                  title="Select a date range"
-                  message="Choose from and to dates to load VAT 201."
-                />
-              </TableCell>
-            </TableRow>
-          ) : reportQuery.isLoading ? (
+          {reportQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell colSpan={COLUMN_COUNT}>

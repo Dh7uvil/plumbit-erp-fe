@@ -40,3 +40,16 @@ export function getDocumentAction<TAction extends string>(
   }
   return spec;
 }
+
+export function appendMissingActions(
+  availableActions: readonly string[],
+  extras: readonly string[],
+): string[] {
+  const next = [...availableActions];
+  for (const action of extras) {
+    if (!next.includes(action)) {
+      next.push(action);
+    }
+  }
+  return next;
+}

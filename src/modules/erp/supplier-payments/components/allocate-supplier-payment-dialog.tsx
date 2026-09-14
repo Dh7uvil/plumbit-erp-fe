@@ -9,6 +9,8 @@ import { useSupplierOpenItems } from "@/modules/erp/suppliers/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import {
   PaymentAllocationEditor,
+  SUPPLIER_PAYMENT_ALLOCATE_TYPES,
+  filterOpenItemsForPaymentAllocation,
   paymentAllocationsPayload,
 } from "@/shared/components/document/payment-allocation-editor";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -34,9 +36,17 @@ export function AllocateSupplierPaymentDialog({
     }
   }, [open]);
 
-  const items = openItemsQuery.data ?? [];
+  const items = filterOpenItemsForPaymentAllocation(
+    openItemsQuery.data ?? [],
+    SUPPLIER_PAYMENT_ALLOCATE_TYPES,
+    payment.id,
+  );
 
   async function onConfirm() {
+    if (items.length === 0) {
+      toast.error("No open bills to apply this payment to.");
+      return;
+    }
     const allocations = paymentAllocationsPayload(items, values);
     if (allocations.length === 0) {
       toast.error("Enter an amount to apply.");
@@ -55,7 +65,7 @@ export function AllocateSupplierPaymentDialog({
     <ConfirmActionDialog
       open={open}
       title={`Allocate ${payment.display_number || payment.document_number}`}
-      description="Apply the unapplied remainder to open bills. This does not move bank again."
+      description="Apply the unapplied remainder to open bills or opening AP. This does not move bank again."
       extra={
         <PaymentAllocationEditor
           items={items}
@@ -65,6 +75,7 @@ export function AllocateSupplierPaymentDialog({
           received={payment.amount_unapplied}
           bankCharges={payment.bank_charges}
           unapplied={payment.amount_unapplied}
+          emptyMessage="No open bills or opening AP for this supplier. Post a bill first, then allocate."
         />
       }
       confirmLabel="Allocate"

@@ -102,3 +102,16 @@ export function titleCase(value: string): string {
   }
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
+
+export function humanizeEnum(value: string | null | undefined): string {
+  if (value == null || value === "") {
+    return "—";
+  }
+  return value
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}

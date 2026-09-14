@@ -1,5 +1,8 @@
 "use client";
 
+import { Download } from "lucide-react";
+
+import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useExportEvidenceExceptions } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
@@ -8,6 +11,7 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
+import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -23,12 +27,31 @@ export function ExportEvidenceExceptionsScreen() {
   const reportQuery = useExportEvidenceExceptions(asOf ? { as_of: asOf } : {});
   const report = reportQuery.data;
   const lines = report?.lines ?? [];
+  const { csvPending, downloadCsv } = useReportCsv();
 
   return (
     <ListPage>
       <PageHeader
         title="Export evidence exceptions"
         subtitle="Posted zero-rated exports whose delivery notes have no BL or customs proof."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void downloadCsv(
+                "/reports/export-evidence-exceptions",
+                asOf ? { as_of: asOf } : {},
+                "export-evidence-exceptions",
+              );
+            }}
+            disabled={csvPending}
+          >
+            <Download className="size-4" />
+            Download CSV
+          </Button>
+        }
       />
       <DataTableToolbar>
         <div className="flex flex-col gap-1.5">

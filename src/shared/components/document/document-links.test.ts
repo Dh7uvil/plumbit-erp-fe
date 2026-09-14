@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DOCUMENT_TYPES,
   documentDetailHref,
   documentTypeDisplayLabel,
   hasRelatedDocumentType,
+  isDocumentType,
   normalizeDocumentType,
 } from "@/shared/components/document/document-links";
 
@@ -32,7 +34,16 @@ describe("document links", () => {
     expect(documentDetailHref("PURCHASE_RETURN", "11111111-1111-4111-8111-111111111111")).toBe(
       "/purchase-returns/11111111-1111-4111-8111-111111111111",
     );
+    expect(documentDetailHref("JOURNAL", "11111111-1111-4111-8111-111111111111")).toBe(
+      "/journals/11111111-1111-4111-8111-111111111111",
+    );
     expect(documentDetailHref("UNKNOWN", "11111111-1111-4111-8111-111111111111")).toBeNull();
+  });
+
+  it("exposes all 21 document types including JOURNAL", () => {
+    expect(DOCUMENT_TYPES).toHaveLength(21);
+    expect(isDocumentType("JOURNAL")).toBe(true);
+    expect(documentTypeDisplayLabel("JOURNAL")).toBe("Journal");
   });
 
   it("labels known types and title-cases the rest", () => {

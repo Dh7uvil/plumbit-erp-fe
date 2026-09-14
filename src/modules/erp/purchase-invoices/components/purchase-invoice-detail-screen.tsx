@@ -7,12 +7,10 @@ import { useEffect, useState } from "react";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { CreateDebitNoteDialog } from "@/modules/erp/debit-notes/components/create-from-source-dialog";
 import { InvoiceDebitNotesCard } from "@/modules/erp/debit-notes/components/invoice-debit-notes-card";
-import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
 import { ApplyDebitsDialog } from "@/modules/erp/purchase-invoices/components/apply-debits-dialog";
 import { PurchaseInvoiceForm } from "@/modules/erp/purchase-invoices/components/purchase-invoice-form";
@@ -43,10 +41,9 @@ import { DocumentSettlementCard } from "@/shared/components/document/document-se
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-import { Button } from "@/shared/components/ui/button";
 import { formatDate } from "@/shared/lib/format";
-import { useCan } from "@/shared/providers/session-provider";
 
 export function PurchaseInvoiceDetailScreen({
   invoiceId,
@@ -114,7 +111,6 @@ function PurchaseInvoiceDetailLoaded({
   viewHref: string;
 }) {
   const router = useRouter();
-  const can = useCan();
   const isEdit = mode === "edit";
   const number = purchaseInvoiceDisplayNumber(invoice);
   const onAction = usePurchaseInvoiceWorkflow(invoice);
@@ -125,11 +121,14 @@ function PurchaseInvoiceDetailLoaded({
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
-  const canCreateDebit = invoice.status === "POSTED" && can(debitNotePermissions.create);
-  const canCreateLandedCost =
-    invoice.status === "POSTED" &&
-    can(landedCostPermissions.create) &&
-    invoice.lines.some((line) => line.line_type === "EXPENSE");
+  const fallbackActions: string[] = [];
+  if (invoice.status === "POSTED") {
+    fallbackActions.push("create_debit_note");
+    if (invoice.lines.some((line) => line.line_type === "EXPENSE")) {
+      fallbackActions.push("create_landed_cost");
+    }
+  }
+  const workflowActions = appendMissingActions(invoice.available_actions, fallbackActions);
 
   return (
     <DocumentRecordShell
@@ -182,51 +181,42 @@ function PurchaseInvoiceDetailLoaded({
         </>
       }
       workflow={
-        <div className="flex flex-col items-end gap-2">
-          {canCreateDebit ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => setDebitOpen(true)}>
-              Create debit note
-            </Button>
-          ) : null}
-          {canCreateLandedCost ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => setLandedCostOpen(true)}
-            >
-              Create landed cost
-            </Button>
-          ) : null}
-          <DocumentWorkflowButtons
-            availableActions={invoice.available_actions}
-            registry={PURCHASE_INVOICE_ACTION_REGISTRY}
-            documentKind="purchase invoice"
-            documentLabel={number ?? "purchase invoice"}
-            extra={<StockWriteAlert error={writeError} />}
-            onError={(error) => {
-              if (isStockWriteAlertError(error)) {
-                setWriteError(error);
-                return true;
-              }
-              return false;
-            }}
-            onAction={async (action, extras) => {
-              setWriteError(null);
-              if (action === "pay_bill") {
-                router.push(
-                  `/supplier-payments/new?supplier_id=${invoice.supplier_id}&invoice_id=${invoice.id}`,
-                );
-                return;
-              }
-              if (action === "apply_debits") {
-                setApplyDebitsOpen(true);
-                return;
-              }
-              await onAction(action, extras);
-            }}
-          />
-        </div>
+        <DocumentWorkflowButtons
+          availableActions={workflowActions}
+          registry={PURCHASE_INVOICE_ACTION_REGISTRY}
+          documentKind="purchase invoice"
+          documentLabel={number ?? "purchase invoice"}
+          extra={<StockWriteAlert error={writeError} />}
+          onError={(error) => {
+            if (isStockWriteAlertError(error)) {
+              setWriteError(error);
+              return true;
+            }
+            return false;
+          }}
+          onAction={async (action, extras) => {
+            setWriteError(null);
+            if (action === "pay_bill") {
+              router.push(
+                `/supplier-payments/new?supplier_id=${invoice.supplier_id}&invoice_id=${invoice.id}`,
+              );
+              return;
+            }
+            if (action === "apply_debits") {
+              setApplyDebitsOpen(true);
+              return;
+            }
+            if (action === "create_debit_note") {
+              setDebitOpen(true);
+              return;
+            }
+            if (action === "create_landed_cost") {
+              setLandedCostOpen(true);
+              return;
+            }
+            await onAction(action, extras);
+          }}
+        />
       }
       banner={
         <div className="flex flex-col gap-2">

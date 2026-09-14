@@ -9,9 +9,7 @@ import {
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { CreateBillFromGoodsReceiptDialog } from "@/modules/erp/purchase-invoices/components/create-from-goods-receipt-dialog";
-import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
-import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { GoodsReceiptForm } from "@/modules/inventory-management/goods-receipts/components/goods-receipt-form";
 import { useGoodsReceiptWorkflow } from "@/modules/inventory-management/goods-receipts/hooks/use-goods-receipt-workflow";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
@@ -26,7 +24,6 @@ import {
   type GoodsReceipt,
 } from "@/modules/inventory-management/goods-receipts/schemas";
 import { GOODS_RECEIPT_ACTION_REGISTRY } from "@/modules/inventory-management/goods-receipts/workflow";
-import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
 import { useQualityInspections } from "@/modules/inventory-management/quality-inspections/queries";
 import {
@@ -43,9 +40,9 @@ import { DocumentLedgerCard } from "@/shared/components/document/document-ledger
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
+import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-import { Button } from "@/shared/components/ui/button";
 import { useCan } from "@/shared/providers/session-provider";
 import { formatDate } from "@/shared/lib/format";
 
@@ -122,14 +119,12 @@ function GoodsReceiptDetailLoaded({
   const [writeError, setWriteError] = useState<unknown>(null);
   const [billOpen, setBillOpen] = useState(false);
   const [landedCostOpen, setLandedCostOpen] = useState(false);
-  const canCreateBill = receipt.status === "POSTED" && can(purchaseInvoicePermissions.create);
-  const canCreateLandedCost = receipt.status === "POSTED" && can(landedCostPermissions.create);
-  const workflowActions =
-    receipt.is_posted &&
-    can(purchaseReturnPermissions.create) &&
-    !receipt.available_actions.includes("create_purchase_return")
-      ? [...receipt.available_actions, "create_purchase_return"]
-      : receipt.available_actions;
+  const workflowActions = appendMissingActions(
+    receipt.available_actions,
+    receipt.is_posted || receipt.status === "POSTED"
+      ? ["create_purchase_return", "create_bill", "create_landed_cost"]
+      : [],
+  );
   const canReadInspections = can(qualityInspectionPermissions.read);
   const inspectionsQuery = useQualityInspections(
     {
@@ -172,41 +167,32 @@ function GoodsReceiptDetailLoaded({
         </>
       }
       workflow={
-        <div className="flex flex-col items-end gap-2">
-          {canCreateBill ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => setBillOpen(true)}>
-              Create bill
-            </Button>
-          ) : null}
-          {canCreateLandedCost ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => setLandedCostOpen(true)}
-            >
-              Create landed cost
-            </Button>
-          ) : null}
-          <DocumentWorkflowButtons
-            availableActions={workflowActions}
-            registry={GOODS_RECEIPT_ACTION_REGISTRY}
-            documentKind="goods receipt"
-            documentLabel={number ?? "goods receipt"}
-            extra={<StockWriteAlert periodLocked={receipt.period_locked} error={writeError} />}
-            onError={(error) => {
-              if (isStockWriteAlertError(error)) {
-                setWriteError(error);
-                return true;
-              }
-              return false;
-            }}
-            onAction={async (action, extras) => {
-              setWriteError(null);
-              await onAction(action, extras);
-            }}
-          />
-        </div>
+        <DocumentWorkflowButtons
+          availableActions={workflowActions}
+          registry={GOODS_RECEIPT_ACTION_REGISTRY}
+          documentKind="goods receipt"
+          documentLabel={number ?? "goods receipt"}
+          extra={<StockWriteAlert periodLocked={receipt.period_locked} error={writeError} />}
+          onError={(error) => {
+            if (isStockWriteAlertError(error)) {
+              setWriteError(error);
+              return true;
+            }
+            return false;
+          }}
+          onAction={async (action, extras) => {
+            setWriteError(null);
+            if (action === "create_bill") {
+              setBillOpen(true);
+              return;
+            }
+            if (action === "create_landed_cost") {
+              setLandedCostOpen(true);
+              return;
+            }
+            await onAction(action, extras);
+          }}
+        />
       }
       banner={
         <div className="flex flex-col gap-2">

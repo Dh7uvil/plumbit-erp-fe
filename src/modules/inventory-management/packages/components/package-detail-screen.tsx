@@ -23,6 +23,7 @@ import { printHref } from "@/shared/lib/print";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
+import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import {
   Dialog,
   DialogContent,
@@ -99,9 +100,7 @@ function PackageDetailLoaded({
   const number = packageDisplayNumber(pkg);
   const [printOpen, setPrintOpen] = useState(false);
   const onAction = usePackageWorkflow(pkg, { onPrint: () => setPrintOpen(true) });
-  const workflowActions = pkg.available_actions.includes("print")
-    ? pkg.available_actions
-    : [...pkg.available_actions, "print"];
+  const workflowActions = appendMissingActions(pkg.available_actions, ["print"]);
 
   return (
     <>

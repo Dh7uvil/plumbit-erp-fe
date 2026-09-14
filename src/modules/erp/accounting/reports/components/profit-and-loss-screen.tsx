@@ -2,6 +2,7 @@
 
 import { StatementReportFilters } from "@/modules/erp/accounting/reports/components/statement-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useProfitAndLoss } from "@/modules/erp/accounting/reports/queries";
 import { glHref } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -16,11 +17,12 @@ import { formatDecimal } from "@/shared/lib/format";
 
 export function ProfitAndLossScreen() {
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
   const includeYtd = filters.include_ytd === "true";
   const branchId = filters.branch_id;
-  const params = from && to ? { from, to, branch_id: branchId, include_ytd: includeYtd } : null;
+  const params = { from, to, branch_id: branchId, include_ytd: includeYtd };
   const reportQuery = useProfitAndLoss(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
@@ -33,13 +35,9 @@ export function ProfitAndLossScreen() {
       title="Profit and loss"
       subtitle="Posted income and expense for the selected period. Totals come from the server."
       csvPending={csvPending}
-      onDownloadCsv={
-        params
-          ? () => {
-              void downloadCsv("/reports/profit-and-loss", params, "profit-and-loss");
-            }
-          : undefined
-      }
+      onDownloadCsv={() => {
+        void downloadCsv("/reports/profit-and-loss", params, "profit-and-loss");
+      }}
       toolbar={
         <StatementReportFilters
           from={from}
@@ -62,16 +60,7 @@ export function ProfitAndLossScreen() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!from || !to ? (
-            <TableRow>
-              <TableCell colSpan={columnCount}>
-                <DataTableEmpty
-                  title="Select a date range"
-                  message="Choose from and to dates to load the profit and loss."
-                />
-              </TableCell>
-            </TableRow>
-          ) : reportQuery.isLoading ? (
+          {reportQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell colSpan={columnCount}>

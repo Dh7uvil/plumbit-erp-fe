@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
+import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
+import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useTrialBalance } from "@/modules/erp/accounting/reports/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -26,16 +28,16 @@ export function TrialBalanceScreen() {
   const router = useRouter();
   const can = useCan();
   const { filters, setParams } = useTableParams();
-  const from = filters.from ?? "";
-  const to = filters.to ?? "";
+  const period = useReportPeriod();
+  const from = filters.from ?? period.from;
+  const to = filters.to ?? period.to;
   const includeZero = filters.include_zero === "true";
   const branchId = filters.branch_id;
-  const reportQuery = useTrialBalance(
-    from && to ? { from, to, branch_id: branchId, include_zero: includeZero } : null,
-  );
+  const reportQuery = useTrialBalance({ from, to, branch_id: branchId, include_zero: includeZero });
   const branchesQuery = useAllBranches(can("identity.branch.read"));
   const report = reportQuery.data;
   const branches = branchesQuery.data ?? [];
+  const { csvPending, downloadCsv } = useReportCsv();
 
   function openGeneralLedger(accountId: string) {
     const params = new URLSearchParams({
@@ -54,6 +56,14 @@ export function TrialBalanceScreen() {
       title="Trial balance"
       subtitle="Opening, period, and closing balances in base currency"
       isBalanced={report?.is_balanced}
+      csvPending={csvPending}
+      onDownloadCsv={() => {
+        void downloadCsv(
+          "/reports/trial-balance",
+          { from, to, branch_id: branchId, include_zero: includeZero },
+          "trial-balance",
+        );
+      }}
       toolbar={
         <>
           <DateRangeFilter
@@ -121,16 +131,7 @@ export function TrialBalanceScreen() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!from || !to ? (
-            <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
-                <DataTableEmpty
-                  title="Select a date range"
-                  message="Choose from and to dates to load the trial balance."
-                />
-              </TableCell>
-            </TableRow>
-          ) : reportQuery.isLoading ? (
+          {reportQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell colSpan={COLUMN_COUNT}>

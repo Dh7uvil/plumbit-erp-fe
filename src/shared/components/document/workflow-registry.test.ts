@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DocumentBaseSchema, DocumentTotalsSchema } from "@/shared/components/document/schemas";
 import {
+  appendMissingActions,
   getDocumentAction,
   visibleActions,
   type DocumentActionSpec,
@@ -53,6 +54,24 @@ describe("visibleActions", () => {
         (spec) => spec.action,
       ),
     ).toEqual(["send"]);
+  });
+});
+
+describe("appendMissingActions", () => {
+  it("keeps server actions first and only appends missing extras", () => {
+    expect(appendMissingActions(["cancel", "allocate"], ["allocate", "refund", "print"])).toEqual([
+      "cancel",
+      "allocate",
+      "refund",
+      "print",
+    ]);
+  });
+
+  it("does not mutate the original available_actions array", () => {
+    const available = ["cancel"];
+    const next = appendMissingActions(available, ["print"]);
+    expect(available).toEqual(["cancel"]);
+    expect(next).toEqual(["cancel", "print"]);
   });
 });
 

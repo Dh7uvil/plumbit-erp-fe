@@ -1,7 +1,13 @@
+import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
-export const PURCHASE_RETURN_WORKFLOW_ACTIONS = ["post", "cancel", "delete"] as const;
+export const PURCHASE_RETURN_WORKFLOW_ACTIONS = [
+  "post",
+  "cancel",
+  "delete",
+  "create_debit_note",
+] as const;
 export type PurchaseReturnWorkflowAction = (typeof PURCHASE_RETURN_WORKFLOW_ACTIONS)[number];
 
 export const PURCHASE_RETURN_ACTION_REGISTRY: DocumentActionSpec<PurchaseReturnWorkflowAction>[] = [
@@ -28,5 +34,11 @@ export const PURCHASE_RETURN_ACTION_REGISTRY: DocumentActionSpec<PurchaseReturnW
     variant: "destructive",
     confirmCopy: (documentNumber) =>
       `${documentNumber} will be removed. Only draft purchase returns can be deleted.`,
+  },
+  {
+    action: "create_debit_note",
+    label: "Create debit note",
+    permission: debitNotePermissions.create,
+    variant: "outline",
   },
 ];

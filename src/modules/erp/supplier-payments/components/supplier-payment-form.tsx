@@ -33,7 +33,9 @@ import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import {
   PaymentAllocationEditor,
+  SUPPLIER_PAYMENT_ALLOCATE_TYPES,
   defaultAllocationAmounts,
+  filterOpenItemsForPaymentAllocation,
   paymentAllocationsPayload,
 } from "@/shared/components/document/payment-allocation-editor";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -176,7 +178,11 @@ export function SupplierPaymentForm({
   const suppliers = suppliersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
   const paymentAccounts = (accountsQuery.data ?? []).filter(isCashOrBankAccount);
-  const openItems = openItemsQuery.data ?? [];
+  const openItems = filterOpenItemsForPaymentAllocation(
+    openItemsQuery.data ?? [],
+    SUPPLIER_PAYMENT_ALLOCATE_TYPES,
+    payment?.id,
+  );
   const currencyCode = currencies.find((currency) => currency.id === currencyId)?.code ?? "";
 
   useEffect(() => {
@@ -192,11 +198,15 @@ export function SupplierPaymentForm({
     if (payment || !defaults?.invoiceId || !openItemsQuery.data) {
       return;
     }
+    const allocatable = filterOpenItemsForPaymentAllocation(
+      openItemsQuery.data,
+      SUPPLIER_PAYMENT_ALLOCATE_TYPES,
+    );
     setAllocationValues((current) => {
       if (Object.values(current).some((value) => value.trim())) {
         return current;
       }
-      return defaultAllocationAmounts(openItemsQuery.data, defaults.invoiceId);
+      return defaultAllocationAmounts(allocatable, defaults.invoiceId);
     });
   }, [defaults?.invoiceId, openItemsQuery.data, payment]);
 
@@ -426,7 +436,7 @@ export function SupplierPaymentForm({
             disabled={disabled}
             emptyMessage={
               selectedSupplierId
-                ? "No open items for this supplier."
+                ? "No open bills or opening AP for this supplier."
                 : "Select a supplier to load open items."
             }
           />
