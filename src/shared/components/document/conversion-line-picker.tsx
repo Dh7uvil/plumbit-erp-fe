@@ -132,7 +132,7 @@ export function ConversionLinePicker({
                   kind="quantity"
                   id={`convert-qty-${line.id}`}
                   aria-label={`Line ${line.line_number} quantity to convert`}
-                  className="ml-auto w-24 text-right"
+                  className="ml-auto min-w-28 w-28 text-right"
                   value={values[line.id] ?? ""}
                   disabled={!remaining}
                   onChange={(event) => onChange(line.id, event.target.value)}

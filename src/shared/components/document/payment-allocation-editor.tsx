@@ -189,7 +189,7 @@ export function PaymentAllocationEditor({
                 <TableCell className="text-right">
                   <DecimalInput
                     kind="money"
-                    className="ml-auto h-8 w-28 text-right"
+                    className="ml-auto h-8 min-w-32 w-32 text-right"
                     disabled={disabled}
                     value={values[item.document_id] ?? ""}
                     onChange={(event) => onChange(item.document_id, event.target.value)}

@@ -48,7 +48,7 @@ export function AddressFields<TFieldValues extends FieldValues>({
 
   return (
     <div className="col-span-full flex flex-col gap-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
         {LINE_FIELDS.map((field) => (
           <FormField
             key={field.key}
@@ -66,7 +66,7 @@ export function AddressFields<TFieldValues extends FieldValues>({
           />
         ))}
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
         {LOCALITY_FIELDS.map((field) => (
           <FormField
             key={field.key}

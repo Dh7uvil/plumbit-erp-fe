@@ -35,6 +35,7 @@ import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permission
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
+import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
 import {
   ExtraAddressFormSchema,
   type CustomerExtraAddress,
@@ -397,6 +398,11 @@ export function CustomerDetailScreen({
                 href: `/delivery-notes?customer_id=${customer.id}`,
                 label: "Delivery notes",
                 permission: deliveryNotePermissions.read,
+              },
+              {
+                href: `/sales-returns?customer_id=${customer.id}`,
+                label: "Sales returns",
+                permission: salesReturnPermissions.read,
               },
             ]}
           />

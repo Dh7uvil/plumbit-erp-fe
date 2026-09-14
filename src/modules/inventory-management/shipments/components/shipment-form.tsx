@@ -167,7 +167,7 @@ export function ShipmentForm({
   return (
     <Form {...form}>
       <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="shipment_type"

@@ -247,7 +247,7 @@ export function UserFormDialog({
           <Form {...updateForm}>
             <form onSubmit={updateForm.handleSubmit(onUpdate)} className="flex flex-col gap-3">
               {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
                 <FormField
                   control={updateForm.control}
                   name="name"
@@ -351,7 +351,7 @@ export function UserFormDialog({
           <Form {...createForm}>
             <form onSubmit={createForm.handleSubmit(onCreate)} className="flex flex-col gap-3">
               {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
                 <FormField
                   control={createForm.control}
                   name="name"

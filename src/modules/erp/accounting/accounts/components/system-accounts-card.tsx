@@ -61,7 +61,7 @@ export function SystemAccountsCard() {
         {rolesQuery.isError ? (
           <p className="text-destructive text-sm">{getErrorMessage(rolesQuery.error)}</p>
         ) : null}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
           {rows.map((row) => (
             <div key={row.role} className="flex flex-col gap-1.5">
               <p className="text-sm font-medium">{ACCOUNT_SYSTEM_ROLE_LABELS[row.role]}</p>

@@ -8,9 +8,30 @@ function isPrimitive(value: unknown): value is string | number | boolean {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
 }
 
+const DECIMAL_STRING = /^-?\d+\.\d+$/;
+
+function formatDecimalish(value: string): string {
+  const [whole, fraction = ""] = value.split(".");
+  const trimmed = fraction.replace(/0+$/, "");
+  if (!trimmed) {
+    return `${whole}.00`;
+  }
+  if (trimmed.length === 1) {
+    return `${whole}.${trimmed}0`;
+  }
+  return `${whole}.${trimmed}`;
+}
+
 function formatPrimitive(value: string | number | boolean): string {
   if (typeof value === "boolean") {
     return value ? "Yes" : "No";
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const asString = String(value);
+    return DECIMAL_STRING.test(asString) ? formatDecimalish(asString) : asString;
+  }
+  if (typeof value === "string" && DECIMAL_STRING.test(value)) {
+    return formatDecimalish(value);
   }
   return String(value);
 }

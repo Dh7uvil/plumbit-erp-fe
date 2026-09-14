@@ -365,7 +365,7 @@ export function TransactionLockCard() {
             </Alert>
           ) : null}
           {canLock ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="transaction-lock-date">Transaction lock</Label>
                 <Input
@@ -409,7 +409,7 @@ export function TransactionLockCard() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
               <div className="flex flex-col gap-1">
                 <p className="text-muted-foreground text-xs font-medium">Transaction lock</p>
                 <p className="text-sm">{formatDate(current?.lock_date)}</p>
