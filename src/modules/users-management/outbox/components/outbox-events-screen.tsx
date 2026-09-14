@@ -125,7 +125,11 @@ export function OutboxEventsScreen() {
         subtitle="Queued events for email and integrations. Retry sends the same payload again."
       />
       <DataTableToolbar>
-        <ListSearch value={search ?? ""} onChange={(value) => setParams({ search: value })} />
+        <ListSearch
+          value={search ?? ""}
+          onChange={(value) => setParams({ search: value })}
+          placeholder="Search event, aggregate, error…"
+        />
         <FilterSelect
           className="w-44"
           placeholder="Status"

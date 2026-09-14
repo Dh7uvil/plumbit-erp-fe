@@ -261,7 +261,7 @@ export function SalesInvoicesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search sales invoices…"
+          placeholder="Search number, customer, BL, notes…"
         />
         <FilterSelect
           label="Status"

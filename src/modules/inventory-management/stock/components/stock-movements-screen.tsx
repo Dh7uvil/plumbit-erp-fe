@@ -152,7 +152,7 @@ export function StockMovementsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search SKU, product, or notes…"
+          placeholder="Search SKU, warehouse, notes…"
         />
         <FilterSelect
           label="Warehouse"

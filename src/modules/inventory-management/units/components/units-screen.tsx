@@ -109,7 +109,7 @@ export function UnitsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search units…"
+          placeholder="Search code, name…"
         />
         <FilterSelect
           label="Status"

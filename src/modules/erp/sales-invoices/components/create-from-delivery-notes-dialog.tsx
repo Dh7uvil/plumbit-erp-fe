@@ -120,7 +120,7 @@ export function CreateInvoiceFromDeliveryNotesDialog({
             <ListSearch
               value={search}
               onChange={setSearch}
-              placeholder="Search delivery notes…"
+              placeholder="Search number, customer, vehicle…"
             />
             <fieldset className="flex max-h-56 flex-col gap-2 overflow-y-auto rounded-md border p-3">
               <legend className="sr-only">Posted delivery notes</legend>

@@ -175,7 +175,7 @@ export function CustomersScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search customers…"
+          placeholder="Search name, code, TRN, notes…"
         />
         <FilterSelect
           label="Status"

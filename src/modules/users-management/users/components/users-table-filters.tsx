@@ -284,7 +284,7 @@ export function UsersTableFilters() {
       <ListSearch
         value={search ?? ""}
         onChange={(value) => setParams({ search: optionalText(value) ?? null })}
-        placeholder="Search users…"
+        placeholder="Search name, email, phone, code…"
       />
       <FilterSelect
         label="Status"

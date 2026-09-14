@@ -119,7 +119,7 @@ export function JournalsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search journals…"
+          placeholder="Search number, account, party, notes…"
         />
         <FilterSelect
           className="w-36"

@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
@@ -13,6 +13,7 @@ import type { Branch } from "@/modules/users-management/branches/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { ListSearch } from "@/shared/components/data-table/list-search";
 import {
   DataTableRowActions,
   hasRowActions,
@@ -49,10 +50,29 @@ export function BranchesPanel() {
   const [selected, setSelected] = useState<Branch | null>(null);
   const [forceReadOnly, setForceReadOnly] = useState(false);
   const [deleting, setDeleting] = useState<Branch | null>(null);
+  const [search, setSearch] = useState("");
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
   const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const branches = branchesQuery.data ?? [];
+  const visibleBranches = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) {
+      return branches;
+    }
+    return branches.filter((branch) => {
+      const haystack = [
+        branch.code,
+        branch.name,
+        branch.phone,
+        locationLabel(branch),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [branches, search]);
 
   function openCreate() {
     setSelected(null);
@@ -96,7 +116,12 @@ export function BranchesPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ListSearch
+          value={search}
+          onChange={setSearch}
+          placeholder="Search code, name, phone, location…"
+        />
         {canCreate ? (
           <Button type="button" size="sm" onClick={openCreate}>
             <Plus className="size-3.5" />
@@ -130,17 +155,21 @@ export function BranchesPanel() {
                 />
               </TableCell>
             </TableRow>
-          ) : branches.length === 0 ? (
+          ) : visibleBranches.length === 0 ? (
             <TableRow>
               <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No branches"
-                  message={emptyListMessage(canCreate, "Create a branch to get started.")}
+                  message={
+                    branches.length === 0
+                      ? emptyListMessage(canCreate, "Create a branch to get started.")
+                      : "Try adjusting search."
+                  }
                 />
               </TableCell>
             </TableRow>
           ) : (
-            branches.map((branch) => (
+            visibleBranches.map((branch) => (
               <TableRow key={branch.id}>
                 <TableCell className="font-mono text-sm">{branch.code}</TableCell>
                 <TableCell className="font-medium">{branch.name}</TableCell>

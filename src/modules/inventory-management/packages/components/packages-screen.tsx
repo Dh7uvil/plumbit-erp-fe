@@ -106,7 +106,7 @@ export function PackagesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search packages…"
+          placeholder="Search number, order, marks…"
         />
         <FilterSelect
           label="Status"

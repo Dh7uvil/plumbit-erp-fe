@@ -169,7 +169,7 @@ export function ProformaInvoicesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search proforma invoices…"
+          placeholder="Search number, customer, notes…"
         />
         <FilterSelect
           label="Status"

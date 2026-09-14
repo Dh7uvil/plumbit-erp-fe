@@ -132,7 +132,7 @@ export function ContactsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search contacts…"
+          placeholder="Search name, email, phone, company…"
         />
         <FilterSelect
           label="Status"

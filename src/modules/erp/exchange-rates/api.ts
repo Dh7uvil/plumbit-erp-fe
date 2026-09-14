@@ -19,6 +19,7 @@ export const exchangeRatesApi = {
       params: {
         page: params.page ?? 1,
         page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
         effective_date: params.effective_date,
         sort_by: params.sort_by,
         sort_order: params.sort_order,

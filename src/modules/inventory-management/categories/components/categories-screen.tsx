@@ -121,7 +121,7 @@ export function CategoriesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search categories…"
+          placeholder="Search code, name…"
         />
         <FilterSelect
           label="Status"

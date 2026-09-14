@@ -219,7 +219,7 @@ export function PurchaseInvoicesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search purchase invoices…"
+          placeholder="Search number, supplier, bill no…"
         />
         <FilterSelect
           label="Status"

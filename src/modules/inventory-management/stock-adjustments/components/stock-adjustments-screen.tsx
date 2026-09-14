@@ -193,7 +193,7 @@ export function StockAdjustmentsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search adjustments…"
+          placeholder="Search number, warehouse, product…"
         />
         <FilterSelect
           label="Status"

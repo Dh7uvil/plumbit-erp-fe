@@ -113,7 +113,7 @@ export function PaymentTermsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search payment terms…"
+          placeholder="Search name, description…"
         />
         <FilterSelect
           label="Status"

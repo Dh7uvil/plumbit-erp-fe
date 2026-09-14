@@ -95,7 +95,7 @@ export function ShipmentsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search shipments…"
+          placeholder="Search number, container, BL, carrier…"
         />
         <FilterSelect
           label="Status"

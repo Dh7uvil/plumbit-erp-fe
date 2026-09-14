@@ -316,7 +316,7 @@ export function AuditLogsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value.trim() || null })}
-          placeholder="Search by user, resource…"
+          placeholder="Search user, module, action, IP…"
         />
         <FilterSelect
           label="All Modules"

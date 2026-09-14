@@ -224,7 +224,7 @@ export function PurchaseOrdersScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search purchase orders…"
+          placeholder="Search number, supplier, notes…"
         />
         <FilterSelect
           label="Status"

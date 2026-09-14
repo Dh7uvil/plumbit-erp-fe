@@ -114,7 +114,7 @@ export function TermsTemplatesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search terms templates…"
+          placeholder="Search name…"
         />
         <FilterSelect
           label="Status"

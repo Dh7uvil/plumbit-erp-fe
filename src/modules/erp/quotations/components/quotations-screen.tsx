@@ -169,7 +169,7 @@ export function QuotationsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search quotations…"
+          placeholder="Search number, customer, notes…"
         />
         <FilterSelect
           label="Status"

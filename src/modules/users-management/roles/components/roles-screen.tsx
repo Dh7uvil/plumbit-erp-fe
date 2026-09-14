@@ -119,7 +119,7 @@ export function RolesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search roles…"
+          placeholder="Search name, description…"
         />
         <SortDialog
           fields={[...SORT_FIELDS]}

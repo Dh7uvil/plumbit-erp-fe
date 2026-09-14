@@ -117,7 +117,7 @@ export function CurrenciesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search currencies…"
+          placeholder="Search code, name, symbol…"
         />
         <FilterSelect
           label="Status"

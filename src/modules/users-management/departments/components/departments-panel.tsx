@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
@@ -15,6 +15,7 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListSearch } from "@/shared/components/data-table/list-search";
 import {
   DataTableRowActions,
   hasRowActions,
@@ -50,11 +51,31 @@ export function DepartmentsPanel() {
   const [selected, setSelected] = useState<Department | null>(null);
   const [forceReadOnly, setForceReadOnly] = useState(false);
   const [deleting, setDeleting] = useState<Department | null>(null);
+  const [search, setSearch] = useState("");
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
   const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const departments = departmentsQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
+  const visibleDepartments = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) {
+      return departments;
+    }
+    return departments.filter((department) => {
+      const haystack = [
+        department.code,
+        department.name,
+        department.branch?.name,
+        department.branch?.code,
+        department.manager?.name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [departments, search]);
 
   function openCreate() {
     setSelected(null);
@@ -98,26 +119,33 @@ export function DepartmentsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {canReadBranches ? (
-          <FilterSelect
-            className="w-52"
-            placeholder="All branches"
-            aria-label="Branch"
-            value={branchId}
-            onValueChange={(value) => setBranchId(value as typeof branchId)}
-            options={[
-              { value: "all", label: "All branches" },
-              ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
-            ]}
-          />
-        ) : null}
-        {canCreate ? (
-          <Button type="button" size="sm" onClick={openCreate}>
-            <Plus className="size-3.5" />
-            New Department
-          </Button>
-        ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ListSearch
+          value={search}
+          onChange={setSearch}
+          placeholder="Search code, name, branch, manager…"
+        />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canReadBranches ? (
+            <FilterSelect
+              className="w-52"
+              placeholder="All branches"
+              aria-label="Branch"
+              value={branchId}
+              onValueChange={(value) => setBranchId(value as typeof branchId)}
+              options={[
+                { value: "all", label: "All branches" },
+                ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+              ]}
+            />
+          ) : null}
+          {canCreate ? (
+            <Button type="button" size="sm" onClick={openCreate}>
+              <Plus className="size-3.5" />
+              New Department
+            </Button>
+          ) : null}
+        </div>
       </div>
       <DataTable>
         <TableHeader>
@@ -145,17 +173,21 @@ export function DepartmentsPanel() {
                 />
               </TableCell>
             </TableRow>
-          ) : departments.length === 0 ? (
+          ) : visibleDepartments.length === 0 ? (
             <TableRow>
               <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No departments"
-                  message={emptyListMessage(canCreate, "Create a department to get started.")}
+                  message={
+                    departments.length === 0
+                      ? emptyListMessage(canCreate, "Create a department to get started.")
+                      : "Try adjusting search."
+                  }
                 />
               </TableCell>
             </TableRow>
           ) : (
-            departments.map((department) => (
+            visibleDepartments.map((department) => (
               <TableRow key={department.id}>
                 <TableCell className="font-mono text-sm">{department.code}</TableCell>
                 <TableCell className="font-medium">{department.name}</TableCell>

@@ -117,7 +117,7 @@ export function WarehousesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search warehouses…"
+          placeholder="Search code, name, phone, address…"
         />
         <FilterSelect
           label="Status"

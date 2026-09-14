@@ -154,7 +154,7 @@ export function CustomerPaymentsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search receipts…"
+          placeholder="Search number, customer, reference…"
         />
         <FilterSelect
           label="Status"

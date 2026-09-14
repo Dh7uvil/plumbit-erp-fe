@@ -99,7 +99,7 @@ export function SalesReturnsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search sales returns…"
+          placeholder="Search number, customer, notes…"
         />
         <FilterSelect
           label="Status"

@@ -144,7 +144,7 @@ export function DebitNotesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search debit notes…"
+          placeholder="Search number, supplier, bill…"
         />
         <FilterSelect
           label="Status"

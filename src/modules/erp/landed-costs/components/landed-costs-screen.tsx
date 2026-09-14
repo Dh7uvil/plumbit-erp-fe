@@ -112,7 +112,11 @@ export function LandedCostsScreen() {
         }
       />
       <DataTableToolbar>
-        <ListSearch value={search ?? ""} onChange={(value) => setParams({ search: value })} />
+        <ListSearch
+          value={search ?? ""}
+          onChange={(value) => setParams({ search: value })}
+          placeholder="Search number, GRN, bill, notes…"
+        />
         <FilterSelect
           className="w-40"
           placeholder="Status"
