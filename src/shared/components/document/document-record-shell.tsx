@@ -11,7 +11,7 @@ import {
 } from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Skeleton } from "@/shared/components/ui/skeleton";
+import { PageLoadingState } from "@/shared/components/feedback/loading-state";
 
 export function DocumentRecordShell({
   isLoading,
@@ -63,12 +63,7 @@ export function DocumentRecordShell({
   printHref?: string;
 }) {
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
+    return <PageLoadingState />;
   }
 
   if (isError) {
@@ -98,14 +93,14 @@ export function DocumentRecordShell({
         mode={mode}
         extraActions={
           mode === "view" ? (
-            <>
+            <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
               {printHref ? (
                 <Button type="button" size="sm" variant="outline" asChild>
                   <Link href={printHref}>Print</Link>
                 </Button>
               ) : null}
               {workflow}
-            </>
+            </div>
           ) : null
         }
       />

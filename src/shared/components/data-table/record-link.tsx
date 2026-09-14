@@ -13,7 +13,11 @@ export function RecordLink({
   className?: string;
 }) {
   return (
-    <Link href={href} className={cn("cursor-pointer hover:underline", className)}>
+    <Link
+      href={href}
+      data-slot="record-link"
+      className={cn("inline-block max-w-64 truncate align-bottom hover:underline", className)}
+    >
       {children}
     </Link>
   );

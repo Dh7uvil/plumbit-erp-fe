@@ -3,11 +3,16 @@
 import { type CSSProperties } from "react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
+import { useTheme } from "@/shared/components/layout/theme-provider";
+
 function Toaster(props: ToasterProps) {
+  const { theme } = useTheme();
+
   return (
     <Sonner
-      theme="light"
+      theme={theme}
       className="toaster group"
+      closeButton
       style={
         {
           "--normal-bg": "var(--popover)",

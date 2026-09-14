@@ -8,7 +8,8 @@ import {
   documentTypeDisplayLabel,
   normalizeDocumentType,
 } from "@/shared/components/document/document-links";
-import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { documentStatusTone } from "@/shared/components/document/document-status-badge";
+import { StatusBadge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { formatDate, formatDecimal, humanizeEnum } from "@/shared/lib/format";
@@ -84,14 +85,6 @@ function groupRows(rows: OrderTrackerRow[]): Array<{ key: string; rows: OrderTra
   return ordered;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "Pending",
-};
-
-const STATUS_VARIANTS: Record<string, "muted" | "warning" | "info" | "success" | "destructive" | "secondary"> = {
-  PENDING: "muted",
-};
-
 export function DocumentTrackerTimeline({
   rows,
   isLoading = false,
@@ -122,11 +115,7 @@ export function DocumentTrackerTimeline({
                 <p className="text-sm font-medium">{stageLabel(group.key)}</p>
                 {group.rows.length === 0 ? (
                   <div className="mt-1 flex items-center gap-2">
-                    <DocumentStatusBadge
-                      status="PENDING"
-                      labels={STATUS_LABELS}
-                      variants={STATUS_VARIANTS}
-                    />
+                    <StatusBadge variant="muted">Pending</StatusBadge>
                     <span className="text-muted-foreground text-sm">Not started</span>
                   </div>
                 ) : (
@@ -149,7 +138,9 @@ export function DocumentTrackerTimeline({
                           ) : (
                             <span>{number}</span>
                           )}
-                          <span className="text-muted-foreground">{humanizeEnum(row.status)}</span>
+                          <StatusBadge variant={documentStatusTone(row.status)}>
+                            {humanizeEnum(row.status)}
+                          </StatusBadge>
                           {row.document_date ? (
                             <span className="text-muted-foreground">{formatDate(row.document_date)}</span>
                           ) : null}

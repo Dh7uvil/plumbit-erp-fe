@@ -42,9 +42,9 @@ export function DataTableRowActions({
     <Button
       type="button"
       variant="ghost"
-      size="icon"
-      className="size-7"
+      size="icon-sm"
       aria-label={`View ${entityName}`}
+      title={`View ${entityName}`}
       asChild
     >
       <Link href={viewHref}>
@@ -55,9 +55,9 @@ export function DataTableRowActions({
     <Button
       type="button"
       variant="ghost"
-      size="icon"
-      className="size-7"
+      size="icon-sm"
       aria-label={`View ${entityName}`}
+      title={`View ${entityName}`}
       onClick={onView}
     >
       <Eye className="size-3.5" />
@@ -68,9 +68,9 @@ export function DataTableRowActions({
     <Button
       type="button"
       variant="ghost"
-      size="icon"
-      className="size-7"
+      size="icon-sm"
       aria-label={`Edit ${entityName}`}
+      title={`Edit ${entityName}`}
       asChild
     >
       <Link href={editHref}>
@@ -81,9 +81,9 @@ export function DataTableRowActions({
     <Button
       type="button"
       variant="ghost"
-      size="icon"
-      className="size-7"
+      size="icon-sm"
       aria-label={`Edit ${entityName}`}
+      title={`Edit ${entityName}`}
       onClick={onEdit}
     >
       <Edit2 className="size-3.5" />
@@ -99,9 +99,10 @@ export function DataTableRowActions({
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          className="text-destructive size-7"
+          size="icon-sm"
+          className="text-destructive"
           aria-label={`Delete ${entityName}`}
+          title={`Delete ${entityName}`}
           onClick={onDelete}
         >
           <Trash2 className="size-3.5" />

@@ -39,7 +39,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
           </ul>
         </aside>
         <div className="flex flex-1 items-center justify-center p-6 md:p-8">
-          <div className="w-full max-w-sm">
+          <div className="bg-card w-full max-w-sm rounded-xl border p-6 shadow-sm">
             <div className="mb-8 lg:hidden">
               <AuthBrandMark compact />
             </div>

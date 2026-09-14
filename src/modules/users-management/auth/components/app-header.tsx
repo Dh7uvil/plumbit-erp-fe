@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronRight, KeyRound, LogOut, Menu } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { KeyRound, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
 import { useState } from "react";
 
-import { findActiveNav } from "@/config/navigation";
+import { AppBreadcrumb } from "@/shared/components/layout/app-breadcrumb";
+import { HelpTrigger } from "@/shared/components/layout/help-dialog";
+import { useTheme } from "@/shared/components/layout/theme-provider";
 import { ChangePasswordDialog } from "@/modules/users-management/auth/components/change-password-dialog";
 import { useLogout } from "@/modules/users-management/auth/mutations";
 import { useMe } from "@/modules/users-management/auth/queries";
@@ -20,33 +21,69 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { initials } from "@/shared/lib/format";
 
-export function AppHeader({ onMobileMenuOpen }: { onMobileMenuOpen: () => void }) {
-  const pathname = usePathname();
+export function AppHeader({
+  onMobileMenuOpen,
+  onSearchOpen,
+  onHelpOpen,
+}: {
+  onMobileMenuOpen: () => void;
+  onSearchOpen: () => void;
+  onHelpOpen: () => void;
+}) {
   const { data: me } = useMe();
   const logout = useLogout();
+  const { theme, toggleTheme } = useTheme();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
-  const active = findActiveNav(pathname);
 
   return (
     <header className="bg-card border-border flex h-12 shrink-0 items-center gap-2 border-b px-3 md:gap-3 md:px-4">
       <Button
         type="button"
         variant="ghost"
-        size="icon"
-        className="size-8 md:hidden"
+        size="icon-sm"
+        className="md:hidden"
         onClick={onMobileMenuOpen}
         aria-label="Open navigation"
       >
         <Menu className="size-4" />
       </Button>
-      <nav className="hidden min-w-0 items-center gap-1.5 text-xs sm:flex" aria-label="Breadcrumb">
-        <span className="text-muted-foreground/60 truncate">{active?.group ?? "Overview"}</span>
-        <ChevronRight size={11} className="text-muted-foreground/40 shrink-0" />
-        <span className="text-foreground truncate font-medium">
-          {active?.item.label ?? "Dashboard"}
-        </span>
-      </nav>
+      <AppBreadcrumb />
       <div className="flex-1" />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="text-muted-foreground bg-muted/40 hidden h-7 w-44 justify-start gap-2 px-2.5 text-xs md:inline-flex"
+        onClick={onSearchOpen}
+      >
+        <Search className="size-3 shrink-0" />
+        Search…
+        <kbd className="bg-background border-border ml-auto rounded border px-1 text-[10px]">
+          ⌘K
+        </kbd>
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="text-muted-foreground md:hidden"
+        onClick={onSearchOpen}
+        aria-label="Search pages"
+      >
+        <Search className="size-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="text-muted-foreground"
+        onClick={toggleTheme}
+        aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        title={theme === "dark" ? "Light theme" : "Dark theme"}
+      >
+        {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+      </Button>
+      <HelpTrigger onClick={onHelpOpen} />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

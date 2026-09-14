@@ -13,11 +13,9 @@ const badgeVariants = cva(
         secondary: "bg-secondary text-secondary-foreground border-transparent",
         destructive: "bg-destructive border-transparent text-white",
         outline: "text-foreground",
-        success:
-          "border-transparent bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
-        warning:
-          "border-transparent bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
-        info: "border-transparent bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-400",
+        success: "border-transparent bg-success-muted text-success-foreground",
+        warning: "border-transparent bg-warning-muted text-warning-foreground",
+        info: "border-transparent bg-info-muted text-info-foreground",
         muted: "bg-muted text-muted-foreground border-transparent",
       },
     },
@@ -40,4 +38,18 @@ function Badge({
   );
 }
 
-export { Badge, badgeVariants };
+function StatusBadge({
+  className,
+  variant = "muted",
+  children,
+  ...props
+}: React.ComponentProps<"span"> & VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+  return (
+    <Badge variant={variant} className={cn("gap-1.5", className)} {...props}>
+      <span className="size-1.5 rounded-full bg-current opacity-80" aria-hidden="true" />
+      {children}
+    </Badge>
+  );
+}
+
+export { Badge, StatusBadge, badgeVariants };
