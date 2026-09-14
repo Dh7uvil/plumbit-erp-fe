@@ -88,7 +88,7 @@ export function MoreFiltersDialog({
           <DialogFooter className="gap-2 sm:justify-between">
             {draftCount > 0 ? (
               <Button type="button" variant="ghost" onClick={onClearDraft}>
-                Clear extra
+                Clear extra filters
               </Button>
             ) : (
               <span />

@@ -133,7 +133,7 @@ function FormMessage({ className, children, ...props }: React.ComponentProps<"p"
       data-slot="form-message"
       id={formMessageId}
       title={typeof body === "string" ? body : undefined}
-      className={cn("text-destructive min-w-0 truncate text-sm leading-5", className)}
+      className={cn("text-destructive min-w-0 text-sm leading-5", className)}
       {...props}
     >
       {body}

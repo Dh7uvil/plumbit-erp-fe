@@ -22,7 +22,8 @@ export function WizardSteps({
   return (
     <ol className={cn("flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center", className)}>
       {steps.map((step, index) => {
-        const state = index < currentIndex ? "done" : index === currentIndex ? "current" : "upcoming";
+        const state =
+          index < currentIndex ? "done" : index === currentIndex ? "current" : "upcoming";
         return (
           <li key={step.id} className="flex items-center gap-2">
             <span

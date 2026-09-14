@@ -6,7 +6,9 @@ import {
   documentDetailHref,
   documentTypeDisplayLabel,
 } from "@/shared/components/document/document-links";
+import { documentStatusTone } from "@/shared/components/document/document-status-badge";
 import type { RelatedDocumentRef } from "@/shared/components/document/schemas";
+import { Badge, StatusBadge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { formatDate, formatDecimal, humanizeEnum } from "@/shared/lib/format";
 
@@ -44,28 +46,39 @@ export function RelatedDocumentsCard({
             return (
               <li
                 key={`${document.document_type}-${document.document_id}-${document.relationship}`}
-                className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm"
+                className="border-border flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-sm"
               >
-                <span className="text-muted-foreground">{typeLabel}</span>
+                <Badge variant="outline">{typeLabel}</Badge>
                 {href ? (
-                  <Link href={href} className="text-foreground underline-offset-4 hover:underline">
+                  <Link
+                    href={href}
+                    className="text-foreground font-medium underline-offset-4 hover:underline"
+                  >
                     {number}
                   </Link>
                 ) : (
-                  <span>{number}</span>
+                  <span className="font-medium">{number}</span>
                 )}
-                <span className="text-muted-foreground">{humanizeEnum(document.status)}</span>
-                <span className="text-muted-foreground">
+                <StatusBadge variant={documentStatusTone(document.status)}>
+                  {humanizeEnum(document.status)}
+                </StatusBadge>
+                <span className="text-muted-foreground text-xs">
                   {relationshipLabel(document.relationship)}
                 </span>
                 {document.document_date ? (
-                  <span className="text-muted-foreground">{formatDate(document.document_date)}</span>
+                  <span className="text-muted-foreground ml-auto text-xs">
+                    {formatDate(document.document_date)}
+                  </span>
                 ) : null}
                 {document.quantity_summary ? (
-                  <span className="text-muted-foreground">{formatDecimal(document.quantity_summary)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {formatDecimal(document.quantity_summary)}
+                  </span>
                 ) : null}
                 {document.amount_summary ? (
-                  <span className="text-muted-foreground">{formatDecimal(document.amount_summary)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {formatDecimal(document.amount_summary)}
+                  </span>
                 ) : null}
               </li>
             );

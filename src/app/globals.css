@@ -3,8 +3,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+  Design tokens
+  Type: 14px root. Spacing uses Tailwind 4px steps (1 = 0.25rem).
+  Radius: --radius 0.5rem; shadows: --shadow-xs / --shadow-sm / --shadow-md.
+*/
+
 :root {
-  --font-size: 16px;
+  --font-size: 14px;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
   --background: #f4f6f9;
   --foreground: #111827;
   --card: #ffffff;
@@ -39,42 +47,66 @@
   --sidebar-accent-foreground: #3d5cdb;
   --sidebar-border: rgb(17 24 39 / 7%);
   --sidebar-ring: #3d5cdb;
+  --success: #059669;
+  --success-foreground: #047857;
+  --success-muted: #ecfdf5;
+  --warning: #d97706;
+  --warning-foreground: #b45309;
+  --warning-muted: #fffbeb;
+  --info: #0284c7;
+  --info-foreground: #0369a1;
+  --info-muted: #f0f9ff;
+  --danger: #dc2626;
+  --danger-foreground: #b91c1c;
+  --danger-muted: #fef2f2;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.371 0 0);
-  --input-background: oklch(0.205 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: #0f1419;
+  --foreground: #f3f4f6;
+  --card: #161b22;
+  --card-foreground: #f3f4f6;
+  --popover: #1a212b;
+  --popover-foreground: #f3f4f6;
+  --primary: #5b7cfa;
+  --primary-foreground: #ffffff;
+  --secondary: #1e2a4a;
+  --secondary-foreground: #c7d2fe;
+  --muted: #1c222b;
+  --muted-foreground: #9ca3af;
+  --accent: #1e2a4a;
+  --accent-foreground: #a5b4fc;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgb(255 255 255 / 8%);
+  --input: rgb(255 255 255 / 14%);
+  --input-background: #1c222b;
+  --ring: #5b7cfa;
+  --chart-1: #5b7cfa;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #f87171;
+  --chart-5: #a78bfa;
+  --sidebar: #12161c;
+  --sidebar-foreground: #d1d5db;
+  --sidebar-primary: #5b7cfa;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e2a4a;
+  --sidebar-accent-foreground: #c7d2fe;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-ring: #5b7cfa;
+  --success: #34d399;
+  --success-foreground: #6ee7b7;
+  --success-muted: rgb(16 185 129 / 16%);
+  --warning: #fbbf24;
+  --warning-foreground: #fcd34d;
+  --warning-muted: rgb(245 158 11 / 16%);
+  --info: #38bdf8;
+  --info-foreground: #7dd3fc;
+  --info-muted: rgb(14 165 233 / 16%);
+  --danger: #f87171;
+  --danger-foreground: #fca5a5;
+  --danger-muted: rgb(239 68 68 / 16%);
 }
 
 @theme inline {
@@ -103,6 +135,18 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-muted: var(--success-muted);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-muted: var(--warning-muted);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-muted: var(--info-muted);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-muted: var(--danger-muted);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -130,5 +174,48 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
   }
 }

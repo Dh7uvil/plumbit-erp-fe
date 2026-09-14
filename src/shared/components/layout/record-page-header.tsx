@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { useSetBreadcrumbRecord } from "@/shared/components/layout/breadcrumb-record";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 
@@ -29,6 +32,8 @@ export function RecordPageHeader({
   mode: RecordPageMode;
   extraActions?: ReactNode;
 }) {
+  useSetBreadcrumbRecord(code || title);
+
   return (
     <PageHeader
       title={title}

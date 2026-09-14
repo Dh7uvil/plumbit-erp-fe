@@ -77,7 +77,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                       title={collapsed ? item.label : undefined}
                       onClick={onNavigate}
                       className={cn(
-                        "relative flex w-full items-center gap-2 py-1.5 text-sm transition-colors focus-visible:outline-none",
+                        "focus-visible:ring-sidebar-ring relative flex w-full items-center gap-2 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
                         collapsed ? "justify-center px-0" : "px-3",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-primary font-medium"
@@ -111,12 +111,14 @@ function SidebarChrome({
   onToggle,
   onClose,
   onNavigate,
+  onHelpOpen,
 }: {
   collapsed: boolean;
   brand?: ReactNode;
   onToggle?: () => void;
   onClose?: () => void;
   onNavigate?: () => void;
+  onHelpOpen?: () => void;
 }) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
@@ -176,15 +178,18 @@ function SidebarChrome({
           collapsed && "items-center",
         )}
       >
-        <span
+        <button
+          type="button"
+          onClick={onHelpOpen}
           className={cn(
-            "text-muted-foreground flex items-center gap-2 px-2 py-1.5 text-xs",
+            "text-muted-foreground hover:bg-muted hover:text-foreground flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors",
             collapsed && "justify-center",
           )}
+          aria-label="Help and support"
         >
           <HelpCircle size={14} />
           {!collapsed ? "Help & Support" : null}
-        </span>
+        </button>
       </div>
     </div>
   );
@@ -195,12 +200,14 @@ export function AppSidebar({
   onToggle,
   mobileOpen,
   onMobileOpenChange,
+  onHelpOpen,
   brand,
 }: {
   collapsed: boolean;
   onToggle: () => void;
   mobileOpen: boolean;
   onMobileOpenChange: (open: boolean) => void;
+  onHelpOpen?: () => void;
   brand?: (collapsed: boolean) => ReactNode;
 }) {
   return (
@@ -211,7 +218,12 @@ export function AppSidebar({
           collapsed ? "w-14" : "w-56",
         )}
       >
-        <SidebarChrome collapsed={collapsed} onToggle={onToggle} brand={brand?.(collapsed)} />
+        <SidebarChrome
+          collapsed={collapsed}
+          onToggle={onToggle}
+          onHelpOpen={onHelpOpen}
+          brand={brand?.(collapsed)}
+        />
       </aside>
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
         <SheetContent side="left" className="bg-sidebar w-64 p-0 sm:max-w-64">
@@ -220,6 +232,10 @@ export function AppSidebar({
             collapsed={false}
             onClose={() => onMobileOpenChange(false)}
             onNavigate={() => onMobileOpenChange(false)}
+            onHelpOpen={() => {
+              onMobileOpenChange(false);
+              onHelpOpen?.();
+            }}
             brand={brand?.(false)}
           />
         </SheetContent>

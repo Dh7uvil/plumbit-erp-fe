@@ -1,18 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useCan } from "@/shared/providers/session-provider";
+import {
+  AlertTriangle,
+  Banknote,
+  PackageCheck,
+  TrendingDown,
+  Truck,
+  Warehouse,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
+import { useDashboard } from "@/modules/erp/accounting/reports/queries";
 import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
-import { useDashboard } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
-import { documentDetailHref, documentTypeDisplayLabel } from "@/shared/components/document/document-links";
+import {
+  documentDetailHref,
+  documentTypeDisplayLabel,
+} from "@/shared/components/document/document-links";
 import { DataTableError } from "@/shared/components/data-table/states";
+import { EmptyState } from "@/shared/components/feedback/empty-state";
 import { PageHeader } from "@/shared/components/layout/page-header";
+import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { formatDecimal } from "@/shared/lib/format";
+import { useCan } from "@/shared/providers/session-provider";
+import { cn } from "@/shared/lib/cn";
 
 export function OperationalDashboardScreen() {
   const can = useCan();
@@ -26,7 +42,10 @@ export function OperationalDashboardScreen() {
 
   if (!enabled) {
     return (
-      <p className="text-muted-foreground text-sm">You do not have access to dashboard reports.</p>
+      <EmptyState
+        title="Dashboard unavailable"
+        message="You do not have access to dashboard reports."
+      />
     );
   }
 
@@ -36,7 +55,7 @@ export function OperationalDashboardScreen() {
       {dashboardQuery.isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="h-24 w-full" />
+            <Skeleton key={index} className="h-28 w-full" />
           ))}
         </div>
       ) : dashboardQuery.isError ? (
@@ -52,6 +71,8 @@ export function OperationalDashboardScreen() {
               value={formatDecimal(data.open_ar)}
               href="/reports/ar-aging"
               hint={`${data.overdue_ar_count} overdue`}
+              icon={Banknote}
+              iconClass="bg-primary/10 text-primary"
             />
           ) : null}
           {canArAp ? (
@@ -60,6 +81,8 @@ export function OperationalDashboardScreen() {
               value={formatDecimal(data.open_ap)}
               href="/reports/ap-aging"
               hint={`${data.overdue_ap_count} overdue`}
+              icon={TrendingDown}
+              iconClass="bg-warning-muted text-warning-foreground"
             />
           ) : null}
           {canInventory ? (
@@ -67,35 +90,57 @@ export function OperationalDashboardScreen() {
               title="Stock valuation"
               value={formatDecimal(data.stock_valuation)}
               href="/reports/stock-valuation"
+              icon={Warehouse}
+              iconClass="bg-success-muted text-success-foreground"
             />
           ) : null}
           {can(deliveryNotePermissions.read) ? (
-            <KpiCard title="Deliveries today" value={String(data.deliveries_today)} href="/delivery-notes" />
+            <KpiCard
+              title="Deliveries today"
+              value={String(data.deliveries_today)}
+              href="/delivery-notes"
+              icon={Truck}
+              iconClass="bg-info-muted text-info-foreground"
+            />
           ) : null}
           {can(goodsReceiptPermissions.read) ? (
-            <KpiCard title="Receipts today" value={String(data.receipts_today)} href="/goods-receipts" />
+            <KpiCard
+              title="Receipts today"
+              value={String(data.receipts_today)}
+              href="/goods-receipts"
+              icon={PackageCheck}
+              iconClass="bg-secondary text-secondary-foreground"
+            />
           ) : null}
         </div>
-      ) : null}
+      ) : (
+        <EmptyState
+          title="No dashboard figures"
+          message="Posted operational totals will appear here."
+        />
+      )}
       {data?.unposted?.length ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Unposted documents</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
+          <CardContent className="flex flex-col gap-1.5">
             {data.unposted.map((row) => {
               const href = listHrefForType(row.document_type);
               return (
-                <p key={row.document_type} className="flex justify-between gap-2">
+                <div
+                  key={row.document_type}
+                  className="flex items-center justify-between gap-2 text-sm"
+                >
                   <span>{documentTypeDisplayLabel(row.document_type)}</span>
                   {href ? (
-                    <Link href={href} className="underline-offset-4 hover:underline">
-                      {row.count}
+                    <Link href={href} className="hover:underline">
+                      <Badge variant="secondary">{row.count}</Badge>
                     </Link>
                   ) : (
-                    <span>{row.count}</span>
+                    <Badge variant="secondary">{row.count}</Badge>
                   )}
-                </p>
+                </div>
               );
             })}
           </CardContent>
@@ -103,13 +148,17 @@ export function OperationalDashboardScreen() {
       ) : null}
       {canArAp && data?.credit_limit_breaches?.length ? (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <AlertTriangle className="text-warning-foreground size-4" aria-hidden="true" />
             <CardTitle className="text-base">Credit limit breaches</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
             {data.credit_limit_breaches.map((row) => (
               <p key={row.customer_id} className="flex justify-between gap-2">
-                <Link href={`/customers/${row.customer_id}`} className="underline-offset-4 hover:underline">
+                <Link
+                  href={`/customers/${row.customer_id}`}
+                  className="underline-offset-4 hover:underline"
+                >
                   {row.customer_name}
                 </Link>
                 <span className="tabular-nums">
@@ -134,17 +183,26 @@ function KpiCard({
   value,
   href,
   hint,
+  icon: Icon,
+  iconClass,
 }: {
   title: string;
   value: string;
   href: string;
   hint?: string;
+  icon: LucideIcon;
+  iconClass: string;
 }) {
   return (
     <Link href={href} className="block min-w-0">
-        <Card className="h-full min-w-0 overflow-hidden">
-        <CardHeader>
+      <Card className="hover:border-primary/20 h-full min-w-0 overflow-hidden transition-shadow hover:shadow-sm">
+        <CardHeader className="flex flex-row items-start justify-between gap-2">
           <CardTitle className="text-muted-foreground text-sm font-medium">{title}</CardTitle>
+          <span
+            className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", iconClass)}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+          </span>
         </CardHeader>
         <CardContent className="min-w-0">
           <p className="text-xl font-semibold break-all tabular-nums sm:text-2xl">{value}</p>

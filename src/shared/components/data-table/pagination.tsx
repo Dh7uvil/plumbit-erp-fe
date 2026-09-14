@@ -32,7 +32,7 @@ export function DataTablePagination({
   const pages = compactPageItems(meta.page, totalPages);
 
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-3">
+    <div className="flex flex-col items-center justify-between gap-2 px-3 py-3 sm:flex-row">
       <p className="text-muted-foreground shrink-0 text-xs">
         {meta.total === 0 ? "No results" : `${from}–${to} of ${meta.total}`}
       </p>
