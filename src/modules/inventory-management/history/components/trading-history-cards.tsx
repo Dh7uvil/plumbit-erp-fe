@@ -253,7 +253,7 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
           error={query.error}
           onRetry={() => query.refetch()}
           emptyTitle="No sold items"
-          emptyMessage="No posted sales for this customer yet."
+          emptyMessage="No posted deliveries for this customer yet."
           expandedId={expandedId}
           onToggleExpand={(id) => setExpandedId((current) => (current === id ? null : id))}
           renderExpanded={(row) => (

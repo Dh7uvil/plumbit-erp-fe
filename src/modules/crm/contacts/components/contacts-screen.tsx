@@ -88,10 +88,10 @@ export function ContactsScreen() {
 
   const rows = contactsQuery.data?.data ?? [];
   const meta = contactsQuery.data?.meta;
-  const companyNameById = useMemo(() => {
-    const map = new Map<string, string>();
+  const companyById = useMemo(() => {
+    const map = new Map<string, { name: string; href: string }>();
     for (const company of companiesQuery.companies) {
-      map.set(company.id, company.name);
+      map.set(company.id, { name: company.name, href: company.href });
     }
     return map;
   }, [companiesQuery.companies]);
@@ -210,7 +210,10 @@ export function ContactsScreen() {
           </Button>
         ) : null}
       </DataTableToolbar>
-      <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
+      <DataTable
+        tableClassName="min-w-[1100px]"
+        footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}
+      >
         <TableHeader>
           <TableRow>
             <SortableHeads
@@ -253,15 +256,19 @@ export function ContactsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((contact) => (
+            rows.map((contact) => {
+              const company = companyById.get(contact.customer_id);
+              return (
               <TableRow key={contact.id}>
                 <TableCell className="font-medium">
                   <RecordLink href={`/contacts/${contact.id}`}>{contact.name}</RecordLink>
                 </TableCell>
                 <TableCell>
-                  <RecordLink href={`/contacts/${contact.id}`}>
-                    {companyNameById.get(contact.customer_id) ?? "—"}
-                  </RecordLink>
+                  {company ? (
+                    <RecordLink href={company.href}>{company.name}</RecordLink>
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
                 <TableCell>{contact.email || "—"}</TableCell>
                 <TableCell>{contact.phone || "—"}</TableCell>
@@ -282,7 +289,8 @@ export function ContactsScreen() {
                   </TableCell>
                 ) : null}
               </TableRow>
-            ))
+              );
+            })
           )}
         </TableBody>
       </DataTable>

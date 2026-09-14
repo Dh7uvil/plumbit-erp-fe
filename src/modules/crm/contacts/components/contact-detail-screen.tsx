@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ContactForm } from "@/modules/crm/contacts/components/contact-form";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useContact } from "@/modules/crm/contacts/queries";
+import { useCompanyOptions } from "@/modules/crm/contacts/use-company-options";
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -29,7 +30,9 @@ export function ContactDetailScreen({
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(contactPermissions);
   const contactQuery = useContact(contactId);
+  const companiesQuery = useCompanyOptions();
   const contact = contactQuery.data;
+  const company = companiesQuery.companies.find((option) => option.id === contact?.customer_id);
   const isEdit = mode === "edit";
   const viewHref = `/contacts/${contactId}`;
 
@@ -60,11 +63,19 @@ export function ContactDetailScreen({
     <div className="flex flex-col gap-5">
       <RecordPageHeader
         title={contact.name}
+        subtitle={company?.name}
         listHref="/contacts"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}
         canUpdate={canUpdate}
         mode={mode}
+        extraActions={
+          company ? (
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link href={company.href}>View company</Link>
+            </Button>
+          ) : null
+        }
       />
       <Card>
         <CardHeader>

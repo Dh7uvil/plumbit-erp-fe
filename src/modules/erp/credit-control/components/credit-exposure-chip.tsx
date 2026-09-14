@@ -13,12 +13,19 @@ export function CreditExposureChip({
 }) {
   const limitLabel =
     exposure.credit_limit == null ? "Unlimited" : formatMoney(exposure.credit_limit, currencyCode);
+  const exposureLabel = formatMoney(exposure.exposure, currencyCode);
+  if (exposure.credit_limit == null) {
+    return (
+      <Badge variant="secondary" className="font-normal">
+        Limit {limitLabel} · Exposure {exposureLabel}
+      </Badge>
+    );
+  }
   const availableLabel =
     exposure.available == null ? "—" : formatMoney(exposure.available, currencyCode);
   return (
     <Badge variant="secondary" className="font-normal">
-      Limit {limitLabel} · Exposure {formatMoney(exposure.exposure, currencyCode)} · Available{" "}
-      {availableLabel}
+      Limit {limitLabel} · Exposure {exposureLabel} · Available {availableLabel}
     </Badge>
   );
 }

@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+export const OptionalEmailSchema = z
+  .string()
+  .max(255)
+  .refine((value) => !value.trim() || value.includes("@"), {
+    message: "Enter a valid email address",
+  });
+
 export const ContactSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
@@ -35,9 +42,9 @@ export const ContactUpdateRequestSchema = z.object({
 export type ContactUpdateRequest = z.infer<typeof ContactUpdateRequestSchema>;
 
 export const ContactFormSchema = z.object({
-  customer_id: z.string().uuid("Select a customer"),
+  customer_id: z.string().uuid("Select a company"),
   name: z.string().min(1, "Enter a name").max(200),
-  email: z.string().max(255),
+  email: OptionalEmailSchema,
   phone: z.string().max(50),
   is_primary: z.boolean(),
   is_active: z.boolean(),
@@ -46,7 +53,7 @@ export type ContactFormValues = z.infer<typeof ContactFormSchema>;
 
 export const InitialContactFormFieldsSchema = z.object({
   initial_contact_name: z.string().max(200),
-  initial_contact_email: z.string().max(255),
+  initial_contact_email: OptionalEmailSchema,
   initial_contact_phone: z.string().max(50),
 });
 

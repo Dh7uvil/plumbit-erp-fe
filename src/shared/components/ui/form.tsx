@@ -164,20 +164,21 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 function FormMessage({ className, children, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
   const body = error ? String(error.message ?? "") : children;
-
-  if (!body) {
-    return null;
-  }
+  const text = typeof body === "string" ? body : undefined;
 
   return (
     <p
       data-slot="form-message"
       id={formMessageId}
-      title={typeof body === "string" ? body : undefined}
-      className={cn("text-destructive min-w-0 text-sm leading-5", className)}
+      title={text || undefined}
+      className={cn(
+        "text-destructive min-h-5 min-w-0 truncate text-sm leading-5",
+        !body && "invisible",
+        className,
+      )}
       {...props}
     >
-      {body}
+      {body || "\u00a0"}
     </p>
   );
 }

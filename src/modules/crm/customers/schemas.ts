@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { refineInitialContact } from "@/modules/crm/contacts/schemas";
+import { OptionalEmailSchema, refineInitialContact } from "@/modules/crm/contacts/schemas";
 import {
   AddressFormSchema,
   AddressPayloadSchema,
@@ -25,7 +25,7 @@ export const COMPANY_TYPE_LABELS: Record<CompanyType, string> = {
 
 export const CUSTOMER_COMPANY_TYPE_LABELS: Record<CustomerCompanyType, string> = {
   CUSTOMER: "Customer",
-  BOTH: "Both ( & Supplier )",
+  BOTH: "Customer & supplier",
   OTHER: "Other",
 };
 
@@ -147,7 +147,7 @@ export const CustomerFormSchema = z
     notes: z.string().max(2000),
     is_active: z.boolean(),
     initial_contact_name: z.string().max(200),
-    initial_contact_email: z.string().max(255),
+    initial_contact_email: OptionalEmailSchema,
     initial_contact_phone: z.string().max(50),
   })
   .superRefine((values, ctx) => {

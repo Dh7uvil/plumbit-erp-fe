@@ -11,6 +11,7 @@ import { useCan } from "@/shared/providers/session-provider";
 export type CompanyOption = {
   id: string;
   name: string;
+  href: string;
 };
 
 export function useCompanyOptions(enabled = true) {
@@ -20,9 +21,12 @@ export function useCompanyOptions(enabled = true) {
 
   const companies = useMemo(() => {
     const map = new Map<string, CompanyOption>();
-    for (const party of [...(customersQuery.data ?? []), ...(suppliersQuery.data ?? [])]) {
+    for (const party of customersQuery.data ?? []) {
+      map.set(party.id, { id: party.id, name: party.name, href: `/customers/${party.id}` });
+    }
+    for (const party of suppliersQuery.data ?? []) {
       if (!map.has(party.id)) {
-        map.set(party.id, { id: party.id, name: party.name });
+        map.set(party.id, { id: party.id, name: party.name, href: `/suppliers/${party.id}` });
       }
     }
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
