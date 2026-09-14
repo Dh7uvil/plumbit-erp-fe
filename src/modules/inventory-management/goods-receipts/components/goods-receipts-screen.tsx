@@ -181,7 +181,7 @@ export function GoodsReceiptsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search goods receipts…"
+          placeholder="Search number, supplier, BL, notes…"
         />
         <FilterSelect
           label="Status"

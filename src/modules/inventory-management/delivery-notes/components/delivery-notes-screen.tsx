@@ -138,7 +138,7 @@ export function DeliveryNotesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search delivery notes…"
+          placeholder="Search number, customer, vehicle…"
         />
         <FilterSelect
           label="Status"

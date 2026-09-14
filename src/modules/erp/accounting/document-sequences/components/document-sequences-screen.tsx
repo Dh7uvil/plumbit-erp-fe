@@ -122,7 +122,7 @@ export function DocumentSequencesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search document sequences…"
+          placeholder="Search series, prefix, type…"
         />
         <FilterSelect
           label="Status"

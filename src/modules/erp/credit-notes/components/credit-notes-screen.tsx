@@ -144,7 +144,7 @@ export function CreditNotesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search credit notes…"
+          placeholder="Search number, customer, invoice…"
         />
         <FilterSelect
           label="Status"

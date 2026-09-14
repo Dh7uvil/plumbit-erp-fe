@@ -119,7 +119,7 @@ export function TaxesScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search taxes…"
+          placeholder="Search name, category…"
         />
         <FilterSelect
           label="Status"

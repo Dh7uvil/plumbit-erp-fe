@@ -240,7 +240,7 @@ export function SalesOrdersScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search sales orders…"
+          placeholder="Search number, customer, PO, notes…"
         />
         <FilterSelect
           label="Status"

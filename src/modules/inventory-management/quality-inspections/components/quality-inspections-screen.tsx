@@ -140,7 +140,7 @@ export function QualityInspectionsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search inspections…"
+          placeholder="Search number, GRN, notes…"
         />
         <FilterSelect
           label="Status"

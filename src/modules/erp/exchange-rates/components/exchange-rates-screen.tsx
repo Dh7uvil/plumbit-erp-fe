@@ -12,6 +12,7 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { ListSearch } from "@/shared/components/data-table/list-search";
 import {
   DataTableRowActions,
   hasRowActions,
@@ -43,11 +44,13 @@ const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
 export function ExchangeRatesScreen() {
   const { canCreate, canRead, canUpdate } = useCrudPermissions(exchangeRatePermissions);
   const canEditRate = canCreate || canUpdate;
-  const { page, page_size, sort_by, sort_order, filters, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
   const effectiveDate = filters.effective_date;
   const exchangeRatesQuery = useExchangeRates({
     page,
     page_size,
+    search,
     effective_date: effectiveDate,
     sort_by,
     sort_order,
@@ -107,6 +110,11 @@ export function ExchangeRatesScreen() {
         }
       />
       <DataTableToolbar>
+        <ListSearch
+          value={search ?? ""}
+          onChange={(value) => setParams({ search: value || null })}
+          placeholder="Search currency code or name…"
+        />
         <Input
           type="date"
           value={effectiveDate ?? ""}
@@ -122,13 +130,14 @@ export function ExchangeRatesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
-        {effectiveDate || sort_by ? (
+        {effectiveDate || sort_by || search ? (
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={() =>
               setParams({
+                search: null,
                 sort_by: null,
                 sort_order: null,
                 filters: { effective_date: null },

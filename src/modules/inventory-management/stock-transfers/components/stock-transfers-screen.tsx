@@ -182,7 +182,7 @@ export function StockTransfersScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search transfers…"
+          placeholder="Search number, warehouse, product…"
         />
         <FilterSelect
           label="Status"

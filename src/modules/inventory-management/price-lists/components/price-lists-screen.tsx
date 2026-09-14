@@ -134,7 +134,7 @@ export function PriceListsScreen() {
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search price lists…"
+          placeholder="Search name, currency, product…"
         />
         <FilterSelect
           label="Status"

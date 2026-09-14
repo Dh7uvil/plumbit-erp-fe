@@ -40,7 +40,7 @@ export function ListSearch({
   }, [input]);
 
   return (
-    <div className="relative max-w-xs min-w-40 flex-1">
+    <div className="relative max-w-md min-w-48 flex-1">
       <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
       <Input
         value={input}
