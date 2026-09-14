@@ -89,9 +89,9 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
       />
       <DataTableToolbar>
         <FilterSelect
+          label={kind === "customer" ? "Customer" : "Supplier"}
           className="w-64"
           placeholder={kind === "customer" ? "Customer" : "Supplier"}
-          aria-label={kind === "customer" ? "Customer" : "Supplier"}
           value={partyId || ALL}
           onValueChange={setParty}
           options={[

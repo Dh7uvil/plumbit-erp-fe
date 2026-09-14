@@ -319,9 +319,9 @@ export function AuditLogsScreen() {
           placeholder="Search user, module, action, IP…"
         />
         <FilterSelect
-          label="All Modules"
+          label="Module"
           className="w-36 md:w-40"
-          placeholder="All Modules"
+          placeholder="Module"
           value={moduleFilter}
           onValueChange={(value) =>
             setParams({ filters: { module: value === ALL ? null : value } })

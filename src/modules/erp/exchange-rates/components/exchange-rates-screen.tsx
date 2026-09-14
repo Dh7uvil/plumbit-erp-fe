@@ -26,6 +26,7 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -115,15 +116,21 @@ export function ExchangeRatesScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search currency code or name…"
         />
-        <Input
-          type="date"
-          value={effectiveDate ?? ""}
-          onChange={(event) =>
-            setParams({ filters: { effective_date: event.target.value || null } })
-          }
-          aria-label="Effective date"
-          className="w-44"
-        />
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="exchange-rate-effective-date" className="text-muted-foreground text-xs font-medium">
+            Effective date
+          </Label>
+          <Input
+            id="exchange-rate-effective-date"
+            type="date"
+            value={effectiveDate ?? ""}
+            onChange={(event) =>
+              setParams({ filters: { effective_date: event.target.value || null } })
+            }
+            aria-label="Effective date"
+            className="w-44"
+          />
+        </div>
         <SortDialog
           fields={[...SORT_FIELDS]}
           sortBy={sort_by}

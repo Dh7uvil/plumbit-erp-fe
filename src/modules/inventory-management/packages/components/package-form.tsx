@@ -385,17 +385,17 @@ export function PackageForm({
           )}
         />
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-max min-w-full text-sm">
             <TableHeader>
               <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Outstanding</TableHead>
-                <TableHead className="w-32">Qty</TableHead>
-                <TableHead className="w-28">Item code</TableHead>
-                <TableHead className="w-24">PKG</TableHead>
-                <TableHead className="w-24">Ctns</TableHead>
-                <TableHead className="w-24">CBM</TableHead>
-                <TableHead className="w-24">Weight</TableHead>
+                <TableHead className="min-w-56">Description</TableHead>
+                <TableHead className="w-28 min-w-28 text-right">Outstanding</TableHead>
+                <TableHead className="w-32 min-w-32">Qty</TableHead>
+                <TableHead className="w-36 min-w-36">Item code</TableHead>
+                <TableHead className="w-28 min-w-28">PKG</TableHead>
+                <TableHead className="w-28 min-w-28">Ctns</TableHead>
+                <TableHead className="w-28 min-w-28">CBM</TableHead>
+                <TableHead className="w-32 min-w-32">Weight</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

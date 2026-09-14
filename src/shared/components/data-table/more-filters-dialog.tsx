@@ -1,8 +1,10 @@
 "use client";
 
 import { ListFilter } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
+import { NestedFilterLabel } from "@/shared/components/data-table/filter-select";
+import { ToolbarControl, toolbarFilterButtonClass } from "@/shared/components/data-table/toolbar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -25,10 +27,12 @@ export function FilterField({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-    </div>
+    <NestedFilterLabel>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={htmlFor}>{label}</Label>
+        {children}
+      </div>
+    </NestedFilterLabel>
   );
 }
 
@@ -53,6 +57,7 @@ export function MoreFiltersDialog({
   onApply: () => void;
   onClearDraft: () => void;
 }) {
+  const triggerId = useId();
   const [open, setOpen] = useState(false);
 
   function handleOpenChange(next: boolean) {
@@ -69,15 +74,24 @@ export function MoreFiltersDialog({
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
-        <ListFilter className="size-3.5" />
-        More filters
-        {extraCount > 0 ? (
-          <Badge variant="secondary" className="h-5 min-w-5 px-1">
-            {extraCount}
-          </Badge>
-        ) : null}
-      </Button>
+      <ToolbarControl label="Filters" htmlFor={triggerId}>
+        <Button
+          id={triggerId}
+          type="button"
+          variant="outline"
+          size="sm"
+          className={toolbarFilterButtonClass(extraCount > 0)}
+          onClick={() => handleOpenChange(true)}
+        >
+          <ListFilter className="size-3.5" />
+          More filters
+          {extraCount > 0 ? (
+            <Badge variant="info" className="h-5 min-w-5 px-1">
+              {extraCount}
+            </Badge>
+          ) : null}
+        </Button>
+      </ToolbarControl>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className={contentClassName}>
           <DialogHeader>

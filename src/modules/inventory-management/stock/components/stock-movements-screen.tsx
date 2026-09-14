@@ -53,19 +53,13 @@ const BASE_COLUMN_HEADERS = [
 ] as const;
 const COST_COLUMN_HEADERS = ["Unit cost", "Value"] as const;
 const SORT_FIELDS = [
-  { value: "sku", label: "SKU" },
-  { value: "product_name", label: "Product" },
-  { value: "warehouse_code", label: "Warehouse" },
   { value: "document_date", label: "Date" },
   { value: "occurred_at", label: "Occurred" },
-  { value: "movement_type", label: "Type" },
+  { value: "qty", label: "Qty" },
 ] as const;
 const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  SKU: "sku",
-  Product: "product_name",
-  Warehouse: "warehouse_code",
   Date: "document_date",
-  Type: "movement_type",
+  Qty: "qty",
 };
 const ALL = "all";
 const EMPTY_EXTRA = {

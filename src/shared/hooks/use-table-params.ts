@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
-import { DEFAULT_PAGE_SIZE } from "@/config/constants";
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, type PageSizeOption } from "@/config/constants";
 
 export type SortOrder = "asc" | "desc";
 
@@ -32,9 +32,17 @@ function parsePositiveInt(value: string | null, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parsePageSize(value: string | null): PageSizeOption {
+  const parsed = parsePositiveInt(value, DEFAULT_PAGE_SIZE);
+  return PAGE_SIZE_OPTIONS.includes(parsed as PageSizeOption)
+    ? (parsed as PageSizeOption)
+    : DEFAULT_PAGE_SIZE;
+}
+
 export function useTableParams(): TableParams & {
   setParams: (patch: TableParamPatch) => void;
   setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
 } {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -50,7 +58,7 @@ export function useTableParams(): TableParams & {
     const sortOrder = searchParams.get("sort_order");
     return {
       page: parsePositiveInt(searchParams.get("page"), 1),
-      page_size: parsePositiveInt(searchParams.get("page_size"), DEFAULT_PAGE_SIZE),
+      page_size: parsePageSize(searchParams.get("page_size")),
       search: searchParams.get("search") || undefined,
       sort_by: searchParams.get("sort_by") || undefined,
       sort_order: sortOrder === "asc" || sortOrder === "desc" ? sortOrder : undefined,
@@ -119,5 +127,12 @@ export function useTableParams(): TableParams & {
     [setParams],
   );
 
-  return { ...params, setParams, setPage };
+  const setPageSize = useCallback(
+    (pageSize: number) => {
+      setParams({ page_size: pageSize });
+    },
+    [setParams],
+  );
+
+  return { ...params, setParams, setPage, setPageSize };
 }

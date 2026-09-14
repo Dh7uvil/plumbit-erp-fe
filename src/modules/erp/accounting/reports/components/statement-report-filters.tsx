@@ -56,9 +56,9 @@ export function StatementReportFilters({
         />
       ) : null}
       <FilterSelect
+        label="Branch"
         className="w-44"
         placeholder="Branch"
-        aria-label="Branch"
         value={branchId ?? ALL}
         onValueChange={(value) => onChange({ branch_id: value === ALL ? null : value })}
         options={[

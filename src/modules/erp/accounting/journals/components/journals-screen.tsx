@@ -122,9 +122,9 @@ export function JournalsScreen() {
           placeholder="Search number, account, party, notes…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
-          aria-label="Filter by status"
           value={filters.status ?? ALL}
           onValueChange={(value) => setParams({ filters: { status: value === ALL ? null : value } })}
           options={[
@@ -136,9 +136,9 @@ export function JournalsScreen() {
           ]}
         />
         <FilterSelect
+          label="Type"
           className="w-44"
           placeholder="Type"
-          aria-label="Filter by type"
           value={filters.journal_type ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { journal_type: value === ALL ? null : value } })

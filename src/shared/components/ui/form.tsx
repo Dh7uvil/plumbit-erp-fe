@@ -99,8 +99,8 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
       <div
         data-slot="form-item"
         className={cn(
-          "grid min-w-0 gap-2",
-          "in-data-[slot=form-grid]:row-span-3 in-data-[slot=form-grid]:grid-rows-subgrid in-data-[slot=form-grid]:content-start in-data-[slot=form-grid]:gap-0",
+          "grid min-w-0 gap-3",
+          "in-data-[slot=form-grid]:row-span-3 in-data-[slot=form-grid]:grid-rows-subgrid in-data-[slot=form-grid]:content-start in-data-[slot=form-grid]:gap-y-2.5",
           className,
         )}
         {...props}

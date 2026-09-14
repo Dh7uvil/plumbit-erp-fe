@@ -92,7 +92,7 @@ export function StockAdjustmentLinesEditor({
   return (
     <div className="flex flex-col gap-2">
       <div className="overflow-x-auto rounded-md border">
-        <table className="w-full caption-bottom text-sm">
+        <table className="w-max min-w-full caption-bottom text-sm">
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
@@ -119,7 +119,7 @@ export function StockAdjustmentLinesEditor({
                   productId && bookedByProductId ? bookedByProductId.get(productId) : null;
                 return (
                   <TableRow key={field.id}>
-                    <TableCell className="min-w-48 align-top">
+                    <TableCell className="min-w-64 align-top">
                       <FormField
                         control={form.control}
                         name={`lines.${index}.product_id`}

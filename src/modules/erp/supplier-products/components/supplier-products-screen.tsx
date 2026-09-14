@@ -178,9 +178,9 @@ export function SupplierProductsScreen() {
           placeholder="Search SKU, product, supplier…"
         />
         <FilterSelect
+          label="Mapped"
           className="w-40"
           placeholder="Mapped"
-          aria-label="Filter by mapping"
           value={filters.mapped ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { mapped: value === ALL ? null : value } })
@@ -192,9 +192,9 @@ export function SupplierProductsScreen() {
           ]}
         />
         <FilterSelect
+          label="Supplier"
           className="w-48"
           placeholder="Supplier"
-          aria-label="Filter by supplier"
           value={filters.supplier_id ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { supplier_id: value === ALL ? null : value } })
@@ -205,9 +205,9 @@ export function SupplierProductsScreen() {
           ]}
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
-          aria-label="Filter by status"
           value={filters.is_active ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { is_active: value === ALL ? null : value } })

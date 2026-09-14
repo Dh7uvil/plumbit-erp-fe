@@ -119,18 +119,18 @@ export function DepartmentsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-2">
         <ListSearch
           value={search}
           onChange={setSearch}
           placeholder="Search code, name, branch, manager…"
         />
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-end justify-end gap-2">
           {canReadBranches ? (
             <FilterSelect
+              label="Branch"
               className="w-52"
               placeholder="All branches"
-              aria-label="Branch"
               value={branchId}
               onValueChange={(value) => setBranchId(value as typeof branchId)}
               options={[

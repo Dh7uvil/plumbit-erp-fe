@@ -24,6 +24,23 @@ export type SearchableSelectCreateAction = {
   onSelect: () => void;
 };
 
+export const SEARCHABLE_SELECT_MIN_OPTIONS = 10;
+
+export function shouldSearchOptions({
+  searchable,
+  optionCount,
+  remote,
+}: {
+  searchable?: boolean;
+  optionCount: number;
+  remote?: boolean;
+}) {
+  if (searchable != null) {
+    return searchable;
+  }
+  return Boolean(remote) || optionCount > SEARCHABLE_SELECT_MIN_OPTIONS;
+}
+
 type SelectTriggerButtonProps = {
   selectedLabel?: string;
   placeholder: string;
@@ -87,6 +104,7 @@ export function SearchableSelect({
   "aria-label": ariaLabel,
   onQueryChange,
   loading = false,
+  searchable,
 }: {
   options: SearchableSelectOption[];
   value: string;
@@ -102,6 +120,7 @@ export function SearchableSelect({
   "aria-label"?: string;
   onQueryChange?: (query: string) => void;
   loading?: boolean;
+  searchable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -109,20 +128,25 @@ export function SearchableSelect({
   const onQueryChangeRef = useRef(onQueryChange);
   const skipQueryChange = useRef(true);
   const selected = options.find((option) => option.value === value);
+  const showSearch = shouldSearchOptions({
+    searchable,
+    optionCount: options.length,
+    remote: Boolean(onQueryChange),
+  });
 
   useEffect(() => {
     onQueryChangeRef.current = onQueryChange;
   }, [onQueryChange]);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || !showSearch) {
       return;
     }
     const frame = window.requestAnimationFrame(() => {
       searchRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [open]);
+  }, [open, showSearch]);
 
   useEffect(() => {
     if (!onQueryChangeRef.current) {
@@ -183,36 +207,38 @@ export function SearchableSelect({
         className="w-(--radix-dropdown-menu-trigger-width) overflow-hidden p-0"
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
-        <div className="p-1.5">
-          <div className="relative">
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-            <Input
-              ref={searchRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={searchPlaceholder}
-              aria-label={searchPlaceholder}
-              autoComplete="off"
-              autoFocus
-              className="h-8 pl-8"
-              onPointerDown={(event) => event.stopPropagation()}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "ArrowDown" ||
-                  event.key === "ArrowUp" ||
-                  event.key === "Enter" ||
-                  event.key === "Escape" ||
-                  event.key === "Home" ||
-                  event.key === "End" ||
-                  event.key === "Tab"
-                ) {
-                  return;
-                }
-                event.stopPropagation();
-              }}
-            />
+        {showSearch ? (
+          <div className="p-1.5">
+            <div className="relative">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+              <Input
+                ref={searchRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+                autoComplete="off"
+                autoFocus
+                className="h-8 pl-8"
+                onPointerDown={(event) => event.stopPropagation()}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "ArrowDown" ||
+                    event.key === "ArrowUp" ||
+                    event.key === "Enter" ||
+                    event.key === "Escape" ||
+                    event.key === "Home" ||
+                    event.key === "End" ||
+                    event.key === "Tab"
+                  ) {
+                    return;
+                  }
+                  event.stopPropagation();
+                }}
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
         <div className="max-h-60 overflow-y-auto p-1">
           {filtered.length === 0 ? (
             <p className="text-muted-foreground px-2 py-1.5 text-sm">

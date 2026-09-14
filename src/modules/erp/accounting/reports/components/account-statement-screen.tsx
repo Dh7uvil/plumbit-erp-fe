@@ -75,9 +75,9 @@ export function AccountStatementScreen() {
       />
       <DataTableToolbar>
         <FilterSelect
+          label="Party type"
           className="w-44"
           placeholder="Party type"
-          aria-label="Party type"
           value={partyType}
           onValueChange={(value) =>
             setParams({
@@ -93,9 +93,9 @@ export function AccountStatementScreen() {
           ]}
         />
         <FilterSelect
+          label="Party"
           className="w-64"
           placeholder="Party"
-          aria-label="Party"
           value={partyId || ALL}
           onValueChange={(value) =>
             setParams({ filters: { party_id: value === ALL ? null : value } })

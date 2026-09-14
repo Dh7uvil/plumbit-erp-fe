@@ -2,7 +2,9 @@
 
 import { HelpCircle } from "lucide-react";
 
+import { KEYBOARD_SHORTCUTS } from "@/shared/lib/keyboard-shortcuts";
 import { Button } from "@/shared/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -10,12 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-
-const SHORTCUTS = [
-  { keys: "⌘K / Ctrl+K", action: "Open page search" },
-  { keys: "Esc", action: "Close search and dialogs" },
-  { keys: "↑ ↓ Enter", action: "Move and open a search result" },
-] as const;
 
 export function HelpDialog({
   open,
@@ -26,17 +22,17 @@ export function HelpDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Help & Support</DialogTitle>
           <DialogDescription>
-            Keyboard shortcuts for moving around the app. Ask your administrator for account or
-            permission changes.
+            Keyboard shortcuts work across the app. Single-letter shortcuts are ignored while you
+            are typing in a field. Ask your administrator for account or permission changes.
           </DialogDescription>
         </DialogHeader>
         <ul className="flex flex-col gap-2">
-          {SHORTCUTS.map((shortcut) => (
-            <li key={shortcut.action} className="flex items-center justify-between gap-3 text-sm">
+          {KEYBOARD_SHORTCUTS.map((shortcut) => (
+            <li key={shortcut.id} className="flex items-center justify-between gap-3 text-sm">
               <span className="text-foreground">{shortcut.action}</span>
               <kbd className="bg-muted text-muted-foreground border-border rounded border px-1.5 py-0.5 font-mono text-[11px]">
                 {shortcut.keys}
@@ -51,16 +47,20 @@ export function HelpDialog({
 
 export function HelpTrigger({ onClick }: { onClick: () => void }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      className="text-muted-foreground hidden md:inline-flex"
-      onClick={onClick}
-      aria-label="Help and support"
-      title="Help & Support"
-    >
-      <HelpCircle className="size-3.5" />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground hidden md:inline-flex"
+          onClick={onClick}
+          aria-label="Help"
+        >
+          <HelpCircle className="size-3.5" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Help</TooltipContent>
+    </Tooltip>
   );
 }

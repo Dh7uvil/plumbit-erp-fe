@@ -118,9 +118,9 @@ export function LandedCostsScreen() {
           placeholder="Search number, GRN, bill, notes…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
-          aria-label="Filter by status"
           value={filters.status ?? ALL}
           onValueChange={(value) =>
             setParams({ filters: { status: value === ALL ? null : value } })

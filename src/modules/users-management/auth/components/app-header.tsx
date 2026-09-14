@@ -4,8 +4,15 @@ import { KeyRound, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
 import { useState } from "react";
 
 import { AppBreadcrumb } from "@/shared/components/layout/app-breadcrumb";
+import { CommandSearchTrigger } from "@/shared/components/layout/command-search-trigger";
 import { HelpTrigger } from "@/shared/components/layout/help-dialog";
 import { useTheme } from "@/shared/components/layout/theme-provider";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
 import { ChangePasswordDialog } from "@/modules/users-management/auth/components/change-password-dialog";
 import { useLogout } from "@/modules/users-management/auth/mutations";
 import { useMe } from "@/modules/users-management/auth/queries";
@@ -34,97 +41,95 @@ export function AppHeader({
   const logout = useLogout();
   const { theme, toggleTheme } = useTheme();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const themeTooltip = theme === "dark" ? "Light mode" : "Dark mode";
 
   return (
-    <header className="bg-card border-border flex h-12 shrink-0 items-center gap-2 border-b px-3 md:gap-3 md:px-4">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        className="md:hidden"
-        onClick={onMobileMenuOpen}
-        aria-label="Open navigation"
-      >
-        <Menu className="size-4" />
-      </Button>
-      <AppBreadcrumb />
-      <div className="flex-1" />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="text-muted-foreground bg-muted/40 hidden h-7 w-44 justify-start gap-2 px-2.5 text-xs md:inline-flex"
-        onClick={onSearchOpen}
-      >
-        <Search className="size-3 shrink-0" />
-        Search…
-        <kbd className="bg-background border-border ml-auto rounded border px-1 text-[10px]">
-          ⌘K
-        </kbd>
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        className="text-muted-foreground md:hidden"
-        onClick={onSearchOpen}
-        aria-label="Search pages"
-      >
-        <Search className="size-4" />
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        className="text-muted-foreground"
-        onClick={toggleTheme}
-        aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-        title={theme === "dark" ? "Light theme" : "Dark theme"}
-      >
-        {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-      </Button>
-      <HelpTrigger onClick={onHelpOpen} />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-8 gap-1.5 px-1.5 md:gap-2"
-            aria-label={me?.name ? `Account menu for ${me.name}` : "Account menu"}
-          >
-            <Avatar className="size-7">
-              <AvatarFallback className="bg-primary text-[10px] text-white">
-                {me?.name ? initials(me.name) : "…"}
-              </AvatarFallback>
-            </Avatar>
-            <span className="hidden flex-col items-start leading-none md:flex">
-              <span className="text-foreground text-xs font-medium">{me?.name ?? "…"}</span>
-              <span className="text-muted-foreground text-[10px]">{me?.email ?? ""}</span>
-            </span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="font-normal">
-            <p className="text-sm font-medium">{me?.name ?? "…"}</p>
-            <p className="text-muted-foreground text-xs">{me?.email ?? ""}</p>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setChangePasswordOpen(true)}>
-            <KeyRound />
-            Change password
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            disabled={logout.isPending}
-            onSelect={() => logout.mutate()}
-          >
-            <LogOut />
-            Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
-    </header>
+    <TooltipProvider>
+      <header className="bg-card border-border flex h-12 shrink-0 items-center gap-2 border-b px-3 md:gap-3 md:px-4">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="md:hidden"
+          onClick={onMobileMenuOpen}
+          aria-label="Open navigation"
+        >
+          <Menu className="size-4" />
+        </Button>
+        <AppBreadcrumb />
+        <div className="flex-1" />
+        <CommandSearchTrigger
+          onOpen={onSearchOpen}
+          className="hidden w-44 md:inline-flex"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground md:hidden"
+          onClick={onSearchOpen}
+          aria-label="Search pages"
+        >
+          <Search className="size-4" />
+        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{themeTooltip}</TooltipContent>
+        </Tooltip>
+        <HelpTrigger onClick={onHelpOpen} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-8 gap-1.5 px-1.5 md:gap-2"
+              aria-label={me?.name ? `Account menu for ${me.name}` : "Account menu"}
+            >
+              <Avatar className="size-7">
+                <AvatarFallback className="bg-primary text-[10px] text-white">
+                  {me?.name ? initials(me.name) : "…"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="hidden flex-col items-start leading-none md:flex">
+                <span className="text-foreground text-xs font-medium">{me?.name ?? "…"}</span>
+                <span className="text-muted-foreground text-[10px]">{me?.email ?? ""}</span>
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <p className="text-sm font-medium">{me?.name ?? "…"}</p>
+              <p className="text-muted-foreground text-xs">{me?.email ?? ""}</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setChangePasswordOpen(true)}>
+              <KeyRound />
+              Change password
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={logout.isPending}
+              onSelect={() => logout.mutate()}
+            >
+              <LogOut />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
+      </header>
+    </TooltipProvider>
   );
 }

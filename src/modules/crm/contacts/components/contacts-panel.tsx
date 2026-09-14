@@ -9,6 +9,7 @@ import { useDeleteContact } from "@/modules/crm/contacts/mutations";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useContacts } from "@/modules/crm/contacts/queries";
 import type { Contact } from "@/modules/crm/contacts/schemas";
+import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -39,7 +40,11 @@ const COLUMN_HEADERS = ["Name", "Email", "Phone", "Primary", "Status"] as const;
 export function ContactsPanel({ customerId }: { customerId: string }) {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(contactPermissions);
   const [page, setPage] = useState(1);
-  const contactsQuery = useContacts({ customer_id: customerId, page }, canRead);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const contactsQuery = useContacts(
+    { customer_id: customerId, page, page_size: pageSize },
+    canRead,
+  );
   const deleteContact = useDeleteContact();
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Contact | null>(null);
@@ -83,7 +88,18 @@ export function ContactsPanel({ customerId }: { customerId: string }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <DataTable
-          footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}
+          footer={
+            meta ? (
+              <DataTablePagination
+                meta={meta}
+                onPageChange={setPage}
+                onPageSizeChange={(next) => {
+                  setPageSize(next);
+                  setPage(1);
+                }}
+              />
+            ) : null
+          }
         >
           <TableHeader>
             <TableRow>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { historyPermissions } from "@/modules/inventory-management/history/permissions";
 import {
   useCustomerSalesHistory,
@@ -46,7 +47,8 @@ export function TradingHistoryLines({
   const can = useCan();
   const showCost = can(historyPermissions.cost);
   const [page, setPage] = useState(1);
-  const params = { page, page_size: 10, party_id: partyId, product_id: productId };
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const params = { page, page_size: pageSize, party_id: partyId, product_id: productId };
   const productSales = useProductSalesHistory(ownerId, params, kind === "product-sales");
   const productPurchases = useProductPurchaseHistory(ownerId, params, kind === "product-purchases");
   const customerSales = useCustomerSalesHistory(ownerId, params, kind === "customer-sales");
@@ -205,6 +207,10 @@ export function TradingHistoryLines({
       emptyMessage="No posted lines for this selection."
       meta={query.data?.meta}
       onPageChange={setPage}
+      onPageSizeChange={(next) => {
+        setPageSize(next);
+        setPage(1);
+      }}
     />
   );
 }

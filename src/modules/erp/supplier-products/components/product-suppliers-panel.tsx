@@ -4,6 +4,8 @@ import { Plus, Unlink } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DEFAULT_PAGE_SIZE } from "@/config/constants";
+
 import { SupplierProductFormDialog } from "@/modules/erp/supplier-products/components/supplier-product-form-dialog";
 import {
   useDeleteSupplierProduct,
@@ -47,7 +49,11 @@ export function ProductSuppliersPanel({ productId }: { productId: string }) {
   );
   const canLink = can(supplierProductPermissions.link);
   const [page, setPage] = useState(1);
-  const catalogQuery = useSupplierProducts({ product_id: productId, page }, canRead);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const catalogQuery = useSupplierProducts(
+    { product_id: productId, page, page_size: pageSize },
+    canRead,
+  );
   const deleteRow = useDeleteSupplierProduct();
   const unlinkRow = useUnlinkSupplierProduct();
   const [formOpen, setFormOpen] = useState(false);
@@ -111,7 +117,18 @@ export function ProductSuppliersPanel({ productId }: { productId: string }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <DataTable
-          footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}
+          footer={
+            meta ? (
+              <DataTablePagination
+                meta={meta}
+                onPageChange={setPage}
+                onPageSizeChange={(next) => {
+                  setPageSize(next);
+                  setPage(1);
+                }}
+              />
+            ) : null
+          }
         >
           <TableHeader>
             <TableRow>
