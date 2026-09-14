@@ -21,7 +21,7 @@ export const PURCHASE_RETURN_ACTION_REGISTRY: DocumentActionSpec<PurchaseReturnW
   {
     action: "cancel",
     label: "Cancel",
-    permission: purchaseReturnPermissions.update,
+    permission: purchaseReturnPermissions.cancel,
     variant: "destructive",
     confirmCopy: (documentNumber) =>
       `${documentNumber} will be cancelled. If posted, stock will reverse when the API allows it.`,

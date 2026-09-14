@@ -287,6 +287,7 @@ export function UsersTableFilters() {
         placeholder="Search users…"
       />
       <FilterSelect
+        label="Status"
         className="w-40"
         placeholder="Status"
         value={status}
@@ -300,6 +301,7 @@ export function UsersTableFilters() {
       />
       {canReadRoles ? (
         <FilterSelect
+          label="Role"
           className="w-48"
           placeholder="Role"
           value={roleId}

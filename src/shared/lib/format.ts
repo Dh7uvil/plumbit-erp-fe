@@ -60,6 +60,40 @@ export function formatDecimal(value: string | null | undefined): string {
   }
 }
 
+export function formatQuantity(value: string | null | undefined, maxFractionDigits = 4): string {
+  if (value == null || value === "") {
+    return "—";
+  }
+  try {
+    const { negative, whole, fraction } = parseDecimalParts(value);
+    const trimmedFraction = fraction.replace(/0+$/, "").slice(0, maxFractionDigits);
+    const grouped = new Intl.NumberFormat(undefined, { useGrouping: true }).format(BigInt(whole));
+    const sign = negative && whole !== "0" ? "-" : "";
+    return trimmedFraction ? `${sign}${grouped}.${trimmedFraction}` : `${sign}${grouped}`;
+  } catch {
+    return value;
+  }
+}
+
+export function isZeroDecimal(value: string | null | undefined): boolean {
+  if (value == null || value === "") {
+    return true;
+  }
+  try {
+    const { whole, fraction } = parseDecimalParts(value);
+    return whole === "0" && !/[1-9]/.test(fraction);
+  } catch {
+    return false;
+  }
+}
+
+export function formatReportMoney(
+  value: string | null | undefined,
+  currencyCode?: string | null,
+): string {
+  return formatMoney(value, currencyCode || "AED");
+}
+
 export function formatMoney(value: string | null | undefined, currencyCode: string): string {
   if (value == null || value === "") {
     return "—";

@@ -102,6 +102,7 @@ export function SalesReturnsScreen() {
           placeholder="Search sales returns…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}

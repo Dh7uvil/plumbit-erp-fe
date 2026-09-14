@@ -24,7 +24,7 @@ const invoice: OpenItemRow = {
 };
 
 describe("payment allocation helpers", () => {
-  it("sends only typed positive amounts and uses API item ids", () => {
+  it("sends typed non-zero amounts including credits and uses API item ids", () => {
     expect(
       paymentAllocationsPayload([invoice], {
         [invoice.document_id]: "40.50",
@@ -35,6 +35,34 @@ describe("payment allocation helpers", () => {
         item_type: "SALES_INVOICE",
         item_id: invoice.document_id,
         amount: "40.50",
+      },
+    ]);
+  });
+
+  it("keeps credit (negative) apply amounts", () => {
+    expect(
+      paymentAllocationsPayload([invoice], {
+        [invoice.document_id]: "-5.00",
+      }),
+    ).toEqual([
+      {
+        item_type: "SALES_INVOICE",
+        item_id: invoice.document_id,
+        amount: "-5.00",
+      },
+    ]);
+  });
+
+  it("keeps credit (negative) apply amounts", () => {
+    expect(
+      paymentAllocationsPayload([invoice], {
+        [invoice.document_id]: "-5.00",
+      }),
+    ).toEqual([
+      {
+        item_type: "SALES_INVOICE",
+        item_id: invoice.document_id,
+        amount: "-5.00",
       },
     ]);
   });

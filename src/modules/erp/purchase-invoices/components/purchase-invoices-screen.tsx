@@ -177,7 +177,7 @@ export function PurchaseInvoicesScreen() {
     <ListPage>
       <PageHeader
         title="Purchase invoices"
-        subtitle="Supplier bills. Posting moves AP and GRNI, not stock."
+        subtitle="Supplier bills. Posting updates payables and goods received not invoiced; stock does not move."
         actions={
           canCreate ? (
             <div className="flex flex-wrap gap-2">
@@ -222,6 +222,7 @@ export function PurchaseInvoicesScreen() {
           placeholder="Search purchase invoices…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -237,6 +238,7 @@ export function PurchaseInvoicesScreen() {
           ]}
         />
         <FilterSelect
+          label="Supplier"
           className="w-48"
           placeholder="Supplier"
           value={filters.supplier_id ?? ALL}

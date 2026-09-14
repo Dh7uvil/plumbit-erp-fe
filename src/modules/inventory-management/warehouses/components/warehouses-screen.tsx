@@ -120,6 +120,7 @@ export function WarehousesScreen() {
           placeholder="Search warehouses…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
@@ -133,6 +134,7 @@ export function WarehousesScreen() {
           ]}
         />
         <FilterSelect
+          label="Default"
           className="w-36"
           placeholder="Default"
           value={filters.is_default ?? ALL}

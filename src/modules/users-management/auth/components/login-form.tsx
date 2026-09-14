@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/shared/lib/zod-resolver";
 import { AlertCircle, AtSign, Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,6 +12,7 @@ import { useLogin } from "@/modules/users-management/auth/mutations";
 import { LoginFormSchema, type LoginFormValues } from "@/modules/users-management/auth/schemas";
 import { useAuthBrandSelection } from "@/modules/users-management/auth/components/auth-brand";
 import { TenantOrgOption } from "@/modules/users-management/tenants/components/tenant-org-option";
+import { writeLastTenantId } from "@/modules/users-management/tenants/last-tenant";
 import { findOrganizationTenantId } from "@/modules/users-management/tenants/organization";
 import { useTenants } from "@/modules/users-management/tenants/queries";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
@@ -74,6 +75,7 @@ export function LoginForm() {
     setFormError(null);
     try {
       await login.mutateAsync(values);
+      writeLastTenantId(values.tenant_id);
       router.replace(resolvePostLoginPath(searchParams.get("next")));
       router.refresh();
     } catch (error) {

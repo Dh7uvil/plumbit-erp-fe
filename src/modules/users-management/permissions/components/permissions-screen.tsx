@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   grantedPermissionIds,
   matrixActionColumns,
+  matrixActionLabel,
   permissionMatrixTable,
   sameIdSet,
 } from "@/modules/users-management/permissions/matrix";
@@ -41,7 +42,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { titleCase } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
@@ -402,7 +402,7 @@ export function PermissionsScreen() {
                   key={action}
                   className={`${ACTION_COL_CLASS} text-center whitespace-normal`}
                 >
-                  {titleCase(action)}
+                  {matrixActionLabel(action)}
                 </TableHead>
               ))}
               <TableHead />

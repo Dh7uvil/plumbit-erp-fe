@@ -1,6 +1,6 @@
 "use client";
 
-import { isPositiveDecimal } from "@/shared/components/document/conversion-line-picker";
+import { isZeroDecimal } from "@/shared/lib/format";
 import {
   OPEN_ITEM_TYPE_LABELS,
   type OpenItemRow,
@@ -50,9 +50,10 @@ function fromScaled(value: bigint): string {
 export function sumMoneyStrings(values: readonly string[]): string {
   let total = ZERO;
   for (const value of values) {
-    if (isPositiveDecimal(value) || /^(?:0*(?:\.\d+)?)$/.test(value.trim())) {
-      total += toScaled(value);
+    if (!value.trim()) {
+      continue;
     }
+    total += toScaled(value);
   }
   return fromScaled(total);
 }
@@ -83,7 +84,7 @@ export function paymentAllocationsPayload(
   return items
     .map((item) => {
       const amount = (values[item.document_id] ?? "").trim();
-      if (!isPositiveDecimal(amount)) {
+      if (isZeroDecimal(amount)) {
         return null;
       }
       return {
@@ -101,7 +102,7 @@ export function defaultAllocationAmounts(
 ): Record<string, string> {
   if (preferItemId) {
     const match = items.find((item) => item.document_id === preferItemId);
-    if (match && isPositiveDecimal(match.balance)) {
+    if (match && !isZeroDecimal(match.balance)) {
       return { [match.document_id]: match.balance };
     }
   }

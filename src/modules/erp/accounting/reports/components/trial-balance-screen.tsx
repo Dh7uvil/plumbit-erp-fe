@@ -18,7 +18,7 @@ import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
@@ -38,6 +38,8 @@ export function TrialBalanceScreen() {
   const report = reportQuery.data;
   const branches = branchesQuery.data ?? [];
   const { csvPending, downloadCsv } = useReportCsv();
+  const money = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
 
   function openGeneralLedger(accountId: string) {
     const params = new URLSearchParams({
@@ -54,7 +56,7 @@ export function TrialBalanceScreen() {
   return (
     <ReportShell
       title="Trial balance"
-      subtitle="Opening, period, and closing balances in base currency"
+      subtitle="Opening, period movements, and netted closing balances in base currency"
       isBalanced={report?.is_balanced}
       csvPending={csvPending}
       onDownloadCsv={() => {
@@ -77,7 +79,8 @@ export function TrialBalanceScreen() {
           />
           <FilterSelect
             className="w-44"
-            placeholder="Branch"
+            label="Branch"
+            placeholder="All branches"
             aria-label="Filter by branch"
             value={branchId ?? ALL}
             onValueChange={(value) =>
@@ -178,24 +181,28 @@ export function TrialBalanceScreen() {
                 >
                   <TableCell className="font-mono text-sm">{line.account_code}</TableCell>
                   <TableCell>{line.account_name}</TableCell>
-                  <TableCell>{formatDecimal(line.opening_debit)}</TableCell>
-                  <TableCell>{formatDecimal(line.opening_credit)}</TableCell>
-                  <TableCell>{formatDecimal(line.period_debit)}</TableCell>
-                  <TableCell>{formatDecimal(line.period_credit)}</TableCell>
-                  <TableCell>{formatDecimal(line.closing_debit)}</TableCell>
-                  <TableCell>{formatDecimal(line.closing_credit)}</TableCell>
+                  <TableCell>{money(line.opening_debit)}</TableCell>
+                  <TableCell>{money(line.opening_credit)}</TableCell>
+                  <TableCell>{money(line.period_debit)}</TableCell>
+                  <TableCell>{money(line.period_credit)}</TableCell>
+                  <TableCell>{money(line.closing_net_debit ?? line.closing_debit)}</TableCell>
+                  <TableCell>{money(line.closing_net_credit ?? line.closing_credit)}</TableCell>
                 </TableRow>
               ))}
               <TableRow>
                 <TableCell colSpan={2} className="font-medium">
                   Totals
                 </TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.total_opening_debit)}</TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.total_opening_credit)}</TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.total_period_debit)}</TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.total_period_credit)}</TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.total_closing_debit)}</TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.total_closing_credit)}</TableCell>
+                <TableCell className="font-medium">{money(report.total_opening_debit)}</TableCell>
+                <TableCell className="font-medium">{money(report.total_opening_credit)}</TableCell>
+                <TableCell className="font-medium">{money(report.total_period_debit)}</TableCell>
+                <TableCell className="font-medium">{money(report.total_period_credit)}</TableCell>
+                <TableCell className="font-medium">
+                  {money(report.total_closing_net_debit ?? report.total_closing_debit)}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {money(report.total_closing_net_credit ?? report.total_closing_credit)}
+                </TableCell>
               </TableRow>
             </>
           )}

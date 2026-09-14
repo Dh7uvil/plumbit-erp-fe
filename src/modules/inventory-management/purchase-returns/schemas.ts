@@ -82,6 +82,7 @@ export const PurchaseReturnSchema = z.object({
   available_actions: z.array(z.string()).default([]),
   period_locked: z.boolean().default(false),
   related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
+  journal_entry_id: z.string().uuid().nullable().optional().default(null),
   lines: z.array(PurchaseReturnLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

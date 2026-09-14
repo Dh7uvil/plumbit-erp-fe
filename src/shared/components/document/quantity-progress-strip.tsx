@@ -1,7 +1,7 @@
 "use client";
 
 import type { QuantityProgress } from "@/shared/components/document/schemas";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 
 export function QuantityProgressStrip({
   progress,
@@ -25,7 +25,7 @@ export function QuantityProgressStrip({
       {items.map((item) => (
         <div key={item.label} className="flex flex-col gap-0.5">
           <dt className="text-muted-foreground text-xs">{item.label}</dt>
-          <dd className="text-sm tabular-nums">{formatDecimal(item.value)}</dd>
+          <dd className="text-sm tabular-nums">{formatQuantity(item.value)}</dd>
         </div>
       ))}
     </dl>

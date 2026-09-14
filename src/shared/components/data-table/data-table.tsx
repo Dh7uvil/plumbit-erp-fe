@@ -22,7 +22,7 @@ export function DataTable({
         <Table className={tableClassName} containerClassName="overflow-auto">
           {children}
         </Table>
-        {footer ? <div className="bg-card shrink-0 border-t">{footer}</div> : null}
+        {footer ? <div className="bg-card shrink-0 border-t empty:hidden">{footer}</div> : null}
       </Card>
     </ListPageTable>
   );

@@ -137,7 +137,7 @@ export function CustomersScreen() {
     <ListPage>
       <PageHeader
         title="Customers"
-        subtitle="Quote-ready customer master"
+        subtitle="Customers you sell to"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <ImexToolbar
@@ -178,6 +178,7 @@ export function CustomersScreen() {
           placeholder="Search customers…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
@@ -191,6 +192,7 @@ export function CustomersScreen() {
           ]}
         />
         <FilterSelect
+          label="Type"
           className="w-48"
           placeholder="Type"
           value={filters.company_type ?? ALL}

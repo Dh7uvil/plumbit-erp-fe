@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import type { PrintDocument } from "@/shared/lib/print";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatMoney, formatQuantity } from "@/shared/lib/format";
 
 function showChina(doc: PrintDocument): boolean {
   return doc.template_family.toLowerCase() === "china";
@@ -12,6 +12,7 @@ function showChina(doc: PrintDocument): boolean {
 export function PrintDocumentView({ document }: { document: PrintDocument }) {
   const china = showChina(document);
   const letterhead = document.letterhead;
+  const currency = document.currency_code || "AED";
 
   useEffect(() => {
     const timer = window.setTimeout(() => window.print(), 400);
@@ -28,7 +29,9 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
               <img src={letterhead.logo_url} alt="" className="mb-2 h-12 object-contain" />
             ) : null}
             <p className="text-lg font-semibold">{letterhead.company_name}</p>
-            {letterhead.address ? <p className="text-sm whitespace-pre-wrap">{letterhead.address}</p> : null}
+            {letterhead.address ? (
+              <p className="text-sm whitespace-pre-wrap">{letterhead.address}</p>
+            ) : null}
             <p className="text-sm">
               {[letterhead.phone, letterhead.email, letterhead.website].filter(Boolean).join(" · ")}
             </p>
@@ -94,32 +97,32 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
                 <td className="py-1.5 text-right tabular-nums">{line.carton_qty ?? ""}</td>
               ) : null}
               {china ? <td className="py-1.5">{line.packing_unit ?? ""}</td> : null}
-              <td className="py-1.5 text-right tabular-nums">{formatDecimal(line.quantity)}</td>
+              <td className="py-1.5 text-right tabular-nums">{formatQuantity(line.quantity)}</td>
               {china ? (
                 <td className="py-1.5 text-right tabular-nums">
-                  {line.cbm ? formatDecimal(line.cbm) : ""}
+                  {line.cbm ? formatQuantity(line.cbm) : ""}
                 </td>
               ) : null}
               {china ? (
                 <td className="py-1.5 text-right tabular-nums">
-                  {line.weight ? formatDecimal(line.weight) : ""}
+                  {line.weight ? formatQuantity(line.weight) : ""}
                 </td>
               ) : null}
               <td className="py-1.5 text-right tabular-nums">
-                {line.unit_price ? formatDecimal(line.unit_price) : ""}
+                {line.unit_price ? formatMoney(line.unit_price, currency) : ""}
               </td>
               {!china ? (
                 <td className="py-1.5 text-right tabular-nums">
-                  {line.taxable_amount ? formatDecimal(line.taxable_amount) : ""}
+                  {line.taxable_amount ? formatMoney(line.taxable_amount, currency) : ""}
                 </td>
               ) : null}
               {!china ? (
                 <td className="py-1.5 text-right tabular-nums">
-                  {line.tax_amount ? formatDecimal(line.tax_amount) : ""}
+                  {line.tax_amount ? formatMoney(line.tax_amount, currency) : ""}
                 </td>
               ) : null}
               <td className="py-1.5 text-right tabular-nums">
-                {line.amount ? formatDecimal(line.amount) : ""}
+                {line.amount ? formatMoney(line.amount, currency) : ""}
               </td>
             </tr>
           ))}
@@ -131,7 +134,7 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
             <>
               <dt>Subtotal</dt>
               <dd className="text-right tabular-nums">
-                {formatDecimal(document.subtotal)} {document.currency_code}
+                {formatMoney(document.subtotal, currency)}
               </dd>
             </>
           ) : null}
@@ -139,7 +142,7 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
             <>
               <dt>VAT</dt>
               <dd className="text-right tabular-nums">
-                {formatDecimal(document.tax_amount)} {document.currency_code}
+                {formatMoney(document.tax_amount, currency)}
               </dd>
             </>
           ) : null}
@@ -147,7 +150,7 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
             <>
               <dt className="font-medium">Total</dt>
               <dd className="text-right font-medium tabular-nums">
-                {formatDecimal(document.grand_total)} {document.currency_code}
+                {formatMoney(document.grand_total, currency)}
               </dd>
             </>
           ) : null}

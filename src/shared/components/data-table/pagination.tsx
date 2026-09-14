@@ -31,11 +31,13 @@ export function DataTablePagination({
   const to = Math.min(meta.page * meta.page_size, meta.total);
   const pages = compactPageItems(meta.page, totalPages);
 
+  if (meta.total === 0) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col items-center justify-between gap-2 px-3 py-3 sm:flex-row">
-      <p className="text-muted-foreground shrink-0 text-xs">
-        {meta.total === 0 ? "No results" : `${from}–${to} of ${meta.total}`}
-      </p>
+      <p className="text-muted-foreground shrink-0 text-xs">{`${from}–${to} of ${meta.total}`}</p>
       <nav className="flex min-w-0 items-center gap-1" aria-label="Pagination">
         <Button
           type="button"

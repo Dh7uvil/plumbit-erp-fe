@@ -1,7 +1,7 @@
 import { ZodError } from "zod";
 import { NextResponse } from "next/server";
 
-import { ApiError, isApiError } from "@/shared/api/errors";
+import { isApiError } from "@/shared/api/errors";
 import { reportError } from "@/integrations/error-reporting/report";
 
 export function bffSuccess(data: null = null): NextResponse {
@@ -53,11 +53,4 @@ export function bffError(error: unknown): NextResponse {
 
 export function isValidationError(error: unknown): boolean {
   return error instanceof ZodError || (isApiError(error) && error.code === "VALIDATION_ERROR");
-}
-
-export function isBenignForgotFailure(error: unknown): boolean {
-  if (error instanceof ApiError) {
-    return error.status < 500 && error.code !== "VALIDATION_ERROR";
-  }
-  return false;
 }

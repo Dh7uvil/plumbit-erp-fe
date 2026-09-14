@@ -19,7 +19,10 @@ export const PURCHASE_ORDER_WORKFLOW_ACTIONS = [
 export type PurchaseOrderWorkflowAction = (typeof PURCHASE_ORDER_WORKFLOW_ACTIONS)[number];
 
 export const PURCHASE_ORDER_ACTION_REGISTRY: DocumentActionSpec<PurchaseOrderWorkflowAction>[] = [
-  { action: "submit", label: "Submit", permission: purchaseOrderPermissions.update },
+  { action: "submit", label: "Submit", permission: purchaseOrderPermissions.update,
+    confirmCopy: (documentNumber) =>
+      `${documentNumber} will be sent for approval. No email is dispatched.`,
+  },
   {
     action: "approve",
     label: "Approve",

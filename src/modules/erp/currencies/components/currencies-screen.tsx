@@ -120,6 +120,7 @@ export function CurrenciesScreen() {
           placeholder="Search currencies…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
@@ -133,6 +134,7 @@ export function CurrenciesScreen() {
           ]}
         />
         <FilterSelect
+          label="Base"
           className="w-36"
           placeholder="Base"
           value={filters.is_base ?? ALL}

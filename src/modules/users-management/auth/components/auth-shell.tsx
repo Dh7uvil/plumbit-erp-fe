@@ -20,9 +20,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <aside className="bg-primary text-primary-foreground hidden w-[420px] shrink-0 flex-col items-center justify-center p-12 lg:flex">
           <AuthBrandMark />
           <p className="text-primary-foreground/60 mt-2 text-center text-sm">
-            Internal Enterprise Resource Planning
-            <br />
-            &amp; Customer Relationship Management
+            Internal Enterprise Resource Planning &amp; Customer Relationship Management
           </p>
           <ul className="mt-12 flex w-full max-w-xs flex-col gap-4">
             {HIGHLIGHTS.map(({ icon: Icon, label }) => (

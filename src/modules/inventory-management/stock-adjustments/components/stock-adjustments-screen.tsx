@@ -196,6 +196,7 @@ export function StockAdjustmentsScreen() {
           placeholder="Search adjustments…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -211,6 +212,7 @@ export function StockAdjustmentsScreen() {
           ]}
         />
         <FilterSelect
+          label="Warehouse"
           className="w-48"
           placeholder="Warehouse"
           value={filters.warehouse_id ?? ALL}

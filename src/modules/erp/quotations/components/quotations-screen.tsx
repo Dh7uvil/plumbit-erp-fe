@@ -141,7 +141,7 @@ export function QuotationsScreen() {
     <ListPage>
       <PageHeader
         title="Quotations"
-        subtitle="Customer quotes with server-side totals"
+        subtitle="Customer quotes"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <ImexToolbar
@@ -172,6 +172,7 @@ export function QuotationsScreen() {
           placeholder="Search quotations…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -187,6 +188,7 @@ export function QuotationsScreen() {
           ]}
         />
         <FilterSelect
+          label="Customer"
           className="w-48"
           placeholder="Customer"
           value={filters.customer_id ?? ALL}

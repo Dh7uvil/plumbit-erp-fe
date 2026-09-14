@@ -164,6 +164,7 @@ export function SuppliersScreen() {
           placeholder="Search suppliers…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
@@ -177,6 +178,7 @@ export function SuppliersScreen() {
           ]}
         />
         <FilterSelect
+          label="Tax treatment"
           className="w-44"
           placeholder="Tax treatment"
           value={filters.tax_treatment ?? ALL}

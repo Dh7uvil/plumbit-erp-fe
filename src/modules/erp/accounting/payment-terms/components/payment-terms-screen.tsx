@@ -116,6 +116,7 @@ export function PaymentTermsScreen() {
           placeholder="Search payment terms…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}

@@ -136,6 +136,7 @@ export function PriceListsScreen() {
           placeholder="Search price lists…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
@@ -149,6 +150,7 @@ export function PriceListsScreen() {
           ]}
         />
         <FilterSelect
+          label="Type"
           className="w-40"
           placeholder="Type"
           value={filters.list_type ?? ALL}

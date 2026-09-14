@@ -47,7 +47,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           onToggle={toggleCollapsed}
           mobileOpen={mobileOpen}
           onMobileOpenChange={setMobileOpen}
-          onHelpOpen={() => setHelpOpen(true)}
           brand={(isCollapsed) => <TenantSidebarBrand collapsed={isCollapsed} />}
         />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">

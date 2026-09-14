@@ -14,10 +14,13 @@ export const TrialBalanceLineSchema = z.object({
   period_credit: DecimalStringSchema,
   closing_debit: DecimalStringSchema,
   closing_credit: DecimalStringSchema,
+  closing_net_debit: DecimalStringSchema.optional(),
+  closing_net_credit: DecimalStringSchema.optional(),
 });
 export type TrialBalanceLine = z.infer<typeof TrialBalanceLineSchema>;
 
 export const TrialBalanceSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   from_date: z.string(),
   to_date: z.string(),
   is_balanced: z.boolean(),
@@ -27,6 +30,8 @@ export const TrialBalanceSchema = z.object({
   total_period_credit: DecimalStringSchema,
   total_closing_debit: DecimalStringSchema,
   total_closing_credit: DecimalStringSchema,
+  total_closing_net_debit: DecimalStringSchema.optional(),
+  total_closing_net_credit: DecimalStringSchema.optional(),
   lines: z.array(TrialBalanceLineSchema).default([]),
 });
 export type TrialBalance = z.infer<typeof TrialBalanceSchema>;
@@ -167,13 +172,17 @@ export const AgingPartyRowSchema = AgingBucketTotalsSchema.extend({
   party_id: z.string().uuid(),
   party_name: z.string(),
   currency_id: z.string().uuid().nullable().optional().default(null),
+  currency_code: z.string().nullable().optional().default(null),
+  base: AgingBucketTotalsSchema.nullable().optional().default(null),
 });
 export type AgingPartyRow = z.infer<typeof AgingPartyRowSchema>;
 
 export const AgingSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   as_of: z.string(),
   rows: z.array(AgingPartyRowSchema).default([]),
   totals: AgingBucketTotalsSchema,
+  base_totals: AgingBucketTotalsSchema.nullable().optional().default(null),
 });
 export type Aging = z.infer<typeof AgingSchema>;
 
@@ -381,6 +390,7 @@ export const ProfitAndLossLineSchema = z.object({
 export type ProfitAndLossLine = z.infer<typeof ProfitAndLossLineSchema>;
 
 export const ProfitAndLossSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   from_date: z.string(),
   to_date: z.string(),
   comparative_from: z.string().nullable().optional().default(null),
@@ -407,6 +417,7 @@ export const BalanceSheetLineSchema = z.object({
 export type BalanceSheetLine = z.infer<typeof BalanceSheetLineSchema>;
 
 export const BalanceSheetSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   as_of: z.string(),
   comparative_as_of: z.string().nullable().optional().default(null),
   total_assets: DecimalStringSchema,
@@ -431,6 +442,7 @@ export const CashFlowLineSchema = z.object({
 export type CashFlowLine = z.infer<typeof CashFlowLineSchema>;
 
 export const CashFlowSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   from_date: z.string(),
   to_date: z.string(),
   comparative_from: z.string().nullable().optional().default(null),
@@ -483,6 +495,7 @@ export const Vat201BoxSchema = z.object({
 export type Vat201Box = z.infer<typeof Vat201BoxSchema>;
 
 export const Vat201Schema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   from_date: z.string(),
   to_date: z.string(),
   recoverable_input_vat: DecimalStringSchema,
@@ -597,6 +610,7 @@ export type DashboardCreditBreach = z.infer<typeof DashboardCreditBreachSchema>;
 
 export const DashboardSchema = z.object({
   as_of: z.string(),
+  currency_code: z.string().nullable().optional().default(null),
   open_ar: DecimalStringSchema,
   open_ap: DecimalStringSchema,
   overdue_ar_count: z.number().int(),

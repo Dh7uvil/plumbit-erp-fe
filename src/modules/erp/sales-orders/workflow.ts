@@ -20,7 +20,10 @@ export const SALES_ORDER_WORKFLOW_ACTIONS = [
 export type SalesOrderWorkflowAction = (typeof SALES_ORDER_WORKFLOW_ACTIONS)[number];
 
 export const SALES_ORDER_ACTION_REGISTRY: DocumentActionSpec<SalesOrderWorkflowAction>[] = [
-  { action: "submit", label: "Submit", permission: salesOrderPermissions.update },
+  { action: "submit", label: "Submit", permission: salesOrderPermissions.update,
+    confirmCopy: (documentNumber) =>
+      `${documentNumber} will be sent for approval. No email is dispatched.`,
+  },
   {
     action: "approve",
     label: "Approve",

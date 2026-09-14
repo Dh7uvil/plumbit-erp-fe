@@ -22,6 +22,7 @@ import { QUALITY_INSPECTION_ACTION_REGISTRY } from "@/modules/inventory-manageme
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
@@ -114,6 +115,7 @@ function QualityInspectionDetailLoaded({
       backLabel="Back to inspections"
       title={number ?? "Quality inspection"}
       subtitle={number ? undefined : "Number not assigned yet"}
+      code={number}
       listHref="/quality-inspections"
       viewHref={viewHref}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
@@ -174,7 +176,12 @@ function QualityInspectionDetailLoaded({
             revision={inspection.version}
           />
         }
-        panels={<RelatedDocumentsCard documents={inspection.related_documents} />}
+        panels={
+          <>
+            <RelatedDocumentsCard documents={inspection.related_documents} />
+            <DocumentLedgerCard journalEntryId={inspection.journal_entry_id} />
+          </>
+        }
       >
       <QualityInspectionForm
         inspection={inspection}

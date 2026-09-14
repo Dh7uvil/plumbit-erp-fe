@@ -189,7 +189,7 @@ export function PurchaseOrdersScreen() {
     <ListPage>
       <PageHeader
         title="Purchase orders"
-        subtitle="Supplier orders with server-side totals"
+        subtitle="Supplier orders"
         actions={
           canCreate ? (
             <div className="flex flex-wrap gap-2">
@@ -227,6 +227,7 @@ export function PurchaseOrdersScreen() {
           placeholder="Search purchase orders…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -242,6 +243,7 @@ export function PurchaseOrdersScreen() {
           ]}
         />
         <FilterSelect
+          label="Supplier"
           className="w-48"
           placeholder="Supplier"
           value={filters.supplier_id ?? ALL}

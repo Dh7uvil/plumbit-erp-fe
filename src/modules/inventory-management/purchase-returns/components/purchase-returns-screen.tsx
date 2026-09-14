@@ -102,6 +102,7 @@ export function PurchaseReturnsScreen() {
           placeholder="Search purchase returns…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}

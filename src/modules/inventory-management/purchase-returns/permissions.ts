@@ -4,4 +4,5 @@ export const purchaseReturnPermissions = {
   update: "purchase.purchase_return.update",
   delete: "purchase.purchase_return.delete",
   post: "purchase.purchase_return.post",
+  cancel: "purchase.purchase_return.cancel",
 } as const;

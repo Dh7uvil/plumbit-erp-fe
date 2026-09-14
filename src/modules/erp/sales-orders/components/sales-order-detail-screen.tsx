@@ -11,6 +11,7 @@ import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sa
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
 import { SalesOrderTrackerCard } from "@/modules/erp/sales-orders/components/sales-order-tracker-card";
 import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
+import { salesOrderHasRemainingToInvoice } from "@/modules/erp/sales-orders/remaining";
 import { useConfirmSalesOrder } from "@/modules/erp/sales-orders/mutations";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrder } from "@/modules/erp/sales-orders/queries";
@@ -120,11 +121,14 @@ function SalesOrderDetailLoaded({
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [proformaOpen, setProformaOpen] = useState(false);
   const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
+  const canCreateInvoice =
+    (salesOrder.status === "CONFIRMED" || salesOrder.status === "CLOSED") &&
+    salesOrderHasRemainingToInvoice(salesOrder);
   const workflowActions = appendMissingActions(
-    salesOrder.available_actions,
-    salesOrder.status === "CONFIRMED" || salesOrder.status === "CLOSED"
-      ? ["create_sales_invoice"]
-      : [],
+    salesOrder.available_actions.filter(
+      (action) => action !== "create_sales_invoice" || canCreateInvoice,
+    ),
+    canCreateInvoice ? ["create_sales_invoice"] : [],
   );
 
   async function handleAction(action: SalesOrderWorkflowAction, extras: DocumentWorkflowExtras) {
@@ -149,6 +153,7 @@ function SalesOrderDetailLoaded({
       backLabel="Back to sales orders"
       title={number ?? "Sales order"}
       subtitle={number ? undefined : "Number not assigned yet"}
+      code={number}
       listHref="/sales-orders"
       viewHref={viewHref}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}

@@ -160,6 +160,7 @@ export function ProductsScreen() {
           placeholder="Search products…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
@@ -173,6 +174,7 @@ export function ProductsScreen() {
           ]}
         />
         <FilterSelect
+          label="Type"
           className="w-36"
           placeholder="Type"
           value={filters.item_type ?? ALL}

@@ -47,7 +47,6 @@ export const LogoutRequestSchema = z.object({
   refresh_token: z.string().min(1),
 });
 
-// Assumed endpoints — isolate until OpenAPI documents forgot/reset password.
 export const ForgotPasswordRequestSchema = z.object({
   tenant_id: z.string().uuid(),
   email: z.string().min(3).max(255),

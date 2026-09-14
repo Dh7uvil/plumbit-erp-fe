@@ -41,7 +41,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal, formatMoney } from "@/shared/lib/format";
+import { formatMoney, formatQuantity } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/cn";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -111,7 +111,7 @@ function qtyCell(value: string, emphasizeNegative = false) {
   const negative = emphasizeNegative && qtyIsNegative(value);
   return (
     <span className={cn("tabular-nums", negative && "text-destructive font-medium")}>
-      {formatDecimal(value)}
+      {formatQuantity(value)}
     </span>
   );
 }
@@ -169,6 +169,7 @@ export function StockScreen() {
           placeholder="Search SKU, product, or warehouse…"
         />
         <FilterSelect
+          label="Warehouse"
           className="w-48"
           placeholder="Warehouse"
           value={filters.warehouse_id ?? ALL}

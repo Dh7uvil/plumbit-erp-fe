@@ -15,6 +15,8 @@ import {
 
 import { Label } from "@/shared/components/ui/label";
 import { cn } from "@/shared/lib/cn";
+import { getResolverSchema } from "@/shared/lib/zod-resolver";
+import { isFieldVisuallyRequired } from "@/shared/lib/zod-required";
 
 const Form = FormProvider;
 
@@ -79,8 +81,35 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
+function useFieldRequired(explicit?: boolean) {
+  const { name } = useFormField();
+  const form = useFormContext();
+  if (explicit != null) {
+    return explicit;
+  }
+  if (!name || !form?.control) {
+    return false;
+  }
+  try {
+    const resolver = (form.control as { _options?: { resolver?: unknown } })._options?.resolver;
+    const schema = getResolverSchema(resolver);
+    if (!schema) {
+      return false;
+    }
+    return isFieldVisuallyRequired(schema, name);
+  } catch {
+    return false;
+  }
+}
+
+function FormLabel({
+  className,
+  children,
+  required,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root> & { required?: boolean }) {
   const { error, formItemId } = useFormField();
+  const isRequired = useFieldRequired(required);
 
   return (
     <Label
@@ -89,12 +118,23 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
       className={cn("data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
       {...props}
-    />
+    >
+      {children}
+      {isRequired ? (
+        <span className="text-destructive ms-0.5 font-medium" aria-hidden="true">
+          *
+        </span>
+      ) : null}
+    </Label>
   );
 }
 
-function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
+function FormControl({
+  required,
+  ...props
+}: React.ComponentProps<typeof Slot> & { required?: boolean }) {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+  const isRequired = useFieldRequired(required);
 
   return (
     <Slot
@@ -102,6 +142,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
       id={formItemId}
       aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
       aria-invalid={!!error}
+      aria-required={isRequired || undefined}
       {...props}
     />
   );
