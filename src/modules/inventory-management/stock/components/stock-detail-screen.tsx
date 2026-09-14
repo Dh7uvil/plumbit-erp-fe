@@ -6,7 +6,11 @@ import { useState } from "react";
 import { useProduct } from "@/modules/inventory-management/products/queries";
 import { StockReorderDialog } from "@/modules/inventory-management/stock/components/stock-reorder-dialog";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
-import { useStock, useStockLayers, useStockMovements } from "@/modules/inventory-management/stock/queries";
+import {
+  useStock,
+  useStockLayers,
+  useStockMovements,
+} from "@/modules/inventory-management/stock/queries";
 import {
   qtyIsBelowReorder,
   qtyIsNegative,
@@ -37,7 +41,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDateTime, formatDecimal, formatMoney } from "@/shared/lib/format";
+import { formatDate, formatDateTime, formatMoney, formatQuantity } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/cn";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -109,10 +113,10 @@ function StockBalanceLayers({
                     ) : null}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatDecimal(layer.qty_received)}
+                    {formatQuantity(layer.qty_received)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatDecimal(layer.qty_remaining)}
+                    {formatQuantity(layer.qty_remaining)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatMoney(layer.unit_cost, currencyCode)}
@@ -267,25 +271,25 @@ export function StockDetailScreen({ productId }: { productId: string }) {
                           ) : null}
                         </TableCell>
                         <TableCell className={cn("text-right", qtyClass(row.qty_on_hand, true))}>
-                          {formatDecimal(row.qty_on_hand)}
+                          {formatQuantity(row.qty_on_hand)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {formatDecimal(row.qty_quality_hold)}
+                          {formatQuantity(row.qty_quality_hold)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {formatDecimal(row.qty_reserved)}
+                          {formatQuantity(row.qty_reserved)}
                         </TableCell>
                         <TableCell className={cn("text-right", qtyClass(row.qty_available, true))}>
-                          {formatDecimal(row.qty_available)}
+                          {formatQuantity(row.qty_available)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {formatDecimal(row.qty_incoming)}
+                          {formatQuantity(row.qty_incoming)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {formatDecimal(row.qty_outgoing)}
+                          {formatQuantity(row.qty_outgoing)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {formatDecimal(row.qty_in_transit)}
+                          {formatQuantity(row.qty_in_transit)}
                         </TableCell>
                         {canReadCost ? (
                           <>
@@ -298,8 +302,8 @@ export function StockDetailScreen({ productId }: { productId: string }) {
                           </>
                         ) : null}
                         <TableCell className="text-right tabular-nums">
-                          {formatDecimal(row.reorder_level)}
-                          {row.reorder_qty ? ` / ${formatDecimal(row.reorder_qty)}` : ""}
+                          {formatQuantity(row.reorder_level)}
+                          {row.reorder_qty ? ` / ${formatQuantity(row.reorder_qty)}` : ""}
                         </TableCell>
                         {canUpdate ? (
                           <TableCell>
@@ -329,11 +333,7 @@ export function StockDetailScreen({ productId }: { productId: string }) {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {balances.map((balance) => (
-              <StockBalanceLayers
-                key={balance.id}
-                balance={balance}
-                currencyCode={currencyCode}
-              />
+              <StockBalanceLayers key={balance.id} balance={balance} currencyCode={currencyCode} />
             ))}
           </CardContent>
         </Card>
@@ -398,13 +398,13 @@ export function StockDetailScreen({ productId }: { productId: string }) {
                       <TableCell>{movement.warehouse_code}</TableCell>
                       <TableCell>{STOCK_MOVEMENT_TYPE_LABELS[movement.movement_type]}</TableCell>
                       <TableCell className={cn("text-right", qtyClass(movement.qty, true))}>
-                        {formatDecimal(movement.qty)}
+                        {formatQuantity(movement.qty)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {formatDecimal(movement.qty_before)}
+                        {formatQuantity(movement.qty_before)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {formatDecimal(movement.qty_after)}
+                        {formatQuantity(movement.qty_after)}
                       </TableCell>
                       {canReadCost ? (
                         <>

@@ -12,7 +12,13 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatReportMoney } from "@/shared/lib/format";
 
@@ -27,7 +33,7 @@ export function Vat201Screen() {
   const reportQuery = useVat201(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
-  const formatDecimal = (value: string | null | undefined) =>
+  const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
 
   return (
@@ -106,23 +112,21 @@ export function Vat201Screen() {
                   <TableCell>
                     <RecordLink href={vat201BoxRegisterHref(box, from, to)}>{box.label}</RecordLink>
                   </TableCell>
-                  <TableCell>{formatDecimal(box.net_amount)}</TableCell>
-                  <TableCell>{formatDecimal(box.tax_amount)}</TableCell>
+                  <TableCell>{money(box.net_amount)}</TableCell>
+                  <TableCell>{money(box.tax_amount)}</TableCell>
                 </TableRow>
               ))}
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Recoverable input VAT
                 </TableCell>
-                <TableCell className="font-medium">
-                  {formatDecimal(report.recoverable_input_vat)}
-                </TableCell>
+                <TableCell className="font-medium">{money(report.recoverable_input_vat)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Net VAT
                 </TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.net_vat)}</TableCell>
+                <TableCell className="font-medium">{money(report.net_vat)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">

@@ -12,8 +12,14 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { formatDate, formatDecimal, humanizeEnum } from "@/shared/lib/format";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
+import { formatDate, formatQuantity, humanizeEnum } from "@/shared/lib/format";
 
 const COLUMN_COUNT = 8;
 
@@ -89,12 +95,14 @@ export function ThreeWayMatchScreen() {
                 </TableCell>
                 <TableCell>{formatDate(line.order_date)}</TableCell>
                 <TableCell>
-                  <RecordLink href={`/suppliers/${line.supplier_id}`}>{line.supplier_name}</RecordLink>
+                  <RecordLink href={`/suppliers/${line.supplier_id}`}>
+                    {line.supplier_name}
+                  </RecordLink>
                 </TableCell>
                 <TableCell>{line.description}</TableCell>
-                <TableCell className="tabular-nums">{formatDecimal(line.ordered_qty)}</TableCell>
-                <TableCell className="tabular-nums">{formatDecimal(line.received_qty)}</TableCell>
-                <TableCell className="tabular-nums">{formatDecimal(line.billed_qty)}</TableCell>
+                <TableCell className="tabular-nums">{formatQuantity(line.ordered_qty)}</TableCell>
+                <TableCell className="tabular-nums">{formatQuantity(line.received_qty)}</TableCell>
+                <TableCell className="tabular-nums">{formatQuantity(line.billed_qty)}</TableCell>
                 <TableCell>{humanizeEnum(line.status)}</TableCell>
               </TableRow>
             ))

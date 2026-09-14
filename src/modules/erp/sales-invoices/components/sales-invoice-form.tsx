@@ -23,7 +23,10 @@ import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/q
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { useCreateSalesInvoice, useUpdateSalesInvoice } from "@/modules/erp/sales-invoices/mutations";
+import {
+  useCreateSalesInvoice,
+  useUpdateSalesInvoice,
+} from "@/modules/erp/sales-invoices/mutations";
 import {
   DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
@@ -41,7 +44,11 @@ import {
   type SalesInvoiceLineInput,
   type SalesInvoiceUpdateRequest,
 } from "@/modules/erp/sales-invoices/schemas";
-import { emptyDocumentLine, packingFromLine, packingLineInput } from "@/shared/components/document/schemas";
+import {
+  emptyDocumentLine,
+  packingFromLine,
+  packingLineInput,
+} from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
@@ -60,6 +67,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -579,7 +587,7 @@ export function SalesInvoiceForm({
               <FormItem>
                 <FormLabel>Header discount value</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -592,7 +600,7 @@ export function SalesInvoiceForm({
               <FormItem>
                 <FormLabel>Shipping amount</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -605,7 +613,7 @@ export function SalesInvoiceForm({
               <FormItem>
                 <FormLabel>Adjustment amount</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -618,7 +626,7 @@ export function SalesInvoiceForm({
               <FormItem>
                 <FormLabel>Round off</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

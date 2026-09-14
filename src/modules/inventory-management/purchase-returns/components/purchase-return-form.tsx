@@ -12,7 +12,10 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { useGoodsReceipt, useGoodsReceipts } from "@/modules/inventory-management/goods-receipts/queries";
+import {
+  useGoodsReceipt,
+  useGoodsReceipts,
+} from "@/modules/inventory-management/goods-receipts/queries";
 import { goodsReceiptDisplayNumber } from "@/modules/inventory-management/goods-receipts/schemas";
 import {
   useCreatePurchaseReturn,
@@ -45,6 +48,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -55,7 +59,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
 function todayIsoDate(): string {
@@ -332,7 +336,7 @@ export function PurchaseReturnForm({
                             "Line"}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          {receiptLine ? formatDecimal(receiptLine.quantity) : "—"}
+                          {receiptLine ? formatQuantity(receiptLine.quantity) : "—"}
                         </td>
                         <td className="w-28 px-3 py-2 align-top">
                           <FormField
@@ -341,8 +345,8 @@ export function PurchaseReturnForm({
                             render={({ field: qtyField }) => (
                               <FormItem>
                                 <FormControl>
-                                  <Input
-                                    inputMode="decimal"
+                                  <DecimalInput
+                                    kind="quantity"
                                     className="text-right"
                                     disabled={disabled}
                                     aria-label={`Line ${index + 1} quantity`}

@@ -10,7 +10,7 @@ import { documentStatusTone } from "@/shared/components/document/document-status
 import type { RelatedDocumentRef } from "@/shared/components/document/schemas";
 import { Badge, StatusBadge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatDate, formatDecimal, humanizeEnum } from "@/shared/lib/format";
+import { formatDate, formatFixedDecimal, formatQuantity, humanizeEnum } from "@/shared/lib/format";
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   source: "Source",
@@ -72,12 +72,12 @@ export function RelatedDocumentsCard({
                 ) : null}
                 {document.quantity_summary ? (
                   <span className="text-muted-foreground text-xs">
-                    {formatDecimal(document.quantity_summary)}
+                    {formatQuantity(document.quantity_summary)}
                   </span>
                 ) : null}
                 {document.amount_summary ? (
                   <span className="text-muted-foreground text-xs">
-                    {formatDecimal(document.amount_summary)}
+                    {formatFixedDecimal(document.amount_summary)}
                   </span>
                 ) : null}
               </li>

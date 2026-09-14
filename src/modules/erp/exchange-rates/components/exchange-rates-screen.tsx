@@ -28,6 +28,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { formatDecimal } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["From currency", "Rate to base", "Effective date"] as const;
 const SORT_FIELDS = [
@@ -203,10 +204,10 @@ export function ExchangeRatesScreen() {
                       className="cursor-pointer hover:underline"
                       onClick={() => openView(rate)}
                     >
-                      {rate.rate}
+                      {formatDecimal(rate.rate)}
                     </button>
                   ) : (
-                    rate.rate
+                    formatDecimal(rate.rate)
                   )}
                 </TableCell>
                 <TableCell>{rate.effective_date}</TableCell>

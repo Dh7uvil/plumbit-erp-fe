@@ -37,6 +37,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
@@ -247,7 +248,7 @@ export function SupplierProductForm({
               <FormItem>
                 <FormLabel>Price</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

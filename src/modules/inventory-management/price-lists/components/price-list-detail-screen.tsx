@@ -45,6 +45,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -245,7 +246,7 @@ export function PriceListDetailScreen({
                       <FormItem>
                         <FormLabel>Percent</FormLabel>
                         <FormControl>
-                          <Input inputMode="decimal" disabled={!isEdit} {...field} />
+                          <DecimalInput kind="percent" disabled={!isEdit} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -316,8 +317,8 @@ export function PriceListDetailScreen({
                 </div>
                 <div className="w-36">
                   <p className="mb-1.5 text-sm font-medium">Rate</p>
-                  <Input
-                    inputMode="decimal"
+                  <DecimalInput
+                    kind="money"
                     value={rate}
                     onChange={(event) => setRate(event.target.value)}
                   />

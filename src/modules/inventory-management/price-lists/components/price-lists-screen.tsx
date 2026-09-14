@@ -40,6 +40,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { formatPercent } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["Name", "Type", "Currency", "Percent", "Status"] as const;
 const SORT_FIELDS = [
@@ -267,7 +268,9 @@ export function PriceListsScreen() {
                   </RecordLink>
                 </TableCell>
                 <TableCell>{currencyLabelById.get(priceList.currency_id) ?? "—"}</TableCell>
-                <TableCell>{priceList.percent ?? "—"}</TableCell>
+                <TableCell>
+                  {priceList.percent != null ? formatPercent(priceList.percent) : "—"}
+                </TableCell>
                 <TableCell>
                   <ActiveBadge active={priceList.is_active} />
                 </TableCell>

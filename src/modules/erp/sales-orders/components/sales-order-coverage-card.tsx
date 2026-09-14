@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function SalesOrderCoverageCard({ salesOrder }: { salesOrder: SalesOrder }) {
@@ -50,7 +50,10 @@ export function SalesOrderCoverageCard({ salesOrder }: { salesOrder: SalesOrder 
           <AlertDescription>
             Confirmation reserved what was available.{" "}
             {shortfalls
-              .map((row) => `${formatDecimal(row.shortfall)} short of ${formatDecimal(row.requested)}`)
+              .map(
+                (row) =>
+                  `${formatQuantity(row.shortfall)} short of ${formatQuantity(row.requested)}`,
+              )
               .join("; ")}
             . This did not block the order.
           </AlertDescription>
@@ -112,35 +115,37 @@ export function SalesOrderCoverageCard({ salesOrder }: { salesOrder: SalesOrder 
                   <TableRow key={line.sales_order_line_id}>
                     <TableCell>{line.description || "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatDecimal(line.quantity)}
+                      {formatQuantity(line.quantity)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatDecimal(line.qty_reserved)}
+                      {formatQuantity(line.qty_reserved)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatDecimal(line.qty_delivered)}
+                      {formatQuantity(line.qty_delivered)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatDecimal(line.qty_returned)}
+                      {formatQuantity(line.qty_returned)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatDecimal(line.qty_covered)}
+                      {formatQuantity(line.qty_covered)}
                     </TableCell>
                     <TableCell className="text-right">
                       {isQtyUncovered(line.qty_uncovered) ? (
-                        <Badge variant="warning">{formatDecimal(line.qty_uncovered)}</Badge>
+                        <Badge variant="warning">{formatQuantity(line.qty_uncovered)}</Badge>
                       ) : (
-                        <span className="tabular-nums">{formatDecimal(line.qty_uncovered)}</span>
+                        <span className="tabular-nums">{formatQuantity(line.qty_uncovered)}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatDecimal(line.qty_received)}
+                      {formatQuantity(line.qty_received)}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {line.purchase_orders.map((order) => (
                           <Badge key={order.id} variant="outline" asChild>
-                            <Link href={`/purchase-orders/${order.id}`}>{order.document_number}</Link>
+                            <Link href={`/purchase-orders/${order.id}`}>
+                              {order.document_number}
+                            </Link>
                           </Badge>
                         ))}
                       </div>

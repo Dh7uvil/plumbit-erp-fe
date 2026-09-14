@@ -11,9 +11,15 @@ import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity, formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function StockMovementReportScreen() {
@@ -91,7 +97,10 @@ export function StockMovementReportScreen() {
           ) : !report || report.lines.length === 0 ? (
             <TableRow>
               <TableCell colSpan={columnCount}>
-                <DataTableEmpty title="No movement" message="No posted stock movement in this range." />
+                <DataTableEmpty
+                  title="No movement"
+                  message="No posted stock movement in this range."
+                />
               </TableCell>
             </TableRow>
           ) : (
@@ -107,31 +116,43 @@ export function StockMovementReportScreen() {
                   <TableCell>
                     <RecordLink href={`/stock/${line.product_id}`}>{line.product_name}</RecordLink>
                   </TableCell>
-                  <TableCell>{formatDecimal(line.opening_qty)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatDecimal(line.opening_value)}</TableCell> : null}
-                  <TableCell>{formatDecimal(line.qty_in)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatDecimal(line.value_in)}</TableCell> : null}
-                  <TableCell>{formatDecimal(line.qty_out)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatDecimal(line.value_out)}</TableCell> : null}
-                  <TableCell>{formatDecimal(line.closing_qty)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatDecimal(line.closing_value)}</TableCell> : null}
+                  <TableCell>{formatQuantity(line.opening_qty)}</TableCell>
+                  {canSeeCost ? (
+                    <TableCell>{formatReportMoney(line.opening_value)}</TableCell>
+                  ) : null}
+                  <TableCell>{formatQuantity(line.qty_in)}</TableCell>
+                  {canSeeCost ? <TableCell>{formatReportMoney(line.value_in)}</TableCell> : null}
+                  <TableCell>{formatQuantity(line.qty_out)}</TableCell>
+                  {canSeeCost ? <TableCell>{formatReportMoney(line.value_out)}</TableCell> : null}
+                  <TableCell>{formatQuantity(line.closing_qty)}</TableCell>
+                  {canSeeCost ? (
+                    <TableCell>{formatReportMoney(line.closing_value)}</TableCell>
+                  ) : null}
                 </TableRow>
               ))}
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Totals
                 </TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.total_opening_qty)}</TableCell>
+                <TableCell className="font-medium">
+                  {formatQuantity(report.total_opening_qty)}
+                </TableCell>
                 {canSeeCost ? (
-                  <TableCell className="font-medium">{formatDecimal(report.total_opening_value)}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatReportMoney(report.total_opening_value)}
+                  </TableCell>
                 ) : null}
                 <TableCell />
                 {canSeeCost ? <TableCell /> : null}
                 <TableCell />
                 {canSeeCost ? <TableCell /> : null}
-                <TableCell className="font-medium">{formatDecimal(report.total_closing_qty)}</TableCell>
+                <TableCell className="font-medium">
+                  {formatQuantity(report.total_closing_qty)}
+                </TableCell>
                 {canSeeCost ? (
-                  <TableCell className="font-medium">{formatDecimal(report.total_closing_value)}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatReportMoney(report.total_closing_value)}
+                  </TableCell>
                 ) : null}
               </TableRow>
             </>

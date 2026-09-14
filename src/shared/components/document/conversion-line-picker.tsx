@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 import type { ConversionLineInput } from "@/shared/components/document/schemas";
-import { Input } from "@/shared/components/ui/input";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 
 const POSITIVE_DECIMAL = /^(?:0*[1-9]\d*(?:\.\d+)?|0+\.\d*[1-9]\d*)$/;
 
@@ -90,7 +90,9 @@ export function ConversionLinePicker({
 
   if (!hasRemaining) {
     return (
-      <p className="text-muted-foreground text-sm">No remaining quantity is available to convert.</p>
+      <p className="text-muted-foreground text-sm">
+        No remaining quantity is available to convert.
+      </p>
     );
   }
 
@@ -116,18 +118,20 @@ export function ConversionLinePicker({
                   <span>{line.description || "—"}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-right tabular-nums">{formatDecimal(line.quantity)}</TableCell>
               <TableCell className="text-right tabular-nums">
-                {formatDecimal(line.qty_converted)}
+                {formatQuantity(line.quantity)}
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {formatDecimal(line.qty_remaining)}
+                {formatQuantity(line.qty_converted)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatQuantity(line.qty_remaining)}
               </TableCell>
               <TableCell className="text-right">
-                <Input
+                <DecimalInput
+                  kind="quantity"
                   id={`convert-qty-${line.id}`}
                   aria-label={`Line ${line.line_number} quantity to convert`}
-                  inputMode="decimal"
                   className="ml-auto w-24 text-right"
                   value={values[line.id] ?? ""}
                   disabled={!remaining}

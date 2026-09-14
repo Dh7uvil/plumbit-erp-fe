@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 
 import { creditControlPermissions } from "@/modules/erp/credit-control/permissions";
 import { getErrorMessage, isApiError } from "@/shared/api/errors";
-import { formatDecimal, humanizeEnum } from "@/shared/lib/format";
+import { formatReportMoney, humanizeEnum } from "@/shared/lib/format";
 import type { DocumentWarning } from "@/shared/components/document/schemas";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert";
@@ -23,7 +23,7 @@ function warningDetails(warning: DocumentWarning): string | null {
         return null;
       }
       const label = key === "this_document" ? "This document" : humanizeEnum(key);
-      return `${label} ${formatDecimal(value.trim())}`;
+      return `${label} ${formatReportMoney(value.trim())}`;
     })
     .filter((part): part is string => Boolean(part));
   return parts.length ? parts.join(". ") : null;

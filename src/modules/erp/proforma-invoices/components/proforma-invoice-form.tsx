@@ -23,11 +23,18 @@ import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/q
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { emptyDocumentLine, packingFromLine, packingLineInput } from "@/shared/components/document/schemas";
+import {
+  emptyDocumentLine,
+  packingFromLine,
+  packingLineInput,
+} from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { MilestonesEditor } from "@/modules/erp/proforma-invoices/components/milestones-editor";
-import { useCreateProformaInvoice, useUpdateProformaInvoice } from "@/modules/erp/proforma-invoices/mutations";
+import {
+  useCreateProformaInvoice,
+  useUpdateProformaInvoice,
+} from "@/modules/erp/proforma-invoices/mutations";
 import { useProformaInvoiceComposeDefaults } from "@/modules/erp/proforma-invoices/queries";
 import {
   DISCOUNT_TYPE_LABELS,
@@ -73,6 +80,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -134,7 +142,10 @@ function optionalIncoterm(value: string): Incoterm | null {
   return INCOTERMS.includes(value as Incoterm) ? (value as Incoterm) : null;
 }
 
-function toMilestoneInput(row: ProformaInvoiceMilestoneFormValues, index: number): ProformaInvoiceMilestoneInput {
+function toMilestoneInput(
+  row: ProformaInvoiceMilestoneFormValues,
+  index: number,
+): ProformaInvoiceMilestoneInput {
   const sequence = Number.parseInt(row.sequence, 10);
   return {
     sequence: Number.isFinite(sequence) ? sequence : index + 1,
@@ -142,7 +153,8 @@ function toMilestoneInput(row: ProformaInvoiceMilestoneFormValues, index: number
     trigger: row.trigger as ProformaInvoiceMilestoneInput["trigger"],
     percent: row.mode === "percent" ? row.value.trim() || null : null,
     amount: row.mode === "amount" ? row.value.trim() || null : null,
-    net_days: row.trigger === "NET_DAYS" && row.net_days.trim() ? Number.parseInt(row.net_days, 10) : null,
+    net_days:
+      row.trigger === "NET_DAYS" && row.net_days.trim() ? Number.parseInt(row.net_days, 10) : null,
     due_date: emptyToNull(row.due_date),
     notes: emptyToNull(row.notes),
   };
@@ -719,7 +731,7 @@ export function ProformaInvoiceForm({
               <FormItem>
                 <FormLabel>Header discount value</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -732,7 +744,7 @@ export function ProformaInvoiceForm({
               <FormItem>
                 <FormLabel>Shipping amount</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -745,7 +757,7 @@ export function ProformaInvoiceForm({
               <FormItem>
                 <FormLabel>Adjustment amount</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

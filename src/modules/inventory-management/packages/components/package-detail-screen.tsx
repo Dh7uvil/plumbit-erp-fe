@@ -33,7 +33,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 
 export function PackageDetailScreen({
   packageId,
@@ -180,7 +180,8 @@ function PackageDetailLoaded({
           <div className="flex flex-col gap-2 text-sm">
             <p>Carton {pkg.package_number ?? "—"}</p>
             <p>
-              {pkg.length ?? "—"} × {pkg.width ?? "—"} × {pkg.height ?? "—"} {pkg.dimension_unit ?? ""}
+              {pkg.length ?? "—"} × {pkg.width ?? "—"} × {pkg.height ?? "—"}{" "}
+              {pkg.dimension_unit ?? ""}
             </p>
             <p>
               Gross {pkg.gross_weight ?? "—"} / Net {pkg.net_weight ?? "—"} {pkg.weight_unit ?? ""}
@@ -189,7 +190,7 @@ function PackageDetailLoaded({
             <ul className="list-disc pl-5">
               {pkg.lines.map((line) => (
                 <li key={line.id}>
-                  {formatDecimal(line.quantity)} · line {line.line_number}
+                  {formatQuantity(line.quantity)} · line {line.line_number}
                 </li>
               ))}
             </ul>

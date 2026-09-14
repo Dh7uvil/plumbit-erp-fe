@@ -18,7 +18,7 @@ import {
   type DocumentHistoryColumn,
 } from "@/shared/components/document/document-history-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatQuantity, formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function ProductCustomersCard({ productId }: { productId: string }) {
@@ -42,7 +42,7 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
         id: "qty",
         header: "Qty",
         className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatDecimal(row.total_quantity)}</span>,
+        cell: (row) => <span className="tabular-nums">{formatQuantity(row.total_quantity)}</span>,
       },
       {
         id: "invoiced",
@@ -50,7 +50,7 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
         className: "text-right",
         cell: (row) => (
           <span className="tabular-nums">
-            {row.invoiced_quantity != null ? formatDecimal(row.invoiced_quantity) : "—"}
+            {row.invoiced_quantity != null ? formatQuantity(row.invoiced_quantity) : "—"}
           </span>
         ),
       },
@@ -59,7 +59,9 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
         header: "Revenue",
         className: "text-right",
         cell: (row) => (
-          <span className="tabular-nums">{row.revenue != null ? formatDecimal(row.revenue) : "—"}</span>
+          <span className="tabular-nums">
+            {row.revenue != null ? formatReportMoney(row.revenue) : "—"}
+          </span>
         ),
       },
       {
@@ -82,7 +84,7 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
         id: "rate",
         header: "Last rate",
         className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatDecimal(row.last_rate)}</span>,
+        cell: (row) => <span className="tabular-nums">{formatReportMoney(row.last_rate)}</span>,
       },
     ],
     [],
@@ -184,7 +186,7 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
         id: "qty",
         header: "Qty",
         className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatDecimal(row.total_quantity)}</span>,
+        cell: (row) => <span className="tabular-nums">{formatQuantity(row.total_quantity)}</span>,
       },
       {
         id: "invoiced",
@@ -192,7 +194,7 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
         className: "text-right",
         cell: (row) => (
           <span className="tabular-nums">
-            {row.invoiced_quantity != null ? formatDecimal(row.invoiced_quantity) : "—"}
+            {row.invoiced_quantity != null ? formatQuantity(row.invoiced_quantity) : "—"}
           </span>
         ),
       },
@@ -201,7 +203,9 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
         header: "Revenue",
         className: "text-right",
         cell: (row) => (
-          <span className="tabular-nums">{row.revenue != null ? formatDecimal(row.revenue) : "—"}</span>
+          <span className="tabular-nums">
+            {row.revenue != null ? formatReportMoney(row.revenue) : "—"}
+          </span>
         ),
       },
       {
@@ -224,7 +228,7 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
         id: "rate",
         header: "Last rate",
         className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatDecimal(row.last_rate)}</span>,
+        cell: (row) => <span className="tabular-nums">{formatReportMoney(row.last_rate)}</span>,
       },
     ],
     [],

@@ -4,7 +4,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { reportsApi } from "@/modules/erp/accounting/reports/api";
-import { InventoryReportFilters, todayIsoDate } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
+import {
+  InventoryReportFilters,
+  todayIsoDate,
+} from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { useStockValuation } from "@/modules/erp/accounting/reports/queries";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -13,9 +16,15 @@ import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatQuantity, formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function StockValuationScreen() {
@@ -109,19 +118,23 @@ export function StockValuationScreen() {
                     <RecordLink href={`/stock/${line.product_id}`}>{line.product_name}</RecordLink>
                   </TableCell>
                   <TableCell>{formatDate(line.document_date)}</TableCell>
-                  <TableCell>{formatDecimal(line.qty_remaining)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatDecimal(line.landed_unit_cost)}</TableCell> : null}
-                  {canSeeCost ? <TableCell>{formatDecimal(line.stock_value)}</TableCell> : null}
+                  <TableCell>{formatQuantity(line.qty_remaining)}</TableCell>
+                  {canSeeCost ? (
+                    <TableCell>{formatReportMoney(line.landed_unit_cost)}</TableCell>
+                  ) : null}
+                  {canSeeCost ? <TableCell>{formatReportMoney(line.stock_value)}</TableCell> : null}
                 </TableRow>
               ))}
               <TableRow>
                 <TableCell colSpan={4} className="font-medium">
                   Totals
                 </TableCell>
-                <TableCell className="font-medium">{formatDecimal(report.total_qty)}</TableCell>
+                <TableCell className="font-medium">{formatQuantity(report.total_qty)}</TableCell>
                 {canSeeCost ? <TableCell /> : null}
                 {canSeeCost ? (
-                  <TableCell className="font-medium">{formatDecimal(report.total_value)}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatReportMoney(report.total_value)}
+                  </TableCell>
                 ) : null}
               </TableRow>
             </>

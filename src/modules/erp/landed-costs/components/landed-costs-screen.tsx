@@ -44,7 +44,7 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["Number", "Date", "Method", "Charges", "Status"] as const;
 const ALL = "all";
@@ -93,7 +93,12 @@ export function LandedCostsScreen() {
         actions={
           canCreate ? (
             <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setComposeOpen(true)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setComposeOpen(true)}
+              >
                 From bills
               </Button>
               <Button type="button" size="sm" asChild>
@@ -169,7 +174,10 @@ export function LandedCostsScreen() {
               <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No landed costs"
-                  message={emptyListMessage(canCreate, "Create a landed cost from a posted expense bill.")}
+                  message={emptyListMessage(
+                    canCreate,
+                    "Create a landed cost from a posted expense bill.",
+                  )}
                 />
               </TableCell>
             </TableRow>
@@ -183,8 +191,10 @@ export function LandedCostsScreen() {
                     <RecordLink href={href}>{number ?? "Draft"}</RecordLink>
                   </TableCell>
                   <TableCell>{formatDate(row.document_date)}</TableCell>
-                  <TableCell>{LANDED_COST_ALLOCATION_METHOD_LABELS[row.allocation_method]}</TableCell>
-                  <TableCell>{formatDecimal(row.total_charges)}</TableCell>
+                  <TableCell>
+                    {LANDED_COST_ALLOCATION_METHOD_LABELS[row.allocation_method]}
+                  </TableCell>
+                  <TableCell>{formatReportMoney(row.total_charges)}</TableCell>
                   <TableCell>
                     <DocumentStatusBadge
                       status={row.status}
@@ -197,9 +207,7 @@ export function LandedCostsScreen() {
                       <DataTableRowActions
                         entityName={number ?? "landed cost"}
                         viewHref={canRead ? href : undefined}
-                        editHref={
-                          canUpdate && row.status === "DRAFT" ? `${href}/edit` : undefined
-                        }
+                        editHref={canUpdate && row.status === "DRAFT" ? `${href}/edit` : undefined}
                         onDelete={
                           canDelete && row.available_actions.includes("delete")
                             ? () => setDeleting(row)

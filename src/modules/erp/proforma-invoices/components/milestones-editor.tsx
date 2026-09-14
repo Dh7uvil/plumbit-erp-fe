@@ -13,6 +13,7 @@ import {
 } from "@/modules/erp/proforma-invoices/schemas";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -28,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatPercent, formatReportMoney } from "@/shared/lib/format";
 
 export function MilestonesEditor({
   form,
@@ -82,28 +83,31 @@ export function MilestonesEditor({
         ) : null}
       </div>
       {totals.mixed ? (
-        <p className="text-destructive text-sm">Use percent or amount on every milestone, not both.</p>
+        <p className="text-destructive text-sm">
+          Use percent or amount on every milestone, not both.
+        </p>
       ) : null}
       {percentOff ? (
         <p className="text-destructive text-sm">
-          Percentages currently sum to {formatDecimal(String(totals.percentSum))} and must total 100.
+          Percentages currently sum to {formatPercent(String(totals.percentSum))} and must total
+          100.
         </p>
       ) : null}
       {amountOff ? (
         <p className="text-destructive text-sm">
-          Amounts currently sum to {formatDecimal(String(totals.amountSum))} and must equal the grand
-          total.
+          Amounts currently sum to {formatReportMoney(String(totals.amountSum))} and must equal the
+          grand total.
         </p>
       ) : null}
       {!totals.mixed && totals.mode === "percent" && !percentOff && totals.percentSum !== null ? (
         <p className="text-muted-foreground text-sm">
-          Running total {formatDecimal(String(totals.percentSum))}% of 100%.
+          Running total {formatPercent(String(totals.percentSum))} of 100%.
         </p>
       ) : null}
       {!totals.mixed && totals.mode === "amount" && totals.amountSum !== null ? (
         <p className="text-muted-foreground text-sm">
-          Running total {formatDecimal(String(totals.amountSum))}
-          {grandTotal ? ` of ${formatDecimal(grandTotal)}` : ""}.
+          Running total {formatReportMoney(String(totals.amountSum))}
+          {grandTotal ? ` of ${formatReportMoney(grandTotal)}` : ""}.
         </p>
       ) : null}
       <div className="overflow-x-auto">
@@ -216,7 +220,11 @@ export function MilestonesEditor({
                       render={({ field: valueField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input inputMode="decimal" disabled={disabled} {...valueField} />
+                            <DecimalInput
+                              kind={milestones[index]?.mode === "percent" ? "percent" : "money"}
+                              disabled={disabled}
+                              {...valueField}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

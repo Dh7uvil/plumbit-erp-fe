@@ -12,8 +12,14 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
+import { formatDate, formatQuantity, formatReportMoney } from "@/shared/lib/format";
 
 const COLUMN_COUNT = 6;
 
@@ -90,11 +96,15 @@ export function ReceivedNotBilledScreen() {
                 </TableCell>
                 <TableCell>{formatDate(line.document_date)}</TableCell>
                 <TableCell>
-                  <RecordLink href={`/suppliers/${line.supplier_id}`}>{line.supplier_name}</RecordLink>
+                  <RecordLink href={`/suppliers/${line.supplier_id}`}>
+                    {line.supplier_name}
+                  </RecordLink>
                 </TableCell>
                 <TableCell>{line.description}</TableCell>
-                <TableCell className="tabular-nums">{formatDecimal(line.outstanding_qty)}</TableCell>
-                <TableCell className="tabular-nums">{formatDecimal(line.amount)}</TableCell>
+                <TableCell className="tabular-nums">
+                  {formatQuantity(line.outstanding_qty)}
+                </TableCell>
+                <TableCell className="tabular-nums">{formatReportMoney(line.amount)}</TableCell>
               </TableRow>
             ))
           )}

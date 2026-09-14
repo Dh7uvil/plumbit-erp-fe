@@ -12,7 +12,10 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { useGoodsReceipt, useGoodsReceipts } from "@/modules/inventory-management/goods-receipts/queries";
+import {
+  useGoodsReceipt,
+  useGoodsReceipts,
+} from "@/modules/inventory-management/goods-receipts/queries";
 import { qtyIsPositive } from "@/modules/inventory-management/goods-receipts/schemas";
 import {
   useCreateQualityInspection,
@@ -43,6 +46,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -53,7 +57,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -86,10 +90,7 @@ function toLineInput(line: QualityInspectionLineFormValues): QualityInspectionLi
   };
 }
 
-function emptyInspectionLine(
-  goodsReceiptLineId = "",
-  qty = "",
-): QualityInspectionLineFormValues {
+function emptyInspectionLine(goodsReceiptLineId = "", qty = ""): QualityInspectionLineFormValues {
   return {
     goods_receipt_line_id: goodsReceiptLineId,
     qty_inspected: qty,
@@ -354,15 +355,10 @@ export function QualityInspectionForm({
                             "Line"}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          {receiptLine ? formatDecimal(receiptLine.qty_on_hold) : "—"}
+                          {receiptLine ? formatQuantity(receiptLine.qty_on_hold) : "—"}
                         </td>
                         {(
-                          [
-                            "qty_inspected",
-                            "qty_accepted",
-                            "qty_rejected",
-                            "qty_rework",
-                          ] as const
+                          ["qty_inspected", "qty_accepted", "qty_rejected", "qty_rework"] as const
                         ).map((name) => (
                           <td key={name} className="w-28 px-3 py-2 align-top">
                             <FormField
@@ -371,8 +367,8 @@ export function QualityInspectionForm({
                               render={({ field: qtyField }) => (
                                 <FormItem>
                                   <FormControl>
-                                    <Input
-                                      inputMode="decimal"
+                                    <DecimalInput
+                                      kind="quantity"
                                       className="text-right"
                                       disabled={disabled}
                                       aria-label={`Line ${index + 1} ${name.replace("qty_", "")}`}

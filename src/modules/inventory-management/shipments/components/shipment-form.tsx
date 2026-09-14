@@ -41,6 +41,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -324,7 +325,7 @@ export function ShipmentForm({
               <FormItem>
                 <FormLabel>Gross weight</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -337,7 +338,7 @@ export function ShipmentForm({
               <FormItem>
                 <FormLabel>Net weight</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

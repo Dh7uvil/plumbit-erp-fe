@@ -22,6 +22,7 @@ import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   TableBody,
@@ -30,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 function partyTypeFor(account: Account | undefined): "CUSTOMER" | "SUPPLIER" | null {
@@ -161,8 +162,8 @@ export function JournalLinesEditor({
                       render={({ field: debitField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input
-                              inputMode="decimal"
+                            <DecimalInput
+                              kind="money"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} debit`}
                               {...debitField}
@@ -186,8 +187,8 @@ export function JournalLinesEditor({
                       render={({ field: creditField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input
-                              inputMode="decimal"
+                            <DecimalInput
+                              kind="money"
                               disabled={disabled}
                               aria-label={`Line ${index + 1} credit`}
                               {...creditField}
@@ -225,9 +226,11 @@ export function JournalLinesEditor({
                                   partyType === "CUSTOMER" ? "Create customer" : "Create supplier"
                                 }
                                 onCreate={
-                                  (partyType === "CUSTOMER"
-                                    ? can(customerPermissions.create)
-                                    : can(supplierPermissions.create))
+                                  (
+                                    partyType === "CUSTOMER"
+                                      ? can(customerPermissions.create)
+                                      : can(supplierPermissions.create)
+                                  )
                                     ? () => setCreatingParty({ type: partyType, index })
                                     : undefined
                                 }
@@ -321,12 +324,12 @@ export function JournalLinesEditor({
             })}
             <TableRow>
               <TableCell className="font-medium">Totals</TableCell>
-              <TableCell className="font-medium">{formatDecimal(totals.totalDebit)}</TableCell>
-              <TableCell className="font-medium">{formatDecimal(totals.totalCredit)}</TableCell>
+              <TableCell className="font-medium">{formatReportMoney(totals.totalDebit)}</TableCell>
+              <TableCell className="font-medium">{formatReportMoney(totals.totalCredit)}</TableCell>
               <TableCell colSpan={5} className="text-muted-foreground text-xs">
                 {totals.isBalanced
                   ? "Balanced"
-                  : `Difference ${formatDecimal(totals.difference)} (server confirms on post)`}
+                  : `Difference ${formatReportMoney(totals.difference)} (server confirms on post)`}
               </TableCell>
             </TableRow>
           </TableBody>

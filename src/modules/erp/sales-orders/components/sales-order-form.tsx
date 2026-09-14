@@ -27,7 +27,10 @@ import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { useCreateSalesOrder, useUpdateSalesOrder } from "@/modules/erp/sales-orders/mutations";
-import { useCustomerPoDuplicates, useSalesOrderComposeDefaults } from "@/modules/erp/sales-orders/queries";
+import {
+  useCustomerPoDuplicates,
+  useSalesOrderComposeDefaults,
+} from "@/modules/erp/sales-orders/queries";
 import {
   DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
@@ -68,6 +71,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -512,12 +516,10 @@ export function SalesOrderForm({
                   />
                 </FormControl>
                 {duplicatesQuery.data && duplicatesQuery.data.length > 0 ? (
-                  <p className="text-amber-700 text-sm dark:text-amber-400">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
                     This customer already has this PO on{" "}
-                    {duplicatesQuery.data
-                      .map((row) => row.document_number)
-                      .join(", ")}
-                    . You can still save.
+                    {duplicatesQuery.data.map((row) => row.document_number).join(", ")}. You can
+                    still save.
                   </p>
                 ) : null}
                 <FormMessage />
@@ -757,7 +759,7 @@ export function SalesOrderForm({
               <FormItem>
                 <FormLabel>Header discount value</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -770,7 +772,7 @@ export function SalesOrderForm({
               <FormItem>
                 <FormLabel>Shipping amount</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -783,7 +785,7 @@ export function SalesOrderForm({
               <FormItem>
                 <FormLabel>Adjustment amount</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

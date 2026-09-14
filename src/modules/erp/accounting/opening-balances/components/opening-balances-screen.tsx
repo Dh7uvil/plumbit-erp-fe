@@ -45,9 +45,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 
 const MONTH_LABELS = [
@@ -112,10 +113,7 @@ function CommittedOpeningBalances() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Opening balances"
-        subtitle="Books are live. This screen is read-only."
-      />
+      <PageHeader title="Opening balances" subtitle="Books are live. This screen is read-only." />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Committed state</CardTitle>
@@ -146,7 +144,12 @@ function CommittedOpeningBalances() {
         </CardContent>
       </Card>
       {state?.can_reset ? (
-        <Button type="button" variant="destructive" className="self-start" onClick={() => setConfirmReset(true)}>
+        <Button
+          type="button"
+          variant="destructive"
+          className="self-start"
+          onClick={() => setConfirmReset(true)}
+        >
           Reset opening balances
         </Button>
       ) : (
@@ -332,7 +335,7 @@ function OpeningBalanceWizard() {
                         <FormItem>
                           <FormLabel>Debit</FormLabel>
                           <FormControl>
-                            <Input inputMode="decimal" {...debitField} />
+                            <DecimalInput kind="money" {...debitField} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -344,7 +347,7 @@ function OpeningBalanceWizard() {
                         <FormItem>
                           <FormLabel>Credit</FormLabel>
                           <FormControl>
-                            <Input inputMode="decimal" {...creditField} />
+                            <DecimalInput kind="money" {...creditField} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -374,7 +377,13 @@ function OpeningBalanceWizard() {
                     </div>
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => glArray.append(emptyGlLine())}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => glArray.append(emptyGlLine())}
+                >
                   <Plus className="size-3.5" />
                   Add GL line
                 </Button>
@@ -416,10 +425,11 @@ function OpeningBalanceWizard() {
                         render={({ field: amountField }) => (
                           <FormItem>
                             <FormLabel>
-                              Amount{step === "ar" ? " (what they owe you)" : " (what you owe them)"}
+                              Amount
+                              {step === "ar" ? " (what they owe you)" : " (what you owe them)"}
                             </FormLabel>
                             <FormControl>
-                              <Input inputMode="decimal" {...amountField} />
+                              <DecimalInput kind="money" {...amountField} />
                             </FormControl>
                           </FormItem>
                         )}
@@ -521,10 +531,10 @@ function OpeningBalanceWizard() {
                       control={form.control}
                       name={`stock_lines.${index}.quantity`}
                       render={({ field: qtyField }) => (
-                          <FormItem>
-                            <FormLabel>Qty</FormLabel>
-                            <FormControl>
-                              <Input inputMode="decimal" {...qtyField} />
+                        <FormItem>
+                          <FormLabel>Qty</FormLabel>
+                          <FormControl>
+                            <DecimalInput kind="quantity" {...qtyField} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -533,10 +543,10 @@ function OpeningBalanceWizard() {
                       control={form.control}
                       name={`stock_lines.${index}.unit_cost`}
                       render={({ field: costField }) => (
-                          <FormItem>
-                            <FormLabel>Unit cost</FormLabel>
-                            <FormControl>
-                              <Input inputMode="decimal" {...costField} />
+                        <FormItem>
+                          <FormLabel>Unit cost</FormLabel>
+                          <FormControl>
+                            <DecimalInput kind="money" {...costField} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -576,18 +586,18 @@ function OpeningBalanceWizard() {
                   <>
                     <p className="text-sm">
                       Entry date {formatDate(preview.entry_date)}. Opening balance equity difference{" "}
-                      {formatDecimal(preview.difference)}.
+                      {formatReportMoney(preview.difference)}.
                     </p>
                     <p className="text-sm">
-                      Totals debit {formatDecimal(preview.total_debit)} / credit{" "}
-                      {formatDecimal(preview.total_credit)}. Inventory value{" "}
-                      {formatDecimal(preview.inventory_value)}.
+                      Totals debit {formatReportMoney(preview.total_debit)} / credit{" "}
+                      {formatReportMoney(preview.total_credit)}. Inventory value{" "}
+                      {formatReportMoney(preview.inventory_value)}.
                     </p>
                     <ul className="flex flex-col gap-1 text-sm">
                       {preview.lines.map((line, index) => (
                         <li key={`${line.account_id}-${index}`}>
-                          {line.account_code} {line.account_name}: Dr {formatDecimal(line.debit)} / Cr{" "}
-                          {formatDecimal(line.credit)}
+                          {line.account_code} {line.account_name}: Dr{" "}
+                          {formatReportMoney(line.debit)} / Cr {formatReportMoney(line.credit)}
                         </li>
                       ))}
                     </ul>
@@ -622,11 +632,7 @@ function OpeningBalanceWizard() {
                 Commit opening balances
               </Button>
             ) : (
-              <Button
-                type="button"
-                disabled={previewMutation.isPending}
-                onClick={next}
-              >
+              <Button type="button" disabled={previewMutation.isPending} onClick={next}>
                 {previewMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
                 {step === "stock" ? "Preview" : "Next"}
               </Button>

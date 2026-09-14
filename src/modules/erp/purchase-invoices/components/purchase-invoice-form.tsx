@@ -47,10 +47,7 @@ import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
-import {
-  emptyDocumentLine,
-  emptyExpenseDocumentLine,
-} from "@/shared/components/document/schemas";
+import { emptyDocumentLine, emptyExpenseDocumentLine } from "@/shared/components/document/schemas";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
@@ -63,6 +60,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -140,7 +138,10 @@ function toLineInput(line: PurchaseInvoiceLineFormValues): PurchaseInvoiceLineIn
   };
 }
 
-function toFormLines(invoice: PurchaseInvoice | null, billType: BillType): PurchaseInvoiceLineFormValues[] {
+function toFormLines(
+  invoice: PurchaseInvoice | null,
+  billType: BillType,
+): PurchaseInvoiceLineFormValues[] {
   const lines = invoice?.lines ?? [];
   if (lines.length === 0) {
     return [billType === "EXPENSE" ? emptyExpenseLine() : emptyProductLine()];
@@ -556,7 +557,7 @@ export function PurchaseInvoiceForm({
               <FormItem>
                 <FormLabel>Header discount value</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" disabled={disabled} {...field} />
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -587,9 +588,7 @@ export function PurchaseInvoiceForm({
             productSide="purchase"
             lineMode={isExpenseBill ? "expense" : "standard"}
             supplierCatalog={
-              isExpenseBill || !selectedSupplierId
-                ? undefined
-                : { supplierId: selectedSupplierId }
+              isExpenseBill || !selectedSupplierId ? undefined : { supplierId: selectedSupplierId }
             }
           />
         </div>

@@ -8,10 +8,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
-import {
-  useCreateLandedCost,
-  useUpdateLandedCost,
-} from "@/modules/erp/landed-costs/mutations";
+import { useCreateLandedCost, useUpdateLandedCost } from "@/modules/erp/landed-costs/mutations";
 import { useLandedCostEligible } from "@/modules/erp/landed-costs/queries";
 import {
   EXPENSE_CATEGORY_LABELS,
@@ -49,11 +46,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity, formatReportMoney } from "@/shared/lib/format";
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -76,13 +74,12 @@ function toFormValues(
     shipment_id: optionalSelect(document?.shipment_id),
     branch_id: optionalSelect(document?.branch_id),
     notes: document?.notes ?? "",
-    charges:
-      document?.charges.map((charge) => ({
-        purchase_invoice_line_id: charge.purchase_invoice_line_id,
-        amount: charge.amount,
-        bill_number: charge.bill_number,
-        expense_category: charge.expense_category,
-      })) ?? [emptyChargeForm()],
+    charges: document?.charges.map((charge) => ({
+      purchase_invoice_line_id: charge.purchase_invoice_line_id,
+      amount: charge.amount,
+      bill_number: charge.bill_number,
+      expense_category: charge.expense_category,
+    })) ?? [emptyChargeForm()],
     allocations:
       document?.allocations.map((allocation) => ({
         goods_receipt_line_id: allocation.goods_receipt_line_id,
@@ -323,7 +320,7 @@ export function LandedCostForm({
               {document.charges.map((charge) => (
                 <li key={charge.id}>
                   {charge.bill_number} · {EXPENSE_CATEGORY_LABELS[charge.expense_category]} ·{" "}
-                  {formatDecimal(charge.amount)}
+                  {formatReportMoney(charge.amount)}
                 </li>
               ))}
             </ul>
@@ -332,9 +329,7 @@ export function LandedCostForm({
             <>
               <MasterSelect
                 value={billId || OPTIONAL_SELECT_NONE}
-                onValueChange={(value) =>
-                  setBillId(value === OPTIONAL_SELECT_NONE ? "" : value)
-                }
+                onValueChange={(value) => setBillId(value === OPTIONAL_SELECT_NONE ? "" : value)}
                 placeholder="Add lines from a posted bill"
                 searchPlaceholder="Search bill…"
                 options={[
@@ -376,9 +371,9 @@ export function LandedCostForm({
                     />
                     <span>
                       {line.description || line.expense_category || "Expense"} ·{" "}
-                      {formatDecimal(line.amount)}
+                      {formatReportMoney(line.amount)}
                       {line.landed_cost_remaining != null
-                        ? ` · remaining ${formatDecimal(line.landed_cost_remaining)}`
+                        ? ` · remaining ${formatReportMoney(line.landed_cost_remaining)}`
                         : ""}
                     </span>
                   </label>
@@ -388,9 +383,7 @@ export function LandedCostForm({
                 <div key={field.id} className="flex items-center gap-2">
                   <Input
                     value={
-                      charges[index]?.bill_number ||
-                      charges[index]?.purchase_invoice_line_id ||
-                      ""
+                      charges[index]?.bill_number || charges[index]?.purchase_invoice_line_id || ""
                     }
                     readOnly
                   />
@@ -400,7 +393,7 @@ export function LandedCostForm({
                     render={({ field: amountField }) => (
                       <FormItem className="flex-1">
                         <FormControl>
-                          <Input inputMode="decimal" placeholder="Amount" {...amountField} />
+                          <DecimalInput kind="money" placeholder="Amount" {...amountField} />
                         </FormControl>
                       </FormItem>
                     )}
@@ -426,13 +419,14 @@ export function LandedCostForm({
             <ul className="flex flex-col gap-1 text-sm">
               {document.allocations.map((allocation) => (
                 <li key={allocation.id}>
-                  GRN line {allocation.line_number} · base {formatDecimal(allocation.allocation_base)}{" "}
-                  · allocated {formatDecimal(allocation.allocated_amount)}
+                  GRN line {allocation.line_number} · base{" "}
+                  {formatReportMoney(allocation.allocation_base)} · allocated{" "}
+                  {formatReportMoney(allocation.allocated_amount)}
                   {allocation.qty_remaining_at_post
-                    ? ` · remaining qty ${formatDecimal(allocation.qty_remaining_at_post)}`
+                    ? ` · remaining qty ${formatQuantity(allocation.qty_remaining_at_post)}`
                     : ""}
                   {allocation.qty_consumed_at_post
-                    ? ` · consumed qty ${formatDecimal(allocation.qty_consumed_at_post)}`
+                    ? ` · consumed qty ${formatQuantity(allocation.qty_consumed_at_post)}`
                     : ""}
                 </li>
               ))}
@@ -442,9 +436,7 @@ export function LandedCostForm({
             <>
               <MasterSelect
                 value={receiptId || OPTIONAL_SELECT_NONE}
-                onValueChange={(value) =>
-                  setReceiptId(value === OPTIONAL_SELECT_NONE ? "" : value)
-                }
+                onValueChange={(value) => setReceiptId(value === OPTIONAL_SELECT_NONE ? "" : value)}
                 placeholder="Add lines from a posted GRN"
                 searchPlaceholder="Search goods receipt…"
                 options={[
@@ -460,7 +452,10 @@ export function LandedCostForm({
                   (allocation) => allocation.goods_receipt_line_id === line.goods_receipt_line_id,
                 );
                 return (
-                  <label key={line.goods_receipt_line_id} className="flex items-start gap-2 text-sm">
+                  <label
+                    key={line.goods_receipt_line_id}
+                    className="flex items-start gap-2 text-sm"
+                  >
                     <Checkbox
                       checked={selected}
                       onCheckedChange={(checked) => {
@@ -486,7 +481,7 @@ export function LandedCostForm({
                     />
                     <span>
                       {line.goods_receipt_number} · {line.description} · qty{" "}
-                      {formatDecimal(line.quantity)} · value {formatDecimal(line.line_value)}
+                      {formatQuantity(line.quantity)} · value {formatReportMoney(line.line_value)}
                     </span>
                   </label>
                 );
@@ -529,8 +524,8 @@ export function LandedCostForm({
         </section>
         {document ? (
           <p className="text-muted-foreground text-sm">
-            Total charges {formatDecimal(document.total_charges)}. Allocation amounts are calculated
-            by the server.
+            Total charges {formatReportMoney(document.total_charges)}. Allocation amounts are
+            calculated by the server.
           </p>
         ) : null}
         {disabled ? null : (

@@ -47,6 +47,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import {
@@ -57,7 +58,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -251,7 +252,9 @@ export function DeliveryNoteForm({
                   placeholder="Use sales order warehouse"
                   searchPlaceholder="Search warehouse…"
                   createLabel="Create warehouse"
-                  onCreate={can(warehousePermissions.create) ? () => setCreating("warehouse") : undefined}
+                  onCreate={
+                    can(warehousePermissions.create) ? () => setCreating("warehouse") : undefined
+                  }
                   options={[
                     { value: OPTIONAL_SELECT_NONE, label: "Use sales order warehouse" },
                     ...warehouses.map((warehouse) => ({
@@ -395,7 +398,7 @@ export function DeliveryNoteForm({
                 <TableRow key={field.id}>
                   <TableCell>{watchedLines?.[index]?.description || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatDecimal(watchedLines?.[index]?.outstanding || "0")}
+                    {formatQuantity(watchedLines?.[index]?.outstanding || "0")}
                   </TableCell>
                   <TableCell>
                     <FormField
@@ -404,7 +407,7 @@ export function DeliveryNoteForm({
                       render={({ field: qtyField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input disabled={disabled} inputMode="decimal" {...qtyField} />
+                            <DecimalInput kind="quantity" disabled={disabled} {...qtyField} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -418,7 +421,7 @@ export function DeliveryNoteForm({
                       render={({ field: rateField }) => (
                         <FormItem>
                           <FormControl>
-                            <Input disabled={disabled} inputMode="decimal" {...rateField} />
+                            <DecimalInput kind="money" disabled={disabled} {...rateField} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

@@ -3,7 +3,7 @@
 import { EXPENSE_CATEGORY_LABELS } from "@/modules/erp/purchase-invoices/schemas";
 import type { PurchaseInvoice } from "@/modules/erp/purchase-invoices/schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatReportMoney } from "@/shared/lib/format";
 
 export function PurchaseInvoiceLandedCostCard({ invoice }: { invoice: PurchaseInvoice }) {
   const expenseLines = invoice.lines.filter((line) => line.line_type === "EXPENSE");
@@ -25,17 +25,15 @@ export function PurchaseInvoiceLandedCostCard({ invoice }: { invoice: PurchaseIn
                   ? EXPENSE_CATEGORY_LABELS[line.expense_category]
                   : line.description}
               </span>
+              <span className="text-muted-foreground">amount {formatReportMoney(line.amount)}</span>
               <span className="text-muted-foreground">
-                amount {formatDecimal(line.amount)}
-              </span>
-              <span className="text-muted-foreground">
-                allocated {formatDecimal(line.landed_cost_allocated ?? "0")}
+                allocated {formatReportMoney(line.landed_cost_allocated ?? "0")}
               </span>
               <span className="text-muted-foreground">
                 remaining{" "}
                 {line.landed_cost_remaining == null
                   ? "—"
-                  : formatDecimal(line.landed_cost_remaining)}
+                  : formatReportMoney(line.landed_cost_remaining)}
               </span>
             </li>
           ))}

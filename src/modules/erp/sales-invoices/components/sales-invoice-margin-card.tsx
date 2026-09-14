@@ -4,7 +4,7 @@ import { historyPermissions } from "@/modules/inventory-management/history/permi
 import { useSalesInvoiceMargin } from "@/modules/erp/sales-invoices/queries";
 import { COGS_STATUS_LABELS, type SalesInvoice } from "@/modules/erp/sales-invoices/schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatDecimal, formatMoney } from "@/shared/lib/format";
+import { formatMoney, formatPercent } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function SalesInvoiceMarginCard({
@@ -52,7 +52,7 @@ export function SalesInvoiceMarginCard({
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Margin %</span>
               <span className="tabular-nums">
-                {margin.margin_percent != null ? formatDecimal(margin.margin_percent) : "—"}
+                {margin.margin_percent != null ? formatPercent(margin.margin_percent) : "—"}
               </span>
             </div>
             <p className="text-muted-foreground">

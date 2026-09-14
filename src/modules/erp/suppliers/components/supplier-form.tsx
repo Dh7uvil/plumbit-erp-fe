@@ -52,6 +52,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -451,7 +452,7 @@ export function SupplierForm({
                 <FormItem>
                   <FormLabel>Credit limit</FormLabel>
                   <FormControl>
-                    <Input inputMode="decimal" disabled={disabled} {...field} />
+                    <DecimalInput kind="money" disabled={disabled} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

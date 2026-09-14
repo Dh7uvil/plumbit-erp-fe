@@ -15,9 +15,15 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
 const COLUMN_COUNT = 6;
 
@@ -112,10 +118,16 @@ export function ExportEvidenceExceptionsScreen() {
                 </TableCell>
                 <TableCell>{formatDate(line.invoice_date)}</TableCell>
                 <TableCell>
-                  <RecordLink href={`/customers/${line.customer_id}`}>{line.customer_name}</RecordLink>
+                  <RecordLink href={`/customers/${line.customer_id}`}>
+                    {line.customer_name}
+                  </RecordLink>
                 </TableCell>
-                <TableCell className="tabular-nums">{formatDecimal(line.grand_total)}</TableCell>
-                <TableCell className={line.overdue ? "text-destructive tabular-nums" : "tabular-nums"}>
+                <TableCell className="tabular-nums">
+                  {formatReportMoney(line.grand_total)}
+                </TableCell>
+                <TableCell
+                  className={line.overdue ? "text-destructive tabular-nums" : "tabular-nums"}
+                >
                   {line.days_elapsed}
                   {line.overdue ? " overdue" : ""}
                 </TableCell>

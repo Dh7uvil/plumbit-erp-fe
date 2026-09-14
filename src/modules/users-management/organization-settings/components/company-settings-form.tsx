@@ -44,6 +44,7 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Checkbox } from "@/shared/components/ui/checkbox";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -1046,8 +1047,8 @@ export function CompanySettingsForm() {
                       Over-receipt tolerance %
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        inputMode="decimal"
+                      <DecimalInput
+                        kind="percent"
                         disabled={!canUpdate || !isEditingRegional}
                         {...field}
                       />
