@@ -33,7 +33,6 @@ import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -259,66 +258,53 @@ export function PermissionsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar className="items-start">
-        <div className="flex w-56 flex-col items-start gap-1.5">
-          <Label htmlFor="permissions-filter-role" className="text-muted-foreground">
-            Role
-          </Label>
-          <FilterSelect
-            id="permissions-filter-role"
-            className="w-full"
-            placeholder="Select a role"
-            aria-label="Role"
-            value={selectedRoleId ?? ""}
-            onValueChange={selectRole}
-            disabled={rolesQuery.isLoading || roles.length === 0}
-            options={roles.map((role) => ({ value: role.id, label: role.name }))}
-          />
-        </div>
-        <div className="flex w-56 flex-col items-start gap-1.5">
-          <Label htmlFor="permissions-filter-module" className="text-muted-foreground">
-            Module
-          </Label>
-          <FilterSelect
-            id="permissions-filter-module"
-            className="w-full"
-            placeholder="All modules"
-            aria-label="Module"
-            value={moduleFilter}
-            onValueChange={selectModule}
-            disabled={matrixQuery.isLoading || modules.length === 0}
-            options={[
-              { value: ALL, label: "All modules" },
-              ...modules.map((module) => ({ value: module, label: module })),
-            ]}
-          />
-        </div>
-        <div className="flex items-end self-end">
-          <MoreFiltersDialog
-            extraCount={resourceFilter !== ALL ? 1 : 0}
-            draftCount={draftResource !== ALL ? 1 : 0}
-            description="Narrow the matrix by resource."
-            onOpen={() => setDraftResource(resourceFilter)}
-            onApply={() => replaceFilters({ resource: draftResource })}
-            onClearDraft={() => setDraftResource(ALL)}
-          >
-            <FilterField label="Resource" htmlFor="permissions-filter-resource">
-              <FilterSelect
-                id="permissions-filter-resource"
-                className="w-full"
-                placeholder="All resources"
-                aria-label="Resource"
-                value={draftResource}
-                onValueChange={setDraftResource}
-                disabled={matrixQuery.isLoading || resources.length === 0}
-                options={[
-                  { value: ALL, label: "All resources" },
-                  ...resources.map((resource) => ({ value: resource, label: resource })),
-                ]}
-              />
-            </FilterField>
-          </MoreFiltersDialog>
-        </div>
+      <DataTableToolbar>
+        <FilterSelect
+          id="permissions-filter-role"
+          label="Role"
+          className="w-56"
+          placeholder="Select a role"
+          value={selectedRoleId ?? ""}
+          onValueChange={selectRole}
+          disabled={rolesQuery.isLoading || roles.length === 0}
+          options={roles.map((role) => ({ value: role.id, label: role.name }))}
+        />
+        <FilterSelect
+          id="permissions-filter-module"
+          label="Module"
+          className="w-56"
+          placeholder="All modules"
+          value={moduleFilter}
+          onValueChange={selectModule}
+          disabled={matrixQuery.isLoading || modules.length === 0}
+          options={[
+            { value: ALL, label: "All modules" },
+            ...modules.map((module) => ({ value: module, label: module })),
+          ]}
+        />
+        <MoreFiltersDialog
+          extraCount={resourceFilter !== ALL ? 1 : 0}
+          draftCount={draftResource !== ALL ? 1 : 0}
+          description="Narrow the matrix by resource."
+          onOpen={() => setDraftResource(resourceFilter)}
+          onApply={() => replaceFilters({ resource: draftResource })}
+          onClearDraft={() => setDraftResource(ALL)}
+        >
+          <FilterField label="Resource" htmlFor="permissions-filter-resource">
+            <FilterSelect
+              id="permissions-filter-resource"
+              className="w-full"
+              placeholder="All resources"
+              value={draftResource}
+              onValueChange={setDraftResource}
+              disabled={matrixQuery.isLoading || resources.length === 0}
+              options={[
+                { value: ALL, label: "All resources" },
+                ...resources.map((resource) => ({ value: resource, label: resource })),
+              ]}
+            />
+          </FilterField>
+        </MoreFiltersDialog>
         {moduleFilter !== ALL || resourceFilter !== ALL ? (
           <div className="flex items-end self-end">
             <Button

@@ -131,9 +131,9 @@ export function OutboxEventsScreen() {
           placeholder="Search event, aggregate, error…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
-          aria-label="Filter by status"
           value={statusFilter}
           onValueChange={(value) => setParams({ filters: { status: value === ALL ? null : value } })}
           options={[

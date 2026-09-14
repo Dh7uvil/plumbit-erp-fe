@@ -1,5 +1,7 @@
 "use client";
 
+import { createContext, useContext, useId, type ReactNode } from "react";
+
 import {
   SearchableSelect,
   type SearchableSelectOption,
@@ -8,6 +10,12 @@ import { Label } from "@/shared/components/ui/label";
 import { cn } from "@/shared/lib/cn";
 
 export type FilterSelectOption = SearchableSelectOption;
+
+const NestedFilterLabelContext = createContext(false);
+
+export function NestedFilterLabel({ children }: { children: ReactNode }) {
+  return <NestedFilterLabelContext.Provider value={true}>{children}</NestedFilterLabelContext.Provider>;
+}
 
 export function FilterSelect({
   options,
@@ -18,6 +26,8 @@ export function FilterSelect({
   className,
   id,
   label,
+  hideLabel = false,
+  searchable,
   "aria-label": ariaLabel,
 }: {
   options: FilterSelectOption[];
@@ -28,8 +38,14 @@ export function FilterSelect({
   className?: string;
   id?: string;
   label?: string;
+  hideLabel?: boolean;
+  searchable?: boolean;
   "aria-label"?: string;
 }) {
+  const generatedId = useId();
+  const selectId = id ?? generatedId;
+  const nested = useContext(NestedFilterLabelContext);
+  const visibleLabel = hideLabel || nested ? undefined : (label ?? placeholder);
   const select = (
     <SearchableSelect
       asFormControl={false}
@@ -38,20 +54,21 @@ export function FilterSelect({
       onValueChange={onValueChange}
       disabled={disabled}
       placeholder={placeholder}
-      className={label ? undefined : className}
-      id={id}
-      aria-label={ariaLabel ?? label ?? placeholder}
+      className={visibleLabel ? undefined : className}
+      id={selectId}
+      aria-label={ariaLabel ?? visibleLabel ?? label ?? placeholder}
+      searchable={searchable}
     />
   );
 
-  if (!label) {
+  if (!visibleLabel) {
     return select;
   }
 
   return (
     <div className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <Label htmlFor={id} className="text-muted-foreground text-xs font-medium">
-        {label}
+      <Label htmlFor={selectId} className="text-muted-foreground text-xs font-medium">
+        {visibleLabel}
       </Label>
       {select}
     </div>

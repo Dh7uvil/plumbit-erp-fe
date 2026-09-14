@@ -26,7 +26,9 @@ export function PageHeader({
         {subtitle ? <p className="text-muted-foreground mt-0.5 text-sm">{subtitle}</p> : null}
       </div>
       {actions ? (
-        <div className={cn("flex shrink-0 flex-wrap items-center gap-2")}>{actions}</div>
+        <div data-page-actions className={cn("flex shrink-0 flex-wrap items-center gap-2")}>
+          {actions}
+        </div>
       ) : null}
     </div>
   );

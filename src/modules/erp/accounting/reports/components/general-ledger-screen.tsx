@@ -68,9 +68,9 @@ export function GeneralLedgerScreen() {
       toolbar={
         <>
           <FilterSelect
+            label="Account"
             className="w-64"
             placeholder="Account"
-            aria-label="Account"
             value={accountId || ALL}
             onValueChange={(value) =>
               setParams({ filters: { account_id: value === ALL ? null : value } })
@@ -93,9 +93,9 @@ export function GeneralLedgerScreen() {
             onToChange={(value) => setParams({ filters: { to: value || null } })}
           />
           <FilterSelect
+            label="Branch"
             className="w-44"
             placeholder="Branch"
-            aria-label="Filter by branch"
             value={branchId ?? ALL}
             onValueChange={(value) =>
               setParams({ filters: { branch_id: value === ALL ? null : value } })

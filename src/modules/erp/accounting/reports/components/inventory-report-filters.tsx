@@ -68,9 +68,9 @@ export function InventoryReportFilters({
         />
       ) : null}
       <FilterSelect
+        label="Warehouse"
         className="w-48"
         placeholder="Warehouse"
-        aria-label="Warehouse"
         value={warehouseId ?? ALL}
         onValueChange={(value) => onChange({ warehouse_id: value === ALL ? null : value })}
         options={[
@@ -82,9 +82,9 @@ export function InventoryReportFilters({
         ]}
       />
       <FilterSelect
+        label="Category"
         className="w-48"
         placeholder="Category"
-        aria-label="Category"
         value={categoryId ?? ALL}
         onValueChange={(value) => onChange({ category_id: value === ALL ? null : value })}
         options={[
@@ -93,9 +93,9 @@ export function InventoryReportFilters({
         ]}
       />
       <FilterSelect
+        label="Product"
         className="w-56"
         placeholder="Product"
-        aria-label="Product"
         value={productId ?? ALL}
         onValueChange={(value) => onChange({ product_id: value === ALL ? null : value })}
         options={[

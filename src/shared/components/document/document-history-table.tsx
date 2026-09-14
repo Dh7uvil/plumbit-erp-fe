@@ -31,6 +31,7 @@ export function DocumentHistoryTable<T>({
   emptyMessage,
   meta,
   onPageChange,
+  onPageSizeChange,
   toolbar,
   expandedId,
   onToggleExpand,
@@ -47,6 +48,7 @@ export function DocumentHistoryTable<T>({
   emptyMessage: string;
   meta?: PaginationMeta;
   onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   toolbar?: ReactNode;
   expandedId?: string | null;
   onToggleExpand?: (id: string) => void;
@@ -58,7 +60,17 @@ export function DocumentHistoryTable<T>({
   return (
     <div className="flex flex-col gap-3">
       {toolbar}
-      <DataTable footer={meta && onPageChange ? <DataTablePagination meta={meta} onPageChange={onPageChange} /> : null}>
+      <DataTable
+        footer={
+          meta && onPageChange ? (
+            <DataTablePagination
+              meta={meta}
+              onPageChange={onPageChange}
+              onPageSizeChange={onPageSizeChange}
+            />
+          ) : null
+        }
+      >
         <TableHeader>
           <TableRow>
             {expandEnabled ? <TableHead className="w-8" /> : null}

@@ -2,6 +2,7 @@
 
 import { FilterField } from "@/shared/components/data-table/more-filters-dialog";
 import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import { cn } from "@/shared/lib/cn";
 
 export function DateRangeFilter({
@@ -31,26 +32,36 @@ export function DateRangeFilter({
 }) {
   if (layout === "inline") {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
-        <Input
-          id={fromId}
-          type="date"
-          className="w-40"
-          value={from}
-          disabled={disabled}
-          aria-label={fromLabel}
-          onChange={(event) => onFromChange(event.target.value)}
-        />
-        <Input
-          id={toId}
-          type="date"
-          className="w-40"
-          value={to}
-          disabled={disabled}
-          min={from || undefined}
-          aria-label={toLabel}
-          onChange={(event) => onToChange(event.target.value)}
-        />
+      <div className={cn("flex flex-wrap items-end gap-2", className)}>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor={fromId} className="text-muted-foreground text-xs font-medium">
+            {fromLabel}
+          </Label>
+          <Input
+            id={fromId}
+            type="date"
+            className="w-40"
+            value={from}
+            disabled={disabled}
+            aria-label={fromLabel}
+            onChange={(event) => onFromChange(event.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor={toId} className="text-muted-foreground text-xs font-medium">
+            {toLabel}
+          </Label>
+          <Input
+            id={toId}
+            type="date"
+            className="w-40"
+            value={to}
+            disabled={disabled}
+            min={from || undefined}
+            aria-label={toLabel}
+            onChange={(event) => onToChange(event.target.value)}
+          />
+        </div>
       </div>
     );
   }

@@ -5,40 +5,170 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Search,
   X,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { APP_NAME } from "@/config/constants";
-import { findActiveNav, visibleNavigation } from "@/config/navigation";
-import { useSession } from "@/shared/providers/session-provider";
+import {
+  findActiveNav,
+  visibleNavigation,
+  type NavigationGroup,
+} from "@/config/navigation";
+import { filterCommandItems, groupCommandItems } from "@/shared/components/layout/command-palette-search";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/components/ui/sheet";
+import { FOCUS_SIDEBAR_SEARCH_EVENT } from "@/shared/lib/keyboard-shortcuts";
 import { cn } from "@/shared/lib/cn";
+import { useSession } from "@/shared/providers/session-provider";
 
-function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
-  const pathname = usePathname();
-  const { permissions } = useSession();
-  const groups = visibleNavigation(permissions);
-  const active = findActiveNav(pathname);
+function filterNavigationGroups(query: string, groups: NavigationGroup[]): NavigationGroup[] {
+  return groupCommandItems(filterCommandItems(query, groups)).map((section) => ({
+    label: section.group,
+    items: section.items.map((row) => row.item),
+  }));
+}
 
-  const [toggledGroups, setToggledGroups] = useState<Record<string, boolean>>({});
+function SidebarSearch({
+  value,
+  onChange,
+  collapsed,
+  onExpand,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  collapsed: boolean;
+  onExpand?: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [shouldFocus, setShouldFocus] = useState(false);
 
-  function isGroupOpen(label: string) {
-    if (collapsed) {
-      return true;
+  useEffect(() => {
+    if (!collapsed && shouldFocus) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      setShouldFocus(false);
     }
-    if (label in toggledGroups) {
-      return toggledGroups[label];
+  }, [collapsed, shouldFocus]);
+
+  useEffect(() => {
+    function onFocusSearch() {
+      if (collapsed) {
+        setShouldFocus(true);
+        onExpand?.();
+        return;
+      }
+      inputRef.current?.focus();
+      inputRef.current?.select();
     }
-    return true;
+    window.addEventListener(FOCUS_SIDEBAR_SEARCH_EVENT, onFocusSearch);
+    return () => window.removeEventListener(FOCUS_SIDEBAR_SEARCH_EVENT, onFocusSearch);
+  }, [collapsed, onExpand]);
+
+  if (collapsed) {
+    return (
+      <div className="flex justify-center px-1 py-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground"
+          onClick={() => {
+            setShouldFocus(true);
+            onExpand?.();
+          }}
+          aria-label="Search pages"
+        >
+          <Search className="size-4" />
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <nav className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "none" }}>
-      {groups.map((group) => {
+    <div className="relative">
+      <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2" />
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Search…"
+        aria-label="Search pages"
+        className="bg-muted/40 h-7 pr-7 pl-7 text-xs md:text-xs"
+      />
+      {value ? (
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1.5 -translate-y-1/2 cursor-pointer rounded-sm p-0.5"
+          onClick={() => {
+            onChange("");
+            inputRef.current?.focus();
+          }}
+          aria-label="Clear search"
+        >
+          <X className="size-3" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function SidebarNav({
+  collapsed,
+  groups,
+  query,
+  onNavigate,
+}: {
+  collapsed: boolean;
+  groups: NavigationGroup[];
+  query: string;
+  onNavigate?: () => void;
+}) {
+  const pathname = usePathname();
+  const active = findActiveNav(pathname);
+  const activeGroupLabel = active?.group ?? null;
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [syncedPath, setSyncedPath] = useState(pathname);
+  const isSearching = Boolean(query.trim());
+  const displayGroups = isSearching ? filterNavigationGroups(query, groups) : groups;
+
+  if (pathname !== syncedPath) {
+    setSyncedPath(pathname);
+    setOpenGroup(null);
+  }
+
+  const visibleGroup = openGroup ?? activeGroupLabel;
+
+  function isGroupOpen(label: string) {
+    if (collapsed || isSearching) {
+      return true;
+    }
+    return visibleGroup === label;
+  }
+
+  function toggleGroup(label: string) {
+    setOpenGroup((current) => {
+      const currentlyOpen = (current ?? activeGroupLabel) === label;
+      if (currentlyOpen) {
+        return activeGroupLabel === label ? label : null;
+      }
+      return label;
+    });
+  }
+
+  return (
+    <nav className="min-h-0 flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "none" }}>
+      {isSearching && displayGroups.length === 0 ? (
+        <p className="text-muted-foreground px-3 py-4 text-center text-xs">
+          No pages match “{query.trim()}”
+        </p>
+      ) : null}
+      {displayGroups.map((group) => {
         const isOpen = isGroupOpen(group.label);
         const hasActive = group.items.some((item) => item.href === active?.item.href);
         return (
@@ -46,21 +176,26 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
             {!collapsed ? (
               <button
                 type="button"
-                onClick={() =>
-                  setToggledGroups((prev) => ({
-                    ...prev,
-                    [group.label]: !isOpen,
-                  }))
-                }
+                onClick={() => {
+                  if (!isSearching) {
+                    toggleGroup(group.label);
+                  }
+                }}
+                aria-expanded={isOpen}
                 className={cn(
-                  "flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-[10px] font-semibold tracking-widest uppercase transition-colors",
+                  "flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-semibold tracking-widest uppercase transition-colors",
+                  isSearching ? "cursor-default" : "cursor-pointer",
                   hasActive
                     ? "text-primary/70"
                     : "text-muted-foreground/50 hover:text-muted-foreground",
                 )}
               >
                 <span>{group.label}</span>
-                {isOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                {isSearching ? null : isOpen ? (
+                  <ChevronUp size={11} />
+                ) : (
+                  <ChevronDown size={11} />
+                )}
               </button>
             ) : (
               <div className="border-sidebar-border mx-2 my-1 border-t" />
@@ -117,6 +252,17 @@ function SidebarChrome({
   onClose?: () => void;
   onNavigate?: () => void;
 }) {
+  const pathname = usePathname();
+  const { permissions } = useSession();
+  const groups = visibleNavigation(permissions);
+  const [query, setQuery] = useState("");
+  const [syncedPath, setSyncedPath] = useState(pathname);
+
+  if (pathname !== syncedPath) {
+    setSyncedPath(pathname);
+    setQuery("");
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div
@@ -168,7 +314,28 @@ function SidebarChrome({
           </button>
         ) : null}
       </div>
-      <SidebarNav collapsed={collapsed} onNavigate={onNavigate} />
+      <div
+        className={cn(
+          "border-sidebar-border bg-sidebar shrink-0 border-b",
+          collapsed ? undefined : "px-3 py-2",
+        )}
+      >
+        <SidebarSearch
+          value={query}
+          onChange={setQuery}
+          collapsed={collapsed}
+          onExpand={onToggle}
+        />
+      </div>
+      <SidebarNav
+        collapsed={collapsed}
+        groups={groups}
+        query={query}
+        onNavigate={() => {
+          setQuery("");
+          onNavigate?.();
+        }}
+      />
     </div>
   );
 }
@@ -194,11 +361,7 @@ export function AppSidebar({
           collapsed ? "w-14" : "w-56",
         )}
       >
-        <SidebarChrome
-          collapsed={collapsed}
-          onToggle={onToggle}
-          brand={brand?.(collapsed)}
-        />
+        <SidebarChrome collapsed={collapsed} onToggle={onToggle} brand={brand?.(collapsed)} />
       </aside>
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
         <SheetContent side="left" className="bg-sidebar w-64 p-0 sm:max-w-64">

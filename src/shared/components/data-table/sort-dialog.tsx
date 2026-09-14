@@ -1,10 +1,12 @@
 "use client";
 
 import { ArrowUpDown } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
+import { FilterField } from "@/shared/components/data-table/more-filters-dialog";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import type { SortFieldOption, SortPatch } from "@/shared/components/data-table/sort";
+import { ToolbarControl, toolbarSortButtonClass } from "@/shared/components/data-table/toolbar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -15,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { Label } from "@/shared/components/ui/label";
 import type { SortOrder } from "@/shared/hooks/use-table-params";
 
 const ALL = "all";
@@ -31,10 +32,12 @@ export function SortDialog({
   sortOrder?: SortOrder;
   onApply: (next: SortPatch) => void;
 }) {
+  const triggerId = useId();
   const [open, setOpen] = useState(false);
   const [draftField, setDraftField] = useState(ALL);
   const [draftOrder, setDraftOrder] = useState<SortOrder>("asc");
   const active = Boolean(sortBy);
+  const activeLabel = fields.find((field) => field.value === sortBy)?.label ?? "Default";
 
   function handleOpenChange(next: boolean) {
     if (next) {
@@ -60,15 +63,22 @@ export function SortDialog({
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
-        <ArrowUpDown className="size-3.5" />
-        Sort
-        {active ? (
-          <Badge variant="secondary" className="h-5 min-w-5 px-1">
-            1
-          </Badge>
-        ) : null}
-      </Button>
+      <ToolbarControl label="Sort" htmlFor={triggerId}>
+        <Button
+          id={triggerId}
+          type="button"
+          variant="outline"
+          size="sm"
+          className={toolbarSortButtonClass(active)}
+          onClick={() => handleOpenChange(true)}
+        >
+          <ArrowUpDown className="size-3.5" />
+          {activeLabel}
+          {active ? (
+            <Badge className="h-5 min-w-5 px-1">1</Badge>
+          ) : null}
+        </Button>
+      </ToolbarControl>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -76,10 +86,8 @@ export function SortDialog({
             <DialogDescription>Choose a column and sort order.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="list-sort-field">Sort by</Label>
+            <FilterField label="Sort by" htmlFor="list-sort-field">
               <FilterSelect
-                label="Sort by"
                 id="list-sort-field"
                 className="w-full"
                 placeholder="Sort by"
@@ -90,11 +98,9 @@ export function SortDialog({
                   ...fields.map((field) => ({ value: field.value, label: field.label })),
                 ]}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="list-sort-order">Order</Label>
+            </FilterField>
+            <FilterField label="Order" htmlFor="list-sort-order">
               <FilterSelect
-                label="Order"
                 id="list-sort-order"
                 className="w-full"
                 placeholder="Order"
@@ -105,7 +111,7 @@ export function SortDialog({
                   { value: "desc", label: "Descending" },
                 ]}
               />
-            </div>
+            </FilterField>
           </div>
           <DialogFooter className="gap-2 sm:justify-between">
             {active ? (

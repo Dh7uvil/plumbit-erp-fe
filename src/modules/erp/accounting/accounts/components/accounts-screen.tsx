@@ -168,9 +168,9 @@ export function AccountsScreen() {
                 placeholder="Search code, name, description…"
               />
               <FilterSelect
+                label="Type"
                 className="w-40"
                 placeholder="Type"
-                aria-label="Filter by type"
                 value={filters.account_type ?? ALL}
                 onValueChange={(value) =>
                   setParams({ filters: { account_type: value === ALL ? null : value } })
@@ -184,9 +184,9 @@ export function AccountsScreen() {
                 ]}
               />
               <FilterSelect
+                label="Status"
                 className="w-36"
                 placeholder="Status"
-                aria-label="Filter by status"
                 value={filters.is_active ?? ALL}
                 onValueChange={(value) =>
                   setParams({ filters: { is_active: value === ALL ? null : value } })

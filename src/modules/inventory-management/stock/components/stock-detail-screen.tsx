@@ -147,7 +147,7 @@ export function StockDetailScreen({ productId }: { productId: string }) {
   const balancesQuery = useStock({
     product_id: productId,
     page_size: 100,
-    sort_by: "warehouse_code",
+    sort_by: "created_at",
     sort_order: "asc",
   });
   const movementsQuery = useStockMovements({
@@ -159,7 +159,9 @@ export function StockDetailScreen({ productId }: { productId: string }) {
   });
   const [reordering, setReordering] = useState<StockBalance | null>(null);
   const product = productQuery.data;
-  const balances = balancesQuery.data?.data ?? [];
+  const balances = [...(balancesQuery.data?.data ?? [])].sort((left, right) =>
+    left.warehouse_code.localeCompare(right.warehouse_code, undefined, { numeric: true }),
+  );
   const movements = movementsQuery.data?.data ?? [];
   const movementMeta = movementsQuery.data?.meta;
 

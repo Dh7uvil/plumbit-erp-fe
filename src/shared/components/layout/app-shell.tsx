@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 
 import { AppHeader } from "@/modules/users-management/auth/components/app-header";
 import { TenantSidebarBrand } from "@/modules/users-management/tenants/components/tenant-sidebar-brand";
+import { AppKeyboardShortcuts } from "@/shared/components/layout/app-keyboard-shortcuts";
 import { BreadcrumbRecordProvider } from "@/shared/components/layout/breadcrumb-record";
 import { CommandPalette } from "@/shared/components/layout/command-palette";
 import { HelpDialog } from "@/shared/components/layout/help-dialog";
@@ -60,6 +61,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </main>
         </div>
       </div>
+      <AppKeyboardShortcuts
+        searchOpen={searchOpen}
+        onSearchOpenChange={setSearchOpen}
+        helpOpen={helpOpen}
+        onHelpOpenChange={setHelpOpen}
+        onToggleSidebar={toggleCollapsed}
+      />
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </BreadcrumbRecordProvider>

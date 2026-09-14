@@ -22,6 +22,7 @@ import {
   type AttachmentEntityType,
 } from "@/modules/users-management/attachments/schemas";
 import { ApiError, getErrorMessage } from "@/shared/api/errors";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { Button } from "@/shared/components/ui/button";
@@ -199,42 +200,36 @@ export function EntityAttachmentsPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle className="text-base">Attachments</CardTitle>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
+      <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-2">
+        <CardTitle className="self-center text-base">Attachments</CardTitle>
+        <div className="flex flex-wrap items-end gap-2">
+          <FilterSelect
+            label="Category"
+            className="w-44"
+            placeholder="Category"
             value={filterCategory}
             onValueChange={(value) => setFilterCategory(value as AttachmentCategory | "all")}
-          >
-            <SelectTrigger className="h-8 w-44" aria-label="Filter attachments">
-              <SelectValue placeholder="All categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {ATTACHMENT_CATEGORIES.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {ATTACHMENT_CATEGORY_LABELS[category]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={[
+              { value: "all", label: "All categories" },
+              ...ATTACHMENT_CATEGORIES.map((category) => ({
+                value: category,
+                label: ATTACHMENT_CATEGORY_LABELS[category],
+              })),
+            ]}
+          />
         {can(attachmentPermissions.create) ? (
-          <div className="flex items-center gap-2">
-            <Select
+          <div className="flex flex-wrap items-end gap-2">
+            <FilterSelect
+              label="Upload as"
+              className="w-44"
+              placeholder="Category"
               value={uploadCategory}
               onValueChange={(value) => setUploadCategory(value as AttachmentCategory)}
-            >
-              <SelectTrigger className="h-8 w-44" aria-label="Attachment category">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {ATTACHMENT_CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {ATTACHMENT_CATEGORY_LABELS[category]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={ATTACHMENT_CATEGORIES.map((category) => ({
+                value: category,
+                label: ATTACHMENT_CATEGORY_LABELS[category],
+              }))}
+            />
             <input
               ref={inputRef}
               type="file"
@@ -251,6 +246,7 @@ export function EntityAttachmentsPanel({
               type="button"
               size="sm"
               variant="outline"
+              className="self-end"
               disabled={createAttachment.isPending}
               onClick={() => inputRef.current?.click()}
             >
