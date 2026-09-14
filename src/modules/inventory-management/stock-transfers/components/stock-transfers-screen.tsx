@@ -185,6 +185,7 @@ export function StockTransfersScreen() {
           placeholder="Search transfers…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -200,6 +201,7 @@ export function StockTransfersScreen() {
           ]}
         />
         <FilterSelect
+          label="From warehouse"
           className="w-48"
           placeholder="From warehouse"
           value={filters.from_warehouse_id ?? ALL}

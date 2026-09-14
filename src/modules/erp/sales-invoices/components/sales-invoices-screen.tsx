@@ -184,7 +184,7 @@ export function SalesInvoicesScreen() {
     <ListPage>
       <PageHeader
         title="Sales invoices"
-        subtitle="Customer invoices. Posting moves AR, not stock."
+        subtitle="Customer invoices. Posting updates receivables; stock moves on delivery notes."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <ImexToolbar
@@ -264,6 +264,7 @@ export function SalesInvoicesScreen() {
           placeholder="Search sales invoices…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -279,6 +280,7 @@ export function SalesInvoicesScreen() {
           ]}
         />
         <FilterSelect
+          label="Customer"
           className="w-48"
           placeholder="Customer"
           value={filters.customer_id ?? ALL}

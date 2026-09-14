@@ -138,7 +138,7 @@ export function CustomerPaymentsScreen() {
     <ListPage>
       <PageHeader
         title="Customer payments"
-        subtitle="Bank receipts against invoices, opening AR, and advances. Posting moves cash; leftover sits as an advance."
+        subtitle="Bank receipts against invoices and advances. Leftover amount stays as a customer advance."
         actions={
           canCreate ? (
             <Button type="button" size="sm" asChild>
@@ -157,6 +157,7 @@ export function CustomerPaymentsScreen() {
           placeholder="Search receipts…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -172,6 +173,7 @@ export function CustomerPaymentsScreen() {
           ]}
         />
         <FilterSelect
+          label="Customer"
           className="w-48"
           placeholder="Customer"
           value={filters.customer_id ?? ALL}
@@ -329,7 +331,7 @@ export function CustomerPaymentsScreen() {
           ) : (
             rows.map((payment) => {
               const number = customerPaymentDisplayNumber(payment);
-              const currencyCode = currencyCodeById.get(payment.currency_id) ?? "";
+              const currencyCode = currencyCodeById.get(payment.currency_id);
               return (
                 <TableRow key={payment.id}>
                   <TableCell className="font-mono text-sm">
@@ -352,7 +354,10 @@ export function CustomerPaymentsScreen() {
                     />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatMoney(payment.amount_received, currencyCode)}
+                    {formatMoney(payment.amount_received, currencyCode ?? "AED")}
+                    {currencyCode ? (
+                      <span className="text-muted-foreground ml-1 text-xs">{currencyCode}</span>
+                    ) : null}
                   </TableCell>
                   {showActions ? (
                     <TableCell>

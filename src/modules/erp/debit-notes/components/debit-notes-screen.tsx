@@ -128,7 +128,7 @@ export function DebitNotesScreen() {
     <ListPage>
       <PageHeader
         title="Debit notes"
-        subtitle="AP reductions. Posting reverses the payable; stock will not move."
+        subtitle="Debit notes reduce what you owe a supplier. Posting does not move stock."
         actions={
           canCreate ? (
             <Button type="button" size="sm" asChild>
@@ -147,6 +147,7 @@ export function DebitNotesScreen() {
           placeholder="Search debit notes…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -162,6 +163,7 @@ export function DebitNotesScreen() {
           ]}
         />
         <FilterSelect
+          label="Supplier"
           className="w-48"
           placeholder="Supplier"
           value={filters.supplier_id ?? ALL}

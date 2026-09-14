@@ -23,7 +23,8 @@ export const PROFORMA_INVOICE_ACTION_REGISTRY: DocumentActionSpec<ProformaInvoic
       action: "send",
       label: "Send",
       permission: proformaInvoicePermissions.send,
-      confirmCopy: (documentNumber) => `${documentNumber} will be sent to the customer.`,
+      confirmCopy: (documentNumber) =>
+        `${documentNumber} will be marked as sent. Email is not dispatched unless the outbox is live.`,
     },
     {
       action: "confirm",

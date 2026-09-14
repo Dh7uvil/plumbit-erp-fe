@@ -13,25 +13,32 @@ import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatReportMoney } from "@/shared/lib/format";
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
 
 function todayIsoDate(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-function BucketCells({ row }: { row: AgingBucketTotals }) {
+function BucketCells({
+  row,
+  currencyCode,
+}: {
+  row: AgingBucketTotals;
+  currencyCode?: string | null;
+}) {
+  const money = (value: string | null | undefined) => formatReportMoney(value, currencyCode);
   return (
     <>
-      <TableCell className="tabular-nums">{formatDecimal(row.current)}</TableCell>
-      <TableCell className="tabular-nums">{formatDecimal(row.days_1_30)}</TableCell>
-      <TableCell className="tabular-nums">{formatDecimal(row.days_31_60)}</TableCell>
-      <TableCell className="tabular-nums">{formatDecimal(row.days_61_90)}</TableCell>
-      <TableCell className="tabular-nums">{formatDecimal(row.days_91_plus)}</TableCell>
-      <TableCell className="tabular-nums">{formatDecimal(row.unapplied_credits)}</TableCell>
-      <TableCell className="tabular-nums">{formatDecimal(row.total)}</TableCell>
+      <TableCell className="tabular-nums">{money(row.current)}</TableCell>
+      <TableCell className="tabular-nums">{money(row.days_1_30)}</TableCell>
+      <TableCell className="tabular-nums">{money(row.days_31_60)}</TableCell>
+      <TableCell className="tabular-nums">{money(row.days_61_90)}</TableCell>
+      <TableCell className="tabular-nums">{money(row.days_91_plus)}</TableCell>
+      <TableCell className="tabular-nums">{money(row.unapplied_credits)}</TableCell>
+      <TableCell className="tabular-nums">{money(row.total)}</TableCell>
     </>
   );
 }
@@ -55,8 +62,8 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
       title={kind === "ar" ? "AR aging" : "AP aging"}
       subtitle={
         kind === "ar"
-          ? "Open receivables by customer as of the selected date. Totals come from the server."
-          : "Open payables by supplier as of the selected date. Totals come from the server."
+          ? "Open receivables by customer as of the selected date. Document currency is labeled; base-currency totals appear below."
+          : "Open payables by supplier as of the selected date. Document currency is labeled; base-currency totals appear below."
       }
       csvPending={csvPending}
       onDownloadCsv={() => {
@@ -78,6 +85,7 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
         <TableHeader>
           <TableRow>
             <TableHead>{kind === "ar" ? "Customer" : "Supplier"}</TableHead>
+            <TableHead>Currency</TableHead>
             <TableHead>Current</TableHead>
             <TableHead>1–30</TableHead>
             <TableHead>31–60</TableHead>
@@ -121,13 +129,24 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
                   <TableCell>
                     <RecordLink href={partyHref(row)}>{row.party_name}</RecordLink>
                   </TableCell>
-                  <BucketCells row={row} />
+                  <TableCell>{row.currency_code || report?.currency_code || "—"}</TableCell>
+                  <BucketCells row={row} currencyCode={row.currency_code} />
                 </TableRow>
               ))}
               {report ? (
                 <TableRow>
-                  <TableCell className="font-medium">Totals</TableCell>
-                  <BucketCells row={report.totals} />
+                  <TableCell className="font-medium">Document totals</TableCell>
+                  <TableCell />
+                  <BucketCells row={report.totals} currencyCode={null} />
+                </TableRow>
+              ) : null}
+              {report?.base_totals ? (
+                <TableRow>
+                  <TableCell className="font-medium">
+                    Base totals{report.currency_code ? ` (${report.currency_code})` : ""}
+                  </TableCell>
+                  <TableCell>{report.currency_code || "—"}</TableCell>
+                  <BucketCells row={report.base_totals} currencyCode={report.currency_code} />
                 </TableRow>
               ) : null}
             </>

@@ -41,6 +41,7 @@ const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
 
 export function ExchangeRatesScreen() {
   const { canCreate, canRead, canUpdate } = useCrudPermissions(exchangeRatePermissions);
+  const canEditRate = canCreate || canUpdate;
   const { page, page_size, sort_by, sort_order, filters, setParams, setPage } = useTableParams();
   const effectiveDate = filters.effective_date;
   const exchangeRatesQuery = useExchangeRates({
@@ -54,7 +55,7 @@ export function ExchangeRatesScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<ExchangeRate | null>(null);
   const [forceReadOnly, setForceReadOnly] = useState(false);
-  const showActions = hasRowActions(canRead, canUpdate);
+  const showActions = hasRowActions(canRead, canEditRate);
   const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = exchangeRatesQuery.data?.data ?? [];
@@ -94,7 +95,7 @@ export function ExchangeRatesScreen() {
     <ListPage>
       <PageHeader
         title="Exchange rates"
-        subtitle="Org-level daily user-entered rates versus the base currency"
+        subtitle="Daily rates versus the base currency. Documents can also store a rate when this list is empty."
         actions={
           canCreate ? (
             <Button type="button" size="sm" onClick={openCreate}>
@@ -172,7 +173,10 @@ export function ExchangeRatesScreen() {
               <TableCell colSpan={headers.length}>
                 <DataTableEmpty
                   title="No exchange rates"
-                  message={emptyListMessage(canCreate, "Save an exchange rate to get started.")}
+                  message={emptyListMessage(
+                    canCreate,
+                    "Save an exchange rate, or enter a rate on each foreign-currency document.",
+                  )}
                 />
               </TableCell>
             </TableRow>
@@ -211,7 +215,7 @@ export function ExchangeRatesScreen() {
                     <DataTableRowActions
                       entityName={currencyLabel(rate.from_currency_id)}
                       onView={canRead ? () => openView(rate) : undefined}
-                      onEdit={canUpdate ? () => openEdit(rate) : undefined}
+                      onEdit={canEditRate ? () => openEdit(rate) : undefined}
                     />
                   </TableCell>
                 ) : null}

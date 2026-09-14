@@ -128,7 +128,7 @@ export function CreditNotesScreen() {
     <ListPage>
       <PageHeader
         title="Credit notes"
-        subtitle="AR reductions. Posting reverses the receivable; stock will not move."
+        subtitle="Credit notes reduce what a customer owes. Posting does not move stock."
         actions={
           canCreate ? (
             <Button type="button" size="sm" asChild>
@@ -147,6 +147,7 @@ export function CreditNotesScreen() {
           placeholder="Search credit notes…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -162,6 +163,7 @@ export function CreditNotesScreen() {
           ]}
         />
         <FilterSelect
+          label="Customer"
           className="w-48"
           placeholder="Customer"
           value={filters.customer_id ?? ALL}

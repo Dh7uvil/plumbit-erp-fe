@@ -135,6 +135,7 @@ export function ContactsScreen() {
           placeholder="Search contacts…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}
@@ -148,6 +149,7 @@ export function ContactsScreen() {
           ]}
         />
         <FilterSelect
+          label="Company"
           className="w-48"
           placeholder="Company"
           value={filters.customer_id ?? ALL}

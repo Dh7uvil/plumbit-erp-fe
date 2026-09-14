@@ -125,6 +125,7 @@ export function DocumentSequencesScreen() {
           placeholder="Search document sequences…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}

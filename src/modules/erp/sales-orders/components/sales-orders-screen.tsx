@@ -195,7 +195,7 @@ export function SalesOrdersScreen() {
     <ListPage>
       <PageHeader
         title="Sales orders"
-        subtitle="Customer orders with server-side totals"
+        subtitle="Customer orders"
         actions={
           canCreate ? (
             <div className="flex flex-wrap gap-2">
@@ -243,6 +243,7 @@ export function SalesOrdersScreen() {
           placeholder="Search sales orders…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -258,6 +259,7 @@ export function SalesOrdersScreen() {
           ]}
         />
         <FilterSelect
+          label="Customer"
           className="w-48"
           placeholder="Customer"
           value={filters.customer_id ?? ALL}

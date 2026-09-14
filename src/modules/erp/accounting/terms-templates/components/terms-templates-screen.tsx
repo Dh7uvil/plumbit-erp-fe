@@ -117,6 +117,7 @@ export function TermsTemplatesScreen() {
           placeholder="Search terms templates…"
         />
         <FilterSelect
+          label="Status"
           className="w-36"
           placeholder="Status"
           value={filters.is_active ?? ALL}

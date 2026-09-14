@@ -63,6 +63,7 @@ export const QualityInspectionSchema = z.object({
   available_actions: z.array(z.string()).default([]),
   period_locked: z.boolean().default(false),
   related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
+  journal_entry_id: z.string().uuid().nullable().optional().default(null),
   lines: z.array(QualityInspectionLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),

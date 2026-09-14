@@ -26,7 +26,7 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 import { cn } from "@/shared/lib/cn";
 
@@ -68,7 +68,7 @@ export function OperationalDashboardScreen() {
           {canArAp ? (
             <KpiCard
               title="Open AR"
-              value={formatDecimal(data.open_ar)}
+              value={formatReportMoney(data.open_ar, data.currency_code)}
               href="/reports/ar-aging"
               hint={`${data.overdue_ar_count} overdue`}
               icon={Banknote}
@@ -78,7 +78,7 @@ export function OperationalDashboardScreen() {
           {canArAp ? (
             <KpiCard
               title="Open AP"
-              value={formatDecimal(data.open_ap)}
+              value={formatReportMoney(data.open_ap, data.currency_code)}
               href="/reports/ap-aging"
               hint={`${data.overdue_ap_count} overdue`}
               icon={TrendingDown}
@@ -88,7 +88,7 @@ export function OperationalDashboardScreen() {
           {canInventory ? (
             <KpiCard
               title="Stock valuation"
-              value={formatDecimal(data.stock_valuation)}
+              value={formatReportMoney(data.stock_valuation, data.currency_code)}
               href="/reports/stock-valuation"
               icon={Warehouse}
               iconClass="bg-success-muted text-success-foreground"
@@ -162,7 +162,8 @@ export function OperationalDashboardScreen() {
                   {row.customer_name}
                 </Link>
                 <span className="tabular-nums">
-                  {formatDecimal(row.outstanding)} / {formatDecimal(row.credit_limit)}
+                  {formatReportMoney(row.outstanding, data.currency_code)} /{" "}
+                  {formatReportMoney(row.credit_limit, data.currency_code)}
                 </span>
               </p>
             ))}

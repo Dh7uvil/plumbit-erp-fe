@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/shared/lib/zod-resolver";
 import { AlertCircle, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

@@ -5,7 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  HelpCircle,
   X,
   Zap,
 } from "lucide-react";
@@ -111,14 +110,12 @@ function SidebarChrome({
   onToggle,
   onClose,
   onNavigate,
-  onHelpOpen,
 }: {
   collapsed: boolean;
   brand?: ReactNode;
   onToggle?: () => void;
   onClose?: () => void;
   onNavigate?: () => void;
-  onHelpOpen?: () => void;
 }) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
@@ -172,25 +169,6 @@ function SidebarChrome({
         ) : null}
       </div>
       <SidebarNav collapsed={collapsed} onNavigate={onNavigate} />
-      <div
-        className={cn(
-          "border-sidebar-border flex shrink-0 flex-col gap-0.5 border-t px-2 py-2",
-          collapsed && "items-center",
-        )}
-      >
-        <button
-          type="button"
-          onClick={onHelpOpen}
-          className={cn(
-            "text-muted-foreground hover:bg-muted hover:text-foreground flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors",
-            collapsed && "justify-center",
-          )}
-          aria-label="Help and support"
-        >
-          <HelpCircle size={14} />
-          {!collapsed ? "Help & Support" : null}
-        </button>
-      </div>
     </div>
   );
 }
@@ -200,14 +178,12 @@ export function AppSidebar({
   onToggle,
   mobileOpen,
   onMobileOpenChange,
-  onHelpOpen,
   brand,
 }: {
   collapsed: boolean;
   onToggle: () => void;
   mobileOpen: boolean;
   onMobileOpenChange: (open: boolean) => void;
-  onHelpOpen?: () => void;
   brand?: (collapsed: boolean) => ReactNode;
 }) {
   return (
@@ -221,7 +197,6 @@ export function AppSidebar({
         <SidebarChrome
           collapsed={collapsed}
           onToggle={onToggle}
-          onHelpOpen={onHelpOpen}
           brand={brand?.(collapsed)}
         />
       </aside>
@@ -232,10 +207,6 @@ export function AppSidebar({
             collapsed={false}
             onClose={() => onMobileOpenChange(false)}
             onNavigate={() => onMobileOpenChange(false)}
-            onHelpOpen={() => {
-              onMobileOpenChange(false);
-              onHelpOpen?.();
-            }}
             brand={brand?.(false)}
           />
         </SheetContent>

@@ -122,7 +122,7 @@ export function OutboxEventsScreen() {
     <ListPage>
       <PageHeader
         title="Outbox"
-        subtitle="Queued integration events. Retry publishes the same payload again."
+        subtitle="Queued events for email and integrations. Retry sends the same payload again."
       />
       <DataTableToolbar>
         <ListSearch value={search ?? ""} onChange={(value) => setParams({ search: value })} />

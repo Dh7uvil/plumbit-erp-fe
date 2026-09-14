@@ -147,6 +147,7 @@ export function StockMovementsScreen() {
           placeholder="Search SKU, product, or notes…"
         />
         <FilterSelect
+          label="Warehouse"
           className="w-48"
           placeholder="Warehouse"
           value={filters.warehouse_id ?? ALL}

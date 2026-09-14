@@ -2,8 +2,34 @@ import type {
   PermissionMatrixAction,
   PermissionMatrixResponse,
 } from "@/modules/users-management/permissions/schemas";
+import { humanizeEnum } from "@/shared/lib/format";
 
 const PREFERRED_ACTIONS = ["create", "read", "update", "delete"];
+
+const ACTION_LABELS: Record<string, string> = {
+  create: "Create",
+  read: "Read",
+  update: "Update",
+  delete: "Delete",
+  ar_ap: "AR/AP reports",
+  ledger: "Ledger reports",
+  tax: "Tax reports",
+  inventory: "Inventory reports",
+  financial: "Financial reports",
+  override: "Override",
+  post: "Post",
+  cancel: "Cancel",
+  approve: "Approve",
+  confirm: "Confirm",
+  send: "Send",
+  retry: "Retry",
+  import: "Import",
+  export: "Export",
+};
+
+export function matrixActionLabel(action: string): string {
+  return ACTION_LABELS[action] ?? humanizeEnum(action);
+}
 
 export type PermissionMatrixRow = {
   module: string;

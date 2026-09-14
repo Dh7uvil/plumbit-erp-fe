@@ -79,6 +79,7 @@ export function SortDialog({
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="list-sort-field">Sort by</Label>
               <FilterSelect
+                label="Sort by"
                 id="list-sort-field"
                 className="w-full"
                 placeholder="Sort by"
@@ -93,6 +94,7 @@ export function SortDialog({
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="list-sort-order">Order</Label>
               <FilterSelect
+                label="Order"
                 id="list-sort-order"
                 className="w-full"
                 placeholder="Order"

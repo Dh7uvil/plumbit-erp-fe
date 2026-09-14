@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 
 type BreadcrumbRecordContextValue = {
   recordLabel: string | null;
@@ -27,7 +27,7 @@ export function useBreadcrumbRecordLabel() {
 export function useSetBreadcrumbRecord(label?: string | null) {
   const { setRecordLabel } = useContext(BreadcrumbRecordContext);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!label) {
       setRecordLabel(null);
       return;

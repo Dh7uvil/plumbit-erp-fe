@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -31,6 +31,7 @@ import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { PageHeader } from "@/shared/components/layout/page-header";
 import { WizardSteps } from "@/shared/components/layout/wizard-steps";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
@@ -111,10 +112,10 @@ function CommittedOpeningBalances() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-xl font-semibold">Opening balances</h1>
-        <p className="text-muted-foreground text-sm">Books are live. This screen is read-only.</p>
-      </div>
+      <PageHeader
+        title="Opening balances"
+        subtitle="Books are live. This screen is read-only."
+      />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Committed state</CardTitle>
@@ -261,13 +262,10 @@ function OpeningBalanceWizard() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-xl font-semibold">Opening balances</h1>
-        <p className="text-muted-foreground text-sm">
-          Guided go-live. The server writes the opening journal, open items, and stock layers on
-          commit.
-        </p>
-      </div>
+      <PageHeader
+        title="Opening balances"
+        subtitle="Guided go-live. Debits increase assets; credits increase liabilities. Customer (AR) amounts are what they owe you; supplier (AP) amounts are what you owe them."
+      />
       <WizardSteps steps={[...OPENING_BALANCE_STEPS]} currentStep={step} />
       {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
       <Form {...form}>
@@ -314,10 +312,11 @@ function OpeningBalanceWizard() {
                       name={`gl_lines.${index}.account_id`}
                       render={({ field: accountField }) => (
                         <FormItem>
+                          <FormLabel>Account</FormLabel>
                           <MasterSelect
                             value={accountField.value}
                             onValueChange={accountField.onChange}
-                            placeholder="Account"
+                            placeholder="Select account"
                             options={postableAccounts.map((row) => ({
                               value: row.id,
                               label: `${row.code} — ${row.name}`,
@@ -331,8 +330,9 @@ function OpeningBalanceWizard() {
                       name={`gl_lines.${index}.debit`}
                       render={({ field: debitField }) => (
                         <FormItem>
+                          <FormLabel>Debit</FormLabel>
                           <FormControl>
-                            <Input inputMode="decimal" placeholder="Debit" {...debitField} />
+                            <Input inputMode="decimal" {...debitField} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -342,8 +342,9 @@ function OpeningBalanceWizard() {
                       name={`gl_lines.${index}.credit`}
                       render={({ field: creditField }) => (
                         <FormItem>
+                          <FormLabel>Credit</FormLabel>
                           <FormControl>
-                            <Input inputMode="decimal" placeholder="Credit" {...creditField} />
+                            <Input inputMode="decimal" {...creditField} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -354,8 +355,9 @@ function OpeningBalanceWizard() {
                         name={`gl_lines.${index}.description`}
                         render={({ field: descField }) => (
                           <FormItem className="flex-1">
+                            <FormLabel>Description</FormLabel>
                             <FormControl>
-                              <Input placeholder="Description" {...descField} />
+                              <Input {...descField} />
                             </FormControl>
                           </FormItem>
                         )}
@@ -398,6 +400,7 @@ function OpeningBalanceWizard() {
                         name={`${name}.${index}.party_id`}
                         render={({ field: partyField }) => (
                           <FormItem>
+                            <FormLabel>{step === "ar" ? "Customer" : "Supplier"}</FormLabel>
                             <MasterSelect
                               value={partyField.value}
                               onValueChange={partyField.onChange}
@@ -412,8 +415,11 @@ function OpeningBalanceWizard() {
                         name={`${name}.${index}.amount`}
                         render={({ field: amountField }) => (
                           <FormItem>
+                            <FormLabel>
+                              Amount{step === "ar" ? " (what they owe you)" : " (what you owe them)"}
+                            </FormLabel>
                             <FormControl>
-                              <Input inputMode="decimal" placeholder="Amount" {...amountField} />
+                              <Input inputMode="decimal" {...amountField} />
                             </FormControl>
                           </FormItem>
                         )}
@@ -423,6 +429,7 @@ function OpeningBalanceWizard() {
                         name={`${name}.${index}.due_date`}
                         render={({ field: dueField }) => (
                           <FormItem>
+                            <FormLabel>Due date</FormLabel>
                             <FormControl>
                               <Input type="date" {...dueField} />
                             </FormControl>
@@ -434,8 +441,9 @@ function OpeningBalanceWizard() {
                         name={`${name}.${index}.external_reference`}
                         render={({ field: refField }) => (
                           <FormItem>
+                            <FormLabel>Invoice no.</FormLabel>
                             <FormControl>
-                              <Input placeholder="Invoice no." {...refField} />
+                              <Input {...refField} />
                             </FormControl>
                           </FormItem>
                         )}
@@ -478,10 +486,11 @@ function OpeningBalanceWizard() {
                       name={`stock_lines.${index}.warehouse_id`}
                       render={({ field: warehouseField }) => (
                         <FormItem>
+                          <FormLabel>Warehouse</FormLabel>
                           <MasterSelect
                             value={warehouseField.value}
                             onValueChange={warehouseField.onChange}
-                            placeholder="Warehouse"
+                            placeholder="Select warehouse"
                             options={warehouses.map((row) => ({
                               value: row.id,
                               label: `${row.code} — ${row.name}`,
@@ -495,10 +504,11 @@ function OpeningBalanceWizard() {
                       name={`stock_lines.${index}.product_id`}
                       render={({ field: productField }) => (
                         <FormItem>
+                          <FormLabel>Product</FormLabel>
                           <MasterSelect
                             value={productField.value}
                             onValueChange={productField.onChange}
-                            placeholder="Product"
+                            placeholder="Select product"
                             options={products.map((row) => ({
                               value: row.id,
                               label: `${row.sku} — ${row.name}`,
@@ -511,9 +521,10 @@ function OpeningBalanceWizard() {
                       control={form.control}
                       name={`stock_lines.${index}.quantity`}
                       render={({ field: qtyField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input inputMode="decimal" placeholder="Qty" {...qtyField} />
+                          <FormItem>
+                            <FormLabel>Qty</FormLabel>
+                            <FormControl>
+                              <Input inputMode="decimal" {...qtyField} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -522,9 +533,10 @@ function OpeningBalanceWizard() {
                       control={form.control}
                       name={`stock_lines.${index}.unit_cost`}
                       render={({ field: costField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input inputMode="decimal" placeholder="Unit cost" {...costField} />
+                          <FormItem>
+                            <FormLabel>Unit cost</FormLabel>
+                            <FormControl>
+                              <Input inputMode="decimal" {...costField} />
                           </FormControl>
                         </FormItem>
                       )}

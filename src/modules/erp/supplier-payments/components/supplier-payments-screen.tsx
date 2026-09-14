@@ -138,7 +138,7 @@ export function SupplierPaymentsScreen() {
     <ListPage>
       <PageHeader
         title="Supplier payments"
-        subtitle="TT and bank payments against bills, opening AP, and advances. Posting settles AP; leftover sits as an advance to the supplier."
+        subtitle="Bank payments against bills and advances. Leftover amount stays as a supplier advance."
         actions={
           canCreate ? (
             <Button type="button" size="sm" asChild>
@@ -157,6 +157,7 @@ export function SupplierPaymentsScreen() {
           placeholder="Search payments…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -172,6 +173,7 @@ export function SupplierPaymentsScreen() {
           ]}
         />
         <FilterSelect
+          label="Supplier"
           className="w-48"
           placeholder="Supplier"
           value={filters.supplier_id ?? ALL}
@@ -329,7 +331,7 @@ export function SupplierPaymentsScreen() {
           ) : (
             rows.map((payment) => {
               const number = supplierPaymentDisplayNumber(payment);
-              const currencyCode = currencyCodeById.get(payment.currency_id) ?? "";
+              const currencyCode = currencyCodeById.get(payment.currency_id);
               return (
                 <TableRow key={payment.id}>
                   <TableCell className="font-mono text-sm">
@@ -352,7 +354,10 @@ export function SupplierPaymentsScreen() {
                     />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatMoney(payment.amount_paid, currencyCode)}
+                    {formatMoney(payment.amount_paid, currencyCode ?? "AED")}
+                    {currencyCode ? (
+                      <span className="text-muted-foreground ml-1 text-xs">{currencyCode}</span>
+                    ) : null}
                   </TableCell>
                   {showActions ? (
                     <TableCell>

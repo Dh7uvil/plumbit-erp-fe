@@ -1,4 +1,4 @@
 export const outboxPermissions = {
-  read: "identity.outbox.read",
-  retry: "identity.outbox.retry",
+  read: "identity.outbox_event.read",
+  retry: "identity.outbox_event.retry",
 } as const;

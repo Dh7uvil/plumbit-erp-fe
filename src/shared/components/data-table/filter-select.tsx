@@ -4,6 +4,8 @@ import {
   SearchableSelect,
   type SearchableSelectOption,
 } from "@/shared/components/form/searchable-select";
+import { Label } from "@/shared/components/ui/label";
+import { cn } from "@/shared/lib/cn";
 
 export type FilterSelectOption = SearchableSelectOption;
 
@@ -15,6 +17,7 @@ export function FilterSelect({
   placeholder = "Select…",
   className,
   id,
+  label,
   "aria-label": ariaLabel,
 }: {
   options: FilterSelectOption[];
@@ -24,9 +27,10 @@ export function FilterSelect({
   placeholder?: string;
   className?: string;
   id?: string;
+  label?: string;
   "aria-label"?: string;
 }) {
-  return (
+  const select = (
     <SearchableSelect
       asFormControl={false}
       options={options}
@@ -34,9 +38,22 @@ export function FilterSelect({
       onValueChange={onValueChange}
       disabled={disabled}
       placeholder={placeholder}
-      className={className}
+      className={label ? undefined : className}
       id={id}
-      aria-label={ariaLabel ?? placeholder}
+      aria-label={ariaLabel ?? label ?? placeholder}
     />
+  );
+
+  if (!label) {
+    return select;
+  }
+
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
+      <Label htmlFor={id} className="text-muted-foreground text-xs font-medium">
+        {label}
+      </Label>
+      {select}
+    </div>
   );
 }

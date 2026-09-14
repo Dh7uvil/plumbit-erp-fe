@@ -13,7 +13,7 @@ import { ReportShell } from "@/shared/components/report/report-shell";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatReportMoney } from "@/shared/lib/format";
 
 export function ProfitAndLossScreen() {
   const { filters, setParams } = useTableParams();
@@ -26,6 +26,8 @@ export function ProfitAndLossScreen() {
   const reportQuery = useProfitAndLoss(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
+  const formatDecimal = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
   const showComparative = Boolean(report?.comparative_from);
   const showYtd = Boolean(report?.ytd_from);
   const columnCount = 4 + Number(showComparative) + Number(showYtd);
@@ -55,7 +57,13 @@ export function ProfitAndLossScreen() {
             <TableHead>Account</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Amount</TableHead>
-            {showComparative ? <TableHead>Comparative</TableHead> : null}
+            {showComparative ? (
+              <TableHead>
+                {report?.comparative_from && report?.comparative_to
+                  ? `Prior year (${report.comparative_from} – ${report.comparative_to})`
+                  : "Prior year"}
+              </TableHead>
+            ) : null}
             {showYtd ? <TableHead>YTD</TableHead> : null}
           </TableRow>
         </TableHeader>

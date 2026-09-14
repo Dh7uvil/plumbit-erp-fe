@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { useForm, useWatch, type Control, type FieldPath } from "react-hook-form";
@@ -72,6 +72,7 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   sales_order_requires_approval: false,
   purchase_order_requires_approval: false,
   allow_negative_stock: false,
+  allow_negative_cash: false,
   costing_method: "FIFO",
   allow_over_receipt: false,
   over_receipt_tolerance_pct: "",
@@ -110,6 +111,7 @@ type CompanyTextFieldPath = Exclude<
   | "sales_order_requires_approval"
   | "purchase_order_requires_approval"
   | "allow_negative_stock"
+  | "allow_negative_cash"
   | "vat_on_advances"
   | "auto_apply_advances_on_invoice"
   | "credit_limit_policy"
@@ -165,6 +167,7 @@ function toFormValues(
     sales_order_requires_approval: tenant.sales_order_requires_approval,
     purchase_order_requires_approval: tenant.purchase_order_requires_approval,
     allow_negative_stock: tenant.allow_negative_stock,
+    allow_negative_cash: tenant.allow_negative_cash,
     costing_method: tenant.costing_method,
     allow_over_receipt: tenant.allow_over_receipt,
     over_receipt_tolerance_pct: tenant.over_receipt_tolerance_pct ?? "",
@@ -269,6 +272,7 @@ function toRegionalPayload(
     sales_order_requires_approval: values.sales_order_requires_approval,
     purchase_order_requires_approval: values.purchase_order_requires_approval,
     allow_negative_stock: values.allow_negative_stock,
+    allow_negative_cash: values.allow_negative_cash,
     allow_over_receipt: values.allow_over_receipt,
     over_receipt_tolerance_pct: emptyToNull(values.over_receipt_tolerance_pct),
     qc_required_default: values.qc_required_default,
@@ -459,6 +463,7 @@ export function CompanySettingsForm() {
         sales_order_requires_approval: original.sales_order_requires_approval,
         purchase_order_requires_approval: original.purchase_order_requires_approval,
         allow_negative_stock: original.allow_negative_stock,
+        allow_negative_cash: original.allow_negative_cash,
         costing_method: original.costing_method,
         allow_over_receipt: original.allow_over_receipt,
         over_receipt_tolerance_pct: original.over_receipt_tolerance_pct,
@@ -894,6 +899,24 @@ export function CompanySettingsForm() {
                   </FormControl>
                   <FormLabel className="text-muted-foreground text-xs font-medium">
                     Allow negative stock
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="allow_negative_cash"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={!canUpdate || !isEditingRegional}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Allow cash and bank accounts to go negative
                   </FormLabel>
                 </FormItem>
               )}

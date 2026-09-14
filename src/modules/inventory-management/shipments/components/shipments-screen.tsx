@@ -98,6 +98,7 @@ export function ShipmentsScreen() {
           placeholder="Search shipments…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -113,6 +114,7 @@ export function ShipmentsScreen() {
           ]}
         />
         <FilterSelect
+          label="Type"
           className="w-40"
           placeholder="Type"
           value={filters.shipment_type ?? ALL}

@@ -184,6 +184,7 @@ export function GoodsReceiptsScreen() {
           placeholder="Search goods receipts…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -199,6 +200,7 @@ export function GoodsReceiptsScreen() {
           ]}
         />
         <FilterSelect
+          label="Supplier"
           className="w-48"
           placeholder="Supplier"
           value={filters.supplier_id ?? ALL}

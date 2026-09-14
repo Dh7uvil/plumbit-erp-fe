@@ -23,6 +23,7 @@ export function DocumentRecordShell({
   backLabel,
   title,
   subtitle,
+  code,
   listHref,
   viewHref,
   editHref,
@@ -47,6 +48,7 @@ export function DocumentRecordShell({
   backLabel: string;
   title: string;
   subtitle?: string;
+  code?: string | null;
   listHref: string;
   viewHref: string;
   editHref?: string;
@@ -85,6 +87,7 @@ export function DocumentRecordShell({
       <RecordPageHeader
         title={title}
         subtitle={subtitle}
+        code={code}
         badges={badges}
         listHref={listHref}
         viewHref={viewHref}

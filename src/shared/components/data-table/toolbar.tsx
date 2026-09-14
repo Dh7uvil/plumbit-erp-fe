@@ -9,5 +9,5 @@ export function DataTableToolbar({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn("flex flex-wrap items-center gap-2", className)}>{children}</div>;
+  return <div className={cn("flex flex-wrap items-end gap-2", className)}>{children}</div>;
 }

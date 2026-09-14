@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/shared/lib/zod-resolver";
 import { AtSign, CheckCircle, ChevronLeft, KeyRound, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { getErrorMessage, isApiError } from "@/shared/api/errors";
+import { getErrorMessage } from "@/shared/api/errors";
 import { useIsClient } from "@/shared/hooks/use-is-client";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 
@@ -71,18 +71,10 @@ export function ForgotPasswordForm() {
       await forgotPassword.mutateAsync(values);
       setSubmitted(true);
     } catch (error) {
-      if (
-        isApiError(error) &&
-        error.code === "VALIDATION_ERROR" &&
-        applyFieldErrors(error, form.setError)
-      ) {
+      if (applyFieldErrors(error, form.setError)) {
         return;
       }
-      if (isApiError(error) && error.status >= 500) {
-        setFormError(getErrorMessage(error));
-        return;
-      }
-      setSubmitted(true);
+      setFormError(getErrorMessage(error));
     }
   }
 

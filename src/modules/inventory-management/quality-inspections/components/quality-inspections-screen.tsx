@@ -143,6 +143,7 @@ export function QualityInspectionsScreen() {
           placeholder="Search inspections…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -158,6 +159,7 @@ export function QualityInspectionsScreen() {
           ]}
         />
         <FilterSelect
+          label="Goods receipt"
           className="w-48"
           placeholder="Goods receipt"
           value={filters.goods_receipt_id ?? ALL}

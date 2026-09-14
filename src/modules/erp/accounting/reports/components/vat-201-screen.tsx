@@ -14,7 +14,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatReportMoney } from "@/shared/lib/format";
 
 const COLUMN_COUNT = 4;
 
@@ -27,11 +27,13 @@ export function Vat201Screen() {
   const reportQuery = useVat201(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
+  const formatDecimal = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
 
   return (
     <ReportShell
       title="VAT 201"
-      subtitle="FTA-style boxes from posted documents only. Figures come from the server."
+      subtitle="VAT return boxes from posted documents only."
       csvPending={csvPending}
       onDownloadCsv={() => {
         void downloadCsv("/reports/vat-201", params, "vat-201");

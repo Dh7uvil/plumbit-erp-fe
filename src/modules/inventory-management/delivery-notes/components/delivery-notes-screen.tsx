@@ -141,6 +141,7 @@ export function DeliveryNotesScreen() {
           placeholder="Search delivery notes…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -156,6 +157,7 @@ export function DeliveryNotesScreen() {
           ]}
         />
         <FilterSelect
+          label="Customer"
           className="w-48"
           placeholder="Customer"
           value={filters.customer_id ?? ALL}

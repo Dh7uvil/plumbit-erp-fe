@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDecimal, formatMoney, humanizeEnum } from "@/shared/lib/format";
+import { formatDecimal, formatMoney, formatQuantity, humanizeEnum, isZeroDecimal } from "@/shared/lib/format";
 
 describe("formatMoney", () => {
   it("returns a dash for empty values", () => {
@@ -22,6 +22,23 @@ describe("formatMoney", () => {
 
   it("falls back to code plus value for an unknown currency", () => {
     expect(formatMoney("10.00", "NOTREAL")).toBe("NOTREAL 10.00");
+  });
+});
+
+describe("formatQuantity", () => {
+  it("trims trailing zeros and caps fraction digits", () => {
+    expect(formatQuantity("50000.000000")).toBe(formatQuantity("50000"));
+    expect(formatQuantity("1.250000")).toMatch(/1\.25$/);
+    expect(formatQuantity("1.23456789")).toMatch(/1\.2345$/);
+  });
+});
+
+describe("isZeroDecimal", () => {
+  it("treats empty and zero-like strings as zero", () => {
+    expect(isZeroDecimal(null)).toBe(true);
+    expect(isZeroDecimal("0")).toBe(true);
+    expect(isZeroDecimal("0.000")).toBe(true);
+    expect(isZeroDecimal("0.01")).toBe(false);
   });
 });
 

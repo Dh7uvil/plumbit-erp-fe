@@ -23,7 +23,10 @@ export const QUOTATION_WORKFLOW_ACTIONS = [
 export type QuotationWorkflowAction = (typeof QUOTATION_WORKFLOW_ACTIONS)[number];
 
 export const QUOTATION_ACTION_REGISTRY: DocumentActionSpec<QuotationWorkflowAction>[] = [
-  { action: "submit", label: "Submit", permission: quotationPermissions.update },
+  { action: "submit", label: "Submit", permission: quotationPermissions.update,
+    confirmCopy: (quoteNumber) =>
+      `${quoteNumber} will be sent for approval. No email is dispatched.`,
+  },
   {
     action: "approve",
     label: "Approve",
@@ -44,7 +47,8 @@ export const QUOTATION_ACTION_REGISTRY: DocumentActionSpec<QuotationWorkflowActi
     action: "send",
     label: "Send",
     permission: quotationPermissions.send,
-    confirmCopy: (quoteNumber) => `${quoteNumber} will be sent to the customer.`,
+    confirmCopy: (quoteNumber) =>
+      `${quoteNumber} will be marked as sent. Email is not dispatched unless the outbox is live.`,
   },
   {
     action: "accept",

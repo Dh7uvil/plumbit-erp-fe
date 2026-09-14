@@ -319,6 +319,7 @@ export function AuditLogsScreen() {
           placeholder="Search by user, resource…"
         />
         <FilterSelect
+          label="All Modules"
           className="w-36 md:w-40"
           placeholder="All Modules"
           value={moduleFilter}

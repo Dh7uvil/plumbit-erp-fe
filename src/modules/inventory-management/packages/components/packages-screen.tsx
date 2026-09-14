@@ -109,6 +109,7 @@ export function PackagesScreen() {
           placeholder="Search packages…"
         />
         <FilterSelect
+          label="Status"
           className="w-40"
           placeholder="Status"
           value={filters.status ?? ALL}

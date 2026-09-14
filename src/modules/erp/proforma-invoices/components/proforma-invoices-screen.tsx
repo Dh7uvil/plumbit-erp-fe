@@ -172,6 +172,7 @@ export function ProformaInvoicesScreen() {
           placeholder="Search proforma invoices…"
         />
         <FilterSelect
+          label="Status"
           className="w-44"
           placeholder="Status"
           value={filters.status ?? ALL}
@@ -187,6 +188,7 @@ export function ProformaInvoicesScreen() {
           ]}
         />
         <FilterSelect
+          label="Customer"
           className="w-48"
           placeholder="Customer"
           value={filters.customer_id ?? ALL}

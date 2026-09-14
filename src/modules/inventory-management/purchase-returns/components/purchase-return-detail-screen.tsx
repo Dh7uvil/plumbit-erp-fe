@@ -23,6 +23,7 @@ import { PURCHASE_RETURN_ACTION_REGISTRY } from "@/modules/inventory-management/
 import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
@@ -115,6 +116,7 @@ function PurchaseReturnDetailLoaded({
       backHref="/purchase-returns"
       backLabel="Back to purchase returns"
       title={number ?? "Purchase return"}
+      code={number}
       listHref="/purchase-returns"
       viewHref={viewHref}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
@@ -175,7 +177,12 @@ function PurchaseReturnDetailLoaded({
         </p>
       }
       formTitle={isEdit ? "Edit purchase return" : "Purchase return"}
-      panels={<RelatedDocumentsCard documents={doc.related_documents} />}
+      panels={
+        <>
+          <RelatedDocumentsCard documents={doc.related_documents} />
+          <DocumentLedgerCard journalEntryId={doc.journal_entry_id} />
+        </>
+      }
       attachments={
         <EntityAttachmentsPanel
           entityType="PURCHASE_RETURN"

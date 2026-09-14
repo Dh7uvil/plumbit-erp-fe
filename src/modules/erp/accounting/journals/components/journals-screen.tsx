@@ -44,7 +44,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["Number", "Date", "Type", "Status", "Debit", "Credit"] as const;
 const ALL = "all";
@@ -263,8 +263,8 @@ export function JournalsScreen() {
                     variants={JOURNAL_STATUS_VARIANTS}
                   />
                 </TableCell>
-                <TableCell>{formatDecimal(row.total_debit_base)}</TableCell>
-                <TableCell>{formatDecimal(row.total_credit_base)}</TableCell>
+                <TableCell>{formatReportMoney(row.total_debit_base)}</TableCell>
+                <TableCell>{formatReportMoney(row.total_credit_base)}</TableCell>
                 {showActions ? (
                   <TableCell>
                     <DataTableRowActions
