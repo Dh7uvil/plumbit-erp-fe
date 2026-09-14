@@ -70,6 +70,7 @@ export const GoodsReceiptLineSchema = z.object({
   qty_accepted: DecimalStringSchema,
   qty_rejected: DecimalStringSchema,
   qty_on_hold: DecimalStringSchema,
+  qty_returned: DecimalStringSchema.optional().default("0"),
   qty_billed: DecimalStringSchema.optional().default("0"),
 });
 export type GoodsReceiptLine = z.infer<typeof GoodsReceiptLineSchema>;

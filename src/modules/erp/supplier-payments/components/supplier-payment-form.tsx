@@ -79,6 +79,7 @@ export type SupplierPaymentFormDefaults = {
   supplierId?: string;
   invoiceId?: string;
   purchaseOrderId?: string;
+  currencyId?: string;
 };
 
 function toFormValues(
@@ -88,7 +89,7 @@ function toFormValues(
   return {
     supplier_id: payment?.supplier_id ?? defaults?.supplierId ?? OPTIONAL_SELECT_NONE,
     payment_date: payment?.payment_date ?? todayIsoDate(),
-    currency_id: payment?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: payment?.currency_id ?? defaults?.currencyId ?? OPTIONAL_SELECT_NONE,
     amount_paid: payment?.amount_paid ?? "",
     bank_charges: payment?.bank_charges && payment.bank_charges !== "0" ? payment.bank_charges : "",
     payment_account_id: payment?.payment_account_id ?? OPTIONAL_SELECT_NONE,
@@ -195,10 +196,13 @@ export function SupplierPaymentForm({
     if (payment || !supplierQuery.data) {
       return;
     }
+    if (defaults?.invoiceId || defaults?.currencyId) {
+      return;
+    }
     if (form.getValues("currency_id") === OPTIONAL_SELECT_NONE) {
       form.setValue("currency_id", supplierQuery.data.currency_id);
     }
-  }, [form, payment, supplierQuery.data]);
+  }, [defaults?.currencyId, defaults?.invoiceId, form, payment, supplierQuery.data]);
 
   useEffect(() => {
     if (payment || !defaults?.invoiceId || !openItemsQuery.data) {
@@ -208,13 +212,20 @@ export function SupplierPaymentForm({
       openItemsQuery.data,
       SUPPLIER_PAYMENT_ALLOCATE_TYPES,
     );
+    const match = allocatable.find((item) => item.document_id === defaults.invoiceId);
+    if (match) {
+      form.setValue("currency_id", match.currency_id);
+      if (!form.getValues("amount_paid").trim()) {
+        form.setValue("amount_paid", match.balance);
+      }
+    }
     setAllocationValues((current) => {
       if (Object.values(current).some((value) => value.trim())) {
         return current;
       }
       return defaultAllocationAmounts(allocatable, defaults.invoiceId);
     });
-  }, [defaults?.invoiceId, openItemsQuery.data, payment]);
+  }, [defaults?.invoiceId, form, openItemsQuery.data, payment]);
 
   const allocationPayload = useMemo(
     () => paymentAllocationsPayload(openItems, allocationValues),

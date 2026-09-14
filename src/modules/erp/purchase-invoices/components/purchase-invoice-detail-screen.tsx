@@ -198,7 +198,7 @@ function PurchaseInvoiceDetailLoaded({
             setWriteError(null);
             if (action === "pay_bill") {
               router.push(
-                `/supplier-payments/new?supplier_id=${invoice.supplier_id}&invoice_id=${invoice.id}`,
+                `/supplier-payments/new?supplier_id=${invoice.supplier_id}&invoice_id=${invoice.id}&currency_id=${invoice.currency_id}`,
               );
               return;
             }
