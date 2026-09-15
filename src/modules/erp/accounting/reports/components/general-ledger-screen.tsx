@@ -10,11 +10,14 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
+import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -29,60 +32,107 @@ import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
 const COLUMN_COUNT = 7;
+const GL_SOURCE_TYPES = [
+  { value: "sales_invoice", label: "Sales invoice" },
+  { value: "purchase_invoice", label: "Purchase invoice" },
+  { value: "credit_note", label: "Credit note" },
+  { value: "debit_note", label: "Debit note" },
+  { value: "customer_payment", label: "Customer receipt" },
+  { value: "supplier_payment", label: "Supplier payment" },
+  { value: "goods_receipt", label: "Goods receipt" },
+  { value: "delivery_note", label: "Delivery note" },
+  { value: "sales_return", label: "Sales return" },
+  { value: "purchase_return", label: "Purchase return" },
+  { value: "landed_cost", label: "Landed cost" },
+  { value: "stock_adjustment", label: "Stock adjustment" },
+  { value: "OPENING_BALANCE", label: "Opening balance" },
+  { value: "INVENTORY_CATCH_UP", label: "Inventory catch-up" },
+];
 
 export function GeneralLedgerScreen() {
   const can = useCan();
-  const { filters, setParams } = useTableParams();
+  const { page, page_size, filters, setParams, setPage } = useTableParams();
   const period = useReportPeriod();
   const from = filters.from ?? period.from;
   const to = filters.to ?? period.to;
   const accountId = filters.account_id ?? "";
   const branchId = filters.branch_id;
+  const sourceType = filters.source_type;
+  const side = filters.side;
   const accountsQuery = useAllAccounts({ is_group: false });
   const branchesQuery = useAllBranches(can("identity.branch.read"));
-  const reportQuery = useGeneralLedger(
-    accountId ? { account_id: accountId, from, to, branch_id: branchId } : null,
-  );
+  const reportParams = accountId
+    ? {
+        account_id: accountId,
+        from,
+        to,
+        branch_id: branchId,
+        source_type: sourceType,
+        side,
+        page,
+        page_size,
+      }
+    : null;
+  const reportQuery = useGeneralLedger(reportParams);
   const accounts = (accountsQuery.data ?? []).filter((row) => !row.is_group);
   const branches = branchesQuery.data ?? [];
   const report = reportQuery.data;
-  const { csvPending, downloadCsv } = useReportCsv();
+  const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
+  const money = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
+  const csvParams = {
+    account_id: accountId,
+    from,
+    to,
+    branch_id: branchId,
+    source_type: sourceType,
+    side,
+  };
+  const pageSize = report?.page_size ?? page_size;
+  const totalPages =
+    pageSize > 0 ? Math.ceil((report?.total_lines ?? 0) / pageSize) : 1;
 
   return (
     <ReportShell
       title="General ledger"
       subtitle="Running balance per posted line"
       csvPending={csvPending}
+      excelPending={excelPending}
       csvDisabled={!accountId}
       onDownloadCsv={
         accountId
           ? () => {
-              void downloadCsv(
-                "/reports/general-ledger",
-                { account_id: accountId, from, to, branch_id: branchId },
-                "general-ledger",
-              );
+              void downloadCsv("/reports/general-ledger", csvParams, "general-ledger");
+            }
+          : undefined
+      }
+      onDownloadExcel={
+        accountId
+          ? () => {
+              void downloadExcel("/reports/general-ledger", csvParams, "general-ledger");
             }
           : undefined
       }
       toolbar={
         <>
-          <FilterSelect
-            label="Account"
-            className="w-64"
-            placeholder="Account"
-            value={accountId || ALL}
-            onValueChange={(value) =>
-              setParams({ filters: { account_id: value === ALL ? null : value } })
-            }
-            options={[
-              { value: ALL, label: "Select account" },
-              ...accounts.map((account) => ({
+          <div className="flex min-w-[20ch] flex-col gap-1.5">
+            <Label htmlFor="gl-account">Account</Label>
+            <MasterSelect
+              asFormControl={false}
+              className="w-72"
+              placeholder="Select account"
+              searchPlaceholder="Search account…"
+              aria-label="Account"
+              value={accountId}
+              onValueChange={(value) =>
+                setParams({ filters: { account_id: value || null } })
+              }
+              options={accounts.map((account) => ({
                 value: account.id,
                 label: `${account.code} — ${account.name}`,
-              })),
-            ]}
-          />
+              }))}
+            />
+          </div>
           <DateRangeFilter
             layout="inline"
             fromId="gl-from"
@@ -91,6 +141,33 @@ export function GeneralLedgerScreen() {
             to={to}
             onFromChange={(value) => setParams({ filters: { from: value || null } })}
             onToChange={(value) => setParams({ filters: { to: value || null } })}
+          />
+          <FilterSelect
+            label="Source"
+            className="w-44"
+            placeholder="Source"
+            value={sourceType ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { source_type: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All sources" },
+              ...GL_SOURCE_TYPES,
+            ]}
+          />
+          <FilterSelect
+            label="Side"
+            className="w-32"
+            placeholder="Side"
+            value={side ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { side: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "Both" },
+              { value: "debit", label: "Debit" },
+              { value: "credit", label: "Credit" },
+            ]}
           />
           <FilterSelect
             label="Branch"
@@ -108,14 +185,23 @@ export function GeneralLedgerScreen() {
               })),
             ]}
           />
-          {from || to || accountId || branchId ? (
+          {from || to || accountId || branchId || sourceType || side ? (
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className="h-9"
               onClick={() =>
-                setParams({ filters: { from: null, to: null, account_id: null, branch_id: null } })
+                setParams({
+                  filters: {
+                    from: null,
+                    to: null,
+                    account_id: null,
+                    branch_id: null,
+                    source_type: null,
+                    side: null,
+                  },
+                })
               }
             >
               Clear
@@ -126,12 +212,25 @@ export function GeneralLedgerScreen() {
     >
       {report ? (
         <p className="text-muted-foreground text-sm">
-          {report.account_code} {report.account_name}. Opening{" "}
-          {formatReportMoney(report.opening_balance)}. Closing{" "}
-          {formatReportMoney(report.closing_balance)}.
+          {report.account_code} {report.account_name}. Opening {money(report.opening_balance)}.
+          Closing {money(report.closing_balance)}.
         </p>
       ) : null}
-      <DataTable>
+      <DataTable
+        footer={
+          report && accountId ? (
+            <DataTablePagination
+              meta={{
+                page: report.page,
+                page_size: pageSize,
+                total: report.total_lines,
+                total_pages: totalPages,
+              }}
+              onPageChange={setPage}
+            />
+          ) : null
+        }
+      >
         <TableHeader>
           <TableRow>
             <TableHead>Date</TableHead>
@@ -200,9 +299,9 @@ export function GeneralLedgerScreen() {
                     "—"
                   )}
                 </TableCell>
-                <TableCell>{formatReportMoney(line.debit_base)}</TableCell>
-                <TableCell>{formatReportMoney(line.credit_base)}</TableCell>
-                <TableCell>{formatReportMoney(line.running_balance)}</TableCell>
+                <TableCell>{money(line.debit_base)}</TableCell>
+                <TableCell>{money(line.credit_base)}</TableCell>
+                <TableCell>{money(line.running_balance)}</TableCell>
                 <TableCell>{line.narration ?? line.description ?? "—"}</TableCell>
               </TableRow>
             ))

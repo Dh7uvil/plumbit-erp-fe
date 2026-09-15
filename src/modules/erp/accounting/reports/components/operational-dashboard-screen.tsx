@@ -26,7 +26,7 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatReportMoney } from "@/shared/lib/format";
+import { formatCompactReportMoney, formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 import { cn } from "@/shared/lib/cn";
 
@@ -88,7 +88,7 @@ export function OperationalDashboardScreen() {
           {canInventory ? (
             <KpiCard
               title="Stock valuation"
-              value={formatReportMoney(data.stock_valuation, data.currency_code)}
+              value={formatCompactReportMoney(data.stock_valuation, data.currency_code)}
               href="/reports/stock-valuation"
               icon={Warehouse}
               iconClass="bg-success-muted text-success-foreground"
@@ -123,6 +123,9 @@ export function OperationalDashboardScreen() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Unposted documents</CardTitle>
+            <p className="text-muted-foreground text-xs font-normal">
+              Drafts and other documents that are not yet posted.
+            </p>
           </CardHeader>
           <CardContent className="flex flex-col gap-1.5">
             {data.unposted.map((row) => {
@@ -172,7 +175,8 @@ export function OperationalDashboardScreen() {
       ) : null}
       {data ? (
         <p className="text-muted-foreground text-xs">
-          Figures are as of {data.as_of} and include posted documents only.
+          KPI figures are as of {data.as_of} from posted documents. Unposted documents are listed
+          separately.
         </p>
       ) : null}
     </section>

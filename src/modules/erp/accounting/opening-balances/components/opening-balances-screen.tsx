@@ -22,6 +22,7 @@ import {
   emptyStockLine,
   type OpeningBalanceFormValues,
   type OpeningBalancePreview,
+  type OpeningBalanceState,
 } from "@/modules/erp/accounting/opening-balances/schemas";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
@@ -34,8 +35,9 @@ import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { WizardSteps } from "@/shared/components/layout/wizard-steps";
 import { MasterSelect } from "@/shared/components/form/master-select";
-import { Alert, AlertDescription } from "@/shared/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import {
   Form,
@@ -92,7 +94,7 @@ export function OpeningBalancesScreen() {
     return <CommittedOpeningBalances />;
   }
 
-  return <OpeningBalanceWizard />;
+  return <OpeningBalanceWizard state={state ?? null} />;
 }
 
 function CommittedOpeningBalances() {
@@ -171,7 +173,7 @@ function CommittedOpeningBalances() {
   );
 }
 
-function OpeningBalanceWizard() {
+function OpeningBalanceWizard({ state }: { state: OpeningBalanceState | null }) {
   const tenantQuery = useCurrentTenant();
   const accountsQuery = useAllAccounts({ is_group: false, is_active: true });
   const customersQuery = useAllCustomers();
@@ -184,6 +186,7 @@ function OpeningBalanceWizard() {
   const [preview, setPreview] = useState<OpeningBalancePreview | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmCommit, setConfirmCommit] = useState(false);
+  const [acknowledgeActivity, setAcknowledgeActivity] = useState(false);
   const form = useForm<OpeningBalanceFormValues>({
     resolver: zodResolver(OpeningBalanceFormSchema),
     defaultValues: {
@@ -232,7 +235,10 @@ function OpeningBalanceWizard() {
   async function onCommit() {
     setFormError(null);
     try {
-      await commitMutation.mutateAsync(form.getValues());
+      await commitMutation.mutateAsync({
+        values: form.getValues(),
+        acknowledgeExistingActivity: acknowledgeActivity,
+      });
       toast.success("Opening balances committed");
       setConfirmCommit(false);
     } catch (error) {
@@ -270,6 +276,29 @@ function OpeningBalanceWizard() {
         subtitle="Guided go-live. Debits increase assets; credits increase liabilities. Customer (AR) amounts are what they owe you; supplier (AP) amounts are what you owe them."
       />
       <WizardSteps steps={[...OPENING_BALANCE_STEPS]} currentStep={step} />
+      {state?.has_posted_activity || (state?.posted_journal_count ?? 0) > 0 ? (
+        <Alert>
+          <AlertTitle>Posted activity already exists</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2">
+            <span>
+              This tenant already has {state?.posted_journal_count ?? 0} posted journal
+              {(state?.posted_journal_count ?? 0) === 1 ? "" : "s"}
+              {state?.stock_movement_count
+                ? ` and ${state.stock_movement_count} stock movement${state.stock_movement_count === 1 ? "" : "s"}`
+                : ""}
+              . Committing opening balances after live posting can lock posted dates or insert
+              opening entries after activity. Prefer inventory catch-up unless you have period
+              override and explicitly acknowledge this.
+            </span>
+            <Link
+              href="/reports/stock-valuation-gl"
+              className="text-sm font-medium underline-offset-4 hover:underline"
+            >
+              Open Stock valuation vs GL
+            </Link>
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
       <Form {...form}>
         <form className="flex flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
@@ -606,14 +635,28 @@ function OpeningBalanceWizard() {
                   <p className="text-muted-foreground text-sm">Run preview from Opening stock.</p>
                 )}
                 {step === "commit" ? (
-                  <Alert>
-                    <AlertDescription>
-                      Commit writes one opening-balance journal dated the day before books start,
-                      open AR/AP lines on that journal, and opening stock layers through stock
-                      posting. Books start date and hard lock are set. This cannot be undone except
-                      by Reset while nothing else has posted.
-                    </AlertDescription>
-                  </Alert>
+                  <>
+                    <Alert>
+                      <AlertDescription>
+                        Commit writes one opening-balance journal dated the day before books start,
+                        open AR/AP lines on that journal, and opening stock layers through stock
+                        posting. Books start date and hard lock are set. This cannot be undone except
+                        by Reset while nothing else has posted.
+                      </AlertDescription>
+                    </Alert>
+                    {(state?.posted_journal_count ?? 0) > 0 ? (
+                      <label className="flex items-start gap-2 text-sm">
+                        <Checkbox
+                          checked={acknowledgeActivity}
+                          onCheckedChange={(checked) => setAcknowledgeActivity(checked === true)}
+                        />
+                        <span>
+                          I acknowledge existing posted journals and still want to commit. This
+                          requires period override.
+                        </span>
+                      </label>
+                    ) : null}
+                  </>
                 ) : null}
               </CardContent>
             </Card>
@@ -625,7 +668,11 @@ function OpeningBalanceWizard() {
             {step === "commit" ? (
               <Button
                 type="button"
-                disabled={!preview || commitMutation.isPending}
+                disabled={
+                  !preview ||
+                  commitMutation.isPending ||
+                  ((state?.posted_journal_count ?? 0) > 0 && !acknowledgeActivity)
+                }
                 onClick={() => setConfirmCommit(true)}
               >
                 {commitMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}

@@ -3,7 +3,6 @@
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { usePurchaseRegister, useSalesRegister } from "@/modules/erp/accounting/reports/queries";
-import { taxRegisterLineMatchesBox } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { documentDetailHref } from "@/shared/components/document/document-links";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
@@ -31,17 +30,15 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
   const from = filters.from ?? period.from;
   const to = filters.to ?? period.to;
   const box = filters.box;
-  const params = { from, to };
+  const params = { from, to, box };
   const salesQuery = useSalesRegister(kind === "sales" ? params : null);
   const purchaseQuery = usePurchaseRegister(kind === "purchase" ? params : null);
   const reportQuery = kind === "sales" ? salesQuery : purchaseQuery;
   const report = reportQuery.data;
-  const { csvPending, downloadCsv } = useReportCsv();
+  const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const path = kind === "sales" ? "/reports/sales-register" : "/reports/purchase-register";
   const filename = kind === "sales" ? "sales-register" : "purchase-register";
-  const lines = (report?.lines ?? []).filter((line) =>
-    box ? taxRegisterLineMatchesBox(line, box) : true,
-  );
+  const lines = report?.lines ?? [];
 
   return (
     <ReportShell
@@ -52,8 +49,12 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
           : "Posted bills and debit notes for the selected period"
       }
       csvPending={csvPending}
+      excelPending={excelPending}
       onDownloadCsv={() => {
         void downloadCsv(path, params, filename);
+      }}
+      onDownloadExcel={() => {
+        void downloadExcel(path, params, filename);
       }}
       toolbar={
         <>
@@ -168,7 +169,7 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
                   </TableRow>
                 );
               })}
-              {!box && report ? (
+              {report ? (
                 <TableRow>
                   <TableCell colSpan={7} className="font-medium">
                     Totals

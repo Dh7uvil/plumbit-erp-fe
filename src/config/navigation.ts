@@ -47,6 +47,7 @@ import { journalPermissions } from "@/modules/erp/accounting/journals/permission
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
+import { periodLockPermissions } from "@/modules/erp/period-lock/permissions";
 import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
@@ -326,10 +327,16 @@ export const navigation: NavigationGroup[] = [
         permission: openingBalancePermissions.manage,
         icon: CircleDollarSign,
       },
+      {
+        label: "Period lock",
+        href: "/period-lock",
+        permission: periodLockPermissions.read,
+        icon: Lock,
+      },
     ],
   },
   {
-    label: "Reports",
+    label: "Financial reports",
     items: [
       {
         label: "Trial balance",
@@ -368,6 +375,64 @@ export const navigation: NavigationGroup[] = [
         icon: Banknote,
       },
       {
+        label: "Sales analysis",
+        href: "/reports/sales-analysis",
+        permission: reportPermissions.financial,
+        icon: FileSpreadsheet,
+      },
+      {
+        label: "Purchase analysis",
+        href: "/reports/purchase-analysis",
+        permission: reportPermissions.financial,
+        icon: FileSpreadsheet,
+      },
+    ],
+  },
+  {
+    label: "Receivables & payables",
+    items: [
+      {
+        label: "AR aging",
+        href: "/reports/ar-aging",
+        permission: reportPermissions.arAp,
+        icon: Scale,
+      },
+      {
+        label: "AP aging",
+        href: "/reports/ap-aging",
+        permission: reportPermissions.arAp,
+        icon: Scale,
+      },
+      {
+        label: "Outstanding invoices",
+        href: "/reports/outstanding-invoices",
+        permission: reportPermissions.arAp,
+        icon: FileText,
+      },
+      {
+        label: "Outstanding bills",
+        href: "/reports/outstanding-bills",
+        permission: reportPermissions.arAp,
+        icon: FileText,
+      },
+      {
+        label: "Customer statement",
+        href: "/reports/customer-statement",
+        permission: reportPermissions.arAp,
+        icon: FileSpreadsheet,
+      },
+      {
+        label: "Supplier statement",
+        href: "/reports/supplier-statement",
+        permission: reportPermissions.arAp,
+        icon: FileSpreadsheet,
+      },
+    ],
+  },
+  {
+    label: "Tax reports",
+    items: [
+      {
         label: "Sales register",
         href: "/reports/sales-register",
         permission: reportPermissions.tax,
@@ -386,35 +451,28 @@ export const navigation: NavigationGroup[] = [
         icon: Percent,
       },
       {
+        label: "VAT GL recon",
+        href: "/reports/vat-gl-recon",
+        permission: reportPermissions.tax,
+        icon: Scale,
+      },
+      {
         label: "Export evidence exceptions",
         href: "/reports/export-evidence-exceptions",
         permission: reportPermissions.tax,
         icon: FileText,
       },
       {
-        label: "AR aging",
-        href: "/reports/ar-aging",
-        permission: reportPermissions.arAp,
-        icon: Scale,
+        label: "Invoiced not dispatched",
+        href: "/reports/invoiced-not-dispatched",
+        permission: reportPermissions.tax,
+        icon: ScrollText,
       },
-      {
-        label: "AP aging",
-        href: "/reports/ap-aging",
-        permission: reportPermissions.arAp,
-        icon: Scale,
-      },
-      {
-        label: "Customer statement",
-        href: "/reports/customer-statement",
-        permission: reportPermissions.arAp,
-        icon: FileSpreadsheet,
-      },
-      {
-        label: "Supplier statement",
-        href: "/reports/supplier-statement",
-        permission: reportPermissions.arAp,
-        icon: FileSpreadsheet,
-      },
+    ],
+  },
+  {
+    label: "Inventory reports",
+    items: [
       {
         label: "Stock valuation",
         href: "/reports/stock-valuation",
@@ -445,12 +503,11 @@ export const navigation: NavigationGroup[] = [
         permission: reportPermissions.inventory,
         icon: ShoppingCart,
       },
-      {
-        label: "Invoiced not dispatched",
-        href: "/reports/invoiced-not-dispatched",
-        permission: reportPermissions.tax,
-        icon: ScrollText,
-      },
+    ],
+  },
+  {
+    label: "Operations reports",
+    items: [
       {
         label: "Three-way match",
         href: "/reports/three-way-match",

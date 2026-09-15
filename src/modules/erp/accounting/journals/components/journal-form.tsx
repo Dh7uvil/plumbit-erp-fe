@@ -200,7 +200,7 @@ export function JournalForm({
             control={form.control}
             name="exchange_rate"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="max-w-40">
                 <FormLabel>Exchange rate</FormLabel>
                 <FormControl>
                   <Input inputMode="decimal" disabled={disabled} {...field} />
@@ -241,7 +241,7 @@ export function JournalForm({
             control={form.control}
             name="reference"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="sm:col-span-2">
                 <FormLabel>Reference</FormLabel>
                 <FormControl>
                   <Input disabled={disabled} maxLength={100} {...field} />
@@ -264,7 +264,11 @@ export function JournalForm({
             )}
           />
         </div>
-        <JournalLinesEditor form={form} disabled={disabled} />
+        <JournalLinesEditor
+          form={form}
+          disabled={disabled}
+          currencyCode={currencies.find((currency) => currency.id === form.watch("currency_id"))?.code}
+        />
         {disabled ? null : (
           <div className="flex justify-end">
             <Button type="submit" disabled={pending}>

@@ -31,6 +31,7 @@ export const OpeningBalancePayloadSchema = z.object({
   ar_items: z.array(OpeningBalanceOpenItemSchema).default([]),
   ap_items: z.array(OpeningBalanceOpenItemSchema).default([]),
   stock_lines: z.array(OpeningBalanceStockLineSchema).default([]),
+  acknowledge_existing_activity: z.boolean().optional().default(false),
 });
 export type OpeningBalancePayload = z.infer<typeof OpeningBalancePayloadSchema>;
 
@@ -66,6 +67,9 @@ export const OpeningBalanceStateSchema = z.object({
   document_number: z.string().nullable().optional(),
   committed_at: z.string().nullable().optional(),
   can_reset: z.boolean().default(false),
+  posted_journal_count: z.number().int().optional().default(0),
+  has_posted_activity: z.boolean().optional().default(false),
+  stock_movement_count: z.number().int().optional().default(0),
 });
 export type OpeningBalanceState = z.infer<typeof OpeningBalanceStateSchema>;
 
@@ -109,6 +113,17 @@ export const OPENING_BALANCE_STEPS = [
   { id: "preview", label: "Preview" },
   { id: "commit", label: "Commit" },
 ] as const;
+
+export const InventoryCatchUpSchema = z.object({
+  as_of: z.string(),
+  valuation_total: DecimalStringSchema,
+  gl_balance: DecimalStringSchema,
+  difference: DecimalStringSchema,
+  posted: z.boolean(),
+  journal_entry_id: z.string().uuid().nullable().optional().default(null),
+  document_number: z.string().nullable().optional().default(null),
+});
+export type InventoryCatchUp = z.infer<typeof InventoryCatchUpSchema>;
 
 export function emptyGlLine() {
   return { account_id: OPTIONAL_SELECT_NONE, debit: "", credit: "", description: "" };

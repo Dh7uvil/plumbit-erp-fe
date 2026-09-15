@@ -27,6 +27,7 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { RecordLink } from "@/shared/components/data-table/record-link";
 import { Badge } from "@/shared/components/ui/badge";
 
 export function JournalDetailScreen({
@@ -161,11 +162,35 @@ function JournalDetailLoaded({
         <ActivityFeed entityType="journal_entry" entityId={journal.id} revision={journal.version} />
       }
     >
+      <>
+      {journal.reversal_of_id || journal.reversed_by_id ? (
+        <p className="text-muted-foreground text-sm">
+          {journal.reversal_of_id ? (
+            <>
+              Reversal of{" "}
+              <RecordLink href={`/journals/${journal.reversal_of_id}`}>
+                the original journal
+              </RecordLink>
+              {journal.reversed_by_id ? ". " : "."}
+            </>
+          ) : null}
+          {journal.reversed_by_id ? (
+            <>
+              Reversed by{" "}
+              <RecordLink href={`/journals/${journal.reversed_by_id}`}>
+                the reversal journal
+              </RecordLink>
+              .
+            </>
+          ) : null}
+        </p>
+      ) : null}
       <JournalForm
         journal={journal}
         disabled={!isEdit}
         onSuccess={() => router.push(viewHref)}
       />
+      </>
     </DocumentRecordShell>
   );
 }

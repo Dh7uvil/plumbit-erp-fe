@@ -14,13 +14,14 @@ import {
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
 import {
   ACCOUNT_SUBTYPE_LABELS,
-  ACCOUNT_SUBTYPES,
+  ACCOUNT_SUBTYPES_BY_TYPE,
   ACCOUNT_TYPE_LABELS,
   ACCOUNT_TYPES,
   AccountFormSchema,
   EMPTY_ACCOUNT_FORM,
   type Account,
   type AccountFormValues,
+  type AccountSubtype,
 } from "@/modules/erp/accounting/accounts/schemas";
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
@@ -70,12 +71,15 @@ function toFormValues(account: Account | null): AccountFormValues {
 export function AccountForm({
   account,
   disabled = false,
+  lockGroupFlag = false,
   onSuccess,
   showCancel = false,
   onCancel,
 }: {
   account: Account | null;
   disabled?: boolean;
+  /** When true, the group/postable flag cannot be changed (posted lines or children). */
+  lockGroupFlag?: boolean;
   onSuccess?: (entity: Account) => void;
   showCancel?: boolean;
   onCancel?: () => void;
@@ -96,6 +100,7 @@ export function AccountForm({
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
   const accountType = useWatch({ control: form.control, name: "account_type" });
+  const subtypeOptions = ACCOUNT_SUBTYPES_BY_TYPE[accountType] ?? [];
   const groups = useMemo(
     () =>
       (groupsQuery.data ?? []).filter(
@@ -170,6 +175,11 @@ export function AccountForm({
                   onValueChange={(value) => {
                     field.onChange(value);
                     form.setValue("parent_id", OPTIONAL_SELECT_NONE);
+                    const allowed = ACCOUNT_SUBTYPES_BY_TYPE[value as Account["account_type"]];
+                    const current = form.getValues("account_subtype");
+                    if (!allowed.includes(current as AccountSubtype)) {
+                      form.setValue("account_subtype", allowed[0]);
+                    }
                   }}
                 >
                   <FormControl>
@@ -202,7 +212,7 @@ export function AccountForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {ACCOUNT_SUBTYPES.map((subtype) => (
+                    {subtypeOptions.map((subtype) => (
                       <SelectItem key={subtype} value={subtype}>
                         {ACCOUNT_SUBTYPE_LABELS[subtype]}
                       </SelectItem>
@@ -286,11 +296,18 @@ export function AccountForm({
                 <FormControl>
                   <Checkbox
                     checked={field.value}
-                    disabled={disabled}
+                    disabled={disabled || lockGroupFlag}
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
                 </FormControl>
-                <FormLabel>Group account (not postable)</FormLabel>
+                <FormLabel>
+                  Group account (not postable)
+                  {lockGroupFlag ? (
+                    <span className="text-muted-foreground ml-1 text-xs font-normal">
+                      (locked after journal activity or children)
+                    </span>
+                  ) : null}
+                </FormLabel>
               </FormItem>
             )}
           />

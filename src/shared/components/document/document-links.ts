@@ -88,6 +88,9 @@ const DOCUMENT_HREF: Record<string, (id: string) => string> = {
   SUPPLIER_PAYMENT: (id) => `/supplier-payments/${id}`,
   LANDED_COST: (id) => `/landed-costs/${id}`,
   JOURNAL: (id) => `/journals/${id}`,
+  // Opening AR/AP open items are journal lines; surface the go-live screen.
+  OPENING_AR: (_id) => `/opening-balances`,
+  OPENING_AP: (_id) => `/opening-balances`,
 };
 
 export function documentDetailHref(documentType: string, documentId: string): string | null {

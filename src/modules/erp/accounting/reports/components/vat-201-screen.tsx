@@ -32,7 +32,7 @@ export function Vat201Screen() {
   const params = { from, to };
   const reportQuery = useVat201(params);
   const report = reportQuery.data;
-  const { csvPending, downloadCsv } = useReportCsv();
+  const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
 
@@ -41,8 +41,12 @@ export function Vat201Screen() {
       title="VAT 201"
       subtitle="VAT return boxes from posted documents only."
       csvPending={csvPending}
+      excelPending={excelPending}
       onDownloadCsv={() => {
         void downloadCsv("/reports/vat-201", params, "vat-201");
+      }}
+      onDownloadExcel={() => {
+        void downloadExcel("/reports/vat-201", params, "vat-201");
       }}
       toolbar={
         <>

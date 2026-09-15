@@ -18,6 +18,7 @@ import type {
   SupplierStatementParams,
   TaxRegisterParams,
   TrialBalanceParams,
+  AnalysisParams,
 } from "@/modules/erp/accounting/reports/schemas";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
@@ -57,6 +58,12 @@ export const reportKeys = {
   purchaseRegister: (params: TaxRegisterParams) =>
     [...reportKeys.all, "purchase-register", params] as const,
   vat201: (params: TaxRegisterParams) => [...reportKeys.all, "vat-201", params] as const,
+  vatGlRecon: (params: TaxRegisterParams) => [...reportKeys.all, "vat-gl-recon", params] as const,
+  outstandingInvoices: (asOf: string) => [...reportKeys.all, "outstanding-invoices", asOf] as const,
+  outstandingBills: (asOf: string) => [...reportKeys.all, "outstanding-bills", asOf] as const,
+  salesAnalysis: (params: AnalysisParams) => [...reportKeys.all, "sales-analysis", params] as const,
+  purchaseAnalysis: (params: AnalysisParams) =>
+    [...reportKeys.all, "purchase-analysis", params] as const,
   threeWayMatch: () => [...reportKeys.all, "three-way-match"] as const,
   receivedNotBilled: () => [...reportKeys.all, "received-not-billed"] as const,
   dashboard: () => [...reportKeys.all, "dashboard"] as const,
@@ -254,6 +261,50 @@ export function useDashboard(enabled = true) {
     queryKey: useTenantQueryKey(reportKeys.dashboard()),
     queryFn: reportsApi.dashboard,
     enabled,
+  });
+}
+
+export function useVatGlRecon(params: TaxRegisterParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.vatGlRecon(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.vatGlRecon(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useOutstandingInvoices(asOf: string | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.outstandingInvoices(asOf ?? "")),
+    queryFn: () => reportsApi.outstandingInvoices(asOf ?? undefined),
+    enabled: Boolean(asOf),
+  });
+}
+
+export function useOutstandingBills(asOf: string | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.outstandingBills(asOf ?? "")),
+    queryFn: () => reportsApi.outstandingBills(asOf ?? undefined),
+    enabled: Boolean(asOf),
+  });
+}
+
+export function useSalesAnalysis(params: AnalysisParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(
+      reportKeys.salesAnalysis(params ?? { from: "", to: "", group_by: "summary" }),
+    ),
+    queryFn: () => reportsApi.salesAnalysis(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function usePurchaseAnalysis(params: AnalysisParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(
+      reportKeys.purchaseAnalysis(params ?? { from: "", to: "", group_by: "summary" }),
+    ),
+    queryFn: () => reportsApi.purchaseAnalysis(params!),
+    enabled: Boolean(params?.from && params.to),
   });
 }
 

@@ -4,4 +4,5 @@ export const reportPermissions = {
   arAp: "reports.report.ar_ap",
   inventory: "reports.report.inventory",
   financial: "reports.report.financial",
+  export: "reports.report.export",
 } as const;

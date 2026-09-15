@@ -120,9 +120,29 @@ export function StockValuationScreen() {
                   <TableCell>{formatDate(line.document_date)}</TableCell>
                   <TableCell>{formatQuantity(line.qty_remaining)}</TableCell>
                   {canSeeCost ? (
-                    <TableCell>{formatReportMoney(line.landed_unit_cost)}</TableCell>
+                    <TableCell>
+                      {formatReportMoney(line.landed_unit_cost, report.currency_code)}
+                    </TableCell>
                   ) : null}
-                  {canSeeCost ? <TableCell>{formatReportMoney(line.stock_value)}</TableCell> : null}
+                  {canSeeCost ? (
+                    <TableCell>
+                      {formatReportMoney(line.stock_value, report.currency_code)}
+                    </TableCell>
+                  ) : null}
+                </TableRow>
+              ))}
+              {(report.warehouse_totals ?? []).map((row) => (
+                <TableRow key={`wh-${row.warehouse_id}`}>
+                  <TableCell className="font-medium" colSpan={4}>
+                    {row.warehouse_code} — {row.warehouse_name}
+                  </TableCell>
+                  <TableCell className="font-medium">{formatQuantity(row.total_qty)}</TableCell>
+                  {canSeeCost ? <TableCell /> : null}
+                  {canSeeCost ? (
+                    <TableCell className="font-medium">
+                      {formatReportMoney(row.total_value, report.currency_code)}
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))}
               <TableRow>
@@ -133,7 +153,7 @@ export function StockValuationScreen() {
                 {canSeeCost ? <TableCell /> : null}
                 {canSeeCost ? (
                   <TableCell className="font-medium">
-                    {formatReportMoney(report.total_value)}
+                    {formatReportMoney(report.total_value, report.currency_code)}
                   </TableCell>
                 ) : null}
               </TableRow>

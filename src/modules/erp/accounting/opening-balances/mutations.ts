@@ -6,6 +6,7 @@ import { accountKeys } from "@/modules/erp/accounting/accounts/queries";
 import { journalKeys } from "@/modules/erp/accounting/journals/queries";
 import { openingBalancesApi } from "@/modules/erp/accounting/opening-balances/api";
 import { openingBalanceKeys } from "@/modules/erp/accounting/opening-balances/queries";
+import type { OpeningBalanceFormValues } from "@/modules/erp/accounting/opening-balances/schemas";
 import { stockKeys } from "@/modules/inventory-management/stock/queries";
 import { tenantKeys } from "@/modules/users-management/tenants/queries";
 
@@ -26,9 +27,26 @@ export function usePreviewOpeningBalances() {
 export function useCommitOpeningBalances() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: openingBalancesApi.commit,
+    mutationFn: ({
+      values,
+      acknowledgeExistingActivity,
+    }: {
+      values: OpeningBalanceFormValues;
+      acknowledgeExistingActivity?: boolean;
+    }) => openingBalancesApi.commit(values, acknowledgeExistingActivity),
     onSuccess: async () => {
       await invalidateOpening(queryClient);
+    },
+  });
+}
+
+export function useCatchUpInventoryGl() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (asOf?: string) => openingBalancesApi.inventoryCatchUp(asOf),
+    onSuccess: async () => {
+      await invalidateOpening(queryClient);
+      await queryClient.invalidateQueries({ queryKey: ["reports"] });
     },
   });
 }

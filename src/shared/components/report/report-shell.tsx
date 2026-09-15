@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Download } from "lucide-react";
+import { AlertCircle, Download, Printer } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
@@ -16,6 +16,8 @@ export function ReportShell({
   onDownloadCsv,
   csvPending = false,
   csvDisabled = false,
+  onDownloadExcel,
+  excelPending = false,
   isBalanced,
   imbalanceMessage = "This report does not balance. Totals come from the server — do not post until the ledger is investigated.",
   children,
@@ -26,6 +28,8 @@ export function ReportShell({
   onDownloadCsv?: () => void;
   csvPending?: boolean;
   csvDisabled?: boolean;
+  onDownloadExcel?: () => void;
+  excelPending?: boolean;
   isBalanced?: boolean;
   imbalanceMessage?: string;
   children: ReactNode;
@@ -36,21 +40,53 @@ export function ReportShell({
         title={title}
         subtitle={subtitle}
         actions={
-          onDownloadCsv ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onDownloadCsv}
-              disabled={csvDisabled || csvPending}
-            >
-              <Download className="size-4" />
-              Download CSV
-            </Button>
-          ) : null
+          onDownloadCsv || onDownloadExcel ? (
+            <div className="flex flex-wrap gap-2 print:hidden">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+              >
+                <Printer className="size-4" />
+                Print
+              </Button>
+              {onDownloadCsv ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onDownloadCsv}
+                  disabled={csvDisabled || csvPending}
+                >
+                  <Download className="size-4" />
+                  Download CSV
+                </Button>
+              ) : null}
+              {onDownloadExcel ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onDownloadExcel}
+                  disabled={csvDisabled || excelPending}
+                >
+                  <Download className="size-4" />
+                  Excel
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <div className="print:hidden">
+              <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
+                <Printer className="size-4" />
+                Print
+              </Button>
+            </div>
+          )
         }
       />
-      {toolbar ? <DataTableToolbar>{toolbar}</DataTableToolbar> : null}
+      {toolbar ? <DataTableToolbar className="print:hidden">{toolbar}</DataTableToolbar> : null}
       {isBalanced === false ? (
         <Alert variant="destructive">
           <AlertCircle />

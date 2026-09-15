@@ -19,6 +19,9 @@ import {
   DashboardSchema,
   ReceivedNotBilledSchema,
   ThreeWayMatchSchema,
+  VatGlReconSchema,
+  OutstandingDocumentsSchema,
+  SalesPurchaseAnalysisSchema,
   type AccountStatement,
   type AccountStatementParams,
   type Aging,
@@ -53,6 +56,10 @@ import {
   type Dashboard,
   type ReceivedNotBilled,
   type ThreeWayMatch,
+  type VatGlRecon,
+  type OutstandingDocuments,
+  type SalesPurchaseAnalysis,
+  type AnalysisParams,
 } from "@/modules/erp/accounting/reports/schemas";
 import { apiClient } from "@/shared/api/client";
 import type { RequestParams } from "@/shared/api/client";
@@ -88,6 +95,10 @@ export const reportsApi = {
           to: params.to,
           party_id: params.party_id,
           branch_id: params.branch_id,
+          source_type: params.source_type,
+          side: params.side,
+          page: params.page,
+          page_size: params.page_size,
         },
       }),
     ),
@@ -174,19 +185,45 @@ export const reportsApi = {
   salesRegister: async (params: TaxRegisterParams): Promise<TaxRegister> =>
     TaxRegisterSchema.parse(
       await apiClient.get("/reports/sales-register", {
-        params: { from: params.from, to: params.to },
+        params: { from: params.from, to: params.to, box: params.box },
       }),
     ),
   purchaseRegister: async (params: TaxRegisterParams): Promise<TaxRegister> =>
     TaxRegisterSchema.parse(
       await apiClient.get("/reports/purchase-register", {
-        params: { from: params.from, to: params.to },
+        params: { from: params.from, to: params.to, box: params.box },
       }),
     ),
   vat201: async (params: TaxRegisterParams): Promise<Vat201> =>
     Vat201Schema.parse(
       await apiClient.get("/reports/vat-201", {
         params: { from: params.from, to: params.to },
+      }),
+    ),
+  vatGlRecon: async (params: TaxRegisterParams): Promise<VatGlRecon> =>
+    VatGlReconSchema.parse(
+      await apiClient.get("/reports/vat-gl-recon", {
+        params: { from: params.from, to: params.to },
+      }),
+    ),
+  outstandingInvoices: async (asOf?: string): Promise<OutstandingDocuments> =>
+    OutstandingDocumentsSchema.parse(
+      await apiClient.get("/reports/outstanding-invoices", { params: { as_of: asOf } }),
+    ),
+  outstandingBills: async (asOf?: string): Promise<OutstandingDocuments> =>
+    OutstandingDocumentsSchema.parse(
+      await apiClient.get("/reports/outstanding-bills", { params: { as_of: asOf } }),
+    ),
+  salesAnalysis: async (params: AnalysisParams): Promise<SalesPurchaseAnalysis> =>
+    SalesPurchaseAnalysisSchema.parse(
+      await apiClient.get("/reports/sales-analysis", {
+        params: { from: params.from, to: params.to, group_by: params.group_by },
+      }),
+    ),
+  purchaseAnalysis: async (params: AnalysisParams): Promise<SalesPurchaseAnalysis> =>
+    SalesPurchaseAnalysisSchema.parse(
+      await apiClient.get("/reports/purchase-analysis", {
+        params: { from: params.from, to: params.to, group_by: params.group_by },
       }),
     ),
   threeWayMatch: async (): Promise<ThreeWayMatch> =>
@@ -197,4 +234,10 @@ export const reportsApi = {
     DashboardSchema.parse(await apiClient.get("/reports/dashboard")),
   downloadCsv: (path: string, params: RequestParams, filename: string): Promise<void> =>
     apiClient.downloadCsv(path, { params, filename }),
+  downloadExcel: (path: string, params: RequestParams, filename: string): Promise<void> =>
+    apiClient.downloadFile(path, {
+      params: { ...params, format: "xlsx" },
+      filename: filename.endsWith(".xls") ? filename : `${filename}.xls`,
+      accept: "application/vnd.ms-excel",
+    }),
 };

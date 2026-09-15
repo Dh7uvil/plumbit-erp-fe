@@ -45,8 +45,10 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatReportMoney } from "@/shared/lib/format";
+import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
+import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 
-const COLUMN_HEADERS = ["Number", "Date", "Type", "Status", "Debit", "Credit"] as const;
+const COLUMN_HEADERS = ["Number", "Date", "Type", "Source", "Status", "Debit", "Credit", "Narration"] as const;
 const ALL = "all";
 const EMPTY_EXTRA = { entryDateFrom: "", entryDateTo: "" };
 
@@ -60,6 +62,8 @@ function isType(value: string | undefined): value is JournalType {
 
 export function JournalsScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(journalPermissions);
+  const tenantQuery = useCurrentTenant();
+  const currencyCode = tenantQuery.data?.default_currency;
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
@@ -103,7 +107,7 @@ export function JournalsScreen() {
     <ListPage>
       <PageHeader
         title="Journals"
-        subtitle="Manual journal entries posted through the ledger"
+        subtitle="Manual and system journals posted through the ledger"
         actions={
           canCreate ? (
             <Button type="button" size="sm" asChild>
@@ -257,14 +261,18 @@ export function JournalsScreen() {
                 </TableCell>
                 <TableCell>{JOURNAL_TYPE_LABELS[row.journal_type]}</TableCell>
                 <TableCell>
+                  {row.source_type ? documentTypeDisplayLabel(row.source_type) : "—"}
+                </TableCell>
+                <TableCell>
                   <DocumentStatusBadge
                     status={row.status}
                     labels={JOURNAL_STATUS_LABELS}
                     variants={JOURNAL_STATUS_VARIANTS}
                   />
                 </TableCell>
-                <TableCell>{formatReportMoney(row.total_debit_base)}</TableCell>
-                <TableCell>{formatReportMoney(row.total_credit_base)}</TableCell>
+                <TableCell>{formatReportMoney(row.total_debit_base, currencyCode)}</TableCell>
+                <TableCell>{formatReportMoney(row.total_credit_base, currencyCode)}</TableCell>
+                <TableCell className="max-w-[24ch] truncate">{row.narration ?? "—"}</TableCell>
                 {showActions ? (
                   <TableCell>
                     <DataTableRowActions
