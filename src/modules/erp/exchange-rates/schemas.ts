@@ -11,6 +11,8 @@ export const ExchangeRateSchema = z.object({
   rate: MoneySchema,
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type ExchangeRate = z.infer<typeof ExchangeRateSchema>;
 

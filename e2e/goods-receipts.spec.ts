@@ -35,7 +35,7 @@ async function issuePurchaseOrderWithProduct(page: Page, product: RegExp) {
   await page.getByLabel("Line 1 rate").fill("8.00");
   await page.getByRole("button", { name: "Create purchase order" }).click();
   await expect(page).toHaveURL(/\/purchase-orders\/[0-9a-f-]{36}$/i);
-  await expect(page.getByRole("heading", { name: "PO-0001" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "POGPI26000001" })).toBeVisible();
   await page.getByRole("button", { name: "Issue" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Issue" }).click();
   await expect(page.getByText("Issued", { exact: true })).toBeVisible();
@@ -54,7 +54,7 @@ test.describe("goods receipts and quality inspections", () => {
 
     await page.getByRole("button", { name: "Create goods receipt" }).click();
     await expect(page).toHaveURL(/\/goods-receipts\/[0-9a-f-]{36}$/i);
-    await expect(page.getByRole("heading", { name: "GRN-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "GRNGPI26000001" })).toBeVisible();
 
     await page.getByRole("button", { name: "Post" }).click();
     const postConfirm = page.getByRole("alertdialog");
@@ -73,7 +73,7 @@ test.describe("goods receipts and quality inspections", () => {
     await signIn(page);
     await issuePurchaseOrderWithProduct(page, /PIPE-QC/);
     await page.getByRole("button", { name: "Create goods receipt" }).click();
-    await expect(page.getByRole("heading", { name: "GRN-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "GRNGPI26000001" })).toBeVisible();
     await page.getByRole("button", { name: "Post" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Post" }).click();
     await expect(page.getByText("Posted", { exact: true })).toBeVisible();
@@ -87,8 +87,8 @@ test.describe("goods receipts and quality inspections", () => {
     await expect(page.locator("td").filter({ hasText: /^0$/ }).first()).toBeVisible();
 
     await page.goto("/quality-inspections");
-    await expect(page.getByRole("link", { name: "QCR-0001" })).toBeVisible();
-    await page.getByRole("link", { name: "QCR-0001" }).click();
+    await expect(page.getByRole("link", { name: "QCRGPI26000001" })).toBeVisible();
+    await page.getByRole("link", { name: "QCRGPI26000001" }).click();
     await page.getByRole("button", { name: "Approve" }).click();
     const approveConfirm = page.getByRole("alertdialog");
     await expect(approveConfirm.getByText(/accepted quantity becomes available/i)).toBeVisible();

@@ -85,6 +85,7 @@ export const StockMovementSchema = z.object({
   occurred_at: z.string(),
   notes: z.string().nullable(),
   created_at: z.string(),
+  updated_at: z.string().optional(),
   unit_cost: DecimalStringSchema.optional(),
   value: DecimalStringSchema.optional(),
   is_estimated_cost: z.boolean().optional(),

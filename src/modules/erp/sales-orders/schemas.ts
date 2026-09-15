@@ -221,6 +221,8 @@ export const SalesOrderSchema = z.object({
   reservation_shortfalls: z.array(ReservationShortfallSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type SalesOrder = z.infer<typeof SalesOrderSchema>;
 

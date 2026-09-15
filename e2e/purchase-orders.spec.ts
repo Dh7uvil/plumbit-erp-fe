@@ -39,13 +39,13 @@ test.describe("purchase orders", () => {
     await page.getByRole("button", { name: "Create purchase order" }).click();
 
     await expect(page).toHaveURL(/\/purchase-orders\/[0-9a-f-]{36}$/i);
-    await expect(page.getByRole("heading", { name: "PO-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "POGPI26000001" })).toBeVisible();
     await expect(page.getByText("Draft", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Issue" }).click();
     const confirm = page.getByRole("alertdialog");
     await expect(
-      confirm.getByRole("heading", { name: "Issue purchase order PO-0001" }),
+      confirm.getByRole("heading", { name: "Issue purchase order POGPI26000001" }),
     ).toBeVisible();
     await confirm.getByRole("button", { name: "Issue" }).click();
 
@@ -68,7 +68,7 @@ test.describe("purchase orders", () => {
     await page.getByRole("button", { name: "Create purchase order" }).click();
 
     await expect(page).toHaveURL(/\/purchase-orders\/[0-9a-f-]{36}$/i);
-    await expect(page.getByRole("heading", { name: "PO-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "POGPI26000001" })).toBeVisible();
 
     await page.goto("/purchase-orders");
     await page.getByRole("button", { name: "Convert from" }).click();
@@ -77,11 +77,11 @@ test.describe("purchase orders", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Clone purchase order" })).toBeVisible();
     await dialog.getByLabel("Purchase order").click();
-    await page.getByRole("menuitem", { name: /PO-0001/ }).click();
+    await page.getByRole("menuitem", { name: /POGPI26000001/ }).click();
     await dialog.getByRole("button", { name: "Clone" }).click();
 
     await expect(page).toHaveURL(/\/purchase-orders\/[0-9a-f-]{36}$/i);
-    await expect(page.getByRole("heading", { name: "PO-0002" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "POGPI26000002" })).toBeVisible();
     await expect(page.getByText("Draft", { exact: true })).toBeVisible();
   });
 });

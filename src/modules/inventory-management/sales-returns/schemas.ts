@@ -91,6 +91,8 @@ export const SalesReturnSchema = z.object({
   lines: z.array(SalesReturnLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type SalesReturn = z.infer<typeof SalesReturnSchema>;
 export const SalesReturnListSchema = z.array(SalesReturnSchema);

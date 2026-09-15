@@ -2,10 +2,11 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { CreateBillFromGoodsReceiptDialog } from "@/modules/erp/purchase-invoices/components/create-from-goods-receipt-dialog";
 import { CreateBillFromPurchaseOrderDialog } from "@/modules/erp/purchase-invoices/components/create-from-purchase-order-dialog";
 import { useDeletePurchaseInvoice } from "@/modules/erp/purchase-invoices/mutations";
@@ -33,6 +34,16 @@ import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -40,19 +51,15 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -68,15 +75,6 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = [
-  "Number",
-  "Supplier",
-  "Date",
-  "Type",
-  "Status",
-  "Payment",
-  "Grand total",
-] as const;
 const ALL = "all";
 const SORT_FIELDS = [
   { value: "document_number", label: "Number" },
@@ -84,12 +82,6 @@ const SORT_FIELDS = [
   { value: "status", label: "Status" },
   { value: "grand_total", label: "Grand total" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "invoice_date",
-  Status: "status",
-  "Grand total": "grand_total",
-};
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -147,6 +139,7 @@ export function PurchaseInvoicesScreen() {
   });
   const suppliersQuery = useAllSuppliers();
   const currenciesQuery = useAllCurrencies();
+  const branchesQuery = useAllBranches();
   const deleteInvoice = useDeletePurchaseInvoice();
   const [deleting, setDeleting] = useState<PurchaseInvoice | null>(null);
   const today = todayIsoDate();
@@ -155,10 +148,20 @@ export function PurchaseInvoicesScreen() {
   const meta = invoicesQuery.data?.meta;
   const suppliers = suppliersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
-  const supplierNameById = new Map(suppliers.map((supplier) => [supplier.id, supplier.name]));
-  const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
+  const supplierNameById = useMemo(
+    () => new Map(suppliers.map((supplier) => [supplier.id, supplier.name])),
+    [suppliers],
+  );
+  const currencyCodeById = useMemo(
+    () => new Map(currencies.map((currency) => [currency.id, currency.code])),
+    [currencies],
+  );
+  const branchNameById = useMemo(
+    () => new Map((branchesQuery.data ?? []).map((branch) => [branch.id, branch.name])),
+    [branchesQuery.data],
+  );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onDelete() {
     if (!deleting) {
@@ -172,6 +175,220 @@ export function PurchaseInvoicesScreen() {
       toast.error(getErrorMessage(error));
     }
   }
+
+  const columnDefs = useMemo((): Array<DataTableColumn<PurchaseInvoice>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (invoice) => {
+          const number = purchaseInvoiceDisplayNumber(invoice);
+          return (
+            <RecordLink href={`/purchase-invoices/${invoice.id}`}>
+              {number ?? "—"}
+            </RecordLink>
+          );
+        },
+      },
+      {
+        id: "supplier",
+        header: "Supplier",
+        className: "font-medium",
+        cell: (invoice) => (
+          <RecordLink href={`/purchase-invoices/${invoice.id}`}>
+            {supplierNameById.get(invoice.supplier_id) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "invoice_date",
+        header: "Date",
+        sortableField: "invoice_date",
+        cell: (invoice) => {
+          const overdue = isPurchaseInvoiceOverdue(invoice, today);
+          return (
+            <>
+              {formatDate(invoice.invoice_date)}
+              {overdue ? (
+                <span className="text-destructive ml-2 text-xs font-medium">Overdue</span>
+              ) : null}
+            </>
+          );
+        },
+      },
+      {
+        id: "invoice_type",
+        header: "Type",
+        cell: (invoice) => BILL_TYPE_LABELS[invoice.bill_type],
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (invoice) => (
+          <div className="flex flex-wrap items-center gap-1">
+            <DocumentStatusBadge
+              status={invoice.status}
+              labels={INVOICE_DOCUMENT_STATUS_LABELS}
+              variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
+            />
+            {invoice.is_fully_debited ? (
+              <DocumentStatusBadge
+                status="DEBITED"
+                labels={{ DEBITED: "Debited" }}
+                variants={{ DEBITED: "secondary" }}
+              />
+            ) : invoice.is_partially_debited ? (
+              <DocumentStatusBadge
+                status="PARTIALLY_DEBITED"
+                labels={{ PARTIALLY_DEBITED: "Partially debited" }}
+                variants={{ PARTIALLY_DEBITED: "warning" }}
+              />
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        id: "payment_status",
+        header: "Payment",
+        cell: (invoice) => (
+          <DocumentStatusBadge
+            status={invoice.payment_status}
+            labels={PAYMENT_STATUS_LABELS}
+            variants={PAYMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "grand_total",
+        header: "Grand total",
+        sortableField: "grand_total",
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.grand_total, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (invoice) => (invoice.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "due_date",
+        header: "Due date",
+        defaultVisible: false,
+        cell: (invoice) => formatDate(invoice.due_date),
+      },
+      {
+        id: "supplier_invoice_number",
+        header: "Supplier invoice",
+        defaultVisible: false,
+        cell: (invoice) => invoice.supplier_invoice_number || "—",
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (invoice) => currencyCodeById.get(invoice.currency_id) ?? "—",
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        defaultVisible: false,
+        cell: (invoice) =>
+          invoice.branch_id ? (branchNameById.get(invoice.branch_id) ?? "—") : "—",
+      },
+      {
+        id: "exchange_rate",
+        header: "Exchange rate",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (invoice) => invoice.exchange_rate,
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (invoice) => invoice.notes || "—",
+      },
+      {
+        id: "subtotal",
+        header: "Subtotal",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.subtotal, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "tax_amount",
+        header: "Tax",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.tax_amount, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "amount_paid",
+        header: "Amount paid",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.amount_paid, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "balance_due",
+        header: "Balance due",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.balance_due, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      ...auditTimestampColumns<PurchaseInvoice>(),
+      ...auditActorColumns<PurchaseInvoice>(userNameById),
+      ...actionsColumn<PurchaseInvoice>(showActions, (invoice) => {
+        const number = purchaseInvoiceDisplayNumber(invoice);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "bill"}
+            viewHref={canRead ? `/purchase-invoices/${invoice.id}` : undefined}
+            editHref={
+              canUpdate && invoice.status === "DRAFT"
+                ? `/purchase-invoices/${invoice.id}/edit`
+                : undefined
+            }
+            onDelete={
+              invoice.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(invoice)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    branchNameById,
+    canDelete,
+    canRead,
+    canUpdate,
+    currencyCodeById,
+    showActions,
+    supplierNameById,
+    today,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "erp.purchase_invoices",
+    columnDefs,
+  );
 
   return (
     <ListPage>
@@ -336,6 +553,7 @@ export function PurchaseInvoicesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.supplier_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -364,13 +582,11 @@ export function PurchaseInvoicesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ "Grand total": "text-right" }}
             />
           </TableRow>
         </TableHeader>
@@ -378,14 +594,14 @@ export function PurchaseInvoicesScreen() {
           {invoicesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : invoicesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(invoicesQuery.error)}
                   onRetry={() => invoicesQuery.refetch()}
@@ -394,7 +610,7 @@ export function PurchaseInvoicesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No purchase invoices"
                   message={emptyListMessage(canCreate, "Create a purchase invoice to get started.")}
@@ -402,82 +618,11 @@ export function PurchaseInvoicesScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((invoice) => {
-              const number = purchaseInvoiceDisplayNumber(invoice);
-              const currencyCode = currencyCodeById.get(invoice.currency_id) ?? "";
-              const overdue = isPurchaseInvoiceOverdue(invoice, today);
-              return (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/purchase-invoices/${invoice.id}`}>
-                      {number ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <RecordLink href={`/purchase-invoices/${invoice.id}`}>
-                      {supplierNameById.get(invoice.supplier_id) ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>
-                    {formatDate(invoice.invoice_date)}
-                    {overdue ? (
-                      <span className="text-destructive ml-2 text-xs font-medium">Overdue</span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{BILL_TYPE_LABELS[invoice.bill_type]}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <DocumentStatusBadge
-                        status={invoice.status}
-                        labels={INVOICE_DOCUMENT_STATUS_LABELS}
-                        variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
-                      />
-                      {invoice.is_fully_debited ? (
-                        <DocumentStatusBadge
-                          status="DEBITED"
-                          labels={{ DEBITED: "Debited" }}
-                          variants={{ DEBITED: "secondary" }}
-                        />
-                      ) : invoice.is_partially_debited ? (
-                        <DocumentStatusBadge
-                          status="PARTIALLY_DEBITED"
-                          labels={{ PARTIALLY_DEBITED: "Partially debited" }}
-                          variants={{ PARTIALLY_DEBITED: "warning" }}
-                        />
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={invoice.payment_status}
-                      labels={PAYMENT_STATUS_LABELS}
-                      variants={PAYMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMoney(invoice.grand_total, currencyCode)}
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "bill"}
-                        viewHref={canRead ? `/purchase-invoices/${invoice.id}` : undefined}
-                        editHref={
-                          canUpdate && invoice.status === "DRAFT"
-                            ? `/purchase-invoices/${invoice.id}/edit`
-                            : undefined
-                        }
-                        onDelete={
-                          invoice.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(invoice)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((invoice) => (
+              <TableRow key={invoice.id}>
+                <DataTableCells columns={columns} row={invoice} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

@@ -39,6 +39,7 @@ import {
   emptyExpenseDocumentLine,
 } from "@/shared/components/document/schemas";
 import { MasterSelect } from "@/shared/components/form/master-select";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
@@ -545,16 +546,18 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                   </TableCell>
                     <TableCell className="align-top">
                       {disabled ? null : (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive size-7"
-                          aria-label="Remove line"
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                        <TableActionTooltip label="Remove line">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive size-7"
+                            aria-label="Remove line"
+                            onClick={() => remove(index)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </TableActionTooltip>
                       )}
                     </TableCell>
                   </TableRow>
@@ -933,16 +936,18 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                     : null}
                   <TableCell className="align-top">
                     {disabled ? null : (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive size-7"
-                        aria-label="Remove line"
-                        onClick={() => remove(index)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      <TableActionTooltip label="Remove line">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive size-7"
+                          aria-label="Remove line"
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableActionTooltip>
                     )}
                   </TableCell>
                 </TableRow>

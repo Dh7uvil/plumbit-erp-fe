@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
@@ -11,20 +11,26 @@ import { useCurrencies } from "@/modules/erp/currencies/queries";
 import type { Currency } from "@/modules/erp/currencies/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -35,19 +41,12 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
-const COLUMN_HEADERS = ["Code", "Name", "Symbol", "Decimals", "Base", "Status"] as const;
 const SORT_FIELDS = [
   { value: "code", label: "Code" },
   { value: "name", label: "Name" },
   { value: "is_base", label: "Base" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Code: "code",
-  Name: "name",
-  Base: "is_base",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -77,10 +76,69 @@ export function CurrenciesScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Currency | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = currenciesQuery.data?.data ?? [];
   const meta = currenciesQuery.data?.meta;
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Currency>> => {
+    return [
+      {
+        id: "code",
+        header: "Code",
+        sortableField: "code",
+        className: "font-mono text-sm",
+        cell: (currency) => (
+          <RecordLink href={`/currencies/${currency.id}`}>{currency.code}</RecordLink>
+        ),
+      },
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "max-w-xs min-w-0 font-medium",
+        cell: (currency) => (
+          <RecordLink href={`/currencies/${currency.id}`} className="block truncate">
+            {currency.name}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "symbol",
+        header: "Symbol",
+        cell: (currency) => currency.symbol,
+      },
+      {
+        id: "decimal_places",
+        header: "Decimals",
+        cell: (currency) => currency.decimal_places,
+      },
+      {
+        id: "is_base",
+        header: "Base",
+        sortableField: "is_base",
+        cell: (currency) => (currency.is_base ? <Badge variant="info">Base</Badge> : "—"),
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (currency) => <ActiveBadge active={currency.is_active} />,
+      },
+      ...auditTimestampColumns<Currency>(),
+      ...auditActorColumns<Currency>(userNameById),
+      ...actionsColumn<Currency>(showActions, (currency) => (
+        <DataTableRowActions
+          entityName={currency.name}
+          viewHref={canRead ? `/currencies/${currency.id}` : undefined}
+          editHref={canUpdate ? `/currencies/${currency.id}/edit` : undefined}
+          onDelete={canDelete && !currency.is_base ? () => setDeleting(currency) : undefined}
+        />
+      )),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.currencies", columnDefs);
 
   function openCreate() {
     setFormOpen(true);
@@ -153,6 +211,7 @@ export function CurrenciesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || filters.is_base || sort_by ? (
           <Button
             type="button"
@@ -174,9 +233,8 @@ export function CurrenciesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -187,14 +245,14 @@ export function CurrenciesScreen() {
           {currenciesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : currenciesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(currenciesQuery.error)}
                   onRetry={() => currenciesQuery.refetch()}
@@ -203,7 +261,7 @@ export function CurrenciesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No currencies"
                   message={emptyListMessage(canCreate, "Create a currency to get started.")}
@@ -213,32 +271,7 @@ export function CurrenciesScreen() {
           ) : (
             rows.map((currency) => (
               <TableRow key={currency.id}>
-                <TableCell className="font-mono text-sm">
-                  <RecordLink href={`/currencies/${currency.id}`}>{currency.code}</RecordLink>
-                </TableCell>
-                <TableCell className="max-w-xs min-w-0 font-medium">
-                  <RecordLink href={`/currencies/${currency.id}`} className="block truncate">
-                    {currency.name}
-                  </RecordLink>
-                </TableCell>
-                <TableCell>{currency.symbol}</TableCell>
-                <TableCell>{currency.decimal_places}</TableCell>
-                <TableCell>{currency.is_base ? <Badge variant="info">Base</Badge> : "—"}</TableCell>
-                <TableCell>
-                  <ActiveBadge active={currency.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={currency.name}
-                      viewHref={canRead ? `/currencies/${currency.id}` : undefined}
-                      editHref={canUpdate ? `/currencies/${currency.id}/edit` : undefined}
-                      onDelete={
-                        canDelete && !currency.is_base ? () => setDeleting(currency) : undefined
-                      }
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={currency} />
               </TableRow>
             ))
           )}

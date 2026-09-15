@@ -15,19 +15,21 @@ import {
   type OutboxListParams,
 } from "@/modules/users-management/outbox/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import { auditTimestampColumns } from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -39,19 +41,12 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDateTime, humanizeEnum } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = ["Event", "Aggregate", "Status", "Attempts", "Created", "Error"] as const;
 const SORT_FIELDS = [
   { value: "created_at", label: "Created" },
   { value: "status", label: "Status" },
   { value: "event_type", label: "Event" },
   { value: "attempts", label: "Attempts" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Event: "event_type",
-  Status: "status",
-  Attempts: "attempts",
-  Created: "created_at",
-};
 const ALL = "all";
 
 function statusVariant(status: string): "success" | "destructive" | "warning" | "muted" | "info" {
@@ -103,7 +98,89 @@ export function OutboxEventsScreen() {
   const rows = eventsQuery.data?.data ?? [];
   const meta = eventsQuery.data?.meta;
   const showActions = hasRowActions(true, canRetry);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+
+  const columnDefs = useMemo((): Array<DataTableColumn<OutboxEvent>> => {
+    return [
+      {
+        id: "event_type",
+        header: "Event",
+        sortableField: "event_type",
+        className: "font-medium",
+        cell: (row) => humanizeEnum(row.event_type),
+      },
+      {
+        id: "aggregate",
+        header: "Aggregate",
+        cell: (row) => (row.aggregate_type ? humanizeEnum(row.aggregate_type) : "—"),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (row) => (
+          <Badge variant={statusVariant(row.status)}>
+            {OUTBOX_STATUS_LABELS[row.status] ?? humanizeEnum(row.status)}
+          </Badge>
+        ),
+      },
+      {
+        id: "attempts",
+        header: "Attempts",
+        sortableField: "attempts",
+        className: "tabular-nums",
+        cell: (row) => row.attempts,
+      },
+      {
+        id: "created_at",
+        header: "Created",
+        sortableField: "created_at",
+        cell: (row) => formatDateTime(row.created_at),
+      },
+      {
+        id: "error",
+        header: "Error",
+        className: "max-w-xs truncate text-muted-foreground",
+        cell: (row) => row.last_error ?? "—",
+      },
+      {
+        id: "max_attempts",
+        header: "Max attempts",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (row) => row.max_attempts ?? "—",
+      },
+      {
+        id: "available_at",
+        header: "Available at",
+        defaultVisible: false,
+        className: "text-muted-foreground text-xs",
+        cell: (row) => formatDateTime(row.available_at),
+      },
+      {
+        id: "processed_at",
+        header: "Processed at",
+        defaultVisible: false,
+        className: "text-muted-foreground text-xs",
+        cell: (row) => formatDateTime(row.processed_at),
+      },
+      ...auditTimestampColumns<OutboxEvent>({ createdAt: false }),
+      ...actionsColumn<OutboxEvent>(showActions, (row) => (
+        <DataTableRowActions
+          entityName={row.event_type}
+          onView={() => setViewingId(row.id)}
+          extra={
+            canRetry && canRetryEvent(row) ? (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setRetrying(row)}>
+                Retry
+              </Button>
+            ) : null
+          }
+        />
+      )),
+    ];
+  }, [canRetry, showActions]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("identity.outbox_events", columnDefs);
 
   async function onConfirmRetry() {
     if (!retrying) {
@@ -150,15 +227,15 @@ export function OutboxEventsScreen() {
           sortOrder={sort_order}
           onApply={(next) => setParams({ sort_by: next.sort_by, sort_order: next.sort_order })}
         />
+        {columnsDialog}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sortBy}
               sortOrder={sort_order}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
               onSort={(next) => setParams({ sort_by: next.sort_by, sort_order: next.sort_order })}
             />
           </TableRow>
@@ -167,14 +244,14 @@ export function OutboxEventsScreen() {
           {eventsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : eventsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(eventsQuery.error)}
                   onRetry={() => eventsQuery.refetch()}
@@ -183,7 +260,7 @@ export function OutboxEventsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No outbox events"
                   message="Queued integration events will appear here."
@@ -193,40 +270,7 @@ export function OutboxEventsScreen() {
           ) : (
             rows.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="font-medium">{humanizeEnum(row.event_type)}</TableCell>
-                <TableCell>
-                  {row.aggregate_type ? humanizeEnum(row.aggregate_type) : "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={statusVariant(row.status)}>
-                    {OUTBOX_STATUS_LABELS[row.status] ?? humanizeEnum(row.status)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="tabular-nums">{row.attempts}</TableCell>
-                <TableCell>{formatDateTime(row.created_at)}</TableCell>
-                <TableCell className="max-w-xs truncate text-muted-foreground">
-                  {row.last_error ?? "—"}
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={row.event_type}
-                      onView={() => setViewingId(row.id)}
-                      extra={
-                        canRetry && canRetryEvent(row) ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setRetrying(row)}
-                          >
-                            Retry
-                          </Button>
-                        ) : null
-                      }
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={row} />
               </TableRow>
             ))
           )}

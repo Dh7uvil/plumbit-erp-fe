@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useDeleteShipment } from "@/modules/inventory-management/shipments/mutations";
@@ -14,6 +14,8 @@ import {
   SHIPMENT_STATUSES,
   SHIPMENT_TYPE_LABELS,
   SHIPMENT_TYPES,
+  TRANSPORT_MODE_LABELS,
+  INCOTERM_LABELS,
   parseShipmentStatus,
   parseShipmentType,
   shipmentDisplayNumber,
@@ -22,19 +24,26 @@ import {
 import { SHIPMENT_ACTION_REGISTRY } from "@/modules/inventory-management/shipments/workflow";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -43,8 +52,8 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { formatDate } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Type", "Status"] as const;
 const ALL = "all";
 
 export function ShipmentsScreen() {
@@ -62,7 +71,94 @@ export function ShipmentsScreen() {
   const rows = shipmentsQuery.data?.data ?? [];
   const meta = shipmentsQuery.data?.meta;
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Shipment>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        className: "font-mono text-sm",
+        cell: (row) => (
+          <RecordLink href={`/shipments/${row.id}`}>{shipmentDisplayNumber(row) ?? "—"}</RecordLink>
+        ),
+      },
+      {
+        id: "shipment_type",
+        header: "Type",
+        cell: (row) => SHIPMENT_TYPE_LABELS[row.shipment_type],
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={SHIPMENT_STATUS_LABELS}
+            variants={SHIPMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "transport_mode",
+        header: "Transport",
+        defaultVisible: false,
+        cell: (row) => TRANSPORT_MODE_LABELS[row.transport_mode],
+      },
+      {
+        id: "incoterm",
+        header: "Incoterm",
+        defaultVisible: false,
+        cell: (row) => (row.incoterm ? INCOTERM_LABELS[row.incoterm] : "—"),
+      },
+      {
+        id: "carrier_name",
+        header: "Carrier",
+        defaultVisible: false,
+        cell: (row) => row.carrier_name || "—",
+      },
+      {
+        id: "etd",
+        header: "ETD",
+        defaultVisible: false,
+        cell: (row) => formatDate(row.etd),
+      },
+      {
+        id: "eta",
+        header: "ETA",
+        defaultVisible: false,
+        cell: (row) => formatDate(row.eta),
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      ...auditTimestampColumns<Shipment>(),
+      ...auditActorColumns<Shipment>(userNameById),
+      ...actionsColumn<Shipment>(showActions, (row) => {
+        const number = shipmentDisplayNumber(row);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "shipment"}
+            viewHref={canRead ? `/shipments/${row.id}` : undefined}
+            editHref={
+              canUpdate && row.status === "DRAFT" ? `/shipments/${row.id}/edit` : undefined
+            }
+            onDelete={
+              row.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(row)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("logistics.shipments", columnDefs);
 
   async function onDelete() {
     if (!deleting) return;
@@ -129,27 +225,24 @@ export function ShipmentsScreen() {
             })),
           ]}
         />
+        {columnsDialog}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableCell key={header} className="font-medium">
-                {header}
-              </TableCell>
-            ))}
+            <DataTableColumnHeads columns={columns} onSort={setParams} />
           </TableRow>
         </TableHeader>
         <TableBody>
           {shipmentsQuery.isLoading ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <Skeleton className="h-6 w-full" />
               </TableCell>
             </TableRow>
           ) : shipmentsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(shipmentsQuery.error)}
                   onRetry={() => shipmentsQuery.refetch()}
@@ -158,7 +251,7 @@ export function ShipmentsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No shipments"
                   message={emptyListMessage(canCreate, "Create a shipment to track a consignment.")}
@@ -166,42 +259,11 @@ export function ShipmentsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const number = shipmentDisplayNumber(row);
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/shipments/${row.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell>{SHIPMENT_TYPE_LABELS[row.shipment_type]}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.status}
-                      labels={SHIPMENT_STATUS_LABELS}
-                      variants={SHIPMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "shipment"}
-                        viewHref={canRead ? `/shipments/${row.id}` : undefined}
-                        editHref={
-                          canUpdate && row.status === "DRAFT"
-                            ? `/shipments/${row.id}/edit`
-                            : undefined
-                        }
-                        onDelete={
-                          row.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(row)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

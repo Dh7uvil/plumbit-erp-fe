@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
@@ -36,12 +36,6 @@ export const USER_SORT_FIELDS: SortFieldOption[] = [
   { value: "last_login_at", label: "Last login" },
   { value: "created_at", label: "Created" },
 ];
-
-export const USER_SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  User: "name",
-  Email: "email",
-  Status: "status",
-};
 
 export type UserListFilterParams = Omit<UserListParams, "page" | "page_size">;
 
@@ -217,7 +211,7 @@ export function userListParamsFromTable(input: {
   });
 }
 
-export function UsersTableFilters() {
+export function UsersTableFilters({ columnsDialog }: { columnsDialog?: ReactNode }) {
   const can = useCan();
   const canReadRoles = can(rolePermissions.read);
   const canReadBranches = can(branchPermissions.read);
@@ -459,6 +453,7 @@ export function UsersTableFilters() {
         sortOrder={sort_order}
         onApply={setParams}
       />
+      {columnsDialog}
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
           Clear

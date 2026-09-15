@@ -73,7 +73,7 @@ who  when (with timezone)  what changed  old value → new value
 ```
 
 ```text
-User: Dhruvil     Action: UPDATE     Entity: Sales Order SO-2026-000042
+User: Dhruvil     Action: UPDATE     Entity: Sales Order SOAGM26000042
 Status: draft → approved     2026-08-19 14:31 GST
 ```
 

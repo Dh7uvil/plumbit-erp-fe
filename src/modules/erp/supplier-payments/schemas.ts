@@ -76,6 +76,8 @@ export const SupplierPaymentSchema = z.object({
   allocations: z.array(SupplierPaymentAllocationSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type SupplierPayment = z.infer<typeof SupplierPaymentSchema>;
 export const SupplierPaymentListSchema = z.array(SupplierPaymentSchema);

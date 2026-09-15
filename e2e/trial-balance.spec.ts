@@ -52,6 +52,6 @@ test.describe("trial balance", () => {
     await page.getByRole("row", { name: /Cash on hand/ }).click();
     await expect(page).toHaveURL(/\/reports\/general-ledger/);
     await expect(page.getByRole("heading", { name: "General ledger" })).toBeVisible();
-    await expect(page.getByText("JV-0001")).toBeVisible();
+    await expect(page.getByText("JV26000001")).toBeVisible();
   });
 });

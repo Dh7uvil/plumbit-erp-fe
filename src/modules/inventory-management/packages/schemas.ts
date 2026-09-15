@@ -62,6 +62,8 @@ export const PackageSchema = z.object({
   lines: z.array(PackageLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type Package = z.infer<typeof PackageSchema>;
 export const PackageListSchema = z.array(PackageSchema);

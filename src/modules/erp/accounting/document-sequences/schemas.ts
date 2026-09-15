@@ -17,6 +17,32 @@ export function documentTypeLabel(value: string): string {
   return documentTypeDisplayLabel(value);
 }
 
+const INTERNAL_DOCUMENT_TYPES = new Set([
+  "JOURNAL",
+  "JOURNAL_ENTRY",
+  "STOCK_TRANSFER",
+  "STOCK_ADJUSTMENT",
+  "SHIPMENT",
+  "OPENING_AR",
+  "OPENING_AP",
+]);
+
+export function formatSequencePreview(
+  prefix: string,
+  fiscalYear: number,
+  nextNumber: number,
+  padding: number,
+  documentType?: string,
+): string {
+  const safeNumber = Number.isFinite(nextNumber) ? nextNumber : 1;
+  const safePadding = Number.isFinite(padding) ? padding : 6;
+  const year = fiscalYear || new Date().getFullYear();
+  const yy = String(year % 100).padStart(2, "0");
+  const seq = String(safeNumber).padStart(safePadding, "0");
+  const party = documentType && INTERNAL_DOCUMENT_TYPES.has(documentType) ? "" : "XXX";
+  return `${prefix || "PREFIX"}${party}${yy}${seq}`;
+}
+
 export const DocumentSequenceSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
@@ -29,6 +55,8 @@ export const DocumentSequenceSchema = z.object({
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type DocumentSequence = z.infer<typeof DocumentSequenceSchema>;
 

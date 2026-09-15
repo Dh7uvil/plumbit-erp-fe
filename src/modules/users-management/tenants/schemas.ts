@@ -125,6 +125,8 @@ export const TenantCurrentSchema = z.object({
   branches_count: z.number().int().nonnegative(),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type TenantCurrent = z.infer<typeof TenantCurrentSchema>;
 

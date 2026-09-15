@@ -25,6 +25,7 @@ import { ApiError, getErrorMessage } from "@/shared/api/errors";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import {
@@ -488,16 +489,18 @@ function AttachmentRowMeta({
         </span>
       )}
       {canDelete ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="text-destructive size-7"
-          aria-label={`Delete ${row.original_filename}`}
-          onClick={onDelete}
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
+        <TableActionTooltip label={`Delete ${row.original_filename}`}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-destructive size-7"
+            aria-label={`Delete ${row.original_filename}`}
+            onClick={onDelete}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </TableActionTooltip>
       ) : null}
     </div>
   );

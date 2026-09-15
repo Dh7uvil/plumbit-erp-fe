@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useGoodsReceipts } from "@/modules/inventory-management/goods-receipts/queries";
@@ -21,23 +21,29 @@ import {
 import { QUALITY_INSPECTION_ACTION_REGISTRY } from "@/modules/inventory-management/quality-inspections/workflow";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
-import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
+import { MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -48,7 +54,6 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Date", "Goods receipt", "Status"] as const;
 const ALL = "all";
 const EMPTY_EXTRA = {
   inspectionDateFrom: "",
@@ -71,11 +76,6 @@ const SORT_FIELDS = [
   { value: "inspection_date", label: "Date" },
   { value: "status", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "inspection_date",
-  Status: "status",
-};
 
 export function QualityInspectionsScreen() {
   const { canCreate, canRead, canUpdate } = useCrudPermissions(qualityInspectionPermissions);
@@ -104,8 +104,91 @@ export function QualityInspectionsScreen() {
   const receiptLabelById = new Map(
     receipts.map((row) => [row.id, goodsReceiptDisplayNumber(row) ?? row.id]),
   );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canUpdate);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+
+  const columnDefs = useMemo((): Array<DataTableColumn<QualityInspection>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (row) => (
+          <RecordLink href={`/quality-inspections/${row.id}`}>
+            {qualityInspectionDisplayNumber(row) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "goods_receipt",
+        header: "Goods receipt",
+        cell: (row) => (
+          <RecordLink href={`/goods-receipts/${row.goods_receipt_id}`}>
+            {receiptLabelById.get(row.goods_receipt_id) ?? "Goods receipt"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "inspection_date",
+        cell: (row) => formatDate(row.inspection_date),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={QUALITY_INSPECTION_STATUS_LABELS}
+            variants={QUALITY_INSPECTION_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      {
+        id: "inspector",
+        header: "Inspector",
+        defaultVisible: false,
+        cell: (row) =>
+          row.inspector_user_id ? (userNameById.get(row.inspector_user_id) ?? "—") : "—",
+      },
+      ...auditTimestampColumns<QualityInspection>(),
+      ...auditActorColumns<QualityInspection>(userNameById),
+      ...actionsColumn<QualityInspection>(showActions, (row) => {
+        const number = qualityInspectionDisplayNumber(row);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "inspection"}
+            viewHref={canRead ? `/quality-inspections/${row.id}` : undefined}
+            editHref={
+              canUpdate && row.status === "DRAFT"
+                ? `/quality-inspections/${row.id}/edit`
+                : undefined
+            }
+            onDelete={
+              row.available_actions.includes("delete") && canUpdate
+                ? () => setDeleting(row)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [canRead, canUpdate, receiptLabelById, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "inventory.quality_inspections",
+    columnDefs,
+  );
 
   async function onDelete() {
     if (!deleting) {
@@ -210,6 +293,7 @@ export function QualityInspectionsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.goods_receipt_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -236,9 +320,8 @@ export function QualityInspectionsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -249,14 +332,14 @@ export function QualityInspectionsScreen() {
           {inspectionsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : inspectionsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(inspectionsQuery.error)}
                   onRetry={() => inspectionsQuery.refetch()}
@@ -265,7 +348,7 @@ export function QualityInspectionsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No quality inspections"
                   message={emptyListMessage(canCreate, "Create an inspection to get started.")}
@@ -273,49 +356,11 @@ export function QualityInspectionsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const number = qualityInspectionDisplayNumber(row);
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/quality-inspections/${row.id}`}>
-                      {number ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(row.inspection_date)}</TableCell>
-                  <TableCell>
-                    <RecordLink href={`/goods-receipts/${row.goods_receipt_id}`}>
-                      {receiptLabelById.get(row.goods_receipt_id) ?? "Goods receipt"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.status}
-                      labels={QUALITY_INSPECTION_STATUS_LABELS}
-                      variants={QUALITY_INSPECTION_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "inspection"}
-                        viewHref={canRead ? `/quality-inspections/${row.id}` : undefined}
-                        editHref={
-                          canUpdate && row.status === "DRAFT"
-                            ? `/quality-inspections/${row.id}/edit`
-                            : undefined
-                        }
-                        onDelete={
-                          row.available_actions.includes("delete") && canUpdate
-                            ? () => setDeleting(row)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

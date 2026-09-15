@@ -54,12 +54,12 @@ describe("buildBreadcrumbs", () => {
       buildBreadcrumbs({
         pathname: "/sales-invoices/abc/edit",
         active: invoices,
-        recordLabel: "INV-0001",
+        recordLabel: "INVACM26000001",
       }),
     ).toEqual([
       { label: "Sales" },
       { label: "Sales invoices", href: "/sales-invoices" },
-      { label: "INV-0001", href: "/sales-invoices/abc" },
+      { label: "INVACM26000001", href: "/sales-invoices/abc" },
       { label: "Edit" },
     ]);
   });

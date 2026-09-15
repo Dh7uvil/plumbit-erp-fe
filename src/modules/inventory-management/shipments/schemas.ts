@@ -116,6 +116,8 @@ export const ShipmentSchema = z.object({
   related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type Shipment = z.infer<typeof ShipmentSchema>;
 export const ShipmentListSchema = z.array(ShipmentSchema);

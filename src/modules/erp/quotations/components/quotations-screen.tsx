@@ -3,7 +3,7 @@
 import { Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
@@ -25,23 +25,29 @@ import {
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -51,7 +57,6 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Customer", "Date", "Status", "Grand total"] as const;
 const ALL = "all";
 const SORT_FIELDS = [
   { value: "quote_number", label: "Number" },
@@ -59,12 +64,6 @@ const SORT_FIELDS = [
   { value: "status", label: "Status" },
   { value: "grand_total", label: "Grand total" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "quote_number",
-  Date: "quote_date",
-  Status: "status",
-  "Grand total": "grand_total",
-};
 
 function parseStatus(value: string | undefined): QuotationStatus | undefined {
   return QUOTATION_STATUSES.includes(value as QuotationStatus)
@@ -109,10 +108,16 @@ export function QuotationsScreen() {
   const customers = customersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
-  const customerNameById = new Map(customers.map((customer) => [customer.id, customer.name]));
-  const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
+  const customerNameById = useMemo(
+    () => new Map(customers.map((customer) => [customer.id, customer.name])),
+    [customers],
+  );
+  const currencyCodeById = useMemo(
+    () => new Map(currencies.map((currency) => [currency.id, currency.code])),
+    [currencies],
+  );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onClone(id: string) {
     try {
@@ -136,6 +141,167 @@ export function QuotationsScreen() {
       toast.error(getErrorMessage(error));
     }
   }
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Quotation>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "quote_number",
+        className: "font-mono text-sm",
+        cell: (quotation) => {
+          const number = quotationDisplayNumber(quotation);
+          return <RecordLink href={`/quotations/${quotation.id}`}>{number ?? "—"}</RecordLink>;
+        },
+      },
+      {
+        id: "customer",
+        header: "Customer",
+        className: "font-medium",
+        cell: (quotation) => (
+          <RecordLink href={`/quotations/${quotation.id}`}>
+            {customerNameById.get(quotation.customer_id) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "quote_date",
+        cell: (quotation) => formatDate(quotation.quote_date),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (quotation) => (
+          <DocumentStatusBadge
+            status={quotation.status}
+            labels={QUOTATION_STATUS_LABELS}
+            variants={QUOTATION_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "grand_total",
+        header: "Grand total",
+        sortableField: "grand_total",
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (quotation) =>
+          formatMoney(quotation.grand_total, currencyCodeById.get(quotation.currency_id) ?? ""),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (quotation) => (quotation.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "valid_until",
+        header: "Valid until",
+        defaultVisible: false,
+        cell: (quotation) => formatDate(quotation.valid_until),
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (quotation) => currencyCodeById.get(quotation.currency_id) ?? "—",
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        defaultVisible: false,
+        cell: (quotation) =>
+          quotation.branch_id
+            ? ((branchesQuery.data ?? []).find((branch) => branch.id === quotation.branch_id)
+                ?.name ?? "—")
+            : "—",
+      },
+      {
+        id: "exchange_rate",
+        header: "Exchange rate",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (quotation) => quotation.exchange_rate,
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (quotation) => quotation.notes || "—",
+      },
+      {
+        id: "subtotal",
+        header: "Subtotal",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (quotation) =>
+          formatMoney(quotation.subtotal, currencyCodeById.get(quotation.currency_id) ?? ""),
+      },
+      {
+        id: "tax_amount",
+        header: "Tax",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (quotation) =>
+          formatMoney(quotation.tax_amount, currencyCodeById.get(quotation.currency_id) ?? ""),
+      },
+      ...auditTimestampColumns<Quotation>(),
+      ...auditActorColumns<Quotation>(userNameById),
+      ...actionsColumn<Quotation>(showActions, (quotation) => {
+        const number = quotationDisplayNumber(quotation);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "quotation"}
+            viewHref={canRead ? `/quotations/${quotation.id}` : undefined}
+            editHref={
+              canUpdate && quotation.status === "DRAFT"
+                ? `/quotations/${quotation.id}/edit`
+                : undefined
+            }
+            extra={
+              quotation.available_actions.includes("clone") && canCreate ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label="Clone quotation"
+                  disabled={cloneQuotation.isPending}
+                  onClick={() => void onClone(quotation.id)}
+                >
+                  <Copy className="size-3.5" />
+                </Button>
+              ) : undefined
+            }
+            onDelete={
+              quotation.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(quotation)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    canCreate,
+    canDelete,
+    canRead,
+    canUpdate,
+    branchesQuery.data,
+    cloneQuotation.isPending,
+    currencyCodeById,
+    customerNameById,
+    showActions,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.quotations", columnDefs);
 
   return (
     <ListPage>
@@ -254,6 +420,7 @@ export function QuotationsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -280,13 +447,11 @@ export function QuotationsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ "Grand total": "text-right" }}
             />
           </TableRow>
         </TableHeader>
@@ -294,14 +459,14 @@ export function QuotationsScreen() {
           {quotationsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : quotationsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(quotationsQuery.error)}
                   onRetry={() => quotationsQuery.refetch()}
@@ -310,7 +475,7 @@ export function QuotationsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No quotations"
                   message={emptyListMessage(canCreate, "Create a quotation to get started.")}
@@ -318,66 +483,11 @@ export function QuotationsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((quotation) => {
-              const number = quotationDisplayNumber(quotation);
-              const currencyCode = currencyCodeById.get(quotation.currency_id) ?? "";
-              return (
-                <TableRow key={quotation.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/quotations/${quotation.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <RecordLink href={`/quotations/${quotation.id}`}>
-                      {customerNameById.get(quotation.customer_id) ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(quotation.quote_date)}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={quotation.status}
-                      labels={QUOTATION_STATUS_LABELS}
-                      variants={QUOTATION_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMoney(quotation.grand_total, currencyCode)}
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "quotation"}
-                        viewHref={canRead ? `/quotations/${quotation.id}` : undefined}
-                        editHref={
-                          canUpdate && quotation.status === "DRAFT"
-                            ? `/quotations/${quotation.id}/edit`
-                            : undefined
-                        }
-                        extra={
-                          quotation.available_actions.includes("clone") && canCreate ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              aria-label="Clone quotation"
-                              disabled={cloneQuotation.isPending}
-                              onClick={() => void onClone(quotation.id)}
-                            >
-                              <Copy className="size-3.5" />
-                            </Button>
-                          ) : undefined
-                        }
-                        onDelete={
-                          quotation.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(quotation)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((quotation) => (
+              <TableRow key={quotation.id}>
+                <DataTableCells columns={columns} row={quotation} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

@@ -21,6 +21,8 @@ export const BranchSchema = z.object({
   employee_count: z.number().int().nonnegative().default(0),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type Branch = z.infer<typeof BranchSchema>;
 

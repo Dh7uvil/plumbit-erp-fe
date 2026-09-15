@@ -17,21 +17,27 @@ import {
 } from "@/modules/inventory-management/price-lists/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -42,17 +48,11 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatPercent } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Name", "Type", "Currency", "Percent", "Status"] as const;
 const SORT_FIELDS = [
   { value: "name", label: "Name" },
   { value: "list_type", label: "Type" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Name: "name",
-  Type: "list_type",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -101,7 +101,60 @@ export function PriceListsScreen() {
     return map;
   }, [currenciesQuery.data]);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<PriceList>> => {
+    return [
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "font-medium",
+        cell: (priceList) => (
+          <RecordLink href={`/price-lists/${priceList.id}`}>{priceList.name}</RecordLink>
+        ),
+      },
+      {
+        id: "list_type",
+        header: "Type",
+        sortableField: "list_type",
+        cell: (priceList) => (
+          <RecordLink href={`/price-lists/${priceList.id}`}>
+            {PRICE_LIST_TYPE_LABELS[priceList.list_type]}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        cell: (priceList) => currencyLabelById.get(priceList.currency_id) ?? "—",
+      },
+      {
+        id: "percent",
+        header: "Percent",
+        cell: (priceList) =>
+          priceList.percent != null ? formatPercent(priceList.percent) : "—",
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (priceList) => <ActiveBadge active={priceList.is_active} />,
+      },
+      ...auditTimestampColumns<PriceList>(),
+      ...auditActorColumns<PriceList>(userNameById),
+      ...actionsColumn<PriceList>(showActions, (priceList) => (
+        <DataTableRowActions
+          entityName={priceList.name}
+          viewHref={canRead ? `/price-lists/${priceList.id}` : undefined}
+          editHref={canUpdate ? `/price-lists/${priceList.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(priceList) : undefined}
+        />
+      )),
+    ];
+  }, [canDelete, canRead, canUpdate, currencyLabelById, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.price_lists", columnDefs);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -199,6 +252,7 @@ export function PriceListsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || filters.list_type || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -220,9 +274,8 @@ export function PriceListsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -233,14 +286,14 @@ export function PriceListsScreen() {
           {priceListsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : priceListsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(priceListsQuery.error)}
                   onRetry={() => priceListsQuery.refetch()}
@@ -249,7 +302,7 @@ export function PriceListsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No price lists"
                   message={emptyListMessage(canCreate, "Create a price list to get started.")}
@@ -259,31 +312,7 @@ export function PriceListsScreen() {
           ) : (
             rows.map((priceList) => (
               <TableRow key={priceList.id}>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/price-lists/${priceList.id}`}>{priceList.name}</RecordLink>
-                </TableCell>
-                <TableCell>
-                  <RecordLink href={`/price-lists/${priceList.id}`}>
-                    {PRICE_LIST_TYPE_LABELS[priceList.list_type]}
-                  </RecordLink>
-                </TableCell>
-                <TableCell>{currencyLabelById.get(priceList.currency_id) ?? "—"}</TableCell>
-                <TableCell>
-                  {priceList.percent != null ? formatPercent(priceList.percent) : "—"}
-                </TableCell>
-                <TableCell>
-                  <ActiveBadge active={priceList.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={priceList.name}
-                      viewHref={canRead ? `/price-lists/${priceList.id}` : undefined}
-                      editHref={canUpdate ? `/price-lists/${priceList.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(priceList) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={priceList} />
               </TableRow>
             ))
           )}

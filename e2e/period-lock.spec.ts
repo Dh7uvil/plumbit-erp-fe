@@ -55,7 +55,7 @@ test.describe("period lock", () => {
     await page.getByLabel("Line 1 adjust by").fill("10");
     await page.getByRole("button", { name: "Create adjustment" }).click();
     await expect(page).toHaveURL(/\/stock-adjustments\/[0-9a-f-]{36}$/i);
-    await expect(page.getByRole("heading", { name: "STA-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "STA26000001" })).toBeVisible();
     const adjustmentUrl = page.url();
 
     const today = todayIsoDate();
@@ -73,7 +73,7 @@ test.describe("period lock", () => {
     await expect(page.getByText(LOCK_REASON)).toBeVisible();
 
     await page.goto(adjustmentUrl);
-    await expect(page.getByRole("heading", { name: "STA-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "STA26000001" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Post" })).toHaveCount(0);
     const formatted = await page.evaluate((iso) => {
       const [year, month, day] = iso.split("-").map(Number);

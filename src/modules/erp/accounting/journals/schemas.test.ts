@@ -44,7 +44,7 @@ describe("JournalEntrySchema", () => {
     const result = JournalEntrySchema.safeParse({
       id: ENTRY_ID,
       tenant_id: TENANT_ID,
-      document_number: "JV-2026-000001",
+      document_number: "JV26000001",
       entry_date: "2026-01-15",
       status: "DRAFT",
       version: 1,

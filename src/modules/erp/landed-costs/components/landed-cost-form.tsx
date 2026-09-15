@@ -36,6 +36,7 @@ import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
@@ -398,15 +399,17 @@ export function LandedCostForm({
                       </FormItem>
                     )}
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => chargesArray.remove(index)}
-                    aria-label="Remove charge"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
+                  <TableActionTooltip label="Remove charge">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => chargesArray.remove(index)}
+                      aria-label="Remove charge"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableActionTooltip>
                 </div>
               ))}
             </>
@@ -497,15 +500,17 @@ export function LandedCostForm({
                     }
                     readOnly
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => allocationsArray.remove(index)}
-                    aria-label="Remove allocation"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
+                  <TableActionTooltip label="Remove allocation">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => allocationsArray.remove(index)}
+                      aria-label="Remove allocation"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableActionTooltip>
                 </div>
               ))}
               <Button

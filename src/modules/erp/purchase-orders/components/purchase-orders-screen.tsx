@@ -3,7 +3,7 @@
 import { Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ClonePurchaseOrderDialog } from "@/modules/erp/purchase-orders/components/clone-purchase-order-dialog";
@@ -38,19 +38,24 @@ import { useAllWarehouses } from "@/modules/inventory-management/warehouses/quer
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import {
   CONVERT_FROM_MENU_CLASSNAME,
@@ -58,6 +63,7 @@ import {
 } from "@/shared/components/document/convert-from-menu";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -72,7 +78,6 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Supplier", "Date", "Status", "Grand total"] as const;
 const ALL = "all";
 const SORT_FIELDS = [
   { value: "document_number", label: "Number" },
@@ -80,12 +85,6 @@ const SORT_FIELDS = [
   { value: "status", label: "Status" },
   { value: "grand_total", label: "Grand total" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "order_date",
-  Status: "status",
-  "Grand total": "grand_total",
-};
 
 function parseStatus(value: string | undefined): PurchaseOrderStatus | undefined {
   return PURCHASE_ORDER_STATUSES.includes(value as PurchaseOrderStatus)
@@ -157,10 +156,16 @@ export function PurchaseOrdersScreen() {
   const currencies = currenciesQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
   const warehouses = warehousesQuery.data ?? [];
-  const supplierNameById = new Map(suppliers.map((supplier) => [supplier.id, supplier.name]));
-  const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
+  const supplierNameById = useMemo(
+    () => new Map(suppliers.map((supplier) => [supplier.id, supplier.name])),
+    [suppliers],
+  );
+  const currencyCodeById = useMemo(
+    () => new Map(currencies.map((currency) => [currency.id, currency.code])),
+    [currencies],
+  );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onClone(id: string) {
     try {
@@ -184,6 +189,234 @@ export function PurchaseOrdersScreen() {
       toast.error(getErrorMessage(error));
     }
   }
+
+  const columnDefs = useMemo((): Array<DataTableColumn<PurchaseOrder>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (purchaseOrder) => {
+          const number = purchaseOrderDisplayNumber(purchaseOrder);
+          return (
+            <RecordLink href={`/purchase-orders/${purchaseOrder.id}`}>
+              {number ?? "—"}
+            </RecordLink>
+          );
+        },
+      },
+      {
+        id: "supplier",
+        header: "Supplier",
+        className: "font-medium",
+        cell: (purchaseOrder) => (
+          <RecordLink href={`/purchase-orders/${purchaseOrder.id}`}>
+            {supplierNameById.get(purchaseOrder.supplier_id) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "order_date",
+        header: "Date",
+        sortableField: "order_date",
+        cell: (purchaseOrder) => formatDate(purchaseOrder.order_date),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (purchaseOrder) => (
+          <div className="flex flex-wrap items-center gap-1">
+            <DocumentStatusBadge
+              status={purchaseOrder.status}
+              labels={PURCHASE_ORDER_STATUS_LABELS}
+              variants={PURCHASE_ORDER_STATUS_VARIANTS}
+            />
+            <DocumentStatusBadge
+              status={purchaseOrder.receipt_status}
+              labels={RECEIPT_STATUS_LABELS}
+              variants={RECEIPT_STATUS_VARIANTS}
+            />
+            <DocumentStatusBadge
+              status={purchaseOrder.billing_status}
+              labels={BILLING_STATUS_LABELS}
+              variants={BILLING_STATUS_VARIANTS}
+            />
+          </div>
+        ),
+      },
+      {
+        id: "grand_total",
+        header: "Grand total",
+        sortableField: "grand_total",
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (purchaseOrder) =>
+          formatMoney(
+            purchaseOrder.grand_total,
+            currencyCodeById.get(purchaseOrder.currency_id) ?? "",
+          ),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (purchaseOrder) => (purchaseOrder.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "reference_number",
+        header: "Reference",
+        defaultVisible: false,
+        cell: (purchaseOrder) => purchaseOrder.reference_number || "—",
+      },
+      {
+        id: "expected_delivery_date",
+        header: "Expected delivery",
+        defaultVisible: false,
+        cell: (purchaseOrder) => formatDate(purchaseOrder.expected_delivery_date),
+      },
+      {
+        id: "receipt_status",
+        header: "Receipt",
+        defaultVisible: false,
+        cell: (purchaseOrder) => (
+          <DocumentStatusBadge
+            status={purchaseOrder.receipt_status}
+            labels={RECEIPT_STATUS_LABELS}
+            variants={RECEIPT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "billing_status",
+        header: "Billing",
+        defaultVisible: false,
+        cell: (purchaseOrder) => (
+          <DocumentStatusBadge
+            status={purchaseOrder.billing_status}
+            labels={BILLING_STATUS_LABELS}
+            variants={BILLING_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        defaultVisible: false,
+        cell: (purchaseOrder) =>
+          purchaseOrder.warehouse_id
+            ? ((warehousesQuery.data ?? []).find(
+                (warehouse) => warehouse.id === purchaseOrder.warehouse_id,
+              )?.name ?? "—")
+            : "—",
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (purchaseOrder) => currencyCodeById.get(purchaseOrder.currency_id) ?? "—",
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        defaultVisible: false,
+        cell: (purchaseOrder) =>
+          purchaseOrder.branch_id
+            ? ((branchesQuery.data ?? []).find((branch) => branch.id === purchaseOrder.branch_id)
+                ?.name ?? "—")
+            : "—",
+      },
+      {
+        id: "exchange_rate",
+        header: "Exchange rate",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (purchaseOrder) => purchaseOrder.exchange_rate,
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (purchaseOrder) => purchaseOrder.notes || "—",
+      },
+      {
+        id: "subtotal",
+        header: "Subtotal",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (purchaseOrder) =>
+          formatMoney(
+            purchaseOrder.subtotal,
+            currencyCodeById.get(purchaseOrder.currency_id) ?? "",
+          ),
+      },
+      {
+        id: "tax_amount",
+        header: "Tax",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (purchaseOrder) =>
+          formatMoney(
+            purchaseOrder.tax_amount,
+            currencyCodeById.get(purchaseOrder.currency_id) ?? "",
+          ),
+      },
+      ...auditTimestampColumns<PurchaseOrder>(),
+      ...auditActorColumns<PurchaseOrder>(userNameById),
+      ...actionsColumn<PurchaseOrder>(showActions, (purchaseOrder) => {
+        const number = purchaseOrderDisplayNumber(purchaseOrder);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "purchase order"}
+            viewHref={canRead ? `/purchase-orders/${purchaseOrder.id}` : undefined}
+            editHref={
+              canUpdate && purchaseOrder.status === "DRAFT"
+                ? `/purchase-orders/${purchaseOrder.id}/edit`
+                : undefined
+            }
+            extra={
+              purchaseOrder.available_actions.includes("clone") && canCreate ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label="Clone purchase order"
+                  disabled={clonePurchaseOrder.isPending}
+                  onClick={() => void onClone(purchaseOrder.id)}
+                >
+                  <Copy className="size-3.5" />
+                </Button>
+              ) : undefined
+            }
+            onDelete={
+              purchaseOrder.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(purchaseOrder)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    branchesQuery.data,
+    canCreate,
+    canDelete,
+    canRead,
+    canUpdate,
+    clonePurchaseOrder.isPending,
+    currencyCodeById,
+    showActions,
+    supplierNameById,
+    userNameById,
+    warehousesQuery.data,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.purchase_orders", columnDefs);
 
   return (
     <ListPage>
@@ -378,6 +611,7 @@ export function PurchaseOrdersScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search ||
         filters.status ||
         filters.supplier_id ||
@@ -425,13 +659,11 @@ export function PurchaseOrdersScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ "Grand total": "text-right" }}
             />
           </TableRow>
         </TableHeader>
@@ -439,14 +671,14 @@ export function PurchaseOrdersScreen() {
           {purchaseOrdersQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : purchaseOrdersQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(purchaseOrdersQuery.error)}
                   onRetry={() => purchaseOrdersQuery.refetch()}
@@ -455,7 +687,7 @@ export function PurchaseOrdersScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No purchase orders"
                   message={emptyListMessage(canCreate, "Create a purchase order to get started.")}
@@ -463,80 +695,11 @@ export function PurchaseOrdersScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((purchaseOrder) => {
-              const number = purchaseOrderDisplayNumber(purchaseOrder);
-              const currencyCode = currencyCodeById.get(purchaseOrder.currency_id) ?? "";
-              return (
-                <TableRow key={purchaseOrder.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/purchase-orders/${purchaseOrder.id}`}>
-                      {number ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <RecordLink href={`/purchase-orders/${purchaseOrder.id}`}>
-                      {supplierNameById.get(purchaseOrder.supplier_id) ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(purchaseOrder.order_date)}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <DocumentStatusBadge
-                        status={purchaseOrder.status}
-                        labels={PURCHASE_ORDER_STATUS_LABELS}
-                        variants={PURCHASE_ORDER_STATUS_VARIANTS}
-                      />
-                      <DocumentStatusBadge
-                        status={purchaseOrder.receipt_status}
-                        labels={RECEIPT_STATUS_LABELS}
-                        variants={RECEIPT_STATUS_VARIANTS}
-                      />
-                      <DocumentStatusBadge
-                        status={purchaseOrder.billing_status}
-                        labels={BILLING_STATUS_LABELS}
-                        variants={BILLING_STATUS_VARIANTS}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMoney(purchaseOrder.grand_total, currencyCode)}
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "purchase order"}
-                        viewHref={canRead ? `/purchase-orders/${purchaseOrder.id}` : undefined}
-                        editHref={
-                          canUpdate && purchaseOrder.status === "DRAFT"
-                            ? `/purchase-orders/${purchaseOrder.id}/edit`
-                            : undefined
-                        }
-                        extra={
-                          purchaseOrder.available_actions.includes("clone") && canCreate ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              aria-label="Clone purchase order"
-                              disabled={clonePurchaseOrder.isPending}
-                              onClick={() => void onClone(purchaseOrder.id)}
-                            >
-                              <Copy className="size-3.5" />
-                            </Button>
-                          ) : undefined
-                        }
-                        onDelete={
-                          purchaseOrder.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(purchaseOrder)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((purchaseOrder) => (
+              <TableRow key={purchaseOrder.id}>
+                <DataTableCells columns={columns} row={purchaseOrder} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

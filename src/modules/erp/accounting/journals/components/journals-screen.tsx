@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useDeleteJournal } from "@/modules/erp/accounting/journals/mutations";
@@ -18,8 +18,19 @@ import {
   type JournalStatus,
   type JournalType,
 } from "@/modules/erp/accounting/journals/schemas";
+import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -27,15 +38,11 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -44,11 +51,16 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatReportMoney } from "@/shared/lib/format";
+import { formatDate, formatDateTime, formatReportMoney } from "@/shared/lib/format";
 import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
+import { useAllBranches } from "@/modules/users-management/branches/queries";
 
-const COLUMN_HEADERS = ["Number", "Date", "Type", "Source", "Status", "Debit", "Credit", "Narration"] as const;
+const SORT_FIELDS = [
+  { value: "document_number", label: "Number" },
+  { value: "entry_date", label: "Date" },
+  { value: "status", label: "Status" },
+] as const;
 const ALL = "all";
 const EMPTY_EXTRA = { entryDateFrom: "", entryDateTo: "" };
 
@@ -83,12 +95,145 @@ export function JournalsScreen() {
     entry_date_from: filters.entry_date_from,
     entry_date_to: filters.entry_date_to,
   });
+  const currenciesQuery = useAllCurrencies();
+  const branchesQuery = useAllBranches();
   const deleteJournal = useDeleteJournal();
   const [deleting, setDeleting] = useState<JournalEntry | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
   const rows = journalsQuery.data?.data ?? [];
   const meta = journalsQuery.data?.meta;
+  const userNameById = useUserNameMap();
+  const currencyCodeById = useMemo(
+    () => new Map((currenciesQuery.data ?? []).map((currency) => [currency.id, currency.code])),
+    [currenciesQuery.data],
+  );
+  const branchNameById = useMemo(
+    () => new Map((branchesQuery.data ?? []).map((branch) => [branch.id, branch.name])),
+    [branchesQuery.data],
+  );
+
+  const columnDefs = useMemo((): Array<DataTableColumn<JournalEntry>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-medium",
+        cell: (row) => (
+          <RecordLink href={`/journals/${row.id}`}>{row.document_number}</RecordLink>
+        ),
+      },
+      {
+        id: "narration",
+        header: "Narration",
+        className: "max-w-[24ch] truncate",
+        cell: (row) => row.narration ?? "—",
+      },
+      {
+        id: "entry_date",
+        header: "Date",
+        sortableField: "entry_date",
+        cell: (row) => (
+          <RecordLink href={`/journals/${row.id}`}>{formatDate(row.entry_date)}</RecordLink>
+        ),
+      },
+      {
+        id: "journal_type",
+        header: "Type",
+        cell: (row) => JOURNAL_TYPE_LABELS[row.journal_type],
+      },
+      {
+        id: "source",
+        header: "Source",
+        cell: (row) => (row.source_type ? documentTypeDisplayLabel(row.source_type) : "—"),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={JOURNAL_STATUS_LABELS}
+            variants={JOURNAL_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "debit",
+        header: "Debit",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => formatReportMoney(row.total_debit_base, currencyCode),
+      },
+      {
+        id: "credit",
+        header: "Credit",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => formatReportMoney(row.total_credit_base, currencyCode),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (row) => (row.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (row) => currencyCodeById.get(row.currency_id) ?? "—",
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        defaultVisible: false,
+        cell: (row) => (row.branch_id ? (branchNameById.get(row.branch_id) ?? "—") : "—"),
+      },
+      {
+        id: "exchange_rate",
+        header: "Exchange rate",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (row) => row.exchange_rate,
+      },
+      {
+        id: "reference",
+        header: "Reference",
+        defaultVisible: false,
+        cell: (row) => row.reference || "—",
+      },
+      {
+        id: "posted_at",
+        header: "Posted at",
+        defaultVisible: false,
+        className: "text-muted-foreground text-xs",
+        cell: (row) => formatDateTime(row.posted_at),
+      },
+      ...auditTimestampColumns<JournalEntry>(),
+      ...auditActorColumns<JournalEntry>(userNameById),
+      ...actionsColumn<JournalEntry>(showActions, (row) => (
+        <DataTableRowActions
+          entityName={row.document_number}
+          viewHref={canRead ? `/journals/${row.id}` : undefined}
+          editHref={canUpdate && row.status === "DRAFT" ? `/journals/${row.id}/edit` : undefined}
+          onDelete={canDelete && row.status === "DRAFT" ? () => setDeleting(row) : undefined}
+        />
+      )),
+    ];
+  }, [
+    branchNameById,
+    canDelete,
+    canRead,
+    canUpdate,
+    currencyCode,
+    currencyCodeById,
+    showActions,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.journals", columnDefs);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -179,15 +324,12 @@ export function JournalsScreen() {
           />
         </MoreFiltersDialog>
         <SortDialog
-          fields={[
-            { value: "document_number", label: "Number" },
-            { value: "entry_date", label: "Date" },
-            { value: "status", label: "Status" },
-          ]}
+          fields={[...SORT_FIELDS]}
           sortBy={sort_by}
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.journal_type || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -214,9 +356,8 @@ export function JournalsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={{ Number: "document_number", Date: "entry_date", Status: "status" }}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -227,14 +368,14 @@ export function JournalsScreen() {
           {journalsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : journalsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(journalsQuery.error)}
                   onRetry={() => journalsQuery.refetch()}
@@ -243,7 +384,7 @@ export function JournalsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No journals"
                   message={emptyListMessage(canCreate, "Create a journal entry to get started.")}
@@ -253,40 +394,7 @@ export function JournalsScreen() {
           ) : (
             rows.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/journals/${row.id}`}>{row.document_number}</RecordLink>
-                </TableCell>
-                <TableCell>
-                  <RecordLink href={`/journals/${row.id}`}>{formatDate(row.entry_date)}</RecordLink>
-                </TableCell>
-                <TableCell>{JOURNAL_TYPE_LABELS[row.journal_type]}</TableCell>
-                <TableCell>
-                  {row.source_type ? documentTypeDisplayLabel(row.source_type) : "—"}
-                </TableCell>
-                <TableCell>
-                  <DocumentStatusBadge
-                    status={row.status}
-                    labels={JOURNAL_STATUS_LABELS}
-                    variants={JOURNAL_STATUS_VARIANTS}
-                  />
-                </TableCell>
-                <TableCell>{formatReportMoney(row.total_debit_base, currencyCode)}</TableCell>
-                <TableCell>{formatReportMoney(row.total_credit_base, currencyCode)}</TableCell>
-                <TableCell className="max-w-[24ch] truncate">{row.narration ?? "—"}</TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={row.document_number}
-                      viewHref={canRead ? `/journals/${row.id}` : undefined}
-                      editHref={
-                        canUpdate && row.status === "DRAFT" ? `/journals/${row.id}/edit` : undefined
-                      }
-                      onDelete={
-                        canDelete && row.status === "DRAFT" ? () => setDeleting(row) : undefined
-                      }
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={row} />
               </TableRow>
             ))
           )}

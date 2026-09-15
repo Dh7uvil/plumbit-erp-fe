@@ -3,7 +3,7 @@
 import { Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
@@ -37,25 +37,31 @@ import { useAllWarehouses } from "@/modules/inventory-management/warehouses/quer
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -71,7 +77,6 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = ["Number", "Customer", "Date", "Status", "Grand total"] as const;
 const ALL = "all";
 const SORT_FIELDS = [
   { value: "document_number", label: "Number" },
@@ -79,12 +84,6 @@ const SORT_FIELDS = [
   { value: "status", label: "Status" },
   { value: "grand_total", label: "Grand total" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "order_date",
-  Status: "status",
-  "Grand total": "grand_total",
-};
 
 function parseStatus(value: string | undefined): SalesOrderStatus | undefined {
   return SALES_ORDER_STATUSES.includes(value as SalesOrderStatus)
@@ -163,10 +162,16 @@ export function SalesOrdersScreen() {
   const currencies = currenciesQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
   const warehouses = warehousesQuery.data ?? [];
-  const customerNameById = new Map(customers.map((customer) => [customer.id, customer.name]));
-  const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
+  const customerNameById = useMemo(
+    () => new Map(customers.map((customer) => [customer.id, customer.name])),
+    [customers],
+  );
+  const currencyCodeById = useMemo(
+    () => new Map(currencies.map((currency) => [currency.id, currency.code])),
+    [currencies],
+  );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onClone(id: string) {
     try {
@@ -190,6 +195,230 @@ export function SalesOrdersScreen() {
       toast.error(getErrorMessage(error));
     }
   }
+
+  const columnDefs = useMemo((): Array<DataTableColumn<SalesOrder>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (salesOrder) => {
+          const number = salesOrderDisplayNumber(salesOrder);
+          return (
+            <RecordLink href={`/sales-orders/${salesOrder.id}`}>{number ?? "—"}</RecordLink>
+          );
+        },
+      },
+      {
+        id: "customer",
+        header: "Customer",
+        className: "font-medium",
+        cell: (salesOrder) => (
+          <RecordLink href={`/sales-orders/${salesOrder.id}`}>
+            {customerNameById.get(salesOrder.customer_id) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "order_date",
+        header: "Date",
+        sortableField: "order_date",
+        cell: (salesOrder) => formatDate(salesOrder.order_date),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (salesOrder) => (
+          <div className="flex flex-wrap items-center gap-1">
+            <DocumentStatusBadge
+              status={salesOrder.status}
+              labels={SALES_ORDER_STATUS_LABELS}
+              variants={SALES_ORDER_STATUS_VARIANTS}
+            />
+            <DocumentStatusBadge
+              status={salesOrder.fulfillment_status}
+              labels={FULFILLMENT_STATUS_LABELS}
+              variants={FULFILLMENT_STATUS_VARIANTS}
+            />
+            <DocumentStatusBadge
+              status={salesOrder.billing_status}
+              labels={BILLING_STATUS_LABELS}
+              variants={BILLING_STATUS_VARIANTS}
+            />
+          </div>
+        ),
+      },
+      {
+        id: "grand_total",
+        header: "Grand total",
+        sortableField: "grand_total",
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (salesOrder) =>
+          formatMoney(salesOrder.grand_total, currencyCodeById.get(salesOrder.currency_id) ?? ""),
+      },
+      {
+        id: "fulfillment_status",
+        header: "Fulfillment",
+        defaultVisible: false,
+        cell: (salesOrder) => (
+          <DocumentStatusBadge
+            status={salesOrder.fulfillment_status}
+            labels={FULFILLMENT_STATUS_LABELS}
+            variants={FULFILLMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "billing_status",
+        header: "Billing",
+        defaultVisible: false,
+        cell: (salesOrder) => (
+          <DocumentStatusBadge
+            status={salesOrder.billing_status}
+            labels={BILLING_STATUS_LABELS}
+            variants={BILLING_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (salesOrder) => (salesOrder.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "reference_number",
+        header: "Reference",
+        defaultVisible: false,
+        cell: (salesOrder) => salesOrder.reference_number || "—",
+      },
+      {
+        id: "expected_shipment_date",
+        header: "Expected shipment",
+        defaultVisible: false,
+        cell: (salesOrder) => formatDate(salesOrder.expected_shipment_date),
+      },
+      {
+        id: "customer_po_number",
+        header: "Customer PO",
+        defaultVisible: false,
+        cell: (salesOrder) => salesOrder.customer_po_number || "—",
+      },
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        defaultVisible: false,
+        cell: (salesOrder) =>
+          salesOrder.warehouse_id
+            ? ((warehousesQuery.data ?? []).find(
+                (warehouse) => warehouse.id === salesOrder.warehouse_id,
+              )?.name ?? "—")
+            : "—",
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (salesOrder) => currencyCodeById.get(salesOrder.currency_id) ?? "—",
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        defaultVisible: false,
+        cell: (salesOrder) =>
+          salesOrder.branch_id
+            ? ((branchesQuery.data ?? []).find((branch) => branch.id === salesOrder.branch_id)
+                ?.name ?? "—")
+            : "—",
+      },
+      {
+        id: "exchange_rate",
+        header: "Exchange rate",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (salesOrder) => salesOrder.exchange_rate,
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (salesOrder) => salesOrder.notes || "—",
+      },
+      {
+        id: "subtotal",
+        header: "Subtotal",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (salesOrder) =>
+          formatMoney(salesOrder.subtotal, currencyCodeById.get(salesOrder.currency_id) ?? ""),
+      },
+      {
+        id: "tax_amount",
+        header: "Tax",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (salesOrder) =>
+          formatMoney(salesOrder.tax_amount, currencyCodeById.get(salesOrder.currency_id) ?? ""),
+      },
+      ...auditTimestampColumns<SalesOrder>(),
+      ...auditActorColumns<SalesOrder>(userNameById),
+      ...actionsColumn<SalesOrder>(showActions, (salesOrder) => {
+        const number = salesOrderDisplayNumber(salesOrder);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "sales order"}
+            viewHref={canRead ? `/sales-orders/${salesOrder.id}` : undefined}
+            editHref={
+              canUpdate && salesOrder.status === "DRAFT"
+                ? `/sales-orders/${salesOrder.id}/edit`
+                : undefined
+            }
+            extra={
+              salesOrder.available_actions.includes("clone") && canCreate ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label="Clone sales order"
+                  disabled={cloneSalesOrder.isPending}
+                  onClick={() => void onClone(salesOrder.id)}
+                >
+                  <Copy className="size-3.5" />
+                </Button>
+              ) : undefined
+            }
+            onDelete={
+              salesOrder.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(salesOrder)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    branchesQuery.data,
+    canCreate,
+    canDelete,
+    canRead,
+    canUpdate,
+    cloneSalesOrder.isPending,
+    currencyCodeById,
+    customerNameById,
+    onClone,
+    showActions,
+    userNameById,
+    warehousesQuery.data,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.sales_orders", columnDefs);
 
   return (
     <ListPage>
@@ -394,6 +623,7 @@ export function SalesOrdersScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -423,13 +653,11 @@ export function SalesOrdersScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ "Grand total": "text-right" }}
             />
           </TableRow>
         </TableHeader>
@@ -437,14 +665,14 @@ export function SalesOrdersScreen() {
           {salesOrdersQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : salesOrdersQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(salesOrdersQuery.error)}
                   onRetry={() => salesOrdersQuery.refetch()}
@@ -453,7 +681,7 @@ export function SalesOrdersScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No sales orders"
                   message={emptyListMessage(canCreate, "Create a sales order to get started.")}
@@ -461,78 +689,11 @@ export function SalesOrdersScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((salesOrder) => {
-              const number = salesOrderDisplayNumber(salesOrder);
-              const currencyCode = currencyCodeById.get(salesOrder.currency_id) ?? "";
-              return (
-                <TableRow key={salesOrder.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/sales-orders/${salesOrder.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <RecordLink href={`/sales-orders/${salesOrder.id}`}>
-                      {customerNameById.get(salesOrder.customer_id) ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(salesOrder.order_date)}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <DocumentStatusBadge
-                        status={salesOrder.status}
-                        labels={SALES_ORDER_STATUS_LABELS}
-                        variants={SALES_ORDER_STATUS_VARIANTS}
-                      />
-                      <DocumentStatusBadge
-                        status={salesOrder.fulfillment_status}
-                        labels={FULFILLMENT_STATUS_LABELS}
-                        variants={FULFILLMENT_STATUS_VARIANTS}
-                      />
-                      <DocumentStatusBadge
-                        status={salesOrder.billing_status}
-                        labels={BILLING_STATUS_LABELS}
-                        variants={BILLING_STATUS_VARIANTS}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMoney(salesOrder.grand_total, currencyCode)}
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "sales order"}
-                        viewHref={canRead ? `/sales-orders/${salesOrder.id}` : undefined}
-                        editHref={
-                          canUpdate && salesOrder.status === "DRAFT"
-                            ? `/sales-orders/${salesOrder.id}/edit`
-                            : undefined
-                        }
-                        extra={
-                          salesOrder.available_actions.includes("clone") && canCreate ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              aria-label="Clone sales order"
-                              disabled={cloneSalesOrder.isPending}
-                              onClick={() => void onClone(salesOrder.id)}
-                            >
-                              <Copy className="size-3.5" />
-                            </Button>
-                          ) : undefined
-                        }
-                        onDelete={
-                          salesOrder.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(salesOrder)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((salesOrder) => (
+              <TableRow key={salesOrder.id}>
+                <DataTableCells columns={columns} row={salesOrder} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

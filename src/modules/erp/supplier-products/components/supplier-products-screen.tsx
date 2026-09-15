@@ -1,7 +1,7 @@
 "use client";
 
 import { Link2, Plus, Unlink } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
@@ -16,20 +16,26 @@ import { useSupplierProducts } from "@/modules/erp/supplier-products/queries";
 import type { SupplierProduct } from "@/modules/erp/supplier-products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -39,28 +45,15 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatMoney } from "@/shared/lib/format";
+import { formatDateTime, formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = [
-  "Supplier",
-  "Supplier SKU",
-  "Supplier item",
-  "Mapped product",
-  "Price",
-  "Preferred",
-  "Status",
-] as const;
 const SORT_FIELDS = [
   { value: "supplier_sku", label: "Supplier SKU" },
   { value: "supplier_item_name", label: "Supplier item" },
   { value: "created_at", label: "Created" },
   { value: "updated_at", label: "Updated" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  "Supplier SKU": "supplier_sku",
-  "Supplier item": "supplier_item_name",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -122,10 +115,120 @@ export function SupplierProductsScreen() {
   const [deleting, setDeleting] = useState<SupplierProduct | null>(null);
   const [unlinking, setUnlinking] = useState<SupplierProduct | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete, canLink);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
   const rows = catalogQuery.data?.data ?? [];
   const meta = catalogQuery.data?.meta;
   const suppliers = suppliersQuery.data ?? [];
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<SupplierProduct>> => {
+    return [
+      {
+        id: "supplier_sku",
+        header: "Supplier SKU",
+        sortableField: "supplier_sku",
+        className: "font-mono text-sm",
+        cell: (row) => (
+          <RecordLink href={`/supplier-products/${row.id}`}>{row.supplier_sku}</RecordLink>
+        ),
+      },
+      {
+        id: "supplier_item",
+        header: "Supplier item",
+        sortableField: "supplier_item_name",
+        cell: (row) => (
+          <RecordLink href={`/supplier-products/${row.id}`}>{row.supplier_item_name}</RecordLink>
+        ),
+      },
+      {
+        id: "supplier",
+        header: "Supplier",
+        className: "font-medium",
+        cell: (row) => (
+          <RecordLink href={`/suppliers/${row.supplier_id}`}>{row.supplier_name ?? "—"}</RecordLink>
+        ),
+      },
+      {
+        id: "mapped_product",
+        header: "Mapped product",
+        cell: (row) => <MappedProductCell row={row} />,
+      },
+      {
+        id: "price",
+        header: "Price",
+        cell: (row) =>
+          row.price && row.currency_code ? formatMoney(row.price, row.currency_code) : "—",
+      },
+      {
+        id: "is_preferred",
+        header: "Preferred",
+        cell: (row) => <PreferredBadges row={row} />,
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (row) => <ActiveBadge active={row.is_active} />,
+      },
+      {
+        id: "currency_code",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (row) => row.currency_code || "—",
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "text-muted-foreground max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      {
+        id: "price_updated_at",
+        header: "Price updated",
+        defaultVisible: false,
+        className: "text-muted-foreground text-xs",
+        cell: (row) => formatDateTime(row.price_updated_at),
+      },
+      ...auditTimestampColumns<SupplierProduct>(),
+      ...auditActorColumns<SupplierProduct>(userNameById),
+      ...actionsColumn<SupplierProduct>(showActions, (row) => (
+        <DataTableRowActions
+          entityName={row.supplier_sku}
+          viewHref={canRead ? `/supplier-products/${row.id}` : undefined}
+          editHref={canUpdate ? `/supplier-products/${row.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(row) : undefined}
+          extra={
+            canLink ? (
+              row.is_mapped ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label={`Unlink ${row.supplier_sku}`}
+                  onClick={() => setUnlinking(row)}
+                >
+                  <Unlink className="size-3.5" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label={`Link ${row.supplier_sku}`}
+                  onClick={() => setLinking(row)}
+                >
+                  <Link2 className="size-3.5" />
+                </Button>
+              )
+            ) : null
+          }
+        />
+      )),
+    ];
+  }, [canDelete, canLink, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_products", columnDefs);
 
   function openCreate() {
     setFormOpen(true);
@@ -224,6 +327,7 @@ export function SupplierProductsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.mapped || filters.supplier_id || filters.is_active || sort_by ? (
           <Button
             type="button"
@@ -245,9 +349,8 @@ export function SupplierProductsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -258,14 +361,14 @@ export function SupplierProductsScreen() {
           {catalogQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : catalogQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(catalogQuery.error)}
                   onRetry={() => catalogQuery.refetch()}
@@ -274,7 +377,7 @@ export function SupplierProductsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No catalog items"
                   message={emptyListMessage(canCreate, "Add a supplier SKU to get started.")}
@@ -284,68 +387,7 @@ export function SupplierProductsScreen() {
           ) : (
             rows.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/suppliers/${row.supplier_id}`}>
-                    {row.supplier_name ?? "—"}
-                  </RecordLink>
-                </TableCell>
-                <TableCell className="font-mono text-sm">
-                  <RecordLink href={`/supplier-products/${row.id}`}>{row.supplier_sku}</RecordLink>
-                </TableCell>
-                <TableCell>
-                  <RecordLink href={`/supplier-products/${row.id}`}>
-                    {row.supplier_item_name}
-                  </RecordLink>
-                </TableCell>
-                <TableCell>
-                  <MappedProductCell row={row} />
-                </TableCell>
-                <TableCell>
-                  {row.price && row.currency_code ? formatMoney(row.price, row.currency_code) : "—"}
-                </TableCell>
-                <TableCell>
-                  <PreferredBadges row={row} />
-                </TableCell>
-                <TableCell>
-                  <ActiveBadge active={row.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={row.supplier_sku}
-                      viewHref={canRead ? `/supplier-products/${row.id}` : undefined}
-                      editHref={canUpdate ? `/supplier-products/${row.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(row) : undefined}
-                      extra={
-                        canLink ? (
-                          row.is_mapped ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              aria-label={`Unlink ${row.supplier_sku}`}
-                              onClick={() => setUnlinking(row)}
-                            >
-                              <Unlink className="size-3.5" />
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              aria-label={`Link ${row.supplier_sku}`}
-                              onClick={() => setLinking(row)}
-                            >
-                              <Link2 className="size-3.5" />
-                            </Button>
-                          )
-                        ) : null
-                      }
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={row} />
               </TableRow>
             ))
           )}

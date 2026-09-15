@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { CustomerFormDialog } from "@/modules/crm/customers/components/customer-form-dialog";
@@ -18,24 +18,34 @@ import {
   type CustomerCompanyType,
   type TaxTreatment,
 } from "@/modules/crm/customers/schemas";
+import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
+import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
+import { useAllPriceLists } from "@/modules/inventory-management/price-lists/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
@@ -44,10 +54,10 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
+import { formatMoney } from "@/shared/lib/format";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status"] as const;
 const SORT_FIELDS = [
   { value: "code", label: "Code" },
   { value: "name", label: "Name" },
@@ -55,13 +65,6 @@ const SORT_FIELDS = [
   { value: "tax_treatment", label: "Tax treatment" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Code: "code",
-  Name: "name",
-  Type: "company_type",
-  "Tax treatment": "tax_treatment",
-  Status: "is_active",
-};
 const ALL = "all";
 const EMPTY_EXTRA = { taxTreatment: ALL, currencyId: ALL };
 
@@ -110,6 +113,8 @@ export function CustomersScreen() {
     is_active: parseBoolFilter(filters.is_active),
   });
   const currenciesQuery = useAllCurrencies();
+  const paymentTermsQuery = useAllPaymentTerms(can(paymentTermPermissions.read));
+  const priceListsQuery = useAllPriceLists(can(priceListPermissions.read));
   const deleteCustomer = useDeleteCustomer();
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Customer | null>(null);
@@ -118,7 +123,125 @@ export function CustomersScreen() {
   const meta = customersQuery.data?.meta;
   const currencies = currenciesQuery.data ?? [];
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Customer>> => {
+    return [
+      {
+        id: "code",
+        header: "Code",
+        sortableField: "code",
+        className: "font-mono text-sm",
+        cell: (customer) => (
+          <RecordLink href={`/customers/${customer.id}`}>{customer.code}</RecordLink>
+        ),
+      },
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "font-medium",
+        cell: (customer) => (
+          <RecordLink href={`/customers/${customer.id}`}>{customer.name}</RecordLink>
+        ),
+      },
+      {
+        id: "type",
+        header: "Type",
+        sortableField: "company_type",
+        cell: (customer) => COMPANY_TYPE_LABELS[customer.company_type],
+      },
+      {
+        id: "tax_treatment",
+        header: "Tax treatment",
+        sortableField: "tax_treatment",
+        cell: (customer) => TAX_TREATMENT_LABELS[customer.tax_treatment],
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (customer) => <ActiveBadge active={customer.is_active} />,
+      },
+      {
+        id: "trn",
+        header: "TRN",
+        defaultVisible: false,
+        className: "font-mono text-xs",
+        cell: (customer) => customer.trn || "—",
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (customer) =>
+          (currenciesQuery.data ?? []).find((currency) => currency.id === customer.currency_id)
+            ?.code ?? "—",
+      },
+      {
+        id: "credit_limit",
+        header: "Credit limit",
+        defaultVisible: false,
+        cell: (customer) => {
+          const currency = (currenciesQuery.data ?? []).find(
+            (item) => item.id === customer.currency_id,
+          );
+          return currency
+            ? formatMoney(customer.credit_limit, currency.code, currency.decimal_places)
+            : formatMoney(customer.credit_limit, "AED");
+        },
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "text-muted-foreground max-w-xs truncate",
+        cell: (customer) => customer.notes || "—",
+      },
+      {
+        id: "payment_terms",
+        header: "Payment terms",
+        defaultVisible: false,
+        cell: (customer) =>
+          customer.payment_terms_id
+            ? ((paymentTermsQuery.data ?? []).find((term) => term.id === customer.payment_terms_id)
+                ?.name ?? "—")
+            : "—",
+      },
+      {
+        id: "price_list",
+        header: "Price list",
+        defaultVisible: false,
+        cell: (customer) =>
+          customer.default_price_list_id
+            ? ((priceListsQuery.data ?? []).find(
+                (list) => list.id === customer.default_price_list_id,
+              )?.name ?? "—")
+            : "—",
+      },
+      ...auditTimestampColumns<Customer>(),
+      ...auditActorColumns<Customer>(userNameById),
+      ...actionsColumn<Customer>(showActions, (customer) => (
+        <DataTableRowActions
+          entityName={customer.name}
+          viewHref={canRead ? `/customers/${customer.id}` : undefined}
+          editHref={canUpdate ? `/customers/${customer.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(customer) : undefined}
+        />
+      )),
+    ];
+  }, [
+    canDelete,
+    canRead,
+    canUpdate,
+    currenciesQuery.data,
+    paymentTermsQuery.data,
+    priceListsQuery.data,
+    showActions,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("crm.customers", columnDefs);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -264,6 +387,7 @@ export function CustomersScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || filters.company_type || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -290,9 +414,8 @@ export function CustomersScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -303,14 +426,14 @@ export function CustomersScreen() {
           {customersQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : customersQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(customersQuery.error)}
                   onRetry={() => customersQuery.refetch()}
@@ -319,7 +442,7 @@ export function CustomersScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No customers"
                   message={emptyListMessage(canCreate, "Create a customer to get started.")}
@@ -329,27 +452,7 @@ export function CustomersScreen() {
           ) : (
             rows.map((customer) => (
               <TableRow key={customer.id}>
-                <TableCell className="font-mono text-sm">
-                  <RecordLink href={`/customers/${customer.id}`}>{customer.code}</RecordLink>
-                </TableCell>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/customers/${customer.id}`}>{customer.name}</RecordLink>
-                </TableCell>
-                <TableCell>{COMPANY_TYPE_LABELS[customer.company_type]}</TableCell>
-                <TableCell>{TAX_TREATMENT_LABELS[customer.tax_treatment]}</TableCell>
-                <TableCell>
-                  <ActiveBadge active={customer.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={customer.name}
-                      viewHref={canRead ? `/customers/${customer.id}` : undefined}
-                      editHref={canUpdate ? `/customers/${customer.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(customer) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={customer} />
               </TableRow>
             ))
           )}

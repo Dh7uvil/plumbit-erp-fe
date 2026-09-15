@@ -3,7 +3,7 @@
 import { Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
@@ -25,23 +25,29 @@ import {
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -51,7 +57,6 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Customer", "Date", "Status", "Grand total"] as const;
 const ALL = "all";
 const SORT_FIELDS = [
   { value: "document_number", label: "Number" },
@@ -59,12 +64,6 @@ const SORT_FIELDS = [
   { value: "status", label: "Status" },
   { value: "grand_total", label: "Grand total" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "proforma_date",
-  Status: "status",
-  "Grand total": "grand_total",
-};
 
 function parseStatus(value: string | undefined): ProformaInvoiceStatus | undefined {
   return PROFORMA_INVOICE_STATUSES.includes(value as ProformaInvoiceStatus)
@@ -109,10 +108,16 @@ export function ProformaInvoicesScreen() {
   const customers = customersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
-  const customerNameById = new Map(customers.map((customer) => [customer.id, customer.name]));
-  const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
+  const customerNameById = useMemo(
+    () => new Map(customers.map((customer) => [customer.id, customer.name])),
+    [customers],
+  );
+  const currencyCodeById = useMemo(
+    () => new Map(currencies.map((currency) => [currency.id, currency.code])),
+    [currencies],
+  );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onClone(id: string) {
     try {
@@ -136,6 +141,172 @@ export function ProformaInvoicesScreen() {
       toast.error(getErrorMessage(error));
     }
   }
+
+  const columnDefs = useMemo((): Array<DataTableColumn<ProformaInvoice>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (invoice) => {
+          const number = proformaInvoiceDisplayNumber(invoice);
+          return (
+            <RecordLink href={`/proforma-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>
+          );
+        },
+      },
+      {
+        id: "customer",
+        header: "Customer",
+        className: "font-medium",
+        cell: (invoice) => (
+          <RecordLink href={`/proforma-invoices/${invoice.id}`}>
+            {customerNameById.get(invoice.customer_id) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "proforma_date",
+        cell: (invoice) => formatDate(invoice.proforma_date),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (invoice) => (
+          <DocumentStatusBadge
+            status={invoice.status}
+            labels={PROFORMA_INVOICE_STATUS_LABELS}
+            variants={PROFORMA_INVOICE_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "grand_total",
+        header: "Grand total",
+        sortableField: "grand_total",
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.grand_total, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (invoice) => (invoice.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "valid_until",
+        header: "Valid until",
+        defaultVisible: false,
+        cell: (invoice) => formatDate(invoice.valid_until),
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (invoice) => currencyCodeById.get(invoice.currency_id) ?? "—",
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        defaultVisible: false,
+        cell: (invoice) =>
+          invoice.branch_id
+            ? ((branchesQuery.data ?? []).find((branch) => branch.id === invoice.branch_id)?.name ??
+              "—")
+            : "—",
+      },
+      {
+        id: "exchange_rate",
+        header: "Exchange rate",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (invoice) => invoice.exchange_rate,
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (invoice) => invoice.notes || "—",
+      },
+      {
+        id: "subtotal",
+        header: "Subtotal",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.subtotal, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "tax_amount",
+        header: "Tax",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.tax_amount, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      ...auditTimestampColumns<ProformaInvoice>(),
+      ...auditActorColumns<ProformaInvoice>(userNameById),
+      ...actionsColumn<ProformaInvoice>(showActions, (invoice) => {
+        const number = proformaInvoiceDisplayNumber(invoice);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "invoice"}
+            viewHref={canRead ? `/proforma-invoices/${invoice.id}` : undefined}
+            editHref={
+              canUpdate && invoice.status === "DRAFT"
+                ? `/proforma-invoices/${invoice.id}/edit`
+                : undefined
+            }
+            extra={
+              invoice.available_actions.includes("clone") && canCreate ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label="Clone proforma invoice"
+                  disabled={cloneInvoice.isPending}
+                  onClick={() => void onClone(invoice.id)}
+                >
+                  <Copy className="size-3.5" />
+                </Button>
+              ) : undefined
+            }
+            onDelete={
+              invoice.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(invoice)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    canCreate,
+    canDelete,
+    canRead,
+    canUpdate,
+    branchesQuery.data,
+    cloneInvoice.isPending,
+    currencyCodeById,
+    customerNameById,
+    showActions,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "erp.proforma_invoices",
+    columnDefs,
+  );
 
   return (
     <ListPage>
@@ -254,6 +425,7 @@ export function ProformaInvoicesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -280,13 +452,11 @@ export function ProformaInvoicesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ "Grand total": "text-right" }}
             />
           </TableRow>
         </TableHeader>
@@ -294,14 +464,14 @@ export function ProformaInvoicesScreen() {
           {invoicesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : invoicesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(invoicesQuery.error)}
                   onRetry={() => invoicesQuery.refetch()}
@@ -310,7 +480,7 @@ export function ProformaInvoicesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No proforma invoices"
                   message={emptyListMessage(canCreate, "Create a proforma invoice to get started.")}
@@ -318,66 +488,11 @@ export function ProformaInvoicesScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((invoice) => {
-              const number = proformaInvoiceDisplayNumber(invoice);
-              const currencyCode = currencyCodeById.get(invoice.currency_id) ?? "";
-              return (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/proforma-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <RecordLink href={`/proforma-invoices/${invoice.id}`}>
-                      {customerNameById.get(invoice.customer_id) ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(invoice.proforma_date)}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={invoice.status}
-                      labels={PROFORMA_INVOICE_STATUS_LABELS}
-                      variants={PROFORMA_INVOICE_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMoney(invoice.grand_total, currencyCode)}
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "invoice"}
-                        viewHref={canRead ? `/proforma-invoices/${invoice.id}` : undefined}
-                        editHref={
-                          canUpdate && invoice.status === "DRAFT"
-                            ? `/proforma-invoices/${invoice.id}/edit`
-                            : undefined
-                        }
-                        extra={
-                          invoice.available_actions.includes("clone") && canCreate ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              aria-label="Clone proforma invoice"
-                              disabled={cloneInvoice.isPending}
-                              onClick={() => void onClone(invoice.id)}
-                            >
-                              <Copy className="size-3.5" />
-                            </Button>
-                          ) : undefined
-                        }
-                        onDelete={
-                          invoice.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(invoice)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((invoice) => (
+              <TableRow key={invoice.id}>
+                <DataTableCells columns={columns} row={invoice} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

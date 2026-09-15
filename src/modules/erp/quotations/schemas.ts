@@ -171,6 +171,8 @@ export const QuotationSchema = z.object({
   lines: z.array(QuotationLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type Quotation = z.infer<typeof QuotationSchema>;
 
