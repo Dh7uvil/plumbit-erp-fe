@@ -195,13 +195,17 @@ export function PaymentTermsScreen() {
           ) : (
             rows.map((term) => (
               <TableRow key={term.id}>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/payment-terms/${term.id}`}>{term.name}</RecordLink>
+                <TableCell className="max-w-xs min-w-0 font-medium">
+                  <RecordLink href={`/payment-terms/${term.id}`} className="block truncate">
+                    {term.name}
+                  </RecordLink>
                 </TableCell>
                 <TableCell>
                   <RecordLink href={`/payment-terms/${term.id}`}>{term.days}</RecordLink>
                 </TableCell>
-                <TableCell>{term.description ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground max-w-sm min-w-0 truncate">
+                  {term.description ?? "—"}
+                </TableCell>
                 <TableCell>
                   <ActiveBadge active={term.is_active} />
                 </TableCell>

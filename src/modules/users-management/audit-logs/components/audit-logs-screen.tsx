@@ -1,8 +1,10 @@
 "use client";
 
-import { AlertCircle, ClipboardList, Shield, Users, type LucideIcon } from "lucide-react";
+import { AlertCircle, ClipboardList, Download, Shield, Users, type LucideIcon } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { AuditLogDetailSheet } from "@/modules/users-management/audit-logs/components/audit-log-detail-sheet";
+import { auditLogsApi } from "@/modules/users-management/audit-logs/api";
 import { auditLogPermissions } from "@/modules/users-management/audit-logs/permissions";
 import { useAuditLogs, useAuditLogSummary } from "@/modules/users-management/audit-logs/queries";
 import {
@@ -175,6 +177,7 @@ export function AuditLogsScreen() {
   const { canRead } = useCrudPermissions(auditLogPermissions);
   const canReadUsers = can(userPermissions.read);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [csvPending, setCsvPending] = useState(false);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const showActions = hasRowActions(canRead);
@@ -258,6 +261,18 @@ export function AuditLogsScreen() {
     [logsQuery.data?.data, extraFilters.action, draftExtra.action],
   );
 
+  async function exportCsv() {
+    setCsvPending(true);
+    try {
+      await auditLogsApi.exportCsv(filterParams);
+      toast.success("Audit log export downloaded");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setCsvPending(false);
+    }
+  }
+
   function extraToUrlPatch(extra: ExtraFilters): Record<string, string | null> {
     return {
       action: extra.action === ALL ? null : extra.action,
@@ -285,6 +300,14 @@ export function AuditLogsScreen() {
       <PageHeader
         title="Audit Logs"
         subtitle="System activity and security trail — all user actions recorded"
+        actions={
+          canRead ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => void exportCsv()} disabled={csvPending}>
+              {csvPending ? null : <Download className="size-3.5" />}
+              Export CSV
+            </Button>
+          ) : undefined
+        }
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard

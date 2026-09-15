@@ -68,8 +68,8 @@ export function CurrenciesScreen() {
     page,
     page_size,
     search,
-    sort_by: sort_by ?? "is_base",
-    sort_order: sort_order ?? "desc",
+    sort_by: sort_by ?? "code",
+    sort_order: sort_order ?? "asc",
     is_base: parseBoolFilter(filters.is_base),
     is_active: parseBoolFilter(filters.is_active),
   });
@@ -216,8 +216,10 @@ export function CurrenciesScreen() {
                 <TableCell className="font-mono text-sm">
                   <RecordLink href={`/currencies/${currency.id}`}>{currency.code}</RecordLink>
                 </TableCell>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/currencies/${currency.id}`}>{currency.name}</RecordLink>
+                <TableCell className="max-w-xs min-w-0 font-medium">
+                  <RecordLink href={`/currencies/${currency.id}`} className="block truncate">
+                    {currency.name}
+                  </RecordLink>
                 </TableCell>
                 <TableCell>{currency.symbol}</TableCell>
                 <TableCell>{currency.decimal_places}</TableCell>

@@ -10,7 +10,7 @@ import { Button } from "@/shared/components/ui/button";
 import { imexApi, type ImportResult } from "@/shared/lib/imex";
 import type { RequestParams } from "@/shared/api/client";
 
-const SHOW_IMEX_BUTTONS = false;
+const SHOW_IMEX_BUTTONS = true;
 
 export function ImexToolbar({
   resource,

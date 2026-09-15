@@ -36,14 +36,14 @@ export function ToolbarControl({
 
 export function toolbarFilterButtonClass(active = false) {
   return cn(
-    "border-info/60 bg-info/20 text-info hover:bg-info/30 hover:text-info dark:bg-info/15 dark:hover:bg-info/25",
-    active && "border-info bg-info/30 dark:bg-info/25",
+    "border-transparent bg-info text-white hover:bg-info/90 hover:text-white",
+    active && "shadow-sm",
   );
 }
 
 export function toolbarSortButtonClass(active = false) {
   return cn(
-    "border-primary/55 bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary dark:bg-primary/20 dark:hover:bg-primary/30",
-    active && "border-primary bg-primary/25 dark:bg-primary/30",
+    "border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+    active && "shadow-sm",
   );
 }

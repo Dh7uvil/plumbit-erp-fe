@@ -68,6 +68,7 @@ export function CategoriesScreen() {
     sort_by,
     sort_order,
     is_active: parseBoolFilter(filters.is_active),
+    parent_id: filters.parent_id,
   });
   const allCategoriesQuery = useAllCategories();
   const deleteCategory = useDeleteCategory();
@@ -137,13 +138,29 @@ export function CategoriesScreen() {
             { value: "false", label: "Inactive" },
           ]}
         />
+        <FilterSelect
+          label="Parent"
+          className="w-44"
+          placeholder="Parent"
+          value={filters.parent_id ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { parent_id: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All parents" },
+            ...(allCategoriesQuery.data ?? []).map((category) => ({
+              value: category.id,
+              label: category.name,
+            })),
+          ]}
+        />
         <SortDialog
           fields={[...SORT_FIELDS]}
           sortBy={sort_by}
           sortOrder={sort_order}
           onApply={setParams}
         />
-        {search || filters.is_active || sort_by ? (
+        {search || filters.is_active || filters.parent_id || sort_by ? (
           <Button
             type="button"
             variant="ghost"
@@ -153,7 +170,7 @@ export function CategoriesScreen() {
                 search: null,
                 sort_by: null,
                 sort_order: null,
-                filters: { is_active: null },
+                filters: { is_active: null, parent_id: null },
               })
             }
           >

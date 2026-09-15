@@ -191,7 +191,11 @@ export function formatCompactReportMoney(
   }
 }
 
-export function formatMoney(value: string | null | undefined, currencyCode: string): string {
+export function formatMoney(
+  value: string | null | undefined,
+  currencyCode: string,
+  fractionDigitsOverride?: number,
+): string {
   if (value == null || value === "") {
     return "—";
   }
@@ -201,6 +205,12 @@ export function formatMoney(value: string | null | undefined, currencyCode: stri
     const formatter = new Intl.NumberFormat(undefined, {
       style: "currency",
       currency,
+      ...(fractionDigitsOverride == null
+        ? {}
+        : {
+            minimumFractionDigits: fractionDigitsOverride,
+            maximumFractionDigits: fractionDigitsOverride,
+          }),
     });
     const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
     const rounded = roundHalfUp(whole, fraction, fractionDigits);

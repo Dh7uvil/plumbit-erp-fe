@@ -64,6 +64,13 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
+function formatSequencePreview(sequence: DocumentSequence) {
+  return `${sequence.prefix}-${sequence.fiscal_year}-${String(sequence.next_number).padStart(
+    sequence.padding,
+    "0",
+  )}`;
+}
+
 export function DocumentSequencesScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(
     documentSequencePermissions,
@@ -219,7 +226,9 @@ export function DocumentSequencesScreen() {
                 </TableCell>
                 <TableCell>{sequence.fiscal_year}</TableCell>
                 <TableCell className="font-mono text-sm">{sequence.prefix}</TableCell>
-                <TableCell>{sequence.next_number}</TableCell>
+                <TableCell>
+                  <span className="font-mono text-sm">{formatSequencePreview(sequence)}</span>
+                </TableCell>
                 <TableCell>{sequence.padding}</TableCell>
                 <TableCell>
                   <ActiveBadge active={sequence.is_active} />

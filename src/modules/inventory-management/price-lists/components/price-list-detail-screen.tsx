@@ -46,14 +46,8 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -66,7 +60,7 @@ import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { formatMoney } from "@/shared/lib/format";
 
-const ITEM_COLUMNS = ["Product", "Rate"] as const;
+const ITEM_COLUMNS = ["SKU", "Product", "Rate"] as const;
 
 export function PriceListDetailScreen({
   priceListId,
@@ -95,10 +89,10 @@ export function PriceListDetailScreen({
   const currencies = currenciesQuery.data ?? [];
   const products = productsQuery.data ?? [];
   const currency = currencies.find((item) => item.id === priceList?.currency_id);
-  const productNameById = useMemo(() => {
-    const map = new Map<string, string>();
+  const productById = useMemo(() => {
+    const map = new Map<string, { name: string; sku: string }>();
     for (const product of productsQuery.data ?? []) {
-      map.set(product.id, product.name);
+      map.set(product.id, { name: product.name, sku: product.sku });
     }
     return map;
   }, [productsQuery.data]);
@@ -299,21 +293,20 @@ export function PriceListDetailScreen({
             <div className="flex flex-col gap-2">
               {itemError ? <p className="text-destructive text-sm">{itemError}</p> : null}
               <div className="flex flex-wrap items-end gap-2">
-                <div className="w-64">
+                <div className="min-w-64 flex-1">
                   <p className="mb-1.5 text-sm font-medium">Product</p>
-                  <Select value={productId} onValueChange={setProductId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={OPTIONAL_SELECT_NONE}>Select a product</SelectItem>
-                      {availableProducts.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.sku} — {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MasterSelect
+                    asFormControl={false}
+                    value={productId === OPTIONAL_SELECT_NONE ? "" : productId}
+                    onValueChange={(id) => setProductId(id || OPTIONAL_SELECT_NONE)}
+                    placeholder="Search a product"
+                    searchPlaceholder="Search SKU or name…"
+                    emptyText="No unused products."
+                    options={availableProducts.map((product) => ({
+                      value: product.id,
+                      label: `${product.sku} — ${product.name}`,
+                    }))}
+                  />
                 </div>
                 <div className="w-36">
                   <p className="mb-1.5 text-sm font-medium">Rate</p>
@@ -360,10 +353,17 @@ export function PriceListDetailScreen({
               ) : (
                 items.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      {productNameById.get(item.product_id) ?? "—"}
+                    <TableCell className="font-mono text-sm">
+                      {productById.get(item.product_id)?.sku ?? "—"}
                     </TableCell>
-                    <TableCell>{currency ? formatMoney(item.rate, currency.code) : "—"}</TableCell>
+                    <TableCell className="max-w-xs min-w-0 truncate font-medium">
+                      {productById.get(item.product_id)?.name ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      {currency
+                        ? formatMoney(item.rate, currency.code, currency.decimal_places)
+                        : "—"}
+                    </TableCell>
                     {isEdit ? (
                       <TableCell>
                         <Button
@@ -372,6 +372,7 @@ export function PriceListDetailScreen({
                           size="icon"
                           className="text-destructive size-7"
                           aria-label="Delete item"
+                          title="Delete item"
                           onClick={() => setDeletingItem(item)}
                         >
                           <Trash2 className="size-3.5" />

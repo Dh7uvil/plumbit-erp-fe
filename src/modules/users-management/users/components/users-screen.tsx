@@ -1,9 +1,10 @@
 "use client";
 
-import { Ban, UserCheck, UserPlus } from "lucide-react";
+import { Ban, KeyRound, UserCheck, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DeactivateUserDialog } from "@/modules/users-management/users/components/deactivate-user-dialog";
+import { ResetUserPasswordDialog } from "@/modules/users-management/users/components/reset-user-password-dialog";
 import { UserFormDialog } from "@/modules/users-management/users/components/user-form-dialog";
 import { UserStatusBadge } from "@/modules/users-management/users/components/user-status-badge";
 import {
@@ -56,6 +57,7 @@ export function UsersScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deactivating, setDeactivating] = useState<User | null>(null);
+  const [resettingPassword, setResettingPassword] = useState<User | null>(null);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
 
@@ -204,12 +206,26 @@ export function UsersScreen() {
                               size="icon"
                               className="size-7"
                               aria-label={`Activate ${user.name}`}
+                              title={`Activate ${user.name}`}
                               disabled={
                                 activateUser.isPending && activateUser.variables === user.id
                               }
                               onClick={() => void onActivate(user)}
                             >
                               <UserCheck className="size-3.5" />
+                            </Button>
+                          ) : null}
+                          {canUpdate ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              aria-label={`Reset password for ${user.name}`}
+                              title={`Reset password for ${user.name}`}
+                              onClick={() => setResettingPassword(user)}
+                            >
+                              <KeyRound className="size-3.5" />
                             </Button>
                           ) : null}
                           {can(userPermissions.deactivate) && user.status !== "DISABLED" ? (
@@ -219,6 +235,7 @@ export function UsersScreen() {
                               size="icon"
                               className="text-destructive size-7"
                               aria-label={`Deactivate ${user.name}`}
+                              title={`Deactivate ${user.name}`}
                               onClick={() => setDeactivating(user)}
                             >
                               <Ban className="size-3.5" />
@@ -258,6 +275,14 @@ export function UsersScreen() {
         onOpenChange={(open) => {
           if (!open) {
             setDeactivating(null);
+          }
+        }}
+      />
+      <ResetUserPasswordDialog
+        user={resettingPassword}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResettingPassword(null);
           }
         }}
       />

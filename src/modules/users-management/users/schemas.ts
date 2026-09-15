@@ -155,6 +155,11 @@ export const AssignRolesRequestSchema = z.object({
   role_ids: z.array(z.string().uuid()),
 });
 
+export const AdminResetUserPasswordRequestSchema = z.object({
+  new_password: z.string().min(8, "Use at least 8 characters").max(72),
+});
+export type AdminResetUserPasswordRequest = z.infer<typeof AdminResetUserPasswordRequestSchema>;
+
 export type UserListSortBy =
   "created_at" | "updated_at" | "name" | "email" | "status" | "last_login_at";
 export type UserListSortOrder = "asc" | "desc";
