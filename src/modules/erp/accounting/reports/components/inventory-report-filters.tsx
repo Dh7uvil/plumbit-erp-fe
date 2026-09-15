@@ -5,9 +5,9 @@ import { useAllProducts } from "@/modules/inventory-management/products/queries"
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
 
 const ALL = "all";
 
@@ -46,15 +46,14 @@ export function InventoryReportFilters({
   return (
     <>
       {asOf !== undefined ? (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="report-as-of">As of</Label>
+        <ToolbarControl label="As of" htmlFor="report-as-of">
           <Input
             id="report-as-of"
             type="date"
             value={asOf}
             onChange={(event) => onChange({ as_of: event.target.value || null })}
           />
-        </div>
+        </ToolbarControl>
       ) : null}
       {from !== undefined && to !== undefined ? (
         <DateRangeFilter

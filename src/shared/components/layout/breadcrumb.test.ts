@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LayoutDashboard, Receipt } from "lucide-react";
+import { FileSpreadsheet, LayoutDashboard, Receipt } from "lucide-react";
 
 import { buildBreadcrumbs } from "@/shared/components/layout/breadcrumb";
 
@@ -20,6 +20,16 @@ const dashboard = {
     href: "/",
     permission: null,
     icon: LayoutDashboard,
+  },
+};
+
+const reports = {
+  group: "Overview",
+  item: {
+    label: "Reports",
+    href: "/reports",
+    permission: null,
+    icon: FileSpreadsheet,
   },
 };
 
@@ -66,6 +76,21 @@ describe("buildBreadcrumbs", () => {
     expect(buildBreadcrumbs({ pathname: "/", active: dashboard })).toEqual([
       { label: "Overview" },
       { label: "Dashboard" },
+    ]);
+  });
+
+  it("uses two levels on the reports hub", () => {
+    expect(buildBreadcrumbs({ pathname: "/reports", active: reports })).toEqual([
+      { label: "Overview" },
+      { label: "Reports" },
+    ]);
+  });
+
+  it("uses the report name on a nested report page", () => {
+    expect(buildBreadcrumbs({ pathname: "/reports/trial-balance", active: reports })).toEqual([
+      { label: "Overview" },
+      { label: "Reports", href: "/reports" },
+      { label: "Trial balance" },
     ]);
   });
 });

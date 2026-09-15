@@ -9,6 +9,7 @@ import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
@@ -17,7 +18,6 @@ import { documentTypeDisplayLabel } from "@/shared/components/document/document-
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
-import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -89,8 +89,7 @@ export function GeneralLedgerScreen() {
     side,
   };
   const pageSize = report?.page_size ?? page_size;
-  const totalPages =
-    pageSize > 0 ? Math.ceil((report?.total_lines ?? 0) / pageSize) : 1;
+  const totalPages = pageSize > 0 ? Math.ceil((report?.total_lines ?? 0) / pageSize) : 1;
 
   return (
     <ReportShell
@@ -115,8 +114,7 @@ export function GeneralLedgerScreen() {
       }
       toolbar={
         <>
-          <div className="flex min-w-[20ch] flex-col gap-1.5">
-            <Label htmlFor="gl-account">Account</Label>
+          <ToolbarControl label="Account" htmlFor="gl-account" className="min-w-[20ch]">
             <MasterSelect
               asFormControl={false}
               className="w-72"
@@ -124,15 +122,13 @@ export function GeneralLedgerScreen() {
               searchPlaceholder="Search account…"
               aria-label="Account"
               value={accountId}
-              onValueChange={(value) =>
-                setParams({ filters: { account_id: value || null } })
-              }
+              onValueChange={(value) => setParams({ filters: { account_id: value || null } })}
               options={accounts.map((account) => ({
                 value: account.id,
                 label: `${account.code} — ${account.name}`,
               }))}
             />
-          </div>
+          </ToolbarControl>
           <DateRangeFilter
             layout="inline"
             fromId="gl-from"
@@ -150,10 +146,7 @@ export function GeneralLedgerScreen() {
             onValueChange={(value) =>
               setParams({ filters: { source_type: value === ALL ? null : value } })
             }
-            options={[
-              { value: ALL, label: "All sources" },
-              ...GL_SOURCE_TYPES,
-            ]}
+            options={[{ value: ALL, label: "All sources" }, ...GL_SOURCE_TYPES]}
           />
           <FilterSelect
             label="Side"

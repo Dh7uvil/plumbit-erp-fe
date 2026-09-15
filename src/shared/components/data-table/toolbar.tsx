@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Label } from "@/shared/components/ui/label";
 import { cn } from "@/shared/lib/cn";
 
+export const toolbarLabelClass = "text-muted-foreground text-xs font-normal";
+
 export function DataTableToolbar({
   children,
   className,
@@ -26,7 +28,7 @@ export function ToolbarControl({
 }) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <Label htmlFor={htmlFor} className="text-muted-foreground text-xs font-medium">
+      <Label htmlFor={htmlFor} className={toolbarLabelClass}>
         {label}
       </Label>
       {children}

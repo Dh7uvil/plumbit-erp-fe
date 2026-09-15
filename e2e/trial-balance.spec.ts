@@ -30,11 +30,16 @@ test.describe("trial balance", () => {
   }) => {
     await signIn(page);
     const nav = page.locator("aside").getByRole("navigation");
-    await expect(nav.getByRole("link", { name: "Trial balance" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "General ledger" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Account statement" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Reports" })).toBeVisible();
 
-    await page.goto("/reports/trial-balance");
+    await nav.getByRole("link", { name: "Reports" }).click();
+    await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Financial reports" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Trial balance" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "General ledger" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Account statement" })).toBeVisible();
+
+    await page.getByRole("link", { name: "Trial balance" }).click();
     await expect(page.getByRole("heading", { name: "Trial balance" })).toBeVisible();
     await page.getByLabel("From date").fill("2026-01-01");
     await page.getByLabel("To date").fill("2026-12-31");

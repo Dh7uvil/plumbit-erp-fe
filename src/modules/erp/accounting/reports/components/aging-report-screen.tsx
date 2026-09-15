@@ -5,18 +5,28 @@ import { Fragment, useState } from "react";
 
 import { useArAging, useApAging } from "@/modules/erp/accounting/reports/queries";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
-import type { AgingBucketTotals, AgingDocument, AgingPartyRow } from "@/modules/erp/accounting/reports/schemas";
+import type {
+  AgingBucketTotals,
+  AgingDocument,
+  AgingPartyRow,
+} from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { documentDetailHref } from "@/shared/components/document/document-links";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
@@ -97,15 +107,14 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
       }}
       toolbar={
         <div className="flex flex-wrap items-end gap-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="aging-as-of">As of</Label>
+          <ToolbarControl label="As of" htmlFor="aging-as-of">
             <Input
               id="aging-as-of"
               type="date"
               value={asOf}
               onChange={(event) => setParams({ filters: { as_of: event.target.value || null } })}
             />
-          </div>
+          </ToolbarControl>
           <Button
             type="button"
             variant="ghost"
@@ -197,7 +206,10 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
                       ? docs.map((doc) => {
                           const href = documentHref(doc);
                           return (
-                            <TableRow key={`${row.party_id}-${doc.document_id}`} className="bg-muted/30">
+                            <TableRow
+                              key={`${row.party_id}-${doc.document_id}`}
+                              className="bg-muted/30"
+                            >
                               <TableCell />
                               <TableCell colSpan={2} className="pl-8 text-sm">
                                 {href ? (

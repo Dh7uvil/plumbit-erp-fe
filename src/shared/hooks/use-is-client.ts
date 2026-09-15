@@ -1,24 +1,13 @@
-import { useSyncExternalStore } from "react";
+"use client";
 
-let hydrated = false;
-const listeners = new Set<() => void>();
-
-if (typeof window !== "undefined") {
-  queueMicrotask(() => {
-    hydrated = true;
-    listeners.forEach((listener) => listener());
-  });
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
+import { useEffect, useState } from "react";
 
 export function useIsClient() {
-  return useSyncExternalStore(
-    subscribe,
-    () => hydrated,
-    () => false,
-  );
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  return isClient;
 }

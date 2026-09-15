@@ -4,7 +4,7 @@ import { ArrowRight, Clock, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { visibleNavigation, type NavigationGroup } from "@/config/navigation";
+import { searchableNavigation, type NavigationGroup } from "@/config/navigation";
 import {
   filterCommandItems,
   groupCommandItems,
@@ -65,7 +65,7 @@ export function CommandPalette({
 function CommandPaletteDialog({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
   const { permissions } = useSession();
-  const groups = visibleNavigation(permissions);
+  const groups = searchableNavigation(permissions);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [recent] = useState(readRecent);

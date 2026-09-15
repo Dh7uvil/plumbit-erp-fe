@@ -30,6 +30,7 @@ import {
 } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage, isApiError } from "@/shared/api/errors";
 import { DataTableError } from "@/shared/components/data-table/states";
+import { toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import { AddressFields } from "@/shared/components/form/address-fields";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { TimezoneSelect } from "@/shared/components/form/timezone-select";
@@ -331,7 +332,7 @@ function SettingsFieldItem({
 }) {
   return (
     <FormItem className={className}>
-      <FormLabel className="text-muted-foreground text-xs font-medium">{label}</FormLabel>
+      <FormLabel className={toolbarLabelClass}>{label}</FormLabel>
       {children}
       <FormMessage className="text-xs" />
     </FormItem>
@@ -585,7 +586,10 @@ export function CompanySettingsForm() {
             ) : null}
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              data-slot="form-grid"
+              className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+            >
               <TextField
                 control={form.control}
                 name="name"
@@ -687,7 +691,10 @@ export function CompanySettingsForm() {
               </CardAction>
             ) : null}
           </CardHeader>
-          <CardContent data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+          <CardContent
+            data-slot="form-grid"
+            className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {canReadCurrencies && !currenciesQuery.isError ? (
               <FormField
                 control={form.control}
@@ -829,7 +836,7 @@ export function CompanySettingsForm() {
                   disabled={!isEditingRegional}
                   onCheckedChange={(checked) => setAcknowledgeFiscalYearChange(checked === true)}
                 />
-                <FormLabel className="text-muted-foreground text-xs font-medium">
+                <FormLabel className={toolbarLabelClass}>
                   I understand this changes document numbering. Continue anyway.
                 </FormLabel>
               </FormItem>
@@ -846,7 +853,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     Quotations require approval before sending
                   </FormLabel>
                 </FormItem>
@@ -864,7 +871,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     Sales orders require approval before confirming
                   </FormLabel>
                 </FormItem>
@@ -882,7 +889,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     Purchase orders require approval before issuing
                   </FormLabel>
                 </FormItem>
@@ -900,9 +907,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
-                    Allow negative stock
-                  </FormLabel>
+                  <FormLabel className={toolbarLabelClass}>Allow negative stock</FormLabel>
                 </FormItem>
               )}
             />
@@ -918,7 +923,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     Allow cash and bank accounts to go negative
                   </FormLabel>
                 </FormItem>
@@ -936,7 +941,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     Charge VAT on standard-rated customer advances
                   </FormLabel>
                 </FormItem>
@@ -954,7 +959,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     Auto-apply matching advances when an invoice posts
                   </FormLabel>
                 </FormItem>
@@ -965,9 +970,7 @@ export function CompanySettingsForm() {
               name="credit_limit_policy"
               render={({ field }) => (
                 <FormItem className="col-span-full">
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
-                    Credit limit policy
-                  </FormLabel>
+                  <FormLabel className={toolbarLabelClass}>Credit limit policy</FormLabel>
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
@@ -1001,7 +1004,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     Include confirmed uninvoiced sales orders in credit exposure
                   </FormLabel>
                 </FormItem>
@@ -1012,9 +1015,7 @@ export function CompanySettingsForm() {
               name="costing_method"
               render={({ field }) => (
                 <FormItem className="col-span-full">
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
-                    Costing method
-                  </FormLabel>
+                  <FormLabel className={toolbarLabelClass}>Costing method</FormLabel>
                   <FormControl>
                     <Input disabled value={field.value} readOnly />
                   </FormControl>
@@ -1033,7 +1034,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     Allow over-receipt against purchase orders
                   </FormLabel>
                 </FormItem>
@@ -1045,9 +1046,7 @@ export function CompanySettingsForm() {
                 name="over_receipt_tolerance_pct"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-muted-foreground text-xs font-medium">
-                      Over-receipt tolerance %
-                    </FormLabel>
+                    <FormLabel className={toolbarLabelClass}>Over-receipt tolerance %</FormLabel>
                     <FormControl>
                       <DecimalInput
                         kind="percent"
@@ -1072,7 +1071,7 @@ export function CompanySettingsForm() {
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
                   </FormControl>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                  <FormLabel className={toolbarLabelClass}>
                     New products require quality inspection by default
                   </FormLabel>
                 </FormItem>

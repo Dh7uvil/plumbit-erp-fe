@@ -6,6 +6,7 @@ import { useId } from "react";
 import { PAGE_SIZE_OPTIONS } from "@/config/constants";
 import type { PaginationMeta } from "@/shared/api/envelope";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -57,7 +58,7 @@ function PaginationControls({
     <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex items-center gap-1.5">
-          <Label htmlFor={pageSizeId} className="text-muted-foreground text-xs font-medium">
+          <Label htmlFor={pageSizeId} className={toolbarLabelClass}>
             Items
           </Label>
           <FilterSelect

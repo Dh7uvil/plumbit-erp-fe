@@ -137,7 +137,11 @@ export function OperationalDashboardScreen() {
                 >
                   <span>{documentTypeDisplayLabel(row.document_type)}</span>
                   {href ? (
-                    <Link href={href} className="hover:underline">
+                    <Link
+                      href={href}
+                      className="hover:underline"
+                      aria-label={`${documentTypeDisplayLabel(row.document_type)}: ${row.count} unposted`}
+                    >
                       <Badge variant="secondary">{row.count}</Badge>
                     </Link>
                   ) : (

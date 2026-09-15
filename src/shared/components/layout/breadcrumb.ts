@@ -1,4 +1,5 @@
 import type { NavigationItem } from "@/config/navigation";
+import { findReportByHref } from "@/config/report-catalog";
 
 export type BreadcrumbCrumb = {
   label: string;
@@ -27,6 +28,14 @@ export function buildBreadcrumbs({
   }
 
   crumbs.push({ label: item.label, href: item.href });
+
+  if (item.href === "/reports") {
+    const report = findReportByHref(pathname);
+    if (report) {
+      crumbs.push({ label: report.item.label });
+      return crumbs;
+    }
+  }
 
   const remainder = item.href === "/" ? pathname : pathname.slice(item.href.length);
   const isNew = remainder === "/new" || remainder.startsWith("/new/");
