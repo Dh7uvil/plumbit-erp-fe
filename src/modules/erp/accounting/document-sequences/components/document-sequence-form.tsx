@@ -14,6 +14,7 @@ import {
   DOCUMENT_TYPES,
   DocumentSequenceFormSchema,
   documentTypeLabel,
+  formatSequencePreview,
   isDocumentType,
   type DocumentSequence,
   type DocumentSequenceCreateRequest,
@@ -65,19 +66,6 @@ function toCreateRequest(values: DocumentSequenceFormValues): DocumentSequenceCr
   };
 }
 
-function formatSequencePreview(
-  prefix: string,
-  fiscalYear: number,
-  nextNumber: number,
-  padding: number,
-) {
-  const safeNumber = Number.isFinite(nextNumber) ? nextNumber : 1;
-  const safePadding = Number.isFinite(padding) ? padding : 6;
-  return `${prefix || "PREFIX"}-${fiscalYear || new Date().getFullYear()}-${String(
-    safeNumber,
-  ).padStart(safePadding, "0")}`;
-}
-
 export function DocumentSequenceForm({
   sequence,
   disabled = false,
@@ -101,15 +89,16 @@ export function DocumentSequenceForm({
     values: toFormValues(sequence),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
-  const [prefix, fiscalYear, nextNumber, padding] = useWatch({
+  const [prefix, fiscalYear, nextNumber, padding, documentType] = useWatch({
     control: form.control,
-    name: ["prefix", "fiscal_year", "next_number", "padding"],
+    name: ["prefix", "fiscal_year", "next_number", "padding", "document_type"],
   });
   const preview = formatSequencePreview(
     prefix,
     fiscalYear,
     nextNumber,
     padding,
+    documentType,
   );
 
   async function onSubmit(values: DocumentSequenceFormValues) {

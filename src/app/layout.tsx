@@ -5,6 +5,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { APP_NAME } from "@/config/constants";
 import { QueryProvider } from "@/shared/providers/query-provider";
 import { ThemeProvider } from "@/shared/components/layout/theme-provider";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/shared/lib/theme";
 import { Toaster } from "@/shared/components/ui/sonner";
 
@@ -43,10 +44,12 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
         <ThemeProvider>
-          <QueryProvider>
-            {children}
-            <Toaster />
-          </QueryProvider>
+          <TooltipProvider delayDuration={300}>
+            <QueryProvider>
+              {children}
+              <Toaster />
+            </QueryProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

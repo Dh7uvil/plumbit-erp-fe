@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
@@ -36,6 +36,16 @@ import { SALES_INVOICE_ACTION_REGISTRY } from "@/modules/erp/sales-invoices/work
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -43,13 +53,8 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
@@ -57,6 +62,7 @@ import { getDocumentAction } from "@/shared/components/document/workflow-registr
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
@@ -73,7 +79,6 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = ["Number", "Customer", "Date", "Due", "Status", "Payment", "Grand total"] as const;
 const ALL = "all";
 const SORT_FIELDS = [
   { value: "document_number", label: "Number" },
@@ -82,13 +87,6 @@ const SORT_FIELDS = [
   { value: "status", label: "Status" },
   { value: "grand_total", label: "Grand total" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "invoice_date",
-  Due: "due_date",
-  Status: "status",
-  "Grand total": "grand_total",
-};
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -161,10 +159,16 @@ export function SalesInvoicesScreen() {
   const customers = customersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
-  const customerNameById = new Map(customers.map((customer) => [customer.id, customer.name]));
-  const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
+  const customerNameById = useMemo(
+    () => new Map(customers.map((customer) => [customer.id, customer.name])),
+    [customers],
+  );
+  const currencyCodeById = useMemo(
+    () => new Map(currencies.map((currency) => [currency.id, currency.code])),
+    [currencies],
+  );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
   const exceptionCount = exceptionsQuery.data?.lines.length ?? 0;
 
   async function onDelete() {
@@ -179,6 +183,207 @@ export function SalesInvoicesScreen() {
       toast.error(getErrorMessage(error));
     }
   }
+
+  const columnDefs = useMemo((): Array<DataTableColumn<SalesInvoice>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (invoice) => {
+          const number = salesInvoiceDisplayNumber(invoice);
+          return (
+            <RecordLink href={`/sales-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>
+          );
+        },
+      },
+      {
+        id: "customer",
+        header: "Customer",
+        className: "font-medium",
+        cell: (invoice) => (
+          <RecordLink href={`/sales-invoices/${invoice.id}`}>
+            {customerNameById.get(invoice.customer_id) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "invoice_date",
+        header: "Date",
+        sortableField: "invoice_date",
+        cell: (invoice) => formatDate(invoice.invoice_date),
+      },
+      {
+        id: "due_date",
+        header: "Due",
+        sortableField: "due_date",
+        cell: (invoice) => {
+          const overdue = isSalesInvoiceOverdue(invoice, today);
+          return (
+            <>
+              {invoice.due_date ? formatDate(invoice.due_date) : "—"}
+              {overdue ? (
+                <span className="text-destructive ml-2 text-xs font-medium">Overdue</span>
+              ) : null}
+            </>
+          );
+        },
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (invoice) => (
+          <div className="flex flex-wrap items-center gap-1">
+            <DocumentStatusBadge
+              status={invoice.status}
+              labels={INVOICE_DOCUMENT_STATUS_LABELS}
+              variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
+            />
+            {invoice.is_fully_credited ? (
+              <DocumentStatusBadge
+                status="CREDITED"
+                labels={{ CREDITED: "Credited" }}
+                variants={{ CREDITED: "secondary" }}
+              />
+            ) : invoice.is_partially_credited ? (
+              <DocumentStatusBadge
+                status="PARTIALLY_CREDITED"
+                labels={{ PARTIALLY_CREDITED: "Partially credited" }}
+                variants={{ PARTIALLY_CREDITED: "warning" }}
+              />
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        id: "payment_status",
+        header: "Payment",
+        cell: (invoice) => (
+          <DocumentStatusBadge
+            status={invoice.payment_status}
+            labels={PAYMENT_STATUS_LABELS}
+            variants={PAYMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "grand_total",
+        header: "Grand total",
+        sortableField: "grand_total",
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.grand_total, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (invoice) => (invoice.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (invoice) => currencyCodeById.get(invoice.currency_id) ?? "—",
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        defaultVisible: false,
+        cell: (invoice) =>
+          invoice.branch_id
+            ? ((branchesQuery.data ?? []).find((branch) => branch.id === invoice.branch_id)?.name ??
+              "—")
+            : "—",
+      },
+      {
+        id: "exchange_rate",
+        header: "Exchange rate",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (invoice) => invoice.exchange_rate,
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (invoice) => invoice.notes || "—",
+      },
+      {
+        id: "subtotal",
+        header: "Subtotal",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.subtotal, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "tax_amount",
+        header: "Tax",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.tax_amount, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "amount_paid",
+        header: "Amount paid",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.amount_paid, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      {
+        id: "balance_due",
+        header: "Balance due",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (invoice) =>
+          formatMoney(invoice.balance_due, currencyCodeById.get(invoice.currency_id) ?? ""),
+      },
+      ...auditTimestampColumns<SalesInvoice>(),
+      ...auditActorColumns<SalesInvoice>(userNameById),
+      ...actionsColumn<SalesInvoice>(showActions, (invoice) => {
+        const number = salesInvoiceDisplayNumber(invoice);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "invoice"}
+            viewHref={canRead ? `/sales-invoices/${invoice.id}` : undefined}
+            editHref={
+              canUpdate && invoice.status === "DRAFT"
+                ? `/sales-invoices/${invoice.id}/edit`
+                : undefined
+            }
+            onDelete={
+              invoice.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(invoice)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    branchesQuery.data,
+    canDelete,
+    canRead,
+    canUpdate,
+    currencyCodeById,
+    customerNameById,
+    showActions,
+    today,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.sales_invoices", columnDefs);
 
   return (
     <ListPage>
@@ -396,6 +601,7 @@ export function SalesInvoicesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -425,13 +631,11 @@ export function SalesInvoicesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ "Grand total": "text-right" }}
             />
           </TableRow>
         </TableHeader>
@@ -439,14 +643,14 @@ export function SalesInvoicesScreen() {
           {invoicesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : invoicesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(invoicesQuery.error)}
                   onRetry={() => invoicesQuery.refetch()}
@@ -455,7 +659,7 @@ export function SalesInvoicesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No sales invoices"
                   message={emptyListMessage(canCreate, "Create a sales invoice to get started.")}
@@ -463,80 +667,11 @@ export function SalesInvoicesScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((invoice) => {
-              const number = salesInvoiceDisplayNumber(invoice);
-              const currencyCode = currencyCodeById.get(invoice.currency_id) ?? "";
-              const overdue = isSalesInvoiceOverdue(invoice, today);
-              return (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/sales-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <RecordLink href={`/sales-invoices/${invoice.id}`}>
-                      {customerNameById.get(invoice.customer_id) ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
-                  <TableCell>
-                    {invoice.due_date ? formatDate(invoice.due_date) : "—"}
-                    {overdue ? (
-                      <span className="text-destructive ml-2 text-xs font-medium">Overdue</span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <DocumentStatusBadge
-                        status={invoice.status}
-                        labels={INVOICE_DOCUMENT_STATUS_LABELS}
-                        variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
-                      />
-                      {invoice.is_fully_credited ? (
-                        <DocumentStatusBadge
-                          status="CREDITED"
-                          labels={{ CREDITED: "Credited" }}
-                          variants={{ CREDITED: "secondary" }}
-                        />
-                      ) : invoice.is_partially_credited ? (
-                        <DocumentStatusBadge
-                          status="PARTIALLY_CREDITED"
-                          labels={{ PARTIALLY_CREDITED: "Partially credited" }}
-                          variants={{ PARTIALLY_CREDITED: "warning" }}
-                        />
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={invoice.payment_status}
-                      labels={PAYMENT_STATUS_LABELS}
-                      variants={PAYMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMoney(invoice.grand_total, currencyCode)}
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "invoice"}
-                        viewHref={canRead ? `/sales-invoices/${invoice.id}` : undefined}
-                        editHref={
-                          canUpdate && invoice.status === "DRAFT"
-                            ? `/sales-invoices/${invoice.id}/edit`
-                            : undefined
-                        }
-                        onDelete={
-                          invoice.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(invoice)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((invoice) => (
+              <TableRow key={invoice.id}>
+                <DataTableCells columns={columns} row={invoice} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

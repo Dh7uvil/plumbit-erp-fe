@@ -85,13 +85,13 @@ describe("document schema fragments", () => {
   it("parses a document base payload", () => {
     const parsed = DocumentBaseSchema.parse({
       id: "11111111-1111-4111-8111-111111111111",
-      document_number: "QUO-0001",
+      document_number: "QUOACM26000001",
       status: "DRAFT",
       version: 1,
       is_posted: false,
       available_actions: ["submit"],
     });
-    expect(parsed.document_number).toBe("QUO-0001");
+    expect(parsed.document_number).toBe("QUOACM26000001");
   });
 
   it("parses totals without client arithmetic", () => {

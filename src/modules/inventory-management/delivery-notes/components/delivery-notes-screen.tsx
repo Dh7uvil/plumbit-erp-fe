@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
@@ -21,6 +21,16 @@ import { DELIVERY_NOTE_ACTION_REGISTRY } from "@/modules/inventory-management/de
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -28,16 +38,12 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -48,7 +54,11 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Date", "Customer", "Status"] as const;
+const SORT_FIELDS = [
+  { value: "document_number", label: "Number" },
+  { value: "document_date", label: "Date" },
+  { value: "status", label: "Status" },
+] as const;
 const ALL = "all";
 const EMPTY_EXTRA = {
   warehouseId: ALL,
@@ -102,8 +112,106 @@ export function DeliveryNotesScreen() {
   const customers = customersQuery.data ?? [];
   const warehouses = warehousesQuery.data ?? [];
   const customerLabelById = new Map(customers.map((customer) => [customer.id, customer.name]));
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+
+  const columnDefs = useMemo((): Array<DataTableColumn<DeliveryNote>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (row) => (
+          <RecordLink href={`/delivery-notes/${row.id}`}>
+            {deliveryNoteDisplayNumber(row) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "customer",
+        header: "Customer",
+        cell: (row) => customerLabelById.get(row.customer_id) ?? "—",
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "document_date",
+        cell: (row) => formatDate(row.document_date),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={STOCK_DOCUMENT_STATUS_LABELS}
+            variants={STOCK_DOCUMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (row) => (row.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        defaultVisible: false,
+        cell: (row) =>
+          (warehousesQuery.data ?? []).find((warehouse) => warehouse.id === row.warehouse_id)
+            ?.name ?? "—",
+      },
+      {
+        id: "vehicle_number",
+        header: "Vehicle",
+        defaultVisible: false,
+        cell: (row) => row.vehicle_number || "—",
+      },
+      {
+        id: "driver_name",
+        header: "Driver",
+        defaultVisible: false,
+        cell: (row) => row.driver_name || "—",
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      ...auditTimestampColumns<DeliveryNote>(),
+      ...auditActorColumns<DeliveryNote>(userNameById),
+      ...actionsColumn<DeliveryNote>(showActions, (row) => {
+        const number = deliveryNoteDisplayNumber(row);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "delivery note"}
+            viewHref={canRead ? `/delivery-notes/${row.id}` : undefined}
+            editHref={
+              canUpdate && row.status === "DRAFT"
+                ? `/delivery-notes/${row.id}/edit`
+                : undefined
+            }
+            onDelete={
+              row.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(row)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [canDelete, canRead, canUpdate, customerLabelById, showActions, userNameById, warehousesQuery.data]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "inventory.delivery_notes",
+    columnDefs,
+  );
 
   async function onDelete() {
     if (!deleting) {
@@ -240,15 +348,12 @@ export function DeliveryNotesScreen() {
           />
         </MoreFiltersDialog>
         <SortDialog
-          fields={[
-            { value: "document_number", label: "Number" },
-            { value: "document_date", label: "Date" },
-            { value: "status", label: "Status" },
-          ]}
+          fields={[...SORT_FIELDS]}
           sortBy={sort_by}
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -277,9 +382,8 @@ export function DeliveryNotesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={{ Number: "document_number", Date: "document_date", Status: "status" }}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -290,14 +394,14 @@ export function DeliveryNotesScreen() {
           {notesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : notesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(notesQuery.error)}
                   onRetry={() => notesQuery.refetch()}
@@ -306,7 +410,7 @@ export function DeliveryNotesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No delivery notes"
                   message={emptyListMessage(canCreate, "Create a delivery note to get started.")}
@@ -314,43 +418,11 @@ export function DeliveryNotesScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const number = deliveryNoteDisplayNumber(row);
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/delivery-notes/${row.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(row.document_date)}</TableCell>
-                  <TableCell>{customerLabelById.get(row.customer_id) ?? "—"}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.status}
-                      labels={STOCK_DOCUMENT_STATUS_LABELS}
-                      variants={STOCK_DOCUMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "delivery note"}
-                        viewHref={canRead ? `/delivery-notes/${row.id}` : undefined}
-                        editHref={
-                          canUpdate && row.status === "DRAFT"
-                            ? `/delivery-notes/${row.id}/edit`
-                            : undefined
-                        }
-                        onDelete={
-                          row.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(row)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

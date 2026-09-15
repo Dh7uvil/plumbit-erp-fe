@@ -64,7 +64,7 @@ test.describe("outbound inventory", () => {
     await expect(page.getByRole("heading", { name: "New delivery note" })).toBeVisible();
     await page.getByRole("button", { name: "Create delivery note" }).click();
     await expect(page).toHaveURL(/\/delivery-notes\/[0-9a-f-]{36}$/i);
-    await expect(page.getByRole("heading", { name: "DN-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "DNACM26000001" })).toBeVisible();
 
     await page.getByRole("button", { name: "Post" }).click();
     const postConfirm = page.getByRole("alertdialog");

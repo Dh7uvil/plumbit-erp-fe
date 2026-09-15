@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useAllCategories } from "@/modules/inventory-management/categories/queries";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
@@ -16,10 +16,14 @@ import {
   STOCK_MOVEMENT_TYPES,
   stockMovementSourceHref,
   stockMovementSourceLabel,
+  type StockMovement,
 } from "@/modules/inventory-management/stock/schemas";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import { auditTimestampColumns } from "@/shared/components/data-table/audit-columns";
+import { type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -28,9 +32,9 @@ import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/m
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -39,28 +43,14 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { cn } from "@/shared/lib/cn";
-import { formatDate, formatMoney, formatQuantity } from "@/shared/lib/format";
+import { formatDate, formatDateTime, formatMoney, formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const BASE_COLUMN_HEADERS = [
-  "SKU",
-  "Product",
-  "Warehouse",
-  "Date",
-  "Type",
-  "Qty",
-  "Source",
-] as const;
-const COST_COLUMN_HEADERS = ["Unit cost", "Value"] as const;
 const SORT_FIELDS = [
   { value: "document_date", label: "Date" },
   { value: "occurred_at", label: "Occurred" },
   { value: "qty", label: "Qty" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Date: "document_date",
-  Qty: "qty",
-};
 const ALL = "all";
 const EMPTY_EXTRA = {
   productId: ALL,
@@ -107,9 +97,6 @@ export function StockMovementsScreen() {
   const canReadCost = can(stockPermissions.costRead);
   const tenantQuery = useCurrentTenant();
   const currencyCode = tenantQuery.data?.default_currency ?? "";
-  const columnHeaders = canReadCost
-    ? ["SKU", "Product", "Warehouse", "Date", "Type", "Qty", ...COST_COLUMN_HEADERS, "Source"]
-    : [...BASE_COLUMN_HEADERS];
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = extraFromFilters(filters);
@@ -138,6 +125,114 @@ export function StockMovementsScreen() {
   const warehouses = warehousesQuery.data ?? [];
   const products = productsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
+
+  const columnDefs = useMemo((): Array<DataTableColumn<StockMovement>> => {
+    return [
+      {
+        id: "sku",
+        header: "SKU",
+        className: "font-mono text-sm",
+        cell: (row) => <RecordLink href={`/stock/${row.product_id}`}>{row.sku}</RecordLink>,
+      },
+      {
+        id: "product",
+        header: "Product",
+        cell: (row) => (
+          <RecordLink href={`/stock/${row.product_id}`}>{row.product_name}</RecordLink>
+        ),
+      },
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        cell: (row) => row.warehouse_code,
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "document_date",
+        cell: (row) => formatDate(row.document_date),
+      },
+      {
+        id: "movement_type",
+        header: "Type",
+        cell: (row) => STOCK_MOVEMENT_TYPE_LABELS[row.movement_type],
+      },
+      {
+        id: "qty",
+        header: "Qty",
+        sortableField: "qty",
+        className: "text-right tabular-nums",
+        headerClassName: "text-right",
+        cell: (row) => (
+          <span className={cn(qtyIsNegative(row.qty) && "text-destructive font-medium")}>
+            {formatQuantity(row.qty)}
+          </span>
+        ),
+      },
+      {
+        id: "source",
+        header: "Source",
+        className: "text-muted-foreground text-sm",
+        cell: (row) => (
+          <MovementSourceCell sourceType={row.source_type} sourceId={row.source_id} />
+        ),
+      },
+      ...(canReadCost
+        ? [
+            {
+              id: "unit_cost",
+              header: "Unit cost",
+              className: "text-right tabular-nums",
+              headerClassName: "text-right",
+              cell: (row: StockMovement) => formatMoney(row.unit_cost, currencyCode),
+            },
+            {
+              id: "value",
+              header: "Value",
+              className: "text-right tabular-nums",
+              headerClassName: "text-right",
+              cell: (row: StockMovement) => formatMoney(row.value, currencyCode),
+            },
+          ]
+        : []),
+      {
+        id: "qty_before",
+        header: "Qty before",
+        defaultVisible: false,
+        className: "text-right tabular-nums",
+        headerClassName: "text-right",
+        cell: (row) => formatQuantity(row.qty_before),
+      },
+      {
+        id: "qty_after",
+        header: "Qty after",
+        defaultVisible: false,
+        className: "text-right tabular-nums",
+        headerClassName: "text-right",
+        cell: (row) => formatQuantity(row.qty_after),
+      },
+      {
+        id: "occurred_at",
+        header: "Occurred",
+        defaultVisible: false,
+        className: "text-muted-foreground text-xs",
+        cell: (row) => formatDateTime(row.occurred_at),
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "text-muted-foreground max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      ...auditTimestampColumns<StockMovement>(),
+    ];
+  }, [canReadCost, currencyCode]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "inventory.stock_movements",
+    columnDefs,
+  );
 
   return (
     <ListPage>
@@ -284,6 +379,7 @@ export function StockMovementsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.warehouse_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -314,17 +410,11 @@ export function StockMovementsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={columnHeaders}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{
-                Qty: "text-right",
-                "Unit cost": "text-right",
-                Value: "text-right",
-              }}
             />
           </TableRow>
         </TableHeader>
@@ -332,14 +422,14 @@ export function StockMovementsScreen() {
           {movementsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={columnHeaders.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : movementsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={columnHeaders.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(movementsQuery.error)}
                   onRetry={() => movementsQuery.refetch()}
@@ -348,7 +438,7 @@ export function StockMovementsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columnHeaders.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No stock movements"
                   message="Posted adjustments and transfers will appear here."
@@ -358,36 +448,7 @@ export function StockMovementsScreen() {
           ) : (
             rows.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="font-mono text-sm">
-                  <RecordLink href={`/stock/${row.product_id}`}>{row.sku}</RecordLink>
-                </TableCell>
-                <TableCell>
-                  <RecordLink href={`/stock/${row.product_id}`}>{row.product_name}</RecordLink>
-                </TableCell>
-                <TableCell>{row.warehouse_code}</TableCell>
-                <TableCell>{formatDate(row.document_date)}</TableCell>
-                <TableCell>{STOCK_MOVEMENT_TYPE_LABELS[row.movement_type]}</TableCell>
-                <TableCell
-                  className={cn(
-                    "text-right tabular-nums",
-                    qtyIsNegative(row.qty) && "text-destructive font-medium",
-                  )}
-                >
-                  {formatQuantity(row.qty)}
-                </TableCell>
-                {canReadCost ? (
-                  <>
-                    <TableCell className="text-right tabular-nums">
-                      {formatMoney(row.unit_cost, currencyCode)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatMoney(row.value, currencyCode)}
-                    </TableCell>
-                  </>
-                ) : null}
-                <TableCell className="text-muted-foreground text-sm">
-                  <MovementSourceCell sourceType={row.source_type} sourceId={row.source_id} />
-                </TableCell>
+                <DataTableCells columns={columns} row={row} />
               </TableRow>
             ))
           )}

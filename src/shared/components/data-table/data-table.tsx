@@ -19,7 +19,7 @@ export function DataTable({
   return (
     <ListPageTable>
       <Card className={cn("flex h-fit max-h-full min-h-0 w-full flex-col gap-0 py-0", className)}>
-        <Table className={tableClassName} containerClassName="overflow-auto">
+        <Table className={cn("min-w-full", tableClassName)} containerClassName="overflow-auto">
           {children}
         </Table>
         {footer ? <div className="bg-card shrink-0 border-t empty:hidden">{footer}</div> : null}

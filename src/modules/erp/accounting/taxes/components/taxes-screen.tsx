@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { TaxFormDialog } from "@/modules/erp/accounting/taxes/components/tax-form-dialog";
@@ -11,20 +11,26 @@ import { useTaxes } from "@/modules/erp/accounting/taxes/queries";
 import { TAX_CATEGORY_LABELS, type Tax } from "@/modules/erp/accounting/taxes/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -36,7 +42,6 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatPercent } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Name", "Category", "Rate", "Default", "Status"] as const;
 const SORT_FIELDS = [
   { value: "name", label: "Name" },
   { value: "tax_category", label: "Category" },
@@ -44,13 +49,6 @@ const SORT_FIELDS = [
   { value: "is_default", label: "Default" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Name: "name",
-  Category: "tax_category",
-  Rate: "rate",
-  Default: "is_default",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -79,10 +77,60 @@ export function TaxesScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Tax | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = taxesQuery.data?.data ?? [];
   const meta = taxesQuery.data?.meta;
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Tax>> => {
+    return [
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "font-medium",
+        cell: (tax) => <RecordLink href={`/taxes/${tax.id}`}>{tax.name}</RecordLink>,
+      },
+      {
+        id: "tax_category",
+        header: "Category",
+        sortableField: "tax_category",
+        cell: (tax) => (
+          <RecordLink href={`/taxes/${tax.id}`}>{TAX_CATEGORY_LABELS[tax.tax_category]}</RecordLink>
+        ),
+      },
+      {
+        id: "rate",
+        header: "Rate",
+        sortableField: "rate",
+        cell: (tax) => formatPercent(tax.rate),
+      },
+      {
+        id: "is_default",
+        header: "Default",
+        sortableField: "is_default",
+        cell: (tax) => (tax.is_default ? <Badge variant="info">Default</Badge> : "—"),
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (tax) => <ActiveBadge active={tax.is_active} />,
+      },
+      ...auditTimestampColumns<Tax>(),
+      ...auditActorColumns<Tax>(userNameById),
+      ...actionsColumn<Tax>(showActions, (tax) => (
+        <DataTableRowActions
+          entityName={tax.name}
+          viewHref={canRead ? `/taxes/${tax.id}` : undefined}
+          editHref={canUpdate ? `/taxes/${tax.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(tax) : undefined}
+        />
+      )),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.taxes", columnDefs);
 
   function openCreate() {
     setFormOpen(true);
@@ -141,6 +189,7 @@ export function TaxesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || sort_by ? (
           <Button
             type="button"
@@ -162,9 +211,8 @@ export function TaxesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -175,14 +223,14 @@ export function TaxesScreen() {
           {taxesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : taxesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(taxesQuery.error)}
                   onRetry={() => taxesQuery.refetch()}
@@ -191,7 +239,7 @@ export function TaxesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No taxes"
                   message={emptyListMessage(canCreate, "Create a tax to get started.")}
@@ -201,31 +249,7 @@ export function TaxesScreen() {
           ) : (
             rows.map((tax) => (
               <TableRow key={tax.id}>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/taxes/${tax.id}`}>{tax.name}</RecordLink>
-                </TableCell>
-                <TableCell>
-                  <RecordLink href={`/taxes/${tax.id}`}>
-                    {TAX_CATEGORY_LABELS[tax.tax_category]}
-                  </RecordLink>
-                </TableCell>
-                <TableCell>{formatPercent(tax.rate)}</TableCell>
-                <TableCell>
-                  {tax.is_default ? <Badge variant="info">Default</Badge> : "—"}
-                </TableCell>
-                <TableCell>
-                  <ActiveBadge active={tax.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={tax.name}
-                      viewHref={canRead ? `/taxes/${tax.id}` : undefined}
-                      editHref={canUpdate ? `/taxes/${tax.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(tax) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={tax} />
               </TableRow>
             ))
           )}

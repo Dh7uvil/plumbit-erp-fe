@@ -117,6 +117,8 @@ export const DebitNoteSchema = z.object({
   lines: z.array(DebitNoteLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type DebitNote = z.infer<typeof DebitNoteSchema>;
 export const DebitNoteListSchema = z.array(DebitNoteSchema);

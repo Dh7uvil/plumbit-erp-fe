@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useDeletePackage } from "@/modules/inventory-management/packages/mutations";
@@ -19,19 +19,26 @@ import {
 import { PACKAGE_ACTION_REGISTRY } from "@/modules/inventory-management/packages/workflow";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
@@ -43,7 +50,6 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = ["Number", "Carton", "Status"] as const;
 const ALL = "all";
 
 export function PackagesScreen() {
@@ -61,7 +67,99 @@ export function PackagesScreen() {
   const rows = packagesQuery.data?.data ?? [];
   const meta = packagesQuery.data?.meta;
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Package>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        className: "font-mono text-sm",
+        cell: (row) => (
+          <RecordLink href={`/packages/${row.id}`}>{packageDisplayNumber(row) ?? "—"}</RecordLink>
+        ),
+      },
+      {
+        id: "carton",
+        header: "Carton",
+        cell: (row) => row.package_number ?? "—",
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={PACKAGE_STATUS_LABELS}
+            variants={PACKAGE_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "length",
+        header: "Length",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (row) => row.length || "—",
+      },
+      {
+        id: "width",
+        header: "Width",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (row) => row.width || "—",
+      },
+      {
+        id: "height",
+        header: "Height",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (row) => row.height || "—",
+      },
+      {
+        id: "gross_weight",
+        header: "Gross weight",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (row) => row.gross_weight || "—",
+      },
+      {
+        id: "net_weight",
+        header: "Net weight",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (row) => row.net_weight || "—",
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      ...auditTimestampColumns<Package>(),
+      ...auditActorColumns<Package>(userNameById),
+      ...actionsColumn<Package>(showActions, (row) => {
+        const number = packageDisplayNumber(row);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "package"}
+            viewHref={canRead ? `/packages/${row.id}` : undefined}
+            editHref={
+              canUpdate && row.status === "DRAFT" ? `/packages/${row.id}/edit` : undefined
+            }
+            onDelete={
+              row.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(row)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.packages", columnDefs);
 
   async function onDelete() {
     if (!deleting) return;
@@ -124,27 +222,24 @@ export function PackagesScreen() {
             })),
           ]}
         />
+        {columnsDialog}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableCell key={header} className="font-medium">
-                {header}
-              </TableCell>
-            ))}
+            <DataTableColumnHeads columns={columns} onSort={setParams} />
           </TableRow>
         </TableHeader>
         <TableBody>
           {packagesQuery.isLoading ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <Skeleton className="h-6 w-full" />
               </TableCell>
             </TableRow>
           ) : packagesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(packagesQuery.error)}
                   onRetry={() => packagesQuery.refetch()}
@@ -153,7 +248,7 @@ export function PackagesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No packages"
                   message={emptyListMessage(canCreate, "Create a package to get started.")}
@@ -161,40 +256,11 @@ export function PackagesScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const number = packageDisplayNumber(row);
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/packages/${row.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell>{row.package_number ?? "—"}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.status}
-                      labels={PACKAGE_STATUS_LABELS}
-                      variants={PACKAGE_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "package"}
-                        viewHref={canRead ? `/packages/${row.id}` : undefined}
-                        editHref={
-                          canUpdate && row.status === "DRAFT" ? `/packages/${row.id}/edit` : undefined
-                        }
-                        onDelete={
-                          row.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(row)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

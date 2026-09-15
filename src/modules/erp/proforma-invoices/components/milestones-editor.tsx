@@ -11,6 +11,7 @@ import {
   type MilestoneMode,
   type ProformaInvoiceFormValues,
 } from "@/modules/erp/proforma-invoices/schemas";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
@@ -279,16 +280,18 @@ export function MilestonesEditor({
                   </TableCell>
                   <TableCell>
                     {!disabled && fields.length > 1 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label="Remove milestone"
-                        onClick={() => remove(index)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      <TableActionTooltip label="Remove milestone">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          aria-label="Remove milestone"
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableActionTooltip>
                     ) : null}
                   </TableCell>
                 </TableRow>

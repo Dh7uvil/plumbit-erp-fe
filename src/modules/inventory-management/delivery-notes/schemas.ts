@@ -81,6 +81,8 @@ export const DeliveryNoteSchema = z.object({
   lines: z.array(DeliveryNoteLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type DeliveryNote = z.infer<typeof DeliveryNoteSchema>;
 export const DeliveryNoteListSchema = z.array(DeliveryNoteSchema);

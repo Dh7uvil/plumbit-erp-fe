@@ -161,6 +161,8 @@ export const AccountSchema = z.object({
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
   has_children: z.boolean().optional().default(false),
   has_journal_lines: z.boolean().optional().default(false),
 });

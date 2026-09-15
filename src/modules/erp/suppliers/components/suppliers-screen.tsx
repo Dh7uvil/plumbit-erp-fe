@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
@@ -15,24 +15,34 @@ import {
   type Supplier,
   type TaxTreatment,
 } from "@/modules/erp/suppliers/schemas";
+import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
+import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { priceListPermissions } from "@/modules/inventory-management/price-lists/permissions";
+import { useAllPriceLists } from "@/modules/inventory-management/price-lists/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
@@ -42,21 +52,15 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = ["Code", "Name", "Type", "Tax treatment", "Status"] as const;
 const SORT_FIELDS = [
   { value: "code", label: "Code" },
   { value: "name", label: "Name" },
   { value: "tax_treatment", label: "Tax treatment" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Code: "code",
-  Name: "name",
-  "Tax treatment": "tax_treatment",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -102,6 +106,8 @@ export function SuppliersScreen() {
     is_active: parseBoolFilter(filters.is_active),
   });
   const currenciesQuery = useAllCurrencies();
+  const paymentTermsQuery = useAllPaymentTerms(can(paymentTermPermissions.read));
+  const priceListsQuery = useAllPriceLists(can(priceListPermissions.read));
   const deleteSupplier = useDeleteSupplier();
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Supplier | null>(null);
@@ -110,7 +116,124 @@ export function SuppliersScreen() {
   const meta = suppliersQuery.data?.meta;
   const currencies = currenciesQuery.data ?? [];
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Supplier>> => {
+    return [
+      {
+        id: "code",
+        header: "Code",
+        sortableField: "code",
+        className: "font-mono text-sm",
+        cell: (supplier) => (
+          <RecordLink href={`/suppliers/${supplier.id}`}>{supplier.code}</RecordLink>
+        ),
+      },
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "font-medium",
+        cell: (supplier) => (
+          <RecordLink href={`/suppliers/${supplier.id}`}>{supplier.name}</RecordLink>
+        ),
+      },
+      {
+        id: "type",
+        header: "Type",
+        cell: (supplier) => COMPANY_TYPE_LABELS[supplier.company_type],
+      },
+      {
+        id: "tax_treatment",
+        header: "Tax treatment",
+        sortableField: "tax_treatment",
+        cell: (supplier) => TAX_TREATMENT_LABELS[supplier.tax_treatment],
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (supplier) => <ActiveBadge active={supplier.is_active} />,
+      },
+      {
+        id: "trn",
+        header: "TRN",
+        defaultVisible: false,
+        className: "font-mono text-xs",
+        cell: (supplier) => supplier.trn || "—",
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (supplier) =>
+          (currenciesQuery.data ?? []).find((currency) => currency.id === supplier.currency_id)
+            ?.code ?? "—",
+      },
+      {
+        id: "credit_limit",
+        header: "Credit limit",
+        defaultVisible: false,
+        cell: (supplier) => {
+          const currency = (currenciesQuery.data ?? []).find(
+            (item) => item.id === supplier.currency_id,
+          );
+          return currency
+            ? formatMoney(supplier.credit_limit, currency.code, currency.decimal_places)
+            : formatMoney(supplier.credit_limit, "AED");
+        },
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "text-muted-foreground max-w-xs truncate",
+        cell: (supplier) => supplier.notes || "—",
+      },
+      {
+        id: "payment_terms",
+        header: "Payment terms",
+        defaultVisible: false,
+        cell: (supplier) =>
+          supplier.payment_terms_id
+            ? ((paymentTermsQuery.data ?? []).find((term) => term.id === supplier.payment_terms_id)
+                ?.name ?? "—")
+            : "—",
+      },
+      {
+        id: "price_list",
+        header: "Price list",
+        defaultVisible: false,
+        cell: (supplier) =>
+          supplier.default_price_list_id
+            ? ((priceListsQuery.data ?? []).find(
+                (list) => list.id === supplier.default_price_list_id,
+              )?.name ?? "—")
+            : "—",
+      },
+      ...auditTimestampColumns<Supplier>(),
+      ...auditActorColumns<Supplier>(userNameById),
+      ...actionsColumn<Supplier>(showActions, (supplier) => (
+        <DataTableRowActions
+          entityName={supplier.name}
+          viewHref={canRead ? `/suppliers/${supplier.id}` : undefined}
+          editHref={canUpdate ? `/suppliers/${supplier.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(supplier) : undefined}
+        />
+      )),
+    ];
+  }, [
+    canDelete,
+    canRead,
+    canUpdate,
+    currenciesQuery.data,
+    paymentTermsQuery.data,
+    priceListsQuery.data,
+    showActions,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.suppliers", columnDefs);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -223,6 +346,7 @@ export function SuppliersScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || filters.tax_treatment || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -244,9 +368,8 @@ export function SuppliersScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -257,14 +380,14 @@ export function SuppliersScreen() {
           {suppliersQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : suppliersQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(suppliersQuery.error)}
                   onRetry={() => suppliersQuery.refetch()}
@@ -273,7 +396,7 @@ export function SuppliersScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No suppliers"
                   message={emptyListMessage(canCreate, "Create a supplier to get started.")}
@@ -283,27 +406,7 @@ export function SuppliersScreen() {
           ) : (
             rows.map((supplier) => (
               <TableRow key={supplier.id}>
-                <TableCell className="font-mono text-sm">
-                  <RecordLink href={`/suppliers/${supplier.id}`}>{supplier.code}</RecordLink>
-                </TableCell>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/suppliers/${supplier.id}`}>{supplier.name}</RecordLink>
-                </TableCell>
-                <TableCell>{COMPANY_TYPE_LABELS[supplier.company_type]}</TableCell>
-                <TableCell>{TAX_TREATMENT_LABELS[supplier.tax_treatment]}</TableCell>
-                <TableCell>
-                  <ActiveBadge active={supplier.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={supplier.name}
-                      viewHref={canRead ? `/suppliers/${supplier.id}` : undefined}
-                      editHref={canUpdate ? `/suppliers/${supplier.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(supplier) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={supplier} />
               </TableRow>
             ))
           )}

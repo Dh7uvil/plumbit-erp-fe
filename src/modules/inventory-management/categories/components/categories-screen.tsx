@@ -11,20 +11,26 @@ import { useAllCategories, useCategories } from "@/modules/inventory-management/
 import type { Category } from "@/modules/inventory-management/categories/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -34,17 +40,11 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
-const COLUMN_HEADERS = ["Code", "Name", "Parent", "Status"] as const;
 const SORT_FIELDS = [
   { value: "code", label: "Code" },
   { value: "name", label: "Name" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Code: "code",
-  Name: "name",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -75,7 +75,6 @@ export function CategoriesScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Category | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = categoriesQuery.data?.data ?? [];
   const meta = categoriesQuery.data?.meta;
@@ -86,6 +85,54 @@ export function CategoriesScreen() {
     }
     return map;
   }, [allCategoriesQuery.data]);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Category>> => {
+    return [
+      {
+        id: "code",
+        header: "Code",
+        sortableField: "code",
+        className: "font-mono text-sm",
+        cell: (category) => (
+          <RecordLink href={`/categories/${category.id}`}>{category.code}</RecordLink>
+        ),
+      },
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "font-medium",
+        cell: (category) => (
+          <RecordLink href={`/categories/${category.id}`}>{category.name}</RecordLink>
+        ),
+      },
+      {
+        id: "parent",
+        header: "Parent",
+        cell: (category) =>
+          category.parent_id ? (parentNameById.get(category.parent_id) ?? "—") : "—",
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (category) => <ActiveBadge active={category.is_active} />,
+      },
+      ...auditTimestampColumns<Category>(),
+      ...auditActorColumns<Category>(userNameById),
+      ...actionsColumn<Category>(showActions, (category) => (
+        <DataTableRowActions
+          entityName={category.name}
+          viewHref={canRead ? `/categories/${category.id}` : undefined}
+          editHref={canUpdate ? `/categories/${category.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(category) : undefined}
+        />
+      )),
+    ];
+  }, [canDelete, canRead, canUpdate, parentNameById, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.categories", columnDefs);
 
   function openCreate() {
     setFormOpen(true);
@@ -160,6 +207,7 @@ export function CategoriesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || filters.parent_id || sort_by ? (
           <Button
             type="button"
@@ -181,9 +229,8 @@ export function CategoriesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -194,14 +241,14 @@ export function CategoriesScreen() {
           {categoriesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : categoriesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(categoriesQuery.error)}
                   onRetry={() => categoriesQuery.refetch()}
@@ -210,7 +257,7 @@ export function CategoriesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No categories"
                   message={emptyListMessage(canCreate, "Create a category to get started.")}
@@ -220,28 +267,7 @@ export function CategoriesScreen() {
           ) : (
             rows.map((category) => (
               <TableRow key={category.id}>
-                <TableCell className="font-mono text-sm">
-                  <RecordLink href={`/categories/${category.id}`}>{category.code}</RecordLink>
-                </TableCell>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/categories/${category.id}`}>{category.name}</RecordLink>
-                </TableCell>
-                <TableCell>
-                  {category.parent_id ? (parentNameById.get(category.parent_id) ?? "—") : "—"}
-                </TableCell>
-                <TableCell>
-                  <ActiveBadge active={category.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={category.name}
-                      viewHref={canRead ? `/categories/${category.id}` : undefined}
-                      editHref={canUpdate ? `/categories/${category.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(category) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={category} />
               </TableRow>
             ))
           )}

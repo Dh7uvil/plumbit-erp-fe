@@ -8,7 +8,11 @@ import { AccountFormDialog } from "@/modules/erp/accounting/accounts/components/
 import { SystemAccountsCard } from "@/modules/erp/accounting/accounts/components/system-accounts-card";
 import { useDeleteAccount } from "@/modules/erp/accounting/accounts/mutations";
 import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
-import { useAccountTree, useAccounts } from "@/modules/erp/accounting/accounts/queries";
+import {
+  useAccountTree,
+  useAccounts,
+  useAllAccounts,
+} from "@/modules/erp/accounting/accounts/queries";
 import {
   ACCOUNT_SUBTYPE_LABELS,
   ACCOUNT_TYPE_LABELS,
@@ -18,22 +22,29 @@ import {
   type AccountTreeNode,
   type AccountType,
 } from "@/modules/erp/accounting/accounts/schemas";
+import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -48,7 +59,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useRouter } from "next/navigation";
 
-const COLUMN_HEADERS = ["Code", "Name", "Type", "Subtype", "Kind", "Status"] as const;
 const SORT_FIELDS = [
   { value: "code", label: "Code" },
   { value: "name", label: "Name" },
@@ -56,11 +66,6 @@ const SORT_FIELDS = [
   { value: "created_at", label: "Created" },
   { value: "updated_at", label: "Updated" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Code: "code",
-  Name: "name",
-  Type: "account_type",
-};
 const ALL = "all";
 const VIEW_TREE = "tree";
 const VIEW_LIST = "list";
@@ -114,11 +119,12 @@ export function AccountsScreen() {
     is_active: parseBoolFilter(filters.is_active),
   });
   const treeQuery = useAccountTree(view === VIEW_TREE);
+  const allAccountsQuery = useAllAccounts({}, view === VIEW_LIST);
+  const currenciesQuery = useAllCurrencies(view === VIEW_LIST);
   const deleteAccount = useDeleteAccount();
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Account | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
   const rows = accountsQuery.data?.data ?? [];
   const meta = accountsQuery.data?.meta;
   const treeNodes = useMemo(() => toTreeNodes(treeQuery.data ?? []), [treeQuery.data]);
@@ -126,6 +132,97 @@ export function AccountsScreen() {
     () => flattenAccountTree(treeQuery.data ?? []).length,
     [treeQuery.data],
   );
+  const parentNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const account of allAccountsQuery.data ?? []) {
+      map.set(account.id, account.name);
+    }
+    return map;
+  }, [allAccountsQuery.data]);
+  const currencyCodeById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const currency of currenciesQuery.data ?? []) {
+      map.set(currency.id, currency.code);
+    }
+    return map;
+  }, [currenciesQuery.data]);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Account>> => {
+    return [
+      {
+        id: "code",
+        header: "Code",
+        sortableField: "code",
+        className: "font-mono text-sm",
+        cell: (row) => <RecordLink href={`/accounts/${row.id}`}>{row.code}</RecordLink>,
+      },
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        cell: (row) => <RecordLink href={`/accounts/${row.id}`}>{row.name}</RecordLink>,
+      },
+      {
+        id: "account_type",
+        header: "Type",
+        sortableField: "account_type",
+        cell: (row) => ACCOUNT_TYPE_LABELS[row.account_type],
+      },
+      {
+        id: "subtype",
+        header: "Subtype",
+        cell: (row) => ACCOUNT_SUBTYPE_LABELS[row.account_subtype],
+      },
+      {
+        id: "kind",
+        header: "Kind",
+        cell: (row) => (row.is_group ? <Badge variant="secondary">Group</Badge> : "Postable"),
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        cell: (row) => <ActiveBadge active={row.is_active} />,
+      },
+      {
+        id: "description",
+        header: "Description",
+        defaultVisible: false,
+        className: "text-muted-foreground max-w-xs truncate",
+        cell: (row) => row.description || "—",
+      },
+      {
+        id: "parent",
+        header: "Parent",
+        defaultVisible: false,
+        cell: (row) => (row.parent_id ? (parentNameById.get(row.parent_id) ?? "—") : "—"),
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (row) => (row.currency_id ? (currencyCodeById.get(row.currency_id) ?? "—") : "—"),
+      },
+      {
+        id: "is_system",
+        header: "System",
+        defaultVisible: false,
+        cell: (row) => (row.is_system ? "Yes" : "No"),
+      },
+      ...auditTimestampColumns<Account>(),
+      ...auditActorColumns<Account>(userNameById),
+      ...actionsColumn<Account>(showActions, (row) => (
+        <DataTableRowActions
+          entityName={row.code}
+          viewHref={canRead ? `/accounts/${row.id}` : undefined}
+          editHref={canUpdate ? `/accounts/${row.id}/edit` : undefined}
+          onDelete={canDelete && !row.is_system ? () => setDeleting(row) : undefined}
+        />
+      )),
+    ];
+  }, [canDelete, canRead, canUpdate, currencyCodeById, parentNameById, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.accounts", columnDefs);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -213,6 +310,7 @@ export function AccountsScreen() {
                 sortOrder={sort_order}
                 onApply={setParams}
               />
+              {columnsDialog}
             </>
           ) : null}
         </DataTableToolbar>
@@ -245,9 +343,8 @@ export function AccountsScreen() {
           <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
             <TableHeader>
               <TableRow>
-                <SortableHeads
-                  headers={headers}
-                  fieldByHeader={SORT_FIELD_BY_HEADER}
+                <DataTableColumnHeads
+                  columns={columns}
                   sortBy={sort_by}
                   sortOrder={sort_order}
                   onSort={setParams}
@@ -258,14 +355,14 @@ export function AccountsScreen() {
               {accountsQuery.isLoading ? (
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={index}>
-                    <TableCell colSpan={headers.length}>
+                    <TableCell colSpan={colSpan}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : accountsQuery.isError ? (
                 <TableRow>
-                  <TableCell colSpan={headers.length}>
+                  <TableCell colSpan={colSpan}>
                     <DataTableError
                       message={getErrorMessage(accountsQuery.error)}
                       onRetry={() => accountsQuery.refetch()}
@@ -274,7 +371,7 @@ export function AccountsScreen() {
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={headers.length}>
+                  <TableCell colSpan={colSpan}>
                     <DataTableEmpty
                       title="No accounts"
                       message={emptyListMessage(canCreate, "Create an account to get started.")}
@@ -284,32 +381,7 @@ export function AccountsScreen() {
               ) : (
                 rows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="font-mono text-sm">
-                      <RecordLink href={`/accounts/${row.id}`}>{row.code}</RecordLink>
-                    </TableCell>
-                    <TableCell>
-                      <RecordLink href={`/accounts/${row.id}`}>{row.name}</RecordLink>
-                    </TableCell>
-                    <TableCell>{ACCOUNT_TYPE_LABELS[row.account_type]}</TableCell>
-                    <TableCell>{ACCOUNT_SUBTYPE_LABELS[row.account_subtype]}</TableCell>
-                    <TableCell>
-                      {row.is_group ? <Badge variant="secondary">Group</Badge> : "Postable"}
-                    </TableCell>
-                    <TableCell>
-                      <ActiveBadge active={row.is_active} />
-                    </TableCell>
-                    {showActions ? (
-                      <TableCell>
-                        <DataTableRowActions
-                          entityName={row.code}
-                          viewHref={canRead ? `/accounts/${row.id}` : undefined}
-                          editHref={canUpdate ? `/accounts/${row.id}/edit` : undefined}
-                          onDelete={
-                            canDelete && !row.is_system ? () => setDeleting(row) : undefined
-                          }
-                        />
-                      </TableCell>
-                    ) : null}
+                    <DataTableCells columns={columns} row={row} />
                   </TableRow>
                 ))
               )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
@@ -21,20 +21,26 @@ import { useAllUnits } from "@/modules/inventory-management/units/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
@@ -47,7 +53,6 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 import { formatMoney } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["SKU", "Name", "Type", "Rate", "Status"] as const;
 const SORT_FIELDS = [
   { value: "sku", label: "SKU" },
   { value: "name", label: "Name" },
@@ -55,13 +60,6 @@ const SORT_FIELDS = [
   { value: "selling_rate", label: "Rate" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  SKU: "sku",
-  Name: "name",
-  Type: "item_type",
-  Rate: "selling_rate",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -118,7 +116,138 @@ export function ProductsScreen() {
   const currencies = currenciesQuery.data ?? [];
   const displayCurrency = currencies.find((currency) => currency.is_base) ?? currencies[0];
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Product>> => {
+    return [
+      {
+        id: "sku",
+        header: "SKU",
+        sortableField: "sku",
+        className: "font-mono text-sm",
+        cell: (product) => <RecordLink href={`/products/${product.id}`}>{product.sku}</RecordLink>,
+      },
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "max-w-xs min-w-0 font-medium",
+        cell: (product) => (
+          <RecordLink href={`/products/${product.id}`} className="block truncate">
+            {product.name}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "item_type",
+        header: "Type",
+        sortableField: "item_type",
+        cell: (product) => ITEM_TYPE_LABELS[product.item_type],
+      },
+      {
+        id: "selling_rate",
+        header: "Rate",
+        sortableField: "selling_rate",
+        cell: (product) =>
+          displayCurrency
+            ? formatMoney(
+                product.selling_rate,
+                displayCurrency.code,
+                displayCurrency.decimal_places,
+              )
+            : "—",
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (product) => <ActiveBadge active={product.is_active} />,
+      },
+      {
+        id: "category",
+        header: "Category",
+        defaultVisible: false,
+        cell: (product) =>
+          (categoriesQuery.data ?? []).find((category) => category.id === product.category_id)
+            ?.name ?? "—",
+      },
+      {
+        id: "unit",
+        header: "Unit",
+        defaultVisible: false,
+        cell: (product) =>
+          (unitsQuery.data ?? []).find((unit) => unit.id === product.unit_id)?.name ?? "—",
+      },
+      {
+        id: "hs_code",
+        header: "HS code",
+        defaultVisible: false,
+        className: "font-mono text-xs",
+        cell: (product) => product.hs_code || "—",
+      },
+      {
+        id: "sales_description",
+        header: "Sales description",
+        defaultVisible: false,
+        className: "text-muted-foreground max-w-xs truncate",
+        cell: (product) => product.sales_description || "—",
+      },
+      {
+        id: "purchase_rate",
+        header: "Purchase rate",
+        defaultVisible: false,
+        cell: (product) =>
+          displayCurrency
+            ? formatMoney(
+                product.purchase_rate,
+                displayCurrency.code,
+                displayCurrency.decimal_places,
+              )
+            : "—",
+      },
+      {
+        id: "track_inventory",
+        header: "Track inventory",
+        defaultVisible: false,
+        cell: (product) => (product.track_inventory ? "Yes" : "No"),
+      },
+      {
+        id: "requires_qc",
+        header: "Requires QC",
+        defaultVisible: false,
+        cell: (product) => (product.requires_qc ? "Yes" : "No"),
+      },
+      {
+        id: "tax",
+        header: "Tax",
+        defaultVisible: false,
+        cell: (product) =>
+          (taxesQuery.data ?? []).find((tax) => tax.id === product.tax_id)?.name ?? "—",
+      },
+      ...auditTimestampColumns<Product>(),
+      ...auditActorColumns<Product>(userNameById),
+      ...actionsColumn<Product>(showActions, (product) => (
+        <DataTableRowActions
+          entityName={product.name}
+          viewHref={canRead ? `/products/${product.id}` : undefined}
+          editHref={canUpdate ? `/products/${product.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(product) : undefined}
+        />
+      )),
+    ];
+  }, [
+    canDelete,
+    canRead,
+    canUpdate,
+    categoriesQuery.data,
+    displayCurrency,
+    showActions,
+    taxesQuery.data,
+    unitsQuery.data,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.products", columnDefs);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -274,6 +403,7 @@ export function ProductsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || filters.item_type || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -295,9 +425,8 @@ export function ProductsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -308,14 +437,14 @@ export function ProductsScreen() {
           {productsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : productsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(productsQuery.error)}
                   onRetry={() => productsQuery.refetch()}
@@ -324,7 +453,7 @@ export function ProductsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No products"
                   message={emptyListMessage(canCreate, "Create a product to get started.")}
@@ -334,37 +463,7 @@ export function ProductsScreen() {
           ) : (
             rows.map((product) => (
               <TableRow key={product.id}>
-                <TableCell className="font-mono text-sm">
-                  <RecordLink href={`/products/${product.id}`}>{product.sku}</RecordLink>
-                </TableCell>
-                <TableCell className="max-w-xs min-w-0 font-medium">
-                  <RecordLink href={`/products/${product.id}`} className="block truncate">
-                    {product.name}
-                  </RecordLink>
-                </TableCell>
-                <TableCell>{ITEM_TYPE_LABELS[product.item_type]}</TableCell>
-                <TableCell>
-                  {displayCurrency
-                    ? formatMoney(
-                        product.selling_rate,
-                        displayCurrency.code,
-                        displayCurrency.decimal_places,
-                      )
-                    : "—"}
-                </TableCell>
-                <TableCell>
-                  <ActiveBadge active={product.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={product.name}
-                      viewHref={canRead ? `/products/${product.id}` : undefined}
-                      editHref={canUpdate ? `/products/${product.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(product) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={product} />
               </TableRow>
             ))
           )}

@@ -122,6 +122,8 @@ export const CreditNoteSchema = z.object({
   lines: z.array(CreditNoteLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type CreditNote = z.infer<typeof CreditNoteSchema>;
 export const CreditNoteListSchema = z.array(CreditNoteSchema);

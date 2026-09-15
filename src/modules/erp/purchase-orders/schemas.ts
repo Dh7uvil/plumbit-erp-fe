@@ -197,6 +197,8 @@ export const PurchaseOrderSchema = z.object({
   lines: z.array(PurchaseOrderLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;
 

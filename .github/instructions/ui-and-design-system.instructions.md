@@ -266,8 +266,8 @@ No access  a clear message, not an empty table
 Optimistic UI is for cheap reversible interactions only. Money, stock, posting, approval and
 e-invoice submit always wait for the server.
 
-Confirmations name the consequence — "Post invoice INV-2026-000123? Stock, AR and tax will move."
-or "Void invoice INV-2026-000123?" — rather than asking "Are you sure?", and the confirming button
+Confirmations name the consequence — "Post invoice INVAGM26000123? Stock, AR and tax will move."
+or "Void invoice INVAGM26000123?" — rather than asking "Are you sure?", and the confirming button
 carries the verb.
 
 Document screens use one layout: header (number, status, e-invoice badge) + lines (keyboard grid)

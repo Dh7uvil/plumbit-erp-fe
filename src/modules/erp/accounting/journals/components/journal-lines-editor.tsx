@@ -20,6 +20,7 @@ import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { CustomerFormDialog } from "@/modules/crm/customers/components/customer-form-dialog";
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
 import { MasterSelect } from "@/shared/components/form/master-select";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
@@ -316,16 +317,18 @@ export function JournalLinesEditor({
                   </TableCell>
                   <TableCell className="align-top">
                     {disabled ? null : (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Remove line ${index + 1}`}
-                        onClick={() => remove(index)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      <TableActionTooltip label={`Remove line ${index + 1}`}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          aria-label={`Remove line ${index + 1}`}
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableActionTooltip>
                     )}
                   </TableCell>
                 </TableRow>

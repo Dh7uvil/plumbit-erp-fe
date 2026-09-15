@@ -3,7 +3,7 @@
 import { Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
@@ -31,6 +31,16 @@ import { useAllWarehouses } from "@/modules/inventory-management/warehouses/quer
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -38,16 +48,12 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -56,7 +62,6 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Date", "Warehouse", "Reason", "Status"] as const;
 const ALL = "all";
 const EMPTY_EXTRA = {
   reason: ALL,
@@ -91,11 +96,6 @@ const SORT_FIELDS = [
   { value: "document_date", label: "Date" },
   { value: "status", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "document_date",
-  Status: "status",
-};
 
 function parseStatus(value: string | undefined): StockDocumentStatus | undefined {
   return STOCK_DOCUMENT_STATUSES.includes(value as StockDocumentStatus)
@@ -147,8 +147,8 @@ export function StockAdjustmentsScreen() {
   const warehouseLabelById = new Map(
     warehouses.map((warehouse) => [warehouse.id, `${warehouse.code} — ${warehouse.name}`]),
   );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onClone(id: string) {
     try {
@@ -159,6 +159,119 @@ export function StockAdjustmentsScreen() {
       toast.error(getErrorMessage(error));
     }
   }
+
+  const columnDefs = useMemo((): Array<DataTableColumn<StockAdjustment>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (row) => (
+          <RecordLink href={`/stock-adjustments/${row.id}`}>
+            {stockAdjustmentDisplayNumber(row) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        cell: (row) => warehouseLabelById.get(row.warehouse_id) ?? "—",
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "document_date",
+        cell: (row) => formatDate(row.document_date),
+      },
+      {
+        id: "reason",
+        header: "Reason",
+        cell: (row) => STOCK_ADJUSTMENT_REASON_LABELS[row.reason],
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={STOCK_DOCUMENT_STATUS_LABELS}
+            variants={STOCK_DOCUMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (row) => (row.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "reference",
+        header: "Reference",
+        defaultVisible: false,
+        cell: (row) => row.reference || "—",
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      ...auditTimestampColumns<StockAdjustment>(),
+      ...auditActorColumns<StockAdjustment>(userNameById),
+      ...actionsColumn<StockAdjustment>(showActions, (row) => {
+        const number = stockAdjustmentDisplayNumber(row);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "adjustment"}
+            viewHref={canRead ? `/stock-adjustments/${row.id}` : undefined}
+            editHref={
+              canUpdate && row.status === "DRAFT"
+                ? `/stock-adjustments/${row.id}/edit`
+                : undefined
+            }
+            extra={
+              row.available_actions.includes("clone") && canCreate ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label="Clone stock adjustment"
+                  disabled={cloneAdjustment.isPending}
+                  onClick={() => void onClone(row.id)}
+                >
+                  <Copy className="size-3.5" />
+                </Button>
+              ) : undefined
+            }
+            onDelete={
+              row.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(row)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    canCreate,
+    canDelete,
+    canRead,
+    canUpdate,
+    cloneAdjustment.isPending,
+    showActions,
+    userNameById,
+    warehouseLabelById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "inventory.stock_adjustments",
+    columnDefs,
+  );
 
   async function onDelete() {
     if (!deleting) {
@@ -315,6 +428,7 @@ export function StockAdjustmentsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.warehouse_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -344,9 +458,8 @@ export function StockAdjustmentsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -357,14 +470,14 @@ export function StockAdjustmentsScreen() {
           {adjustmentsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : adjustmentsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(adjustmentsQuery.error)}
                   onRetry={() => adjustmentsQuery.refetch()}
@@ -373,7 +486,7 @@ export function StockAdjustmentsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No stock adjustments"
                   message={emptyListMessage(canCreate, "Create an adjustment to get started.")}
@@ -381,59 +494,11 @@ export function StockAdjustmentsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const number = stockAdjustmentDisplayNumber(row);
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/stock-adjustments/${row.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(row.document_date)}</TableCell>
-                  <TableCell>{warehouseLabelById.get(row.warehouse_id) ?? "—"}</TableCell>
-                  <TableCell>{STOCK_ADJUSTMENT_REASON_LABELS[row.reason]}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.status}
-                      labels={STOCK_DOCUMENT_STATUS_LABELS}
-                      variants={STOCK_DOCUMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "adjustment"}
-                        viewHref={canRead ? `/stock-adjustments/${row.id}` : undefined}
-                        editHref={
-                          canUpdate && row.status === "DRAFT"
-                            ? `/stock-adjustments/${row.id}/edit`
-                            : undefined
-                        }
-                        extra={
-                          row.available_actions.includes("clone") && canCreate ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              aria-label="Clone stock adjustment"
-                              disabled={cloneAdjustment.isPending}
-                              onClick={() => void onClone(row.id)}
-                            >
-                              <Copy className="size-3.5" />
-                            </Button>
-                          ) : undefined
-                        }
-                        onDelete={
-                          row.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(row)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

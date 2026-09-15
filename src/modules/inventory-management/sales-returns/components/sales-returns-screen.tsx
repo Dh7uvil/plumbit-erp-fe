@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useDeleteSalesReturn } from "@/modules/inventory-management/sales-returns/mutations";
@@ -20,19 +20,26 @@ import {
 import { SALES_RETURN_ACTION_REGISTRY } from "@/modules/inventory-management/sales-returns/workflow";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -43,7 +50,6 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Date", "Reason", "Status"] as const;
 const ALL = "all";
 
 function parseStatus(value: string | undefined): StockDocumentStatus | undefined {
@@ -66,7 +72,80 @@ export function SalesReturnsScreen() {
   const rows = returnsQuery.data?.data ?? [];
   const meta = returnsQuery.data?.meta;
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<SalesReturn>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        className: "font-mono text-sm",
+        cell: (row) => (
+          <RecordLink href={`/sales-returns/${row.id}`}>
+            {salesReturnDisplayNumber(row) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "reason",
+        header: "Reason",
+        cell: (row) => SALES_RETURN_REASON_LABELS[row.reason_code],
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        cell: (row) => formatDate(row.document_date),
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={STOCK_DOCUMENT_STATUS_LABELS}
+            variants={STOCK_DOCUMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (row) => (row.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      ...auditTimestampColumns<SalesReturn>(),
+      ...auditActorColumns<SalesReturn>(userNameById),
+      ...actionsColumn<SalesReturn>(showActions, (row) => {
+        const number = salesReturnDisplayNumber(row);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "sales return"}
+            viewHref={canRead ? `/sales-returns/${row.id}` : undefined}
+            editHref={
+              canUpdate && row.status === "DRAFT" ? `/sales-returns/${row.id}/edit` : undefined
+            }
+            onDelete={
+              row.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(row)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "inventory.sales_returns",
+    columnDefs,
+  );
 
   async function onDelete() {
     if (!deleting) return;
@@ -117,27 +196,24 @@ export function SalesReturnsScreen() {
             })),
           ]}
         />
+        {columnsDialog}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableCell key={header} className="font-medium">
-                {header}
-              </TableCell>
-            ))}
+            <DataTableColumnHeads columns={columns} onSort={setParams} />
           </TableRow>
         </TableHeader>
         <TableBody>
           {returnsQuery.isLoading ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <Skeleton className="h-6 w-full" />
               </TableCell>
             </TableRow>
           ) : returnsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(returnsQuery.error)}
                   onRetry={() => returnsQuery.refetch()}
@@ -146,7 +222,7 @@ export function SalesReturnsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No sales returns"
                   message={emptyListMessage(canCreate, "Create a sales return from a posted delivery note.")}
@@ -154,43 +230,11 @@ export function SalesReturnsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const number = salesReturnDisplayNumber(row);
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/sales-returns/${row.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(row.document_date)}</TableCell>
-                  <TableCell>{SALES_RETURN_REASON_LABELS[row.reason_code]}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.status}
-                      labels={STOCK_DOCUMENT_STATUS_LABELS}
-                      variants={STOCK_DOCUMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "sales return"}
-                        viewHref={canRead ? `/sales-returns/${row.id}` : undefined}
-                        editHref={
-                          canUpdate && row.status === "DRAFT"
-                            ? `/sales-returns/${row.id}/edit`
-                            : undefined
-                        }
-                        onDelete={
-                          row.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(row)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

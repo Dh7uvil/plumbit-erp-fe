@@ -99,6 +99,12 @@ let salesReturns = new Map();
 let accounts = new Map();
 let journals = new Map();
 let jvSeq = 0;
+const MOCK_YY = "26";
+
+function compactDocNumber(prefix, seq, party = null) {
+  const partyPart = party ?? "";
+  return `${prefix}${partyPart}${MOCK_YY}${String(seq).padStart(6, "0")}`;
+}
 let openingBalanceState = {
   committed: false,
   books_start_date: null,
@@ -285,7 +291,7 @@ function customer() {
     id: CUSTOMER_ID,
     tenant_id: TENANT_ID,
     name: "Acme Trading",
-    code: "ACME",
+    code: "ACM",
     company_type: "CUSTOMER",
     trn: null,
     tax_treatment: "UNREGISTERED",
@@ -369,7 +375,7 @@ function buildQuotation(body, existing = null) {
   const lines = buildLines(body.lines ?? existing?.lines ?? []);
   const subtotal = lines.reduce((sum, line) => sum + Number(line.amount), 0).toFixed(2);
   const now = new Date().toISOString();
-  const quoteNumber = existing?.quote_number ?? `QUO-${String(quoteSeq).padStart(4, "0")}`;
+  const quoteNumber = existing?.quote_number ?? compactDocNumber("QUO", quoteSeq, "ACM");
   const quoteDate = body.quote_date ?? existing?.quote_date ?? "2026-08-27";
   const status = existing?.status ?? "DRAFT";
   return {
@@ -460,7 +466,7 @@ function supplier() {
     id: SUPPLIER_ID,
     tenant_id: TENANT_ID,
     name: "Gulf Pipes",
-    code: "GULF",
+    code: "GPI",
     company_type: "SUPPLIER",
     trn: null,
     tax_treatment: "UNREGISTERED",
@@ -794,7 +800,7 @@ function buildSalesOrder(body, existing = null, extras = {}) {
   const lines = buildSalesOrderLines(sourceLines);
   const subtotal = lines.reduce((sum, line) => sum + Number(line.amount), 0).toFixed(2);
   const now = new Date().toISOString();
-  const documentNumber = existing?.document_number ?? `SO-${String(soSeq).padStart(4, "0")}`;
+  const documentNumber = existing?.document_number ?? compactDocNumber("SO", soSeq, "ACM");
   const orderDate = body.order_date ?? existing?.order_date ?? "2026-08-27";
   const status = extras.status ?? existing?.status ?? "DRAFT";
   return {
@@ -872,7 +878,7 @@ function relatedDocumentRef(documentType, document, relationship, documentDate) 
 function buildSalesInvoiceFromSource(source, extras = {}) {
   siSeq += 1;
   const now = new Date().toISOString();
-  const documentNumber = `SI-${String(siSeq).padStart(4, "0")}`;
+  const documentNumber = compactDocNumber("INV", siSeq, "ACM");
   const invoiceDate = extras.invoice_date ?? source.quote_date ?? source.order_date ?? now.slice(0, 10);
   const lines = (source.lines ?? []).map((line, index) => ({
     id: crypto.randomUUID(),
@@ -969,7 +975,7 @@ function buildSalesInvoiceFromSource(source, extras = {}) {
 function buildProformaInvoiceFromSalesOrder(order, extras = {}) {
   pfiSeq += 1;
   const now = new Date().toISOString();
-  const documentNumber = `PFI-${String(pfiSeq).padStart(4, "0")}`;
+  const documentNumber = compactDocNumber("PFI", pfiSeq, "ACM");
   const proformaDate = extras.proforma_date ?? order.order_date ?? now.slice(0, 10);
   const lines = (order.lines ?? []).map((line, index) => ({
     id: crypto.randomUUID(),
@@ -1047,7 +1053,7 @@ function buildPurchaseOrder(body, existing = null) {
   const lines = buildPurchaseOrderLines(body.lines ?? existing?.lines ?? []);
   const subtotal = lines.reduce((sum, line) => sum + Number(line.amount), 0).toFixed(2);
   const now = new Date().toISOString();
-  const documentNumber = existing?.document_number ?? `PO-${String(poSeq).padStart(4, "0")}`;
+  const documentNumber = existing?.document_number ?? compactDocNumber("PO", poSeq, "GPI");
   const orderDate = body.order_date ?? existing?.order_date ?? "2026-08-27";
   const status = existing?.status ?? "DRAFT";
   return {
@@ -1480,7 +1486,7 @@ function buildDeliveryNote(body, existing = null) {
   return {
     id,
     tenant_id: TENANT_ID,
-    document_number: existing?.document_number ?? `DN-${String(dnSeq).padStart(4, "0")}`,
+    document_number: existing?.document_number ?? compactDocNumber("DN", dnSeq, "ACM"),
     status,
     version: existing ? existing.version + 1 : 1,
     is_posted: status === "POSTED",
@@ -1569,7 +1575,7 @@ function buildPackage(body, existing = null) {
   return {
     id,
     tenant_id: TENANT_ID,
-    document_number: existing?.document_number ?? `PKG-${String(pkgSeq).padStart(4, "0")}`,
+    document_number: existing?.document_number ?? compactDocNumber("PKG", pkgSeq, "ACM"),
     status,
     version: existing ? existing.version + 1 : 1,
     sales_order_id: body.sales_order_id ?? existing?.sales_order_id,
@@ -1599,7 +1605,7 @@ function buildShipment(body, existing = null) {
   return {
     id,
     tenant_id: TENANT_ID,
-    document_number: existing?.document_number ?? `SHP-${String(shpSeq).padStart(4, "0")}`,
+    document_number: existing?.document_number ?? compactDocNumber("SHP", shpSeq),
     status,
     version: existing ? existing.version + 1 : 1,
     shipment_type: body.shipment_type ?? existing?.shipment_type ?? "DOMESTIC",
@@ -1649,7 +1655,7 @@ function buildSalesReturn(body, existing = null) {
   return {
     id,
     tenant_id: TENANT_ID,
-    document_number: existing?.document_number ?? `SR-${String(srSeq).padStart(4, "0")}`,
+    document_number: existing?.document_number ?? compactDocNumber("SR", srSeq, "ACM"),
     status,
     version: existing ? existing.version + 1 : 1,
     is_posted: status === "POSTED",
@@ -1793,7 +1799,7 @@ function buildGoodsReceiptLines(inputLines) {
 function buildGoodsReceipt(body, existing = null) {
   grnSeq += existing ? 0 : 1;
   const now = new Date().toISOString();
-  const documentNumber = existing?.document_number ?? `GRN-${String(grnSeq).padStart(4, "0")}`;
+  const documentNumber = existing?.document_number ?? compactDocNumber("GRN", grnSeq, "GPI");
   const lines = buildGoodsReceiptLines(body.lines ?? existing?.lines ?? []);
   const status = existing?.status ?? "DRAFT";
   const document = {
@@ -2024,7 +2030,7 @@ function cancelPostedGoodsReceipt(document) {
 function buildQualityInspection(body, existing = null) {
   qiSeq += existing ? 0 : 1;
   const now = new Date().toISOString();
-  const documentNumber = existing?.document_number ?? `QCR-${String(qiSeq).padStart(4, "0")}`;
+  const documentNumber = existing?.document_number ?? compactDocNumber("QCR", qiSeq, "GPI");
   const lines = (body.lines ?? existing?.lines ?? []).map((line, index) => ({
     id: line.id ?? crypto.randomUUID(),
     line_number: index + 1,
@@ -2326,7 +2332,7 @@ function storePost(req, document) {
 function buildAdjustment(body, existing = null) {
   adjSeq += existing ? 0 : 1;
   const now = new Date().toISOString();
-  const documentNumber = existing?.document_number ?? `STA-${String(adjSeq).padStart(4, "0")}`;
+  const documentNumber = existing?.document_number ?? compactDocNumber("STA", adjSeq);
   const lines = (body.lines ?? existing?.lines ?? []).map((line, index) => ({
     id: line.id ?? crypto.randomUUID(),
     line_number: index + 1,
@@ -2366,7 +2372,7 @@ function buildAdjustment(body, existing = null) {
 function buildTransfer(body, existing = null) {
   xferSeq += existing ? 0 : 1;
   const now = new Date().toISOString();
-  const documentNumber = existing?.document_number ?? `STR-${String(xferSeq).padStart(4, "0")}`;
+  const documentNumber = existing?.document_number ?? compactDocNumber("STR", xferSeq);
   const lines = (body.lines ?? existing?.lines ?? []).map((line, index) => ({
     id: line.id ?? crypto.randomUUID(),
     line_number: index + 1,
@@ -2681,7 +2687,7 @@ function buildJournal(body, existing = null, overrides = {}) {
   return {
     id: overrides.id ?? existing?.id ?? crypto.randomUUID(),
     tenant_id: TENANT_ID,
-    document_number: existing?.document_number ?? `JV-${String(jvSeq).padStart(4, "0")}`,
+    document_number: existing?.document_number ?? compactDocNumber("JV", jvSeq),
     entry_date: body.entry_date ?? existing?.entry_date ?? "2026-01-15",
     status,
     version: existing ? existing.version + 1 : 1,
@@ -4137,7 +4143,7 @@ const server = http.createServer(async (req, res) => {
         const cloned = {
           ...invoice,
           id: crypto.randomUUID(),
-          document_number: `PFI-${String(++pfiSeq).padStart(4, "0")}`,
+          document_number: compactDocNumber("PFI", ++pfiSeq, "ACM"),
           status: "DRAFT",
           version: 1,
           available_actions: ["send", "confirm", "delete"],
@@ -4837,7 +4843,7 @@ const server = http.createServer(async (req, res) => {
       const action = adjustmentAction[2];
       if (action === "clone") {
         const cloned = buildAdjustment(document);
-        cloned.document_number = `STA-${String(++adjSeq).padStart(4, "0")}`;
+        cloned.document_number = compactDocNumber("STA", ++adjSeq);
         cloned.status = "DRAFT";
         cloned.is_posted = false;
         cloned.available_actions = draftActions();
@@ -4992,7 +4998,7 @@ const server = http.createServer(async (req, res) => {
       const action = transferAction[2];
       if (action === "clone") {
         const cloned = buildTransfer(document);
-        cloned.document_number = `STR-${String(++xferSeq).padStart(4, "0")}`;
+        cloned.document_number = compactDocNumber("STR", ++xferSeq);
         cloned.status = "DRAFT";
         cloned.is_posted = false;
         cloned.available_actions = draftActions();

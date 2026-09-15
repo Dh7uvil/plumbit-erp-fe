@@ -65,13 +65,13 @@ test.describe("stock inventory", () => {
     await page.getByRole("button", { name: "Create adjustment" }).click();
 
     await expect(page).toHaveURL(/\/stock-adjustments\/[0-9a-f-]{36}$/i);
-    await expect(page.getByRole("heading", { name: "STA-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "STA26000001" })).toBeVisible();
     await expect(page.getByText("Draft", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Post" }).click();
     const postConfirm = page.getByRole("alertdialog");
     await expect(
-      postConfirm.getByRole("heading", { name: "Post stock adjustment STA-0001" }),
+      postConfirm.getByRole("heading", { name: "Post stock adjustment STA26000001" }),
     ).toBeVisible();
     await expect(postConfirm.getByText(/stock will move/i)).toBeVisible();
     await postConfirm.getByRole("button", { name: "Post" }).click();
@@ -97,7 +97,7 @@ test.describe("stock inventory", () => {
     await page.getByLabel("Line 1 quantity").fill("4");
     await page.getByRole("button", { name: "Create transfer" }).click();
     await expect(page).toHaveURL(/\/stock-transfers\/[0-9a-f-]{36}$/i);
-    await expect(page.getByRole("heading", { name: "STR-0001" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "STR26000001" })).toBeVisible();
 
     await page.getByRole("button", { name: "Post" }).click();
     const transferConfirm = page.getByRole("alertdialog");
@@ -112,7 +112,7 @@ test.describe("stock inventory", () => {
     await page.getByRole("menuitem", { name: /PIPE-1/ }).click();
     await page.getByLabel("Line 1 quantity").fill("20");
     await page.getByRole("button", { name: "Create transfer" }).click();
-    await expect(page.getByRole("heading", { name: "STR-0002" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "STR26000002" })).toBeVisible();
     await page.getByRole("button", { name: "Post" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Post" }).click();
     await expect(page.getByText(/Warehouse MAIN/)).toBeVisible();

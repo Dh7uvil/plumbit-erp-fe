@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
@@ -21,19 +21,26 @@ import {
 import { LANDED_COST_ACTION_REGISTRY } from "@/modules/erp/landed-costs/workflow";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
@@ -42,17 +49,10 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatReportMoney } from "@/shared/lib/format";
+import { formatDate, formatDateTime, formatReportMoney } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Date", "Method", "Charges", "Status"] as const;
 const ALL = "all";
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "document_date",
-  Status: "status",
-};
 
 function parseStatus(value: string | undefined): StockDocumentStatus | undefined {
   return STOCK_DOCUMENT_STATUSES.includes(value as StockDocumentStatus)
@@ -83,7 +83,89 @@ export function LandedCostsScreen() {
   const rows = listQuery.data?.data ?? [];
   const meta = listQuery.data?.meta;
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<LandedCost>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        cell: (row) => {
+          const number = landedCostDisplayNumber(row);
+          return <RecordLink href={`/landed-costs/${row.id}`}>{number ?? "Draft"}</RecordLink>;
+        },
+      },
+      {
+        id: "method",
+        header: "Method",
+        cell: (row) => LANDED_COST_ALLOCATION_METHOD_LABELS[row.allocation_method],
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "document_date",
+        cell: (row) => formatDate(row.document_date),
+      },
+      {
+        id: "charges",
+        header: "Charges",
+        cell: (row) => formatReportMoney(row.total_charges),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={STOCK_DOCUMENT_STATUS_LABELS}
+            variants={STOCK_DOCUMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (row) => (row.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      {
+        id: "posted_at",
+        header: "Posted at",
+        defaultVisible: false,
+        className: "text-muted-foreground text-xs",
+        cell: (row) => formatDateTime(row.posted_at),
+      },
+      ...auditTimestampColumns<LandedCost>(),
+      ...auditActorColumns<LandedCost>(userNameById),
+      ...actionsColumn<LandedCost>(showActions, (row) => {
+        const number = landedCostDisplayNumber(row);
+        const href = `/landed-costs/${row.id}`;
+        return (
+          <DataTableRowActions
+            entityName={number ?? "landed cost"}
+            viewHref={canRead ? href : undefined}
+            editHref={canUpdate && row.status === "DRAFT" ? `${href}/edit` : undefined}
+            onDelete={
+              canDelete && row.available_actions.includes("delete")
+                ? () => setDeleting(row)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.landed_costs", columnDefs);
 
   return (
     <ListPage>
@@ -142,13 +224,13 @@ export function LandedCostsScreen() {
           onFromChange={(value) => setParams({ filters: { document_date_from: value || null } })}
           onToChange={(value) => setParams({ filters: { document_date_to: value || null } })}
         />
+        {columnsDialog}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -159,14 +241,14 @@ export function LandedCostsScreen() {
           {listQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : listQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(listQuery.error)}
                   onRetry={() => listQuery.refetch()}
@@ -175,7 +257,7 @@ export function LandedCostsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No landed costs"
                   message={emptyListMessage(
@@ -186,43 +268,11 @@ export function LandedCostsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const number = landedCostDisplayNumber(row);
-              const href = `/landed-costs/${row.id}`;
-              return (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    <RecordLink href={href}>{number ?? "Draft"}</RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(row.document_date)}</TableCell>
-                  <TableCell>
-                    {LANDED_COST_ALLOCATION_METHOD_LABELS[row.allocation_method]}
-                  </TableCell>
-                  <TableCell>{formatReportMoney(row.total_charges)}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.status}
-                      labels={STOCK_DOCUMENT_STATUS_LABELS}
-                      variants={STOCK_DOCUMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "landed cost"}
-                        viewHref={canRead ? href : undefined}
-                        editHref={canUpdate && row.status === "DRAFT" ? `${href}/edit` : undefined}
-                        onDelete={
-                          canDelete && row.available_actions.includes("delete")
-                            ? () => setDeleting(row)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DocumentSequenceFormDialog } from "@/modules/erp/accounting/document-sequences/components/document-sequence-form-dialog";
@@ -10,24 +10,31 @@ import { documentSequencePermissions } from "@/modules/erp/accounting/document-s
 import { useDocumentSequences } from "@/modules/erp/accounting/document-sequences/queries";
 import {
   documentTypeLabel,
+  formatSequencePreview,
   type DocumentSequence,
 } from "@/modules/erp/accounting/document-sequences/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -37,7 +44,6 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
-const COLUMN_HEADERS = ["Type", "Series", "Year", "Prefix", "Next", "Padding", "Status"] as const;
 const SORT_FIELDS = [
   { value: "document_type", label: "Type" },
   { value: "series", label: "Series" },
@@ -45,13 +51,6 @@ const SORT_FIELDS = [
   { value: "next_number", label: "Next" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Type: "document_type",
-  Series: "series",
-  Year: "fiscal_year",
-  Next: "next_number",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -64,11 +63,14 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
-function formatSequencePreview(sequence: DocumentSequence) {
-  return `${sequence.prefix}-${sequence.fiscal_year}-${String(sequence.next_number).padStart(
+function formatSequencePreviewRow(sequence: DocumentSequence) {
+  return formatSequencePreview(
+    sequence.prefix,
+    sequence.fiscal_year,
+    sequence.next_number,
     sequence.padding,
-    "0",
-  )}`;
+    sequence.document_type,
+  );
 }
 
 export function DocumentSequencesScreen() {
@@ -89,10 +91,77 @@ export function DocumentSequencesScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<DocumentSequence | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = documentSequencesQuery.data?.data ?? [];
   const meta = documentSequencesQuery.data?.meta;
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<DocumentSequence>> => {
+    return [
+      {
+        id: "document_type",
+        header: "Type",
+        sortableField: "document_type",
+        cell: (sequence) => (
+          <RecordLink href={`/document-sequences/${sequence.id}`}>
+            {documentTypeLabel(sequence.document_type)}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "series",
+        header: "Series",
+        sortableField: "series",
+        className: "font-medium",
+        cell: (sequence) => (
+          <RecordLink href={`/document-sequences/${sequence.id}`}>{sequence.series}</RecordLink>
+        ),
+      },
+      {
+        id: "fiscal_year",
+        header: "Year",
+        sortableField: "fiscal_year",
+        cell: (sequence) => sequence.fiscal_year,
+      },
+      {
+        id: "prefix",
+        header: "Prefix",
+        className: "font-mono text-sm",
+        cell: (sequence) => sequence.prefix,
+      },
+      {
+        id: "next_number",
+        header: "Next",
+        sortableField: "next_number",
+        cell: (sequence) => (
+          <span className="font-mono text-sm">{formatSequencePreviewRow(sequence)}</span>
+        ),
+      },
+      {
+        id: "padding",
+        header: "Padding",
+        cell: (sequence) => sequence.padding,
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (sequence) => <ActiveBadge active={sequence.is_active} />,
+      },
+      ...auditTimestampColumns<DocumentSequence>(),
+      ...auditActorColumns<DocumentSequence>(userNameById),
+      ...actionsColumn<DocumentSequence>(showActions, (sequence) => (
+        <DataTableRowActions
+          entityName={`${sequence.series} ${sequence.fiscal_year}`}
+          viewHref={canRead ? `/document-sequences/${sequence.id}` : undefined}
+          editHref={canUpdate ? `/document-sequences/${sequence.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(sequence) : undefined}
+        />
+      )),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.document_sequences", columnDefs);
 
   function openCreate() {
     setFormOpen(true);
@@ -151,6 +220,7 @@ export function DocumentSequencesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || sort_by ? (
           <Button
             type="button"
@@ -172,9 +242,8 @@ export function DocumentSequencesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -185,14 +254,14 @@ export function DocumentSequencesScreen() {
           {documentSequencesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : documentSequencesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(documentSequencesQuery.error)}
                   onRetry={() => documentSequencesQuery.refetch()}
@@ -201,7 +270,7 @@ export function DocumentSequencesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No document sequences"
                   message={emptyListMessage(
@@ -214,35 +283,7 @@ export function DocumentSequencesScreen() {
           ) : (
             rows.map((sequence) => (
               <TableRow key={sequence.id}>
-                <TableCell>
-                  <RecordLink href={`/document-sequences/${sequence.id}`}>
-                    {documentTypeLabel(sequence.document_type)}
-                  </RecordLink>
-                </TableCell>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/document-sequences/${sequence.id}`}>
-                    {sequence.series}
-                  </RecordLink>
-                </TableCell>
-                <TableCell>{sequence.fiscal_year}</TableCell>
-                <TableCell className="font-mono text-sm">{sequence.prefix}</TableCell>
-                <TableCell>
-                  <span className="font-mono text-sm">{formatSequencePreview(sequence)}</span>
-                </TableCell>
-                <TableCell>{sequence.padding}</TableCell>
-                <TableCell>
-                  <ActiveBadge active={sequence.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={`${sequence.series} ${sequence.fiscal_year}`}
-                      viewHref={canRead ? `/document-sequences/${sequence.id}` : undefined}
-                      editHref={canUpdate ? `/document-sequences/${sequence.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(sequence) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={sequence} />
               </TableRow>
             ))
           )}

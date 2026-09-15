@@ -17,6 +17,7 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { documentDetailHref } from "@/shared/components/document/document-links";
 import { ReportShell } from "@/shared/components/report/report-shell";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -179,21 +180,25 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
                     <TableRow>
                       <TableCell>
                         {docs.length > 0 ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-7"
-                            aria-expanded={isOpen}
-                            aria-label={isOpen ? "Collapse documents" : "Expand documents"}
-                            onClick={() => toggle(row.party_id)}
+                          <TableActionTooltip
+                            label={isOpen ? "Collapse documents" : "Expand documents"}
                           >
-                            {isOpen ? (
-                              <ChevronDown className="size-3.5" />
-                            ) : (
-                              <ChevronRight className="size-3.5" />
-                            )}
-                          </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              aria-expanded={isOpen}
+                              aria-label={isOpen ? "Collapse documents" : "Expand documents"}
+                              onClick={() => toggle(row.party_id)}
+                            >
+                              {isOpen ? (
+                                <ChevronDown className="size-3.5" />
+                              ) : (
+                                <ChevronRight className="size-3.5" />
+                              )}
+                            </Button>
+                          </TableActionTooltip>
                         ) : null}
                       </TableCell>
                       <TableCell>

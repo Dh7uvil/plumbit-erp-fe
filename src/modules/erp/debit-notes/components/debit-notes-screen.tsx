@@ -2,11 +2,12 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { useDeleteDebitNote } from "@/modules/erp/debit-notes/mutations";
 import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { useDebitNotes } from "@/modules/erp/debit-notes/queries";
@@ -22,6 +23,16 @@ import {
 import { DEBIT_NOTE_ACTION_REGISTRY } from "@/modules/erp/debit-notes/workflow";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -29,18 +40,14 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -49,7 +56,6 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Supplier", "Date", "Reason", "Status", "Grand total"] as const;
 const ALL = "all";
 const SORT_FIELDS = [
   { value: "document_number", label: "Number" },
@@ -57,12 +63,6 @@ const SORT_FIELDS = [
   { value: "status", label: "Status" },
   { value: "grand_total", label: "Grand total" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "debit_note_date",
-  Status: "status",
-  "Grand total": "grand_total",
-};
 
 function parseStatus(value: string | undefined): InvoiceDocumentStatus | undefined {
   return INVOICE_DOCUMENT_STATUSES.includes(value as InvoiceDocumentStatus)
@@ -99,6 +99,7 @@ export function DebitNotesScreen() {
   });
   const suppliersQuery = useAllSuppliers();
   const currenciesQuery = useAllCurrencies();
+  const branchesQuery = useAllBranches();
   const deleteNote = useDeleteDebitNote();
   const [deleting, setDeleting] = useState<DebitNote | null>(null);
 
@@ -106,10 +107,20 @@ export function DebitNotesScreen() {
   const meta = notesQuery.data?.meta;
   const suppliers = suppliersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
-  const supplierNameById = new Map(suppliers.map((supplier) => [supplier.id, supplier.name]));
-  const currencyCodeById = new Map(currencies.map((currency) => [currency.id, currency.code]));
+  const supplierNameById = useMemo(
+    () => new Map(suppliers.map((supplier) => [supplier.id, supplier.name])),
+    [suppliers],
+  );
+  const currencyCodeById = useMemo(
+    () => new Map(currencies.map((currency) => [currency.id, currency.code])),
+    [currencies],
+  );
+  const branchNameById = useMemo(
+    () => new Map((branchesQuery.data ?? []).map((branch) => [branch.id, branch.name])),
+    [branchesQuery.data],
+  );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   async function onDelete() {
     if (!deleting) {
@@ -123,6 +134,153 @@ export function DebitNotesScreen() {
       toast.error(getErrorMessage(error));
     }
   }
+
+  const columnDefs = useMemo((): Array<DataTableColumn<DebitNote>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (note) => {
+          const number = debitNoteDisplayNumber(note);
+          return <RecordLink href={`/debit-notes/${note.id}`}>{number ?? "—"}</RecordLink>;
+        },
+      },
+      {
+        id: "supplier",
+        header: "Supplier",
+        className: "font-medium",
+        cell: (note) => (
+          <RecordLink href={`/debit-notes/${note.id}`}>
+            {supplierNameById.get(note.supplier_id) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "debit_note_date",
+        cell: (note) => formatDate(note.debit_note_date),
+      },
+      {
+        id: "reason",
+        header: "Reason",
+        cell: (note) => DEBIT_NOTE_REASON_LABELS[note.reason_code],
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (note) => (
+          <DocumentStatusBadge
+            status={note.status}
+            labels={INVOICE_DOCUMENT_STATUS_LABELS}
+            variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "grand_total",
+        header: "Grand total",
+        sortableField: "grand_total",
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (note) =>
+          formatMoney(note.grand_total, currencyCodeById.get(note.currency_id) ?? ""),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (note) => (note.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "currency",
+        header: "Currency",
+        defaultVisible: false,
+        cell: (note) => currencyCodeById.get(note.currency_id) ?? "—",
+      },
+      {
+        id: "branch",
+        header: "Branch",
+        defaultVisible: false,
+        cell: (note) =>
+          note.branch_id ? (branchNameById.get(note.branch_id) ?? "—") : "—",
+      },
+      {
+        id: "exchange_rate",
+        header: "Exchange rate",
+        defaultVisible: false,
+        className: "tabular-nums",
+        cell: (note) => note.exchange_rate,
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (note) => note.notes || "—",
+      },
+      {
+        id: "subtotal",
+        header: "Subtotal",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (note) =>
+          formatMoney(note.subtotal, currencyCodeById.get(note.currency_id) ?? ""),
+      },
+      {
+        id: "tax_amount",
+        header: "Tax",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (note) =>
+          formatMoney(note.tax_amount, currencyCodeById.get(note.currency_id) ?? ""),
+      },
+      {
+        id: "amount_applied",
+        header: "Amount applied",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (note) =>
+          formatMoney(note.amount_applied, currencyCodeById.get(note.currency_id) ?? ""),
+      },
+      ...auditTimestampColumns<DebitNote>(),
+      ...auditActorColumns<DebitNote>(userNameById),
+      ...actionsColumn<DebitNote>(showActions, (note) => {
+        const number = debitNoteDisplayNumber(note);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "debit note"}
+            viewHref={canRead ? `/debit-notes/${note.id}` : undefined}
+            editHref={
+              canUpdate && note.status === "DRAFT" ? `/debit-notes/${note.id}/edit` : undefined
+            }
+            onDelete={
+              note.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(note)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    branchNameById,
+    canDelete,
+    canRead,
+    canUpdate,
+    currencyCodeById,
+    showActions,
+    supplierNameById,
+    userNameById,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.debit_notes", columnDefs);
 
   return (
     <ListPage>
@@ -231,6 +389,7 @@ export function DebitNotesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.supplier_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -258,13 +417,11 @@ export function DebitNotesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{ "Grand total": "text-right" }}
             />
           </TableRow>
         </TableHeader>
@@ -272,14 +429,14 @@ export function DebitNotesScreen() {
           {notesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : notesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(notesQuery.error)}
                   onRetry={() => notesQuery.refetch()}
@@ -288,7 +445,7 @@ export function DebitNotesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No debit notes"
                   message={emptyListMessage(canCreate, "Create a debit note to get started.")}
@@ -296,52 +453,11 @@ export function DebitNotesScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((note) => {
-              const number = debitNoteDisplayNumber(note);
-              const currencyCode = currencyCodeById.get(note.currency_id) ?? "";
-              return (
-                <TableRow key={note.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/debit-notes/${note.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <RecordLink href={`/debit-notes/${note.id}`}>
-                      {supplierNameById.get(note.supplier_id) ?? "—"}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(note.debit_note_date)}</TableCell>
-                  <TableCell>{DEBIT_NOTE_REASON_LABELS[note.reason_code]}</TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={note.status}
-                      labels={INVOICE_DOCUMENT_STATUS_LABELS}
-                      variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMoney(note.grand_total, currencyCode)}
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "debit note"}
-                        viewHref={canRead ? `/debit-notes/${note.id}` : undefined}
-                        editHref={
-                          canUpdate && note.status === "DRAFT"
-                            ? `/debit-notes/${note.id}/edit`
-                            : undefined
-                        }
-                        onDelete={
-                          note.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(note)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((note) => (
+              <TableRow key={note.id}>
+                <DataTableCells columns={columns} row={note} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

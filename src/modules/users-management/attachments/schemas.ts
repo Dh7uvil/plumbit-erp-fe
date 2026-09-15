@@ -91,7 +91,8 @@ export const AttachmentSchema = z.object({
   image_width: z.number().int().nullable(),
   image_height: z.number().int().nullable(),
   thumbnail_url: z.string().nullable().optional(),
-  created_by: z.string().uuid().nullable(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
   created_at: z.string(),
   updated_at: z.string(),
 });

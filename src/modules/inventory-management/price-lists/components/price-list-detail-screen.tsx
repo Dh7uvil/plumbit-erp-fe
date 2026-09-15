@@ -27,7 +27,7 @@ import { useAllProducts } from "@/modules/inventory-management/products/queries"
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
-import { tableHeaders } from "@/shared/components/data-table/row-actions";
+import { TableActionTooltip, tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import {
@@ -366,17 +366,18 @@ export function PriceListDetailScreen({
                     </TableCell>
                     {isEdit ? (
                       <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive size-7"
-                          aria-label="Delete item"
-                          title="Delete item"
-                          onClick={() => setDeletingItem(item)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                        <TableActionTooltip label="Delete item">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive size-7"
+                            aria-label="Delete item"
+                            onClick={() => setDeletingItem(item)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </TableActionTooltip>
                       </TableCell>
                     ) : null}
                   </TableRow>

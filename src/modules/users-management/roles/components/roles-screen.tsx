@@ -2,7 +2,7 @@
 
 import { Loader2, Plus, Shield } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { RoleFormDialog } from "@/modules/users-management/roles/components/role-form-dialog";
@@ -12,18 +12,20 @@ import { useRoles } from "@/modules/users-management/roles/queries";
 import type { Role } from "@/modules/users-management/roles/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import { auditTimestampColumns } from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import {
@@ -43,15 +45,10 @@ import { formatDate } from "@/shared/lib/format";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = ["Role", "Description", "Type", "Users", "Created"] as const;
 const SORT_FIELDS = [
   { value: "name", label: "Role" },
   { value: "created_at", label: "Created" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Role: "name",
-  Created: "created_at",
-};
 
 export function RolesScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(rolePermissions);
@@ -65,7 +62,6 @@ export function RolesScreen() {
   const [forceReadOnly, setForceReadOnly] = useState(false);
   const [deleting, setDeleting] = useState<Role | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete, true);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const roles = rolesQuery.data?.data ?? [];
   const meta = rolesQuery.data?.meta;
@@ -101,6 +97,70 @@ export function RolesScreen() {
     }
   }
 
+  const columnDefs = useMemo((): Array<DataTableColumn<Role>> => {
+    return [
+      {
+        id: "name",
+        header: "Role",
+        sortableField: "name",
+        cell: (role) => (
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 flex size-7 items-center justify-center rounded-lg">
+              <Shield className="text-primary size-3.5" />
+            </div>
+            <span className="font-medium">{role.name}</span>
+          </div>
+        ),
+      },
+      {
+        id: "description",
+        header: "Description",
+        className: "text-muted-foreground max-w-xs truncate text-xs",
+        cell: (role) => role.description || "—",
+      },
+      {
+        id: "type",
+        header: "Type",
+        cell: (role) =>
+          role.is_system_role ? (
+            <Badge variant="secondary">System</Badge>
+          ) : (
+            <Badge variant="outline">Custom</Badge>
+          ),
+      },
+      {
+        id: "users_count",
+        header: "Users",
+        cell: (role) => <Badge variant="info">{role.user_count}</Badge>,
+      },
+      {
+        id: "created_at",
+        header: "Created",
+        sortableField: "created_at",
+        className: "text-muted-foreground text-xs",
+        cell: (role) => formatDate(role.created_at),
+      },
+      ...auditTimestampColumns<Role>({ createdAt: false }),
+      ...actionsColumn<Role>(showActions, (role) => (
+        <DataTableRowActions
+          entityName={role.name}
+          onView={canRead ? () => openView(role) : undefined}
+          onEdit={canUpdate ? () => openEdit(role) : undefined}
+          onDelete={canDelete && !role.is_system_role ? () => setDeleting(role) : undefined}
+          extra={
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={`/permissions?role_id=${role.id}`}>
+                {canAssign || canUpdate ? "Edit Permissions" : "View Permissions"}
+              </Link>
+            </Button>
+          }
+        />
+      )),
+    ];
+  }, [canAssign, canDelete, canRead, canUpdate, showActions]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("identity.roles", columnDefs);
+
   return (
     <ListPage>
       <PageHeader
@@ -127,6 +187,7 @@ export function RolesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || sort_by ? (
           <Button
             type="button"
@@ -141,9 +202,8 @@ export function RolesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -154,14 +214,14 @@ export function RolesScreen() {
           {rolesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : rolesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(rolesQuery.error)}
                   onRetry={() => rolesQuery.refetch()}
@@ -170,56 +230,14 @@ export function RolesScreen() {
             </TableRow>
           ) : roles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty title="No roles" message="No roles are available yet." />
               </TableCell>
             </TableRow>
           ) : (
             roles.map((role) => (
               <TableRow key={role.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-primary/10 flex size-7 items-center justify-center rounded-lg">
-                      <Shield className="text-primary size-3.5" />
-                    </div>
-                    <span className="font-medium">{role.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-muted-foreground max-w-xs truncate text-xs">
-                  {role.description || "—"}
-                </TableCell>
-                <TableCell>
-                  {role.is_system_role ? (
-                    <Badge variant="secondary">System</Badge>
-                  ) : (
-                    <Badge variant="outline">Custom</Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="info">{role.user_count}</Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  {formatDate(role.created_at)}
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={role.name}
-                      onView={canRead ? () => openView(role) : undefined}
-                      onEdit={canUpdate ? () => openEdit(role) : undefined}
-                      onDelete={
-                        canDelete && !role.is_system_role ? () => setDeleting(role) : undefined
-                      }
-                      extra={
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/permissions?role_id=${role.id}`}>
-                            {canAssign || canUpdate ? "Edit Permissions" : "View Permissions"}
-                          </Link>
-                        </Button>
-                      }
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={role} />
               </TableRow>
             ))
           )}

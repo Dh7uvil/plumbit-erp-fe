@@ -36,6 +36,7 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { WizardSteps } from "@/shared/components/layout/wizard-steps";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -394,15 +395,17 @@ function OpeningBalanceWizard({ state }: { state: OpeningBalanceState | null }) 
                           </FormItem>
                         )}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Remove GL line"
-                        onClick={() => glArray.remove(index)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      <TableActionTooltip label="Remove GL line">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove GL line"
+                          onClick={() => glArray.remove(index)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableActionTooltip>
                     </div>
                   </div>
                 ))}
@@ -487,15 +490,17 @@ function OpeningBalanceWizard({ state }: { state: OpeningBalanceState | null }) 
                           </FormItem>
                         )}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Remove open item"
-                        onClick={() => array.remove(index)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      <TableActionTooltip label="Remove open item">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove open item"
+                          onClick={() => array.remove(index)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableActionTooltip>
                     </div>
                   );
                 })}
@@ -580,15 +585,17 @@ function OpeningBalanceWizard({ state }: { state: OpeningBalanceState | null }) 
                         </FormItem>
                       )}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remove stock line"
-                      onClick={() => stockArray.remove(index)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
+                    <TableActionTooltip label="Remove stock line">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Remove stock line"
+                        onClick={() => stockArray.remove(index)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </TableActionTooltip>
                   </div>
                 ))}
                 <Button

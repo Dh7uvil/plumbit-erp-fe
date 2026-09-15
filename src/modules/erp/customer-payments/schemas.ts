@@ -98,6 +98,8 @@ export const CustomerPaymentSchema = z.object({
   allocations: z.array(CustomerPaymentAllocationSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type CustomerPayment = z.infer<typeof CustomerPaymentSchema>;
 export const CustomerPaymentListSchema = z.array(CustomerPaymentSchema);

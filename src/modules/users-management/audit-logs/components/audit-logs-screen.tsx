@@ -19,21 +19,22 @@ import { userPermissions } from "@/modules/users-management/users/permissions";
 import { useAllUsers } from "@/modules/users-management/users/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
@@ -46,29 +47,11 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDateTime, initials, titleCase } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMNS = [
-  "Log ID",
-  "Timestamp",
-  "User",
-  "Action",
-  "Resource",
-  "ID",
-  "Module",
-  "IP Address",
-  "Status",
-] as const;
-
 const SORT_FIELDS = [
   { value: "created_at", label: "Timestamp" },
   { value: "action", label: "Action" },
   { value: "module", label: "Module" },
 ] as const;
-
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Timestamp: "created_at",
-  Action: "action",
-  Module: "module",
-};
 
 const ALL = "all";
 
@@ -181,7 +164,6 @@ export function AuditLogsScreen() {
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const showActions = hasRowActions(canRead);
-  const headers = tableHeaders(COLUMNS, showActions);
   const moduleFilter = filters.module ?? ALL;
   const extraFilters: ExtraFilters = {
     action: filters.action ?? ALL,
@@ -260,6 +242,98 @@ export function AuditLogsScreen() {
       ]),
     [logsQuery.data?.data, extraFilters.action, draftExtra.action],
   );
+
+  const columnDefs = useMemo((): Array<DataTableColumn<AuditLog>> => {
+    return [
+      {
+        id: "log_id",
+        header: "Log ID",
+        className: "text-muted-foreground font-mono text-xs",
+        cell: (log) => (
+          <span title={log.id}>
+            <ViewTrigger
+              enabled={canRead}
+              onView={() => setViewingId(log.id)}
+              className="cursor-pointer font-mono hover:underline"
+            >
+              {shortId(log.id)}
+            </ViewTrigger>
+          </span>
+        ),
+      },
+      {
+        id: "action",
+        header: "Action",
+        sortableField: "action",
+        cell: (log) => <Badge variant={actionVariant(log.action)}>{titleCase(log.action)}</Badge>,
+      },
+      {
+        id: "timestamp",
+        header: "Timestamp",
+        sortableField: "created_at",
+        className: "text-muted-foreground text-xs",
+        cell: (log) => formatDateTime(log.timestamp),
+      },
+      {
+        id: "user",
+        header: "User",
+        cell: (log) => {
+          const userName = log.user?.name ?? "Unknown";
+          return (
+            <div className="flex items-center gap-1.5">
+              <Avatar className="size-6">
+                <AvatarFallback className="text-[9px]">{initials(userName)}</AvatarFallback>
+              </Avatar>
+              <span className="text-sm">{userName}</span>
+            </div>
+          );
+        },
+      },
+      {
+        id: "resource",
+        header: "Resource",
+        className: "text-sm",
+        cell: (log) => (
+          <ViewTrigger enabled={canRead} onView={() => setViewingId(log.id)}>
+            {titleCase(log.entity_type)}
+          </ViewTrigger>
+        ),
+      },
+      {
+        id: "resource_id",
+        header: "ID",
+        className: "text-muted-foreground font-mono text-xs",
+        cell: (log) => (
+          <span title={log.entity_id ?? undefined}>{log.entity_id ? shortId(log.entity_id) : "—"}</span>
+        ),
+      },
+      {
+        id: "module",
+        header: "Module",
+        sortableField: "module",
+        cell: (log) => <Badge variant="muted">{titleCase(log.module)}</Badge>,
+      },
+      {
+        id: "ip_address",
+        header: "IP Address",
+        className: "text-muted-foreground font-mono text-xs",
+        cell: (log) => log.ip_address ?? "—",
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (log) => <Badge variant={statusVariant(log.status)}>{titleCase(log.status)}</Badge>,
+      },
+      ...actionsColumn<AuditLog>(showActions, (log) => (
+        <DataTableRowActions
+          entityName={`audit log ${shortId(log.id)}`}
+          onView={canRead ? () => setViewingId(log.id) : undefined}
+        />
+      )),
+    ];
+  }, [canRead, showActions]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("identity.audit_logs", columnDefs);
 
   async function exportCsv() {
     setCsvPending(true);
@@ -416,6 +490,7 @@ export function AuditLogsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {hasActiveFilters ? (
           <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
             Clear
@@ -425,9 +500,8 @@ export function AuditLogsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sortBy}
               sortOrder={sort_order}
               onSort={setParams}
@@ -438,14 +512,14 @@ export function AuditLogsScreen() {
           {logsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : logsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(logsQuery.error)}
                   onRetry={() => logsQuery.refetch()}
@@ -454,7 +528,7 @@ export function AuditLogsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No audit logs"
                   message={
@@ -467,14 +541,9 @@ export function AuditLogsScreen() {
             </TableRow>
           ) : (
             rows.map((log) => (
-              <AuditLogRow
-                key={log.id}
-                log={log}
-                selected={viewingId === log.id}
-                canRead={canRead}
-                showActions={showActions}
-                onView={() => setViewingId(log.id)}
-              />
+              <TableRow key={log.id} data-state={viewingId === log.id ? "selected" : undefined}>
+                <DataTableCells columns={columns} row={log} />
+              </TableRow>
             ))
           )}
         </TableBody>
@@ -513,77 +582,5 @@ function ViewTrigger({
     >
       {children}
     </button>
-  );
-}
-
-function AuditLogRow({
-  log,
-  selected,
-  canRead,
-  showActions,
-  onView,
-}: {
-  log: AuditLog;
-  selected: boolean;
-  canRead: boolean;
-  showActions: boolean;
-  onView: () => void;
-}) {
-  const userName = log.user?.name ?? "Unknown";
-
-  return (
-    <TableRow data-state={selected ? "selected" : undefined}>
-      <TableCell className="text-muted-foreground font-mono text-xs" title={log.id}>
-        <ViewTrigger
-          enabled={canRead}
-          onView={onView}
-          className="cursor-pointer font-mono hover:underline"
-        >
-          {shortId(log.id)}
-        </ViewTrigger>
-      </TableCell>
-      <TableCell className="text-muted-foreground text-xs">
-        {formatDateTime(log.timestamp)}
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-1.5">
-          <Avatar className="size-6">
-            <AvatarFallback className="text-[9px]">{initials(userName)}</AvatarFallback>
-          </Avatar>
-          <span className="text-sm">{userName}</span>
-        </div>
-      </TableCell>
-      <TableCell>
-        <Badge variant={actionVariant(log.action)}>{titleCase(log.action)}</Badge>
-      </TableCell>
-      <TableCell className="text-sm">
-        <ViewTrigger enabled={canRead} onView={onView}>
-          {titleCase(log.entity_type)}
-        </ViewTrigger>
-      </TableCell>
-      <TableCell
-        className="text-muted-foreground font-mono text-xs"
-        title={log.entity_id ?? undefined}
-      >
-        {log.entity_id ? shortId(log.entity_id) : "—"}
-      </TableCell>
-      <TableCell>
-        <Badge variant="muted">{titleCase(log.module)}</Badge>
-      </TableCell>
-      <TableCell className="text-muted-foreground font-mono text-xs">
-        {log.ip_address ?? "—"}
-      </TableCell>
-      <TableCell>
-        <Badge variant={statusVariant(log.status)}>{titleCase(log.status)}</Badge>
-      </TableCell>
-      {showActions ? (
-        <TableCell>
-          <DataTableRowActions
-            entityName={`audit log ${shortId(log.id)}`}
-            onView={canRead ? onView : undefined}
-          />
-        </TableCell>
-      ) : null}
-    </TableRow>
   );
 }

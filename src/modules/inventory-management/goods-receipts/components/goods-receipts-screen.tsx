@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
@@ -30,6 +30,16 @@ import { usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
 import { purchaseOrderDisplayNumber } from "@/modules/erp/purchase-orders/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -37,16 +47,12 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -57,7 +63,6 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate } from "@/shared/lib/format";
 
-const COLUMN_HEADERS = ["Number", "Date", "Supplier", "QC", "Status"] as const;
 const ALL = "all";
 const EMPTY_EXTRA = {
   warehouseId: ALL,
@@ -95,11 +100,6 @@ const SORT_FIELDS = [
   { value: "document_date", label: "Date" },
   { value: "status", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Number: "document_number",
-  Date: "document_date",
-  Status: "status",
-};
 
 function parseStatus(value: string | undefined): StockDocumentStatus | undefined {
   return STOCK_DOCUMENT_STATUSES.includes(value as StockDocumentStatus)
@@ -145,8 +145,139 @@ export function GoodsReceiptsScreen() {
   const purchaseOrderLabelById = new Map(
     purchaseOrders.map((order) => [order.id, purchaseOrderDisplayNumber(order) ?? order.id]),
   );
+  const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+
+  const columnDefs = useMemo((): Array<DataTableColumn<GoodsReceipt>> => {
+    return [
+      {
+        id: "document_number",
+        header: "Number",
+        sortableField: "document_number",
+        className: "font-mono text-sm",
+        cell: (row) => (
+          <RecordLink href={`/goods-receipts/${row.id}`}>
+            {goodsReceiptDisplayNumber(row) ?? "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "supplier",
+        header: "Supplier",
+        cell: (row) =>
+          row.purchase_order_id ? (
+            <span>
+              {supplierLabelById.get(row.supplier_id) ?? "—"}
+              {purchaseOrderLabelById.get(row.purchase_order_id) ? (
+                <span className="text-muted-foreground">
+                  {" "}
+                  ({purchaseOrderLabelById.get(row.purchase_order_id)})
+                </span>
+              ) : null}
+            </span>
+          ) : (
+            (supplierLabelById.get(row.supplier_id) ?? "—")
+          ),
+      },
+      {
+        id: "document_date",
+        header: "Date",
+        sortableField: "document_date",
+        cell: (row) => formatDate(row.document_date),
+      },
+      {
+        id: "qc_status",
+        header: "QC",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.qc_status}
+            labels={QC_STATUS_LABELS}
+            variants={QC_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (row) => (
+          <DocumentStatusBadge
+            status={row.status}
+            labels={STOCK_DOCUMENT_STATUS_LABELS}
+            variants={STOCK_DOCUMENT_STATUS_VARIANTS}
+          />
+        ),
+      },
+      {
+        id: "is_posted",
+        header: "Posted",
+        defaultVisible: false,
+        cell: (row) => (row.is_posted ? "Posted" : "Draft"),
+      },
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        defaultVisible: false,
+        cell: (row) =>
+          (warehousesQuery.data ?? []).find((warehouse) => warehouse.id === row.warehouse_id)
+            ?.name ?? "—",
+      },
+      {
+        id: "supplier_invoice_number",
+        header: "Supplier invoice",
+        defaultVisible: false,
+        cell: (row) => row.supplier_invoice_number || "—",
+      },
+      {
+        id: "bl_number",
+        header: "BL number",
+        defaultVisible: false,
+        cell: (row) => row.bl_number || "—",
+      },
+      {
+        id: "notes",
+        header: "Notes",
+        defaultVisible: false,
+        className: "max-w-xs truncate",
+        cell: (row) => row.notes || "—",
+      },
+      ...auditTimestampColumns<GoodsReceipt>(),
+      ...auditActorColumns<GoodsReceipt>(userNameById),
+      ...actionsColumn<GoodsReceipt>(showActions, (row) => {
+        const number = goodsReceiptDisplayNumber(row);
+        return (
+          <DataTableRowActions
+            entityName={number ?? "goods receipt"}
+            viewHref={canRead ? `/goods-receipts/${row.id}` : undefined}
+            editHref={
+              canUpdate && row.status === "DRAFT"
+                ? `/goods-receipts/${row.id}/edit`
+                : undefined
+            }
+            onDelete={
+              row.available_actions.includes("delete") && canDelete
+                ? () => setDeleting(row)
+                : undefined
+            }
+          />
+        );
+      }),
+    ];
+  }, [
+    canDelete,
+    canRead,
+    canUpdate,
+    purchaseOrderLabelById,
+    showActions,
+    supplierLabelById,
+    userNameById,
+    warehousesQuery.data,
+  ]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "inventory.goods_receipts",
+    columnDefs,
+  );
 
   async function onDelete() {
     if (!deleting) {
@@ -328,6 +459,7 @@ export function GoodsReceiptsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.status || filters.supplier_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -358,9 +490,8 @@ export function GoodsReceiptsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -371,14 +502,14 @@ export function GoodsReceiptsScreen() {
           {receiptsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : receiptsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(receiptsQuery.error)}
                   onRetry={() => receiptsQuery.refetch()}
@@ -387,7 +518,7 @@ export function GoodsReceiptsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No goods receipts"
                   message={emptyListMessage(canCreate, "Create a goods receipt to get started.")}
@@ -395,64 +526,11 @@ export function GoodsReceiptsScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const number = goodsReceiptDisplayNumber(row);
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/goods-receipts/${row.id}`}>{number ?? "—"}</RecordLink>
-                  </TableCell>
-                  <TableCell>{formatDate(row.document_date)}</TableCell>
-                  <TableCell>
-                    {row.purchase_order_id ? (
-                      <span>
-                        {supplierLabelById.get(row.supplier_id) ?? "—"}
-                        {purchaseOrderLabelById.get(row.purchase_order_id) ? (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            ({purchaseOrderLabelById.get(row.purchase_order_id)})
-                          </span>
-                        ) : null}
-                      </span>
-                    ) : (
-                      (supplierLabelById.get(row.supplier_id) ?? "—")
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.qc_status}
-                      labels={QC_STATUS_LABELS}
-                      variants={QC_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <DocumentStatusBadge
-                      status={row.status}
-                      labels={STOCK_DOCUMENT_STATUS_LABELS}
-                      variants={STOCK_DOCUMENT_STATUS_VARIANTS}
-                    />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={number ?? "goods receipt"}
-                        viewHref={canRead ? `/goods-receipts/${row.id}` : undefined}
-                        editHref={
-                          canUpdate && row.status === "DRAFT"
-                            ? `/goods-receipts/${row.id}/edit`
-                            : undefined
-                        }
-                        onDelete={
-                          row.available_actions.includes("delete") && canDelete
-                            ? () => setDeleting(row)
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>

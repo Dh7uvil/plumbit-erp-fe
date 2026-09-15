@@ -30,6 +30,8 @@ export const PriceListSchema = z.object({
   items: z.array(PriceListItemSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
+  created_by: z.string().uuid().nullable().optional().default(null),
+  updated_by: z.string().uuid().nullable().optional().default(null),
 });
 export type PriceList = z.infer<typeof PriceListSchema>;
 

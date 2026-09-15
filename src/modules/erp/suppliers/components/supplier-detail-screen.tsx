@@ -45,7 +45,7 @@ import {
   toPartyPaymentHistoryRows,
 } from "@/shared/components/document/party-payment-history-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
-import { tableHeaders } from "@/shared/components/data-table/row-actions";
+import { TableActionTooltip, tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { AddressFields } from "@/shared/components/form/address-fields";
@@ -322,16 +322,18 @@ export function SupplierDetailScreen({
                         </TableCell>
                         {canUpdate ? (
                           <TableCell>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive size-7"
-                              aria-label="Delete address"
-                              onClick={() => setDeletingAddress(extra)}
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
+                            <TableActionTooltip label="Delete address">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive size-7"
+                                aria-label="Delete address"
+                                onClick={() => setDeletingAddress(extra)}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </TableActionTooltip>
                           </TableCell>
                         ) : null}
                       </TableRow>

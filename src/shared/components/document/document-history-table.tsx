@@ -11,6 +11,7 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 
 export type DocumentHistoryColumn<T> = {
   id: string;
@@ -110,21 +111,26 @@ export function DocumentHistoryTable<T>({
                 <TableRow key={id}>
                   {expandEnabled ? (
                     <TableCell className="w-8">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-expanded={expanded}
-                        aria-label={expanded ? "Collapse row" : "Expand row"}
-                        onClick={() => onToggleExpand?.(id)}
-                      >
-                        {expanded ? (
-                          <ChevronDown className="size-3.5" />
-                        ) : (
-                          <ChevronRight className="size-3.5" />
-                        )}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            aria-expanded={expanded}
+                            aria-label={expanded ? "Collapse row" : "Expand row"}
+                            onClick={() => onToggleExpand?.(id)}
+                          >
+                            {expanded ? (
+                              <ChevronDown className="size-3.5" />
+                            ) : (
+                              <ChevronRight className="size-3.5" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{expanded ? "Collapse" : "Expand"}</TooltipContent>
+                      </Tooltip>
                     </TableCell>
                   ) : null}
                   {columns.map((column) => (

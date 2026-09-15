@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { TermsTemplateFormDialog } from "@/modules/erp/accounting/terms-templates/components/terms-template-form-dialog";
@@ -11,20 +11,26 @@ import { useTermsTemplates } from "@/modules/erp/accounting/terms-templates/quer
 import type { TermsTemplate } from "@/modules/erp/accounting/terms-templates/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -35,17 +41,11 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
-const COLUMN_HEADERS = ["Name", "Default", "Status"] as const;
 const SORT_FIELDS = [
   { value: "name", label: "Name" },
   { value: "is_default", label: "Default" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Name: "name",
-  Default: "is_default",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -74,10 +74,59 @@ export function TermsTemplatesScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<TermsTemplate | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = termsTemplatesQuery.data?.data ?? [];
   const meta = termsTemplatesQuery.data?.meta;
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<TermsTemplate>> => {
+    return [
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "font-medium",
+        cell: (template) => (
+          <RecordLink href={`/terms-templates/${template.id}`}>{template.name}</RecordLink>
+        ),
+      },
+      {
+        id: "is_default",
+        header: "Default",
+        sortableField: "is_default",
+        cell: (template) => (
+          <RecordLink href={`/terms-templates/${template.id}`}>
+            {template.is_default ? <Badge variant="info">Default</Badge> : "—"}
+          </RecordLink>
+        ),
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (template) => <ActiveBadge active={template.is_active} />,
+      },
+      {
+        id: "body",
+        header: "Body",
+        defaultVisible: false,
+        className: "text-muted-foreground max-w-xs truncate",
+        cell: (template) => template.body || "—",
+      },
+      ...auditTimestampColumns<TermsTemplate>(),
+      ...auditActorColumns<TermsTemplate>(userNameById),
+      ...actionsColumn<TermsTemplate>(showActions, (template) => (
+        <DataTableRowActions
+          entityName={template.name}
+          viewHref={canRead ? `/terms-templates/${template.id}` : undefined}
+          editHref={canUpdate ? `/terms-templates/${template.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(template) : undefined}
+        />
+      )),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.terms_templates", columnDefs);
 
   function openCreate() {
     setFormOpen(true);
@@ -136,6 +185,7 @@ export function TermsTemplatesScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || sort_by ? (
           <Button
             type="button"
@@ -157,9 +207,8 @@ export function TermsTemplatesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -170,14 +219,14 @@ export function TermsTemplatesScreen() {
           {termsTemplatesQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : termsTemplatesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(termsTemplatesQuery.error)}
                   onRetry={() => termsTemplatesQuery.refetch()}
@@ -186,7 +235,7 @@ export function TermsTemplatesScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No terms templates"
                   message={emptyListMessage(canCreate, "Create a terms template to get started.")}
@@ -196,27 +245,7 @@ export function TermsTemplatesScreen() {
           ) : (
             rows.map((template) => (
               <TableRow key={template.id}>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/terms-templates/${template.id}`}>{template.name}</RecordLink>
-                </TableCell>
-                <TableCell>
-                  <RecordLink href={`/terms-templates/${template.id}`}>
-                    {template.is_default ? <Badge variant="info">Default</Badge> : "—"}
-                  </RecordLink>
-                </TableCell>
-                <TableCell>
-                  <ActiveBadge active={template.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={template.name}
-                      viewHref={canRead ? `/terms-templates/${template.id}` : undefined}
-                      editHref={canUpdate ? `/terms-templates/${template.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(template) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={template} />
               </TableRow>
             ))
           )}

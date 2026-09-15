@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
@@ -11,20 +11,26 @@ import { useUnits } from "@/modules/inventory-management/units/queries";
 import type { Unit } from "@/modules/inventory-management/units/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import {
+  auditActorColumns,
+  auditTimestampColumns,
+  useUserNameMap,
+} from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -34,17 +40,11 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
-const COLUMN_HEADERS = ["Code", "Name", "Status"] as const;
 const SORT_FIELDS = [
   { value: "code", label: "Code" },
   { value: "name", label: "Name" },
   { value: "is_active", label: "Status" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  Code: "code",
-  Name: "name",
-  Status: "is_active",
-};
 const ALL = "all";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
@@ -73,10 +73,47 @@ export function UnitsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Unit | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = unitsQuery.data?.data ?? [];
   const meta = unitsQuery.data?.meta;
+  const userNameById = useUserNameMap();
+
+  const columnDefs = useMemo((): Array<DataTableColumn<Unit>> => {
+    return [
+      {
+        id: "code",
+        header: "Code",
+        sortableField: "code",
+        className: "font-mono text-sm",
+        cell: (unit) => <RecordLink href={`/units/${unit.id}`}>{unit.code}</RecordLink>,
+      },
+      {
+        id: "name",
+        header: "Name",
+        sortableField: "name",
+        className: "font-medium",
+        cell: (unit) => <RecordLink href={`/units/${unit.id}`}>{unit.name}</RecordLink>,
+      },
+      {
+        id: "is_active",
+        header: "Status",
+        sortableField: "is_active",
+        cell: (unit) => <ActiveBadge active={unit.is_active} />,
+      },
+      ...auditTimestampColumns<Unit>(),
+      ...auditActorColumns<Unit>(userNameById),
+      ...actionsColumn<Unit>(showActions, (unit) => (
+        <DataTableRowActions
+          entityName={unit.name}
+          viewHref={canRead ? `/units/${unit.id}` : undefined}
+          editHref={canUpdate ? `/units/${unit.id}/edit` : undefined}
+          onDelete={canDelete ? () => setDeleting(unit) : undefined}
+        />
+      )),
+    ];
+  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.units", columnDefs);
 
   async function confirmDelete() {
     if (!deleting) {
@@ -131,6 +168,7 @@ export function UnitsScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.is_active || sort_by ? (
           <Button
             type="button"
@@ -152,9 +190,8 @@ export function UnitsScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
@@ -165,14 +202,14 @@ export function UnitsScreen() {
           {unitsQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : unitsQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(unitsQuery.error)}
                   onRetry={() => unitsQuery.refetch()}
@@ -181,7 +218,7 @@ export function UnitsScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No units"
                   message={emptyListMessage(canCreate, "Create a unit to get started.")}
@@ -191,25 +228,7 @@ export function UnitsScreen() {
           ) : (
             rows.map((unit) => (
               <TableRow key={unit.id}>
-                <TableCell className="font-mono text-sm">
-                  <RecordLink href={`/units/${unit.id}`}>{unit.code}</RecordLink>
-                </TableCell>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/units/${unit.id}`}>{unit.name}</RecordLink>
-                </TableCell>
-                <TableCell>
-                  <ActiveBadge active={unit.is_active} />
-                </TableCell>
-                {showActions ? (
-                  <TableCell>
-                    <DataTableRowActions
-                      entityName={unit.name}
-                      viewHref={canRead ? `/units/${unit.id}` : undefined}
-                      editHref={canUpdate ? `/units/${unit.id}/edit` : undefined}
-                      onDelete={canDelete ? () => setDeleting(unit) : undefined}
-                    />
-                  </TableCell>
-                ) : null}
+                <DataTableCells columns={columns} row={unit} />
               </TableRow>
             ))
           )}

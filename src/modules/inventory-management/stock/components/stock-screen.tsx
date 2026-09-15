@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useAllCategories } from "@/modules/inventory-management/categories/queries";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
@@ -19,21 +19,23 @@ import { useAllWarehouses } from "@/modules/inventory-management/warehouses/quer
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import { auditTimestampColumns } from "@/shared/components/data-table/audit-columns";
+import {
+  actionsColumn,
+  type DataTableColumn,
+} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
@@ -41,23 +43,10 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatMoney, formatQuantity } from "@/shared/lib/format";
+import { formatDateTime, formatMoney, formatQuantity } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/cn";
 import { useCan } from "@/shared/providers/session-provider";
 
-const BASE_COLUMN_HEADERS = [
-  "SKU",
-  "Product",
-  "Warehouse",
-  "On hand",
-  "QC hold",
-  "Committed",
-  "Available",
-  "Incoming",
-  "Outgoing",
-  "In transit",
-] as const;
-const COST_COLUMN_HEADERS = ["Unit cost", "Value"] as const;
 const SORT_FIELDS = [
   { value: "qty_on_hand", label: "On hand" },
   { value: "qty_quality_hold", label: "QC hold" },
@@ -65,12 +54,6 @@ const SORT_FIELDS = [
   { value: "qty_available", label: "Available" },
   { value: "last_movement_at", label: "Last movement" },
 ] as const;
-const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
-  "On hand": "qty_on_hand",
-  "QC hold": "qty_quality_hold",
-  Reserved: "qty_reserved",
-  Available: "qty_available",
-};
 const ALL = "all";
 const EMPTY_EXTRA = {
   productId: ALL,
@@ -121,9 +104,6 @@ export function StockScreen() {
   const canTransfer = can(stockTransferPermissions.create);
   const tenantQuery = useCurrentTenant();
   const currencyCode = tenantQuery.data?.default_currency ?? "";
-  const columnHeaders = canReadCost
-    ? [...BASE_COLUMN_HEADERS, ...COST_COLUMN_HEADERS]
-    : [...BASE_COLUMN_HEADERS];
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = extraFromFilters(filters);
@@ -146,12 +126,183 @@ export function StockScreen() {
   const categoriesQuery = useAllCategories();
   const [reordering, setReordering] = useState<StockBalance | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canAdjust, canTransfer);
-  const headers = tableHeaders(columnHeaders, showActions);
   const rows = stockQuery.data?.data ?? [];
   const meta = stockQuery.data?.meta;
   const warehouses = warehousesQuery.data ?? [];
   const products = productsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
+
+  const columnDefs = useMemo((): Array<DataTableColumn<StockBalance>> => {
+    return [
+      {
+        id: "sku",
+        header: "SKU",
+        className: "font-mono text-sm",
+        cell: (row) => <RecordLink href={`/stock/${row.product_id}`}>{row.sku}</RecordLink>,
+      },
+      {
+        id: "product",
+        header: "Product",
+        className: "font-medium",
+        cell: (row) => (
+          <RecordLink href={`/stock/${row.product_id}`}>{row.product_name}</RecordLink>
+        ),
+      },
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        cell: (row) => {
+          const belowReorder = qtyIsBelowReorder(row.qty_available, row.reorder_level);
+          return (
+            <>
+              {row.warehouse_code}
+              {belowReorder ? (
+                <Badge variant="warning" className="ml-2">
+                  Below reorder
+                </Badge>
+              ) : null}
+            </>
+          );
+        },
+      },
+      {
+        id: "qty_on_hand",
+        header: "On hand",
+        sortableField: "qty_on_hand",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => qtyCell(row.qty_on_hand, true),
+      },
+      {
+        id: "qty_quality_hold",
+        header: "QC hold",
+        sortableField: "qty_quality_hold",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => qtyCell(row.qty_quality_hold),
+      },
+      {
+        id: "qty_reserved",
+        header: "Committed",
+        sortableField: "qty_reserved",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => qtyCell(row.qty_reserved),
+      },
+      {
+        id: "qty_available",
+        header: "Available",
+        sortableField: "qty_available",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => qtyCell(row.qty_available, true),
+      },
+      {
+        id: "qty_incoming",
+        header: "Incoming",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => qtyCell(row.qty_incoming),
+      },
+      {
+        id: "qty_outgoing",
+        header: "Outgoing",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => qtyCell(row.qty_outgoing),
+      },
+      {
+        id: "qty_in_transit",
+        header: "In transit",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (row) => qtyCell(row.qty_in_transit),
+      },
+      ...(canReadCost
+        ? [
+            {
+              id: "unit_cost",
+              header: "Unit cost",
+              className: "text-right tabular-nums",
+              headerClassName: "text-right",
+              cell: (row: StockBalance) => formatMoney(row.unit_cost, currencyCode),
+            },
+            {
+              id: "value",
+              header: "Value",
+              className: "text-right tabular-nums",
+              headerClassName: "text-right",
+              cell: (row: StockBalance) => formatMoney(row.stock_value, currencyCode),
+            },
+          ]
+        : []),
+      {
+        id: "reorder_level",
+        header: "Reorder level",
+        defaultVisible: false,
+        className: "text-right tabular-nums",
+        headerClassName: "text-right",
+        cell: (row) => formatQuantity(row.reorder_level),
+      },
+      {
+        id: "reorder_qty",
+        header: "Reorder qty",
+        defaultVisible: false,
+        className: "text-right tabular-nums",
+        headerClassName: "text-right",
+        cell: (row) => formatQuantity(row.reorder_qty),
+      },
+      {
+        id: "last_movement_at",
+        header: "Last movement",
+        defaultVisible: false,
+        className: "text-muted-foreground text-xs",
+        cell: (row) => formatDateTime(row.last_movement_at),
+      },
+      ...auditTimestampColumns<StockBalance>(),
+      ...actionsColumn<StockBalance>(showActions, (row) => (
+        <DataTableRowActions
+          entityName={row.sku}
+          viewHref={canRead ? `/stock/${row.product_id}` : undefined}
+          extra={
+            <>
+              {canAdjust ? (
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2" asChild>
+                  <Link
+                    href={`/stock-adjustments/new?product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`}
+                  >
+                    Adjust
+                  </Link>
+                </Button>
+              ) : null}
+              {canTransfer ? (
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2" asChild>
+                  <Link
+                    href={`/stock-transfers/new?product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`}
+                  >
+                    Transfer
+                  </Link>
+                </Button>
+              ) : null}
+              {canUpdate ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setReordering(row)}
+                >
+                  Reorder
+                </Button>
+              ) : null}
+            </>
+          }
+        />
+      )),
+    ];
+  }, [canAdjust, canRead, canReadCost, canTransfer, canUpdate, currencyCode, showActions]);
+
+  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.stock", columnDefs);
 
   return (
     <ListPage>
@@ -268,6 +419,7 @@ export function StockScreen() {
           sortOrder={sort_order}
           onApply={setParams}
         />
+        {columnsDialog}
         {search || filters.warehouse_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
@@ -295,23 +447,11 @@ export function StockScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
-            <SortableHeads
-              headers={headers}
-              fieldByHeader={SORT_FIELD_BY_HEADER}
+            <DataTableColumnHeads
+              columns={columns}
               sortBy={sort_by}
               sortOrder={sort_order}
               onSort={setParams}
-              classNameByHeader={{
-                "On hand": "text-right",
-                "QC hold": "text-right",
-                Committed: "text-right",
-                Available: "text-right",
-                Incoming: "text-right",
-                Outgoing: "text-right",
-                "In transit": "text-right",
-                "Unit cost": "text-right",
-                Value: "text-right",
-              }}
             />
           </TableRow>
         </TableHeader>
@@ -319,14 +459,14 @@ export function StockScreen() {
           {stockQuery.isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             ))
           ) : stockQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableError
                   message={getErrorMessage(stockQuery.error)}
                   onRetry={() => stockQuery.refetch()}
@@ -335,7 +475,7 @@ export function StockScreen() {
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={headers.length}>
+              <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No stock balances"
                   message="Post an opening-stock adjustment to record quantity."
@@ -343,97 +483,11 @@ export function StockScreen() {
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => {
-              const belowReorder = qtyIsBelowReorder(row.qty_available, row.reorder_level);
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={`/stock/${row.product_id}`}>{row.sku}</RecordLink>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <RecordLink href={`/stock/${row.product_id}`}>{row.product_name}</RecordLink>
-                  </TableCell>
-                  <TableCell>
-                    {row.warehouse_code}
-                    {belowReorder ? (
-                      <Badge variant="warning" className="ml-2">
-                        Below reorder
-                      </Badge>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="text-right">{qtyCell(row.qty_on_hand, true)}</TableCell>
-                  <TableCell className="text-right">{qtyCell(row.qty_quality_hold)}</TableCell>
-                  <TableCell className="text-right">{qtyCell(row.qty_reserved)}</TableCell>
-                  <TableCell className="text-right">{qtyCell(row.qty_available, true)}</TableCell>
-                  <TableCell className="text-right">{qtyCell(row.qty_incoming)}</TableCell>
-                  <TableCell className="text-right">{qtyCell(row.qty_outgoing)}</TableCell>
-                  <TableCell className="text-right">{qtyCell(row.qty_in_transit)}</TableCell>
-                  {canReadCost ? (
-                    <>
-                      <TableCell className="text-right tabular-nums">
-                        {formatMoney(row.unit_cost, currencyCode)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatMoney(row.stock_value, currencyCode)}
-                      </TableCell>
-                    </>
-                  ) : null}
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={row.sku}
-                        viewHref={canRead ? `/stock/${row.product_id}` : undefined}
-                        extra={
-                          <>
-                            {canAdjust ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2"
-                                asChild
-                              >
-                                <Link
-                                  href={`/stock-adjustments/new?product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`}
-                                >
-                                  Adjust
-                                </Link>
-                              </Button>
-                            ) : null}
-                            {canTransfer ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2"
-                                asChild
-                              >
-                                <Link
-                                  href={`/stock-transfers/new?product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`}
-                                >
-                                  Transfer
-                                </Link>
-                              </Button>
-                            ) : null}
-                            {canUpdate ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2"
-                                onClick={() => setReordering(row)}
-                              >
-                                Reorder
-                              </Button>
-                            ) : null}
-                          </>
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              );
-            })
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
           )}
         </TableBody>
       </DataTable>
