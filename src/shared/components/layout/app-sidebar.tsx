@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Search,
-  X,
-  Zap,
-} from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Search, X, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -16,10 +8,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { APP_NAME } from "@/config/constants";
 import {
   findActiveNav,
+  searchableNavigation,
   visibleNavigation,
   type NavigationGroup,
 } from "@/config/navigation";
-import { filterCommandItems, groupCommandItems } from "@/shared/components/layout/command-palette-search";
+import {
+  filterCommandItems,
+  groupCommandItems,
+} from "@/shared/components/layout/command-palette-search";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/components/ui/sheet";
@@ -191,11 +187,7 @@ function SidebarNav({
                 )}
               >
                 <span>{group.label}</span>
-                {isSearching ? null : isOpen ? (
-                  <ChevronUp size={11} />
-                ) : (
-                  <ChevronDown size={11} />
-                )}
+                {isSearching ? null : isOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
               </button>
             ) : (
               <div className="border-sidebar-border mx-2 my-1 border-t" />
@@ -254,9 +246,10 @@ function SidebarChrome({
 }) {
   const pathname = usePathname();
   const { permissions } = useSession();
-  const groups = visibleNavigation(permissions);
   const [query, setQuery] = useState("");
   const [syncedPath, setSyncedPath] = useState(pathname);
+  const isSearching = Boolean(query.trim());
+  const groups = isSearching ? searchableNavigation(permissions) : visibleNavigation(permissions);
 
   if (pathname !== syncedPath) {
     setSyncedPath(pathname);

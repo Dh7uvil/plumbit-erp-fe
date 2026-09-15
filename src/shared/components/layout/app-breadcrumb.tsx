@@ -13,12 +13,20 @@ export function AppBreadcrumb() {
   const pathname = usePathname();
   const isClient = useIsClient();
   const recordLabel = useBreadcrumbRecordLabel();
-  const active = isClient ? findActiveNav(pathname) : undefined;
-  const crumbs = isClient ? buildBreadcrumbs({ pathname, active, recordLabel }) : [];
+  const active = findActiveNav(pathname);
+  const crumbs = buildBreadcrumbs({
+    pathname,
+    active,
+    recordLabel: isClient ? recordLabel : null,
+  });
 
   return (
-    <nav className="hidden min-w-0 items-center gap-1.5 text-xs sm:flex" aria-label="Breadcrumb">
-      <ol className="flex min-w-0 items-center gap-1.5">
+    <nav
+      className="hidden min-w-0 items-center gap-1.5 text-xs sm:flex"
+      aria-label="Breadcrumb"
+      suppressHydrationWarning
+    >
+      <ol className="flex min-w-0 items-center gap-1.5" suppressHydrationWarning>
         {crumbs.map((crumb, index) => {
           const isLast = index === crumbs.length - 1;
           return (

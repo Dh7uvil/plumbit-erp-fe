@@ -23,13 +23,12 @@ import {
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { DataTableToolbar, ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -134,10 +133,7 @@ export function ExchangeRatesScreen() {
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search currency code or name…"
         />
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="exchange-rate-effective-date" className="text-muted-foreground text-xs font-medium">
-            Effective date
-          </Label>
+        <ToolbarControl label="Effective date" htmlFor="exchange-rate-effective-date">
           <Input
             id="exchange-rate-effective-date"
             type="date"
@@ -148,7 +144,7 @@ export function ExchangeRatesScreen() {
             aria-label="Effective date"
             className="w-44"
           />
-        </div>
+        </ToolbarControl>
         <SortDialog
           fields={[...SORT_FIELDS]}
           sortBy={sort_by}

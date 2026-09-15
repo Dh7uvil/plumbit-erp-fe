@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useId, type ReactNode } from "react";
 
+import { toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import {
   SearchableSelect,
   type SearchableSelectOption,
@@ -14,7 +15,9 @@ export type FilterSelectOption = SearchableSelectOption;
 const NestedFilterLabelContext = createContext(false);
 
 export function NestedFilterLabel({ children }: { children: ReactNode }) {
-  return <NestedFilterLabelContext.Provider value={true}>{children}</NestedFilterLabelContext.Provider>;
+  return (
+    <NestedFilterLabelContext.Provider value={true}>{children}</NestedFilterLabelContext.Provider>
+  );
 }
 
 export function FilterSelect({
@@ -67,7 +70,7 @@ export function FilterSelect({
 
   return (
     <div className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <Label htmlFor={selectId} className="text-muted-foreground text-xs font-medium">
+      <Label htmlFor={selectId} className={toolbarLabelClass}>
         {visibleLabel}
       </Label>
       {select}

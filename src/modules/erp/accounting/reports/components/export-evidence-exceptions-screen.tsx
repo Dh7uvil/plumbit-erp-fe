@@ -8,12 +8,11 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { DataTableToolbar, ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -60,15 +59,14 @@ export function ExportEvidenceExceptionsScreen() {
         }
       />
       <DataTableToolbar>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="eee-as-of">As of</Label>
+        <ToolbarControl label="As of" htmlFor="eee-as-of">
           <Input
             id="eee-as-of"
             type="date"
             value={asOf}
             onChange={(event) => setParams({ filters: { as_of: event.target.value || null } })}
           />
-        </div>
+        </ToolbarControl>
       </DataTableToolbar>
       <DataTable>
         <TableHeader>

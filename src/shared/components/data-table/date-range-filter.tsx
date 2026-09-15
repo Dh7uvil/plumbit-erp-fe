@@ -1,6 +1,7 @@
 "use client";
 
 import { FilterField } from "@/shared/components/data-table/more-filters-dialog";
+import { toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { cn } from "@/shared/lib/cn";
@@ -34,7 +35,7 @@ export function DateRangeFilter({
     return (
       <div className={cn("flex flex-wrap items-end gap-2", className)}>
         <div className="flex flex-col gap-1">
-          <Label htmlFor={fromId} className="text-muted-foreground text-xs font-medium">
+          <Label htmlFor={fromId} className={toolbarLabelClass}>
             {fromLabel}
           </Label>
           <Input
@@ -48,7 +49,7 @@ export function DateRangeFilter({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor={toId} className="text-muted-foreground text-xs font-medium">
+          <Label htmlFor={toId} className={toolbarLabelClass}>
             {toLabel}
           </Label>
           <Input

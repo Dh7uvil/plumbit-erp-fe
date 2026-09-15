@@ -3,6 +3,7 @@
 import { Search, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 
@@ -45,7 +46,7 @@ export function ListSearch({
 
   return (
     <div className="flex max-w-md min-w-48 flex-1 flex-col gap-1">
-      <Label htmlFor={searchId} className="text-muted-foreground text-xs font-medium">
+      <Label htmlFor={searchId} className={toolbarLabelClass}>
         {label}
       </Label>
       <div className="relative">

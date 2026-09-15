@@ -1,18 +1,27 @@
 "use client";
 
-import { useOutstandingBills, useOutstandingInvoices } from "@/modules/erp/accounting/reports/queries";
+import {
+  useOutstandingBills,
+  useOutstandingInvoices,
+} from "@/modules/erp/accounting/reports/queries";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { documentDetailHref } from "@/shared/components/document/document-links";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
@@ -29,8 +38,7 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
   const reportQuery = kind === "invoices" ? invoicesQuery : billsQuery;
   const report = reportQuery.data;
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
-  const path =
-    kind === "invoices" ? "/reports/outstanding-invoices" : "/reports/outstanding-bills";
+  const path = kind === "invoices" ? "/reports/outstanding-invoices" : "/reports/outstanding-bills";
   const filename = kind === "invoices" ? "outstanding-invoices" : "outstanding-bills";
   const money = (value: string | null | undefined, currency?: string | null) =>
     formatReportMoney(value, currency ?? report?.currency_code);
@@ -49,15 +57,14 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
       }}
       toolbar={
         <div className="flex flex-wrap items-end gap-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="outstanding-as-of">As of</Label>
+          <ToolbarControl label="As of" htmlFor="outstanding-as-of">
             <Input
               id="outstanding-as-of"
               type="date"
               value={asOf}
               onChange={(event) => setParams({ filters: { as_of: event.target.value || null } })}
             />
-          </div>
+          </ToolbarControl>
           <Button
             type="button"
             variant="ghost"
@@ -107,7 +114,10 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
           ) : !report || report.lines.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7}>
-                <DataTableEmpty title="No open documents" message="Nothing is outstanding as of this date." />
+                <DataTableEmpty
+                  title="No open documents"
+                  message="Nothing is outstanding as of this date."
+                />
               </TableCell>
             </TableRow>
           ) : (
@@ -115,7 +125,11 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
               <TableRow key={`${line.item_type}-${line.document_id}`}>
                 <TableCell>
                   <RecordLink
-                    href={kind === "invoices" ? `/customers/${line.party_id}` : `/suppliers/${line.party_id}`}
+                    href={
+                      kind === "invoices"
+                        ? `/customers/${line.party_id}`
+                        : `/suppliers/${line.party_id}`
+                    }
                   >
                     {line.party_name}
                   </RecordLink>

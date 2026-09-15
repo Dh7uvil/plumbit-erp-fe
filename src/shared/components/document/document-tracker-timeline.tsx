@@ -12,7 +12,7 @@ import { documentStatusTone } from "@/shared/components/document/document-status
 import { StatusBadge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatDate, formatFixedDecimal, formatQuantity, humanizeEnum } from "@/shared/lib/format";
+import { formatDate, formatFixedDecimal, formatQuantitySummary, humanizeEnum } from "@/shared/lib/format";
 
 export type OrderTrackerRow = {
   stage: string;
@@ -148,7 +148,7 @@ export function DocumentTrackerTimeline({
                           ) : null}
                           {row.quantity_summary ? (
                             <span className="text-muted-foreground">
-                              {formatQuantity(row.quantity_summary)}
+                              {formatQuantitySummary(row.quantity_summary)}
                             </span>
                           ) : null}
                           {row.amount_summary ? (

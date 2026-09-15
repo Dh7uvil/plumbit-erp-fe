@@ -10,6 +10,7 @@ import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
@@ -17,7 +18,13 @@ import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatReportMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
@@ -111,7 +118,9 @@ export function TrialBalanceScreen() {
                 setParams({ filters: { include_zero: checked === true ? "true" : null } })
               }
             />
-            <Label htmlFor="tb-zero">Include zeros</Label>
+            <Label htmlFor="tb-zero" className={toolbarLabelClass}>
+              Include zeros
+            </Label>
           </div>
           {from || to || branchId || includeZero ? (
             <Button
@@ -120,7 +129,9 @@ export function TrialBalanceScreen() {
               size="sm"
               className="h-9"
               onClick={() =>
-                setParams({ filters: { from: null, to: null, branch_id: null, include_zero: null } })
+                setParams({
+                  filters: { from: null, to: null, branch_id: null, include_zero: null },
+                })
               }
             >
               Clear

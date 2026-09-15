@@ -6,6 +6,7 @@ import {
   formatMoney,
   formatPercent,
   formatQuantity,
+  formatQuantitySummary,
   humanizeEnum,
   isZeroDecimal,
   normalizeDecimalInput,
@@ -73,6 +74,13 @@ describe("formatQuantity", () => {
     expect(digitsAndDot(formatQuantity("4"))).toBe("4.00");
     expect(digitsAndDot(formatQuantity("1.250000"))).toBe("1.25");
     expect(digitsAndDot(formatQuantity("1.23456789"))).toBe("1.23");
+  });
+});
+
+describe("formatQuantitySummary", () => {
+  it("formats qty values inside tracker summaries", () => {
+    expect(formatQuantitySummary("1 lines · qty 2.000000")).toBe("1 lines · qty 2.00");
+    expect(formatQuantitySummary("qty 1.250000")).toBe("qty 1.25");
   });
 });
 

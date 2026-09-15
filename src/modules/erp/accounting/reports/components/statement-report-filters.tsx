@@ -3,6 +3,7 @@
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ToolbarControl, toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
@@ -34,15 +35,14 @@ export function StatementReportFilters({
   return (
     <>
       {asOf !== undefined ? (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="statement-as-of">As of</Label>
+        <ToolbarControl label="As of" htmlFor="statement-as-of">
           <Input
             id="statement-as-of"
             type="date"
             value={asOf}
             onChange={(event) => onChange({ as_of: event.target.value || null })}
           />
-        </div>
+        </ToolbarControl>
       ) : null}
       {from !== undefined && to !== undefined ? (
         <DateRangeFilter
@@ -78,7 +78,9 @@ export function StatementReportFilters({
               onChange({ include_ytd: checked === true ? "true" : null })
             }
           />
-          <Label htmlFor="statement-ytd">Include YTD</Label>
+          <Label htmlFor="statement-ytd" className={toolbarLabelClass}>
+            Include YTD
+          </Label>
         </div>
       ) : null}
       {hasFilters ? (

@@ -114,6 +114,14 @@ export function formatQuantity(value: string | null | undefined): string {
   return formatFixedDecimal(value, 2);
 }
 
+/** Formats embedded qty values in tracker summaries such as "1 lines · qty 2.000000". */
+export function formatQuantitySummary(summary: string | null | undefined): string {
+  if (summary == null || summary === "") {
+    return "";
+  }
+  return summary.replace(/qty\s+(-?\d+(?:\.\d+)?)/gi, (_match, qty: string) => `qty ${formatQuantity(qty)}`);
+}
+
 export function formatPercent(value: string | null | undefined): string {
   if (value == null || value === "") {
     return "—";
