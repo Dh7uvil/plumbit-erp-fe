@@ -4,7 +4,7 @@ import { StatementReportFilters } from "@/modules/erp/accounting/reports/compone
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useProfitAndLoss } from "@/modules/erp/accounting/reports/queries";
-import { glHref } from "@/modules/erp/accounting/reports/schemas";
+import { glHref, type ProfitAndLossLine } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -21,6 +21,57 @@ import {
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatReportMoney } from "@/shared/lib/format";
 
+function SectionHeader({
+  label,
+  columnCount,
+}: {
+  label: string;
+  columnCount: number;
+}) {
+  return (
+    <TableRow>
+      <TableCell colSpan={columnCount} className="bg-muted/40 font-medium">
+        {label}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function LineRow({
+  line,
+  from,
+  to,
+  branchId,
+  money,
+  showComparative,
+  showYtd,
+}: {
+  line: ProfitAndLossLine;
+  from: string;
+  to: string;
+  branchId?: string;
+  money: (value: string | null | undefined) => string;
+  showComparative: boolean;
+  showYtd: boolean;
+}) {
+  return (
+    <TableRow>
+      <TableCell className="font-mono text-sm">
+        <RecordLink href={glHref(line.account_id, from, to, branchId)}>{line.account_code}</RecordLink>
+      </TableCell>
+      <TableCell>
+        <RecordLink href={glHref(line.account_id, from, to, branchId)}>{line.account_name}</RecordLink>
+      </TableCell>
+      <TableCell>{line.account_subtype || line.account_type}</TableCell>
+      <TableCell>{money(line.amount)}</TableCell>
+      {showComparative ? (
+        <TableCell>{line.comparative_amount ? money(line.comparative_amount) : "—"}</TableCell>
+      ) : null}
+      {showYtd ? <TableCell>{line.ytd_amount ? money(line.ytd_amount) : "—"}</TableCell> : null}
+    </TableRow>
+  );
+}
+
 export function ProfitAndLossScreen() {
   const { filters, setParams } = useTableParams();
   const period = useReportPeriod();
@@ -31,20 +82,29 @@ export function ProfitAndLossScreen() {
   const params = { from, to, branch_id: branchId, include_ytd: includeYtd };
   const reportQuery = useProfitAndLoss(params);
   const report = reportQuery.data;
-  const { csvPending, downloadCsv } = useReportCsv();
+  const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
   const showComparative = Boolean(report?.comparative_from);
   const showYtd = Boolean(report?.ytd_from);
   const columnCount = 4 + Number(showComparative) + Number(showYtd);
+  const incomeLines = (report?.lines ?? []).filter((line) => line.account_type === "INCOME");
+  const cogsLines = (report?.lines ?? []).filter((line) => line.account_subtype === "COGS");
+  const expenseLines = (report?.lines ?? []).filter(
+    (line) => line.account_type === "EXPENSE" && line.account_subtype !== "COGS",
+  );
 
   return (
     <ReportShell
       title="Profit and loss"
       subtitle="Posted income and expense for the selected period. Totals come from the server."
       csvPending={csvPending}
+      excelPending={excelPending}
       onDownloadCsv={() => {
         void downloadCsv("/reports/profit-and-loss", params, "profit-and-loss");
+      }}
+      onDownloadExcel={() => {
+        void downloadExcel("/reports/profit-and-loss", params, "profit-and-loss");
       }}
       toolbar={
         <StatementReportFilters
@@ -66,8 +126,8 @@ export function ProfitAndLossScreen() {
             {showComparative ? (
               <TableHead>
                 {report?.comparative_from && report?.comparative_to
-                  ? `Prior year (${report.comparative_from} – ${report.comparative_to})`
-                  : "Prior year"}
+                  ? `Prior period (${report.comparative_from} – ${report.comparative_to})`
+                  : "Prior period"}
               </TableHead>
             ) : null}
             {showYtd ? <TableHead>YTD</TableHead> : null}
@@ -102,35 +162,88 @@ export function ProfitAndLossScreen() {
             </TableRow>
           ) : (
             <>
-              {report.lines.map((line) => (
-                <TableRow key={line.account_id}>
-                  <TableCell className="font-mono text-sm">
-                    <RecordLink href={glHref(line.account_id, from, to, branchId)}>
-                      {line.account_code}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>
-                    <RecordLink href={glHref(line.account_id, from, to, branchId)}>
-                      {line.account_name}
-                    </RecordLink>
-                  </TableCell>
-                  <TableCell>{line.account_subtype || line.account_type}</TableCell>
-                  <TableCell>{money(line.amount)}</TableCell>
-                  {showComparative ? (
-                    <TableCell>
-                      {line.comparative_amount ? money(line.comparative_amount) : "—"}
-                    </TableCell>
-                  ) : null}
-                  {showYtd ? (
-                    <TableCell>{line.ytd_amount ? money(line.ytd_amount) : "—"}</TableCell>
-                  ) : null}
-                </TableRow>
+              {incomeLines.length > 0 ? <SectionHeader label="Income" columnCount={columnCount} /> : null}
+              {incomeLines.map((line) => (
+                <LineRow
+                  key={line.account_id}
+                  line={line}
+                  from={from}
+                  to={to}
+                  branchId={branchId}
+                  money={money}
+                  showComparative={showComparative}
+                  showYtd={showYtd}
+                />
               ))}
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Total income
                 </TableCell>
                 <TableCell className="font-medium">{money(report.total_income)}</TableCell>
+                {showComparative ? <TableCell /> : null}
+                {showYtd ? <TableCell /> : null}
+              </TableRow>
+              {cogsLines.length > 0 ? (
+                <SectionHeader label="Cost of goods sold" columnCount={columnCount} />
+              ) : null}
+              {cogsLines.map((line) => (
+                <LineRow
+                  key={line.account_id}
+                  line={line}
+                  from={from}
+                  to={to}
+                  branchId={branchId}
+                  money={money}
+                  showComparative={showComparative}
+                  showYtd={showYtd}
+                />
+              ))}
+              <TableRow>
+                <TableCell colSpan={3} className="font-medium">
+                  Cost of goods sold
+                </TableCell>
+                <TableCell className="font-medium">{money(report.total_cogs)}</TableCell>
+                {showComparative ? <TableCell /> : null}
+                {showYtd ? <TableCell /> : null}
+              </TableRow>
+              <TableRow>
+                <TableCell colSpan={3} className="font-medium">
+                  Gross profit
+                </TableCell>
+                <TableCell className="font-medium">{money(report.gross_profit)}</TableCell>
+                {showComparative ? (
+                  <TableCell className="font-medium">
+                    {report.comparative_gross_profit ? money(report.comparative_gross_profit) : "—"}
+                  </TableCell>
+                ) : null}
+                {showYtd ? (
+                  <TableCell className="font-medium">
+                    {report.ytd_gross_profit ? money(report.ytd_gross_profit) : "—"}
+                  </TableCell>
+                ) : null}
+              </TableRow>
+              {expenseLines.length > 0 ? (
+                <SectionHeader label="Operating expenses" columnCount={columnCount} />
+              ) : null}
+              {expenseLines.map((line) => (
+                <LineRow
+                  key={line.account_id}
+                  line={line}
+                  from={from}
+                  to={to}
+                  branchId={branchId}
+                  money={money}
+                  showComparative={showComparative}
+                  showYtd={showYtd}
+                />
+              ))}
+              <TableRow>
+                <TableCell colSpan={3} className="font-medium">
+                  Operating expenses
+                </TableCell>
+                <TableCell className="font-medium">
+                  {money(report.total_operating_expense)}
+                </TableCell>
                 {showComparative ? <TableCell /> : null}
                 {showYtd ? <TableCell /> : null}
               </TableRow>

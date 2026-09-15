@@ -12,6 +12,7 @@ export const accountKeys = {
   allItems: (params: AccountListParams = {}) => [...accountKeys.all, "all", params] as const,
   tree: () => [...accountKeys.all, "tree"] as const,
   detail: (id: string) => [...accountKeys.all, "detail", id] as const,
+  balance: (id: string, asOf?: string) => [...accountKeys.all, "balance", id, asOf ?? ""] as const,
   systemRoles: () => [...accountKeys.all, "system-roles"] as const,
 };
 
@@ -44,6 +45,14 @@ export function useAccount(id: string | null) {
     queryKey: useTenantQueryKey(accountKeys.detail(id ?? "")),
     queryFn: () => accountsApi.get(id!),
     enabled: Boolean(id),
+  });
+}
+
+export function useAccountBalance(id: string | null, asOf?: string, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(accountKeys.balance(id ?? "", asOf)),
+    queryFn: () => accountsApi.balance(id!, asOf),
+    enabled: Boolean(id) && enabled,
   });
 }
 

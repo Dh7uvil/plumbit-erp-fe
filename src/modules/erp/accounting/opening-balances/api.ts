@@ -1,8 +1,10 @@
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
+  InventoryCatchUpSchema,
   OpeningBalancePayloadSchema,
   OpeningBalancePreviewSchema,
   OpeningBalanceStateSchema,
+  type InventoryCatchUp,
   type OpeningBalanceFormValues,
   type OpeningBalancePayload,
   type OpeningBalancePreview,
@@ -20,7 +22,10 @@ function zeroIfEmpty(value: string): string {
   return value.trim() ? value.trim() : "0";
 }
 
-export function toOpeningBalancePayload(values: OpeningBalanceFormValues): OpeningBalancePayload {
+export function toOpeningBalancePayload(
+  values: OpeningBalanceFormValues,
+  acknowledgeExistingActivity = false,
+): OpeningBalancePayload {
   return {
     books_start_date: values.books_start_date,
     gl_lines: values.gl_lines
@@ -60,6 +65,7 @@ export function toOpeningBalancePayload(values: OpeningBalanceFormValues): Openi
         quantity: line.quantity.trim(),
         unit_cost: zeroIfEmpty(line.unit_cost),
       })),
+    acknowledge_existing_activity: acknowledgeExistingActivity,
   };
 }
 
@@ -73,12 +79,28 @@ export const openingBalancesApi = {
         OpeningBalancePayloadSchema.parse(toOpeningBalancePayload(values)),
       ),
     ),
-  commit: async (values: OpeningBalanceFormValues): Promise<OpeningBalanceState> =>
+  commit: async (
+    values: OpeningBalanceFormValues,
+    acknowledgeExistingActivity = false,
+  ): Promise<OpeningBalanceState> =>
     OpeningBalanceStateSchema.parse(
       await apiClient.post(
         "/opening-balances/commit",
-        OpeningBalancePayloadSchema.parse(toOpeningBalancePayload(values)),
+        OpeningBalancePayloadSchema.parse(
+          toOpeningBalancePayload(values, acknowledgeExistingActivity),
+        ),
         { headers: { "Idempotency-Key": randomUuid() } },
+      ),
+    ),
+  inventoryCatchUp: async (asOf?: string): Promise<InventoryCatchUp> =>
+    InventoryCatchUpSchema.parse(
+      await apiClient.post(
+        "/opening-balances/inventory-catch-up",
+        {},
+        {
+          params: { as_of: asOf },
+          headers: { "Idempotency-Key": randomUuid() },
+        },
       ),
     ),
   reset: async (): Promise<OpeningBalanceState> =>

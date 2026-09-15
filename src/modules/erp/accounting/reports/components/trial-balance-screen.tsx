@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/modules/erp/accounting/accounts/schemas";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useTrialBalance } from "@/modules/erp/accounting/reports/queries";
@@ -37,7 +38,7 @@ export function TrialBalanceScreen() {
   const branchesQuery = useAllBranches(can("identity.branch.read"));
   const report = reportQuery.data;
   const branches = branchesQuery.data ?? [];
-  const { csvPending, downloadCsv } = useReportCsv();
+  const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
 
@@ -59,8 +60,16 @@ export function TrialBalanceScreen() {
       subtitle="Opening, period movements, and netted closing balances in base currency"
       isBalanced={report?.is_balanced}
       csvPending={csvPending}
+      excelPending={excelPending}
       onDownloadCsv={() => {
         void downloadCsv(
+          "/reports/trial-balance",
+          { from, to, branch_id: branchId, include_zero: includeZero },
+          "trial-balance",
+        );
+      }}
+      onDownloadExcel={() => {
+        void downloadExcel(
           "/reports/trial-balance",
           { from, to, branch_id: branchId, include_zero: includeZero },
           "trial-balance",
@@ -159,36 +168,49 @@ export function TrialBalanceScreen() {
             </TableRow>
           ) : (
             <>
-              {report.lines.map((line) => (
-                <TableRow
-                  key={line.account_id}
-                  className={line.is_group ? undefined : "cursor-pointer"}
-                  tabIndex={line.is_group ? undefined : 0}
-                  onClick={() => {
-                    if (!line.is_group) {
-                      openGeneralLedger(line.account_id);
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (line.is_group) {
-                      return;
-                    }
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      openGeneralLedger(line.account_id);
-                    }
-                  }}
-                >
-                  <TableCell className="font-mono text-sm">{line.account_code}</TableCell>
-                  <TableCell>{line.account_name}</TableCell>
-                  <TableCell>{money(line.opening_debit)}</TableCell>
-                  <TableCell>{money(line.opening_credit)}</TableCell>
-                  <TableCell>{money(line.period_debit)}</TableCell>
-                  <TableCell>{money(line.period_credit)}</TableCell>
-                  <TableCell>{money(line.closing_net_debit ?? line.closing_debit)}</TableCell>
-                  <TableCell>{money(line.closing_net_credit ?? line.closing_credit)}</TableCell>
-                </TableRow>
-              ))}
+              {(["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"] as const).flatMap((type) => {
+                const group = report.lines.filter((line) => line.account_type === type);
+                if (group.length === 0) {
+                  return [];
+                }
+                return [
+                  <TableRow key={`type-${type}`}>
+                    <TableCell colSpan={COLUMN_COUNT} className="bg-muted/40 font-medium">
+                      {ACCOUNT_TYPE_LABELS[type as AccountType] ?? type}
+                    </TableCell>
+                  </TableRow>,
+                  ...group.map((line) => (
+                    <TableRow
+                      key={line.account_id}
+                      className={line.is_group ? undefined : "cursor-pointer"}
+                      tabIndex={line.is_group ? undefined : 0}
+                      onClick={() => {
+                        if (!line.is_group) {
+                          openGeneralLedger(line.account_id);
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (line.is_group) {
+                          return;
+                        }
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openGeneralLedger(line.account_id);
+                        }
+                      }}
+                    >
+                      <TableCell className="font-mono text-sm">{line.account_code}</TableCell>
+                      <TableCell>{line.account_name}</TableCell>
+                      <TableCell>{money(line.opening_debit)}</TableCell>
+                      <TableCell>{money(line.opening_credit)}</TableCell>
+                      <TableCell>{money(line.period_debit)}</TableCell>
+                      <TableCell>{money(line.period_credit)}</TableCell>
+                      <TableCell>{money(line.closing_net_debit ?? line.closing_debit)}</TableCell>
+                      <TableCell>{money(line.closing_net_credit ?? line.closing_credit)}</TableCell>
+                    </TableRow>
+                  )),
+                ];
+              })}
               <TableRow>
                 <TableCell colSpan={2} className="font-medium">
                   Totals

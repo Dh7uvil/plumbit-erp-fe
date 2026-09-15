@@ -30,7 +30,7 @@ export function BalanceSheetScreen() {
   const params = { as_of: asOf, branch_id: branchId };
   const reportQuery = useBalanceSheet(params);
   const report = reportQuery.data;
-  const { csvPending, downloadCsv } = useReportCsv();
+  const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
   const showComparative = Boolean(report?.comparative_as_of);
@@ -41,8 +41,12 @@ export function BalanceSheetScreen() {
       title="Balance sheet"
       subtitle="Posted assets, liabilities, and equity as of the selected date"
       csvPending={csvPending}
+      excelPending={excelPending}
       onDownloadCsv={() => {
         void downloadCsv("/reports/balance-sheet", params, "balance-sheet");
+      }}
+      onDownloadExcel={() => {
+        void downloadExcel("/reports/balance-sheet", params, "balance-sheet");
       }}
       isBalanced={report?.is_balanced}
       toolbar={
@@ -63,8 +67,8 @@ export function BalanceSheetScreen() {
             {showComparative ? (
               <TableHead>
                 {report?.comparative_as_of
-                  ? `Prior year (${report.comparative_as_of})`
-                  : "Prior year"}
+                  ? `Prior period (${report.comparative_as_of})`
+                  : "Prior period"}
               </TableHead>
             ) : null}
           </TableRow>
@@ -95,35 +99,48 @@ export function BalanceSheetScreen() {
             </TableRow>
           ) : (
             <>
-              {report.lines.map((line, index) => (
-                <TableRow key={line.account_id ?? `${line.account_code}-${index}`}>
-                  <TableCell className="font-mono text-sm">
-                    {line.account_id ? (
-                      <RecordLink href={glHref(line.account_id, asOf, asOf, branchId)}>
-                        {line.account_code}
-                      </RecordLink>
-                    ) : (
-                      line.account_code
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {line.account_id ? (
-                      <RecordLink href={glHref(line.account_id, asOf, asOf, branchId)}>
-                        {line.account_name}
-                      </RecordLink>
-                    ) : (
-                      line.account_name
-                    )}
-                  </TableCell>
-                  <TableCell>{line.account_subtype || line.account_type}</TableCell>
-                  <TableCell>{money(line.amount)}</TableCell>
-                  {showComparative ? (
-                    <TableCell>
-                      {line.comparative_amount ? money(line.comparative_amount) : "—"}
+              {(["ASSET", "LIABILITY", "EQUITY"] as const).flatMap((type) => {
+                const group = report.lines.filter((line) => line.account_type === type);
+                if (group.length === 0) {
+                  return [];
+                }
+                return [
+                  <TableRow key={`type-${type}`}>
+                    <TableCell colSpan={columnCount} className="bg-muted/40 font-medium">
+                      {type === "ASSET" ? "Assets" : type === "LIABILITY" ? "Liabilities" : "Equity"}
                     </TableCell>
-                  ) : null}
-                </TableRow>
-              ))}
+                  </TableRow>,
+                  ...group.map((line, index) => (
+                    <TableRow key={line.account_id ?? `${line.account_code}-${type}-${index}`}>
+                      <TableCell className="font-mono text-sm">
+                        {line.account_id ? (
+                          <RecordLink href={glHref(line.account_id, asOf, asOf, branchId)}>
+                            {line.account_code}
+                          </RecordLink>
+                        ) : (
+                          line.account_code
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {line.account_id ? (
+                          <RecordLink href={glHref(line.account_id, asOf, asOf, branchId)}>
+                            {line.account_name}
+                          </RecordLink>
+                        ) : (
+                          line.account_name
+                        )}
+                      </TableCell>
+                      <TableCell>{line.account_subtype || line.account_type}</TableCell>
+                      <TableCell>{money(line.amount)}</TableCell>
+                      {showComparative ? (
+                        <TableCell>
+                          {line.comparative_amount ? money(line.comparative_amount) : "—"}
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  )),
+                ];
+              })}
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Total assets

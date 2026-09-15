@@ -1,6 +1,7 @@
 import { DEFAULT_PAGE_SIZE, OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
   AccountCreateRequestSchema,
+  AccountBalanceSchema,
   AccountListSchema,
   AccountSchema,
   AccountTreeSchema,
@@ -8,6 +9,7 @@ import {
   SystemRoleMappingListSchema,
   SystemRoleMappingSchema,
   type Account,
+  type AccountBalance,
   type AccountCreateRequest,
   type AccountFormValues,
   type AccountListParams,
@@ -74,6 +76,10 @@ export const accountsApi = {
     AccountTreeSchema.parse(await apiClient.get("/accounts/tree")),
   get: async (id: string): Promise<Account> =>
     AccountSchema.parse(await apiClient.get(`/accounts/${id}`)),
+  balance: async (id: string, asOf?: string): Promise<AccountBalance> =>
+    AccountBalanceSchema.parse(
+      await apiClient.get(`/accounts/${id}/balance`, { params: { as_of: asOf } }),
+    ),
   create: async (values: AccountFormValues): Promise<Account> =>
     AccountSchema.parse(
       await apiClient.post("/accounts", AccountCreateRequestSchema.parse(toCreatePayload(values))),

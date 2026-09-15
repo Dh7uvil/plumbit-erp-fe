@@ -8,6 +8,7 @@ import { cn } from "@/shared/lib/cn";
 export type TreeViewNode<T = unknown> = {
   id: string;
   label: ReactNode;
+  textLabel?: string;
   disabled?: boolean;
   children?: TreeViewNode<T>[];
   data?: T;
@@ -248,6 +249,7 @@ function TreeNode<T>({
         aria-expanded={hasChildren ? isExpanded : undefined}
         aria-selected={selected}
         aria-disabled={node.disabled || undefined}
+        aria-label={node.textLabel}
         style={{ paddingLeft: `${depth * 1.25 + 0.25}rem` }}
         className={cn(
           "flex cursor-pointer items-center gap-1 rounded-md py-1 pr-2 text-sm outline-none",

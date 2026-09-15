@@ -64,6 +64,7 @@ const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
 const ALL = "all";
 const VIEW_TREE = "tree";
 const VIEW_LIST = "list";
+const VIEW_SYSTEM = "system";
 
 function parseBoolFilter(value: string | undefined): boolean | undefined {
   if (value === "true") {
@@ -86,6 +87,7 @@ function toTreeNodes(nodes: AccountTreeNode[]): TreeViewNode<Account>[] {
         {node.is_group ? <Badge variant="secondary">Group</Badge> : null}
       </span>
     ),
+    textLabel: `${node.code} ${node.name}`,
     children: node.children.length > 0 ? toTreeNodes(node.children) : undefined,
   }));
 }
@@ -95,7 +97,8 @@ export function AccountsScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(accountPermissions);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
-  const view = filters.view === VIEW_LIST ? VIEW_LIST : VIEW_TREE;
+  const view =
+    filters.view === VIEW_LIST ? VIEW_LIST : filters.view === VIEW_SYSTEM ? VIEW_SYSTEM : VIEW_TREE;
   const accountType =
     filters.account_type && ACCOUNT_TYPES.includes(filters.account_type as AccountType)
       ? (filters.account_type as AccountType)
@@ -153,12 +156,19 @@ export function AccountsScreen() {
       />
       <Tabs
         value={view}
-        onValueChange={(value) => setParams({ filters: { view: value === VIEW_LIST ? VIEW_LIST : null } })}
+        onValueChange={(value) =>
+          setParams({
+            filters: {
+              view: value === VIEW_LIST || value === VIEW_SYSTEM ? value : null,
+            },
+          })
+        }
       >
         <DataTableToolbar>
           <TabsList>
             <TabsTrigger value={VIEW_TREE}>Tree</TabsTrigger>
             <TabsTrigger value={VIEW_LIST}>List</TabsTrigger>
+            <TabsTrigger value={VIEW_SYSTEM}>System accounts</TabsTrigger>
           </TabsList>
           {view === VIEW_LIST ? (
             <>
@@ -306,8 +316,10 @@ export function AccountsScreen() {
             </TableBody>
           </DataTable>
         </TabsContent>
+        <TabsContent value={VIEW_SYSTEM}>
+          <SystemAccountsCard />
+        </TabsContent>
       </Tabs>
-      <SystemAccountsCard />
       <AccountFormDialog open={formOpen} account={null} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}

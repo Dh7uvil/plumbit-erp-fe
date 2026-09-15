@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { DecimalStringSchema } from "@/shared/lib/money";
 
 export const ACCOUNT_TYPES = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"] as const;
 export const AccountTypeSchema = z.enum(ACCOUNT_TYPES);
@@ -34,6 +35,22 @@ export const ACCOUNT_SUBTYPES = [
 ] as const;
 export const AccountSubtypeSchema = z.enum(ACCOUNT_SUBTYPES);
 export type AccountSubtype = z.infer<typeof AccountSubtypeSchema>;
+
+export const ACCOUNT_SUBTYPES_BY_TYPE: Record<AccountType, readonly AccountSubtype[]> = {
+  ASSET: [
+    "BANK",
+    "CASH",
+    "ACCOUNTS_RECEIVABLE",
+    "STOCK",
+    "FIXED_ASSET",
+    "OTHER_CURRENT_ASSET",
+    "TAX_RECEIVABLE",
+  ],
+  LIABILITY: ["ACCOUNTS_PAYABLE", "OTHER_CURRENT_LIABILITY", "TAX_PAYABLE"],
+  EQUITY: ["EQUITY"],
+  INCOME: ["INCOME", "OTHER_INCOME"],
+  EXPENSE: ["COGS", "EXPENSE", "OTHER_EXPENSE"],
+};
 
 export const ACCOUNT_SUBTYPE_LABELS: Record<AccountSubtype, string> = {
   BANK: "Bank",
@@ -144,6 +161,8 @@ export const AccountSchema = z.object({
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
+  has_children: z.boolean().optional().default(false),
+  has_journal_lines: z.boolean().optional().default(false),
 });
 export type Account = z.infer<typeof AccountSchema>;
 
@@ -214,6 +233,16 @@ export const EMPTY_ACCOUNT_FORM: AccountFormValues = {
   is_active: true,
   currency_id: OPTIONAL_SELECT_NONE,
 };
+
+export const AccountBalanceSchema = z.object({
+  account_id: z.string().uuid(),
+  as_of: z.string(),
+  debit: DecimalStringSchema,
+  credit: DecimalStringSchema,
+  signed_balance: DecimalStringSchema,
+  currency_code: z.string().nullable().optional().default(null),
+});
+export type AccountBalance = z.infer<typeof AccountBalanceSchema>;
 
 export type AccountListParams = {
   page?: number;

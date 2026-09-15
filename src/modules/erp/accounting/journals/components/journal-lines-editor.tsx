@@ -44,9 +44,11 @@ function partyTypeFor(account: Account | undefined): "CUSTOMER" | "SUPPLIER" | n
 export function JournalLinesEditor({
   form,
   disabled,
+  currencyCode,
 }: {
   form: UseFormReturn<JournalFormValues>;
   disabled: boolean;
+  currencyCode?: string | null;
 }) {
   const can = useCan();
   const accountsQuery = useAllAccounts({ is_group: false, is_active: true });
@@ -70,6 +72,9 @@ export function JournalLinesEditor({
   const suppliers = suppliersQuery.data ?? [];
   const watchedLines = form.watch("lines");
   const totals = journalBalanceTotals(watchedLines ?? []);
+  const showPartyColumns = (watchedLines ?? []).some((line) =>
+    Boolean(partyTypeFor(accountsById.get(line.account_id))),
+  );
 
   function onLastFieldKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
     if (disabled) {
@@ -87,11 +92,11 @@ export function JournalLinesEditor({
         <table className="w-full caption-bottom text-sm">
           <TableHeader>
             <TableRow>
-              <TableHead>Account</TableHead>
-              <TableHead>Debit</TableHead>
-              <TableHead>Credit</TableHead>
-              <TableHead>Party</TableHead>
-              <TableHead>Due date</TableHead>
+              <TableHead className="min-w-[20ch]">Account</TableHead>
+              <TableHead className="w-32">Debit</TableHead>
+              <TableHead className="w-32">Credit</TableHead>
+              {showPartyColumns ? <TableHead>Party</TableHead> : null}
+              {showPartyColumns ? <TableHead>Due date</TableHead> : null}
               <TableHead>Reference</TableHead>
               <TableHead>Description</TableHead>
               <TableHead />
@@ -110,7 +115,7 @@ export function JournalLinesEditor({
                     : [];
               return (
                 <TableRow key={field.id}>
-                  <TableCell className="min-w-52 align-top">
+                  <TableCell className="min-w-[20ch] align-top">
                     <FormField
                       control={form.control}
                       name={`lines.${index}.account_id`}
@@ -155,7 +160,7 @@ export function JournalLinesEditor({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="min-w-28 align-top">
+                  <TableCell className="w-32 align-top">
                     <FormField
                       control={form.control}
                       name={`lines.${index}.debit`}
@@ -180,7 +185,7 @@ export function JournalLinesEditor({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="min-w-28 align-top">
+                  <TableCell className="w-32 align-top">
                     <FormField
                       control={form.control}
                       name={`lines.${index}.credit`}
@@ -205,69 +210,73 @@ export function JournalLinesEditor({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="min-w-44 align-top">
-                    {partyType ? (
-                      <FormField
-                        control={form.control}
-                        name={`lines.${index}.party_id`}
-                        render={({ field: partyField }) => (
-                          <FormItem>
-                            <FormControl>
-                              <MasterSelect
-                                compact
-                                asFormControl={false}
-                                value={partyField.value}
-                                onValueChange={partyField.onChange}
-                                disabled={disabled}
-                                placeholder={partyType === "CUSTOMER" ? "Customer" : "Supplier"}
-                                searchPlaceholder="Search party…"
-                                aria-label={`Line ${index + 1} party`}
-                                createLabel={
-                                  partyType === "CUSTOMER" ? "Create customer" : "Create supplier"
-                                }
-                                onCreate={
-                                  (
-                                    partyType === "CUSTOMER"
-                                      ? can(customerPermissions.create)
-                                      : can(supplierPermissions.create)
-                                  )
-                                    ? () => setCreatingParty({ type: partyType, index })
-                                    : undefined
-                                }
-                                options={partyOptions}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="min-w-36 align-top">
-                    {partyType ? (
-                      <FormField
-                        control={form.control}
-                        name={`lines.${index}.due_date`}
-                        render={({ field: dueField }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                type="date"
-                                disabled={disabled}
-                                aria-label={`Line ${index + 1} due date`}
-                                {...dueField}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </TableCell>
+                  {showPartyColumns ? (
+                    <TableCell className="min-w-44 align-top">
+                      {partyType ? (
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.party_id`}
+                          render={({ field: partyField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <MasterSelect
+                                  compact
+                                  asFormControl={false}
+                                  value={partyField.value}
+                                  onValueChange={partyField.onChange}
+                                  disabled={disabled}
+                                  placeholder={partyType === "CUSTOMER" ? "Customer" : "Supplier"}
+                                  searchPlaceholder="Search party…"
+                                  aria-label={`Line ${index + 1} party`}
+                                  createLabel={
+                                    partyType === "CUSTOMER" ? "Create customer" : "Create supplier"
+                                  }
+                                  onCreate={
+                                    (
+                                      partyType === "CUSTOMER"
+                                        ? can(customerPermissions.create)
+                                        : can(supplierPermissions.create)
+                                    )
+                                      ? () => setCreatingParty({ type: partyType, index })
+                                      : undefined
+                                  }
+                                  options={partyOptions}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                  ) : null}
+                  {showPartyColumns ? (
+                    <TableCell className="min-w-36 align-top">
+                      {partyType ? (
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.due_date`}
+                          render={({ field: dueField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  type="date"
+                                  disabled={disabled}
+                                  aria-label={`Line ${index + 1} due date`}
+                                  {...dueField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                  ) : null}
                   <TableCell className="min-w-36 align-top">
                     <FormField
                       control={form.control}
@@ -286,7 +295,7 @@ export function JournalLinesEditor({
                       )}
                     />
                   </TableCell>
-                  <TableCell className="min-w-44 align-top">
+                  <TableCell className="min-w-[16rem] align-top">
                     <FormField
                       control={form.control}
                       name={`lines.${index}.description`}
@@ -324,12 +333,19 @@ export function JournalLinesEditor({
             })}
             <TableRow>
               <TableCell className="font-medium">Totals</TableCell>
-              <TableCell className="font-medium">{formatReportMoney(totals.totalDebit)}</TableCell>
-              <TableCell className="font-medium">{formatReportMoney(totals.totalCredit)}</TableCell>
-              <TableCell colSpan={5} className="text-muted-foreground text-xs">
+              <TableCell className="font-medium">
+                {formatReportMoney(totals.totalDebit, currencyCode)}
+              </TableCell>
+              <TableCell className="font-medium">
+                {formatReportMoney(totals.totalCredit, currencyCode)}
+              </TableCell>
+              <TableCell
+                colSpan={showPartyColumns ? 5 : 3}
+                className="text-muted-foreground text-xs"
+              >
                 {totals.isBalanced
                   ? "Balanced"
-                  : `Difference ${formatReportMoney(totals.difference)} (server confirms on post)`}
+                  : `Difference ${formatReportMoney(totals.difference, currencyCode)} (server confirms on post)`}
               </TableCell>
             </TableRow>
           </TableBody>

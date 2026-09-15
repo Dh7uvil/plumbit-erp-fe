@@ -163,6 +163,34 @@ export function formatReportMoney(
   return formatMoney(value, currencyCode || "AED");
 }
 
+export function formatCompactReportMoney(
+  value: string | null | undefined,
+  currencyCode?: string | null,
+): string {
+  if (value == null || value === "") {
+    return "—";
+  }
+  try {
+    const { whole } = parseDecimalParts(value);
+    if (whole.length < 6) {
+      return formatReportMoney(value, currencyCode);
+    }
+    const currency = currencyCode || "AED";
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return formatReportMoney(value, currencyCode);
+    }
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(numeric);
+  } catch {
+    return formatReportMoney(value, currencyCode);
+  }
+}
+
 export function formatMoney(value: string | null | undefined, currencyCode: string): string {
   if (value == null || value === "") {
     return "—";

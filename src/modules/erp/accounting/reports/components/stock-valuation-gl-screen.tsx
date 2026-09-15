@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useCatchUpInventoryGl } from "@/modules/erp/accounting/opening-balances/mutations";
+import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { reportsApi } from "@/modules/erp/accounting/reports/api";
 import {
   InventoryReportFilters,
@@ -12,10 +14,13 @@ import { glHref } from "@/modules/erp/accounting/reports/schemas";
 import { useStockValuationGl } from "@/modules/erp/accounting/reports/queries";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
+import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
+import { Alert, AlertDescription } from "@/shared/components/ui/alert";
+import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -42,6 +47,12 @@ export function StockValuationGlScreen() {
   const reportQuery = useStockValuationGl(params);
   const report = reportQuery.data;
   const [csvPending, setCsvPending] = useState(false);
+  const [confirmCatchUp, setConfirmCatchUp] = useState(false);
+  const catchUp = useCatchUpInventoryGl();
+  const canCatchUp = can(openingBalancePermissions.manage);
+  const money = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
+  const outOfBalance = report ? !/^-?0+(?:\.0+)?$/.test(report.difference.trim()) : false;
 
   return (
     <ReportShell
@@ -68,7 +79,7 @@ export function StockValuationGlScreen() {
           : undefined
       }
       isBalanced={report ? /^-?0+(?:\.0+)?$/.test(report.difference.trim()) : undefined}
-      imbalanceMessage="Inventory valuation does not match the inventory GL balance. Totals come from the server."
+      imbalanceMessage="Inventory valuation does not match the inventory GL balance. Post an inventory catch-up journal to debit or credit Inventory against Opening Balance Equity without recreating stock layers."
       toolbar={
         <InventoryReportFilters
           asOf={asOf}
@@ -79,6 +90,19 @@ export function StockValuationGlScreen() {
         />
       }
     >
+      {outOfBalance && canCatchUp ? (
+        <Alert>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              Post a catch-up journal for the valuation vs GL difference. This does not recreate
+              stock layers.
+            </span>
+            <Button type="button" size="sm" onClick={() => setConfirmCatchUp(true)}>
+              Post inventory catch-up
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <DataTable>
         <TableHeader>
           <TableRow>
@@ -120,21 +144,45 @@ export function StockValuationGlScreen() {
           ) : (
             <TableRow>
               <TableCell>{report.as_of}</TableCell>
-              <TableCell>{formatReportMoney(report.valuation_total)}</TableCell>
+              <TableCell>{money(report.valuation_total)}</TableCell>
               <TableCell>
                 {report.inventory_account_id ? (
                   <RecordLink href={glHref(report.inventory_account_id, asOf, asOf)}>
-                    {formatReportMoney(report.gl_balance)}
+                    {money(report.gl_balance)}
                   </RecordLink>
                 ) : (
-                  formatReportMoney(report.gl_balance)
+                  money(report.gl_balance)
                 )}
               </TableCell>
-              <TableCell>{formatReportMoney(report.difference)}</TableCell>
+              <TableCell>{money(report.difference)}</TableCell>
             </TableRow>
           )}
         </TableBody>
       </DataTable>
+      <ConfirmActionDialog
+        open={confirmCatchUp}
+        title="Post inventory catch-up"
+        description="This posts a balanced journal for the current valuation minus inventory GL, against Opening Balance Equity. Existing stock layers are not recreated."
+        confirmLabel="Post catch-up"
+        pending={catchUp.isPending}
+        onOpenChange={setConfirmCatchUp}
+        onConfirm={() => {
+          void (async () => {
+            try {
+              const result = await catchUp.mutateAsync(asOf);
+              toast.success(
+                result.posted
+                  ? `Catch-up posted${result.document_number ? ` as ${result.document_number}` : ""}.`
+                  : "Inventory already matches GL.",
+              );
+              setConfirmCatchUp(false);
+              await reportQuery.refetch();
+            } catch (error) {
+              toast.error(getErrorMessage(error));
+            }
+          })();
+        }}
+      />
     </ReportShell>
   );
 }

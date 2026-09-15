@@ -56,6 +56,7 @@ export const GeneralLedgerLineSchema = z.object({
 export type GeneralLedgerLine = z.infer<typeof GeneralLedgerLineSchema>;
 
 export const GeneralLedgerSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   account_id: z.string().uuid(),
   account_code: z.string(),
   account_name: z.string(),
@@ -63,6 +64,9 @@ export const GeneralLedgerSchema = z.object({
   to_date: z.string(),
   opening_balance: DecimalStringSchema,
   closing_balance: DecimalStringSchema,
+  page: z.number().int().optional().default(1),
+  page_size: z.number().int().nullable().optional().default(null),
+  total_lines: z.number().int().optional().default(0),
   lines: z.array(GeneralLedgerLineSchema).default([]),
 });
 export type GeneralLedger = z.infer<typeof GeneralLedgerSchema>;
@@ -104,6 +108,10 @@ export type GeneralLedgerParams = {
   to: string;
   party_id?: string;
   branch_id?: string;
+  source_type?: string;
+  side?: string;
+  page?: number;
+  page_size?: number;
 };
 
 export type AccountStatementParams = {
@@ -168,14 +176,33 @@ export const AgingBucketTotalsSchema = z.object({
 });
 export type AgingBucketTotals = z.infer<typeof AgingBucketTotalsSchema>;
 
+export const AgingDocumentSchema = z.object({
+  item_type: z.string(),
+  document_id: z.string().uuid(),
+  document_number: z.string(),
+  document_date: z.string(),
+  due_date: z.string().nullable().optional().default(null),
+  currency_code: z.string().nullable().optional().default(null),
+  balance: DecimalStringSchema,
+  base_balance: DecimalStringSchema,
+  bucket: z.string(),
+});
+export type AgingDocument = z.infer<typeof AgingDocumentSchema>;
+
 export const AgingPartyRowSchema = AgingBucketTotalsSchema.extend({
   party_id: z.string().uuid(),
   party_name: z.string(),
   currency_id: z.string().uuid().nullable().optional().default(null),
   currency_code: z.string().nullable().optional().default(null),
   base: AgingBucketTotalsSchema.nullable().optional().default(null),
+  documents: z.array(AgingDocumentSchema).optional().default([]),
 });
 export type AgingPartyRow = z.infer<typeof AgingPartyRowSchema>;
+
+export const AgingCurrencyTotalsSchema = AgingBucketTotalsSchema.extend({
+  currency_code: z.string(),
+});
+export type AgingCurrencyTotals = z.infer<typeof AgingCurrencyTotalsSchema>;
 
 export const AgingSchema = z.object({
   currency_code: z.string().nullable().optional().default(null),
@@ -183,6 +210,7 @@ export const AgingSchema = z.object({
   rows: z.array(AgingPartyRowSchema).default([]),
   totals: AgingBucketTotalsSchema,
   base_totals: AgingBucketTotalsSchema.nullable().optional().default(null),
+  currency_totals: z.array(AgingCurrencyTotalsSchema).optional().default([]),
 });
 export type Aging = z.infer<typeof AgingSchema>;
 
@@ -237,12 +265,18 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   package: (id) => `/packages/${id}`,
   shipment: (id) => `/shipments/${id}`,
   sales_return: (id) => `/sales-returns/${id}`,
+  purchase_return: (id) => `/purchase-returns/${id}`,
+  quality_inspection: (id) => `/quality-inspections/${id}`,
   sales_invoice: (id) => `/sales-invoices/${id}`,
   purchase_invoice: (id) => `/purchase-invoices/${id}`,
   credit_note: (id) => `/credit-notes/${id}`,
   debit_note: (id) => `/debit-notes/${id}`,
   customer_payment: (id) => `/customer-payments/${id}`,
+  customer_payment_allocation: (id) => `/customer-payments/${id}`,
+  customer_payment_refund: (id) => `/customer-payments/${id}`,
   supplier_payment: (id) => `/supplier-payments/${id}`,
+  supplier_payment_allocation: (id) => `/supplier-payments/${id}`,
+  supplier_payment_refund: (id) => `/supplier-payments/${id}`,
   landed_cost: (id) => `/landed-costs/${id}`,
   stock_transfer: (id) => `/stock-transfers/${id}`,
   stock_adjustment: (id) => `/stock-adjustments/${id}`,
@@ -254,6 +288,9 @@ export function sourceDocumentHref(
   sourceId: string | null | undefined,
   journalEntryId: string,
 ): string {
+  if (sourceType === "OPENING_BALANCE" || sourceType === "INVENTORY_CATCH_UP") {
+    return `/journals/${journalEntryId}`;
+  }
   if (sourceType && sourceId && SOURCE_HREFS[sourceType]) {
     return SOURCE_HREFS[sourceType](sourceId);
   }
@@ -277,14 +314,28 @@ export const StockValuationLineSchema = z.object({
 export type StockValuationLine = z.infer<typeof StockValuationLineSchema>;
 
 export const StockValuationSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   as_of: z.string(),
   total_qty: DecimalStringSchema,
   total_value: DecimalStringSchema,
+  warehouse_totals: z
+    .array(
+      z.object({
+        warehouse_id: z.string().uuid(),
+        warehouse_code: z.string(),
+        warehouse_name: z.string(),
+        total_qty: DecimalStringSchema,
+        total_value: DecimalStringSchema,
+      }),
+    )
+    .optional()
+    .default([]),
   lines: z.array(StockValuationLineSchema).optional().default([]),
 });
 export type StockValuation = z.infer<typeof StockValuationSchema>;
 
 export const StockValuationGlSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   as_of: z.string(),
   inventory_account_id: z.string().uuid().nullable().optional().default(null),
   valuation_total: DecimalStringSchema,
@@ -397,9 +448,14 @@ export const ProfitAndLossSchema = z.object({
   comparative_to: z.string().nullable().optional().default(null),
   ytd_from: z.string().nullable().optional().default(null),
   total_income: DecimalStringSchema,
+  total_cogs: DecimalStringSchema.optional().default("0"),
+  total_operating_expense: DecimalStringSchema.optional().default("0"),
   total_expense: DecimalStringSchema,
+  gross_profit: DecimalStringSchema.optional().default("0"),
   net_profit: DecimalStringSchema,
+  comparative_gross_profit: z.string().nullable().optional().default(null),
   comparative_net_profit: z.string().nullable().optional().default(null),
+  ytd_gross_profit: z.string().nullable().optional().default(null),
   ytd_net_profit: z.string().nullable().optional().default(null),
   lines: z.array(ProfitAndLossLineSchema).optional().default([]),
 });
@@ -547,6 +603,85 @@ export type CashFlowParams = {
 export type TaxRegisterParams = {
   from: string;
   to: string;
+  box?: string;
+};
+
+export const VatGlReconLineSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  vat_201_amount: DecimalStringSchema,
+  gl_amount: DecimalStringSchema,
+  difference: DecimalStringSchema,
+  account_id: z.string().uuid().nullable().optional().default(null),
+});
+export type VatGlReconLine = z.infer<typeof VatGlReconLineSchema>;
+
+export const VatGlReconSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
+  from_date: z.string(),
+  to_date: z.string(),
+  lines: z.array(VatGlReconLineSchema).optional().default([]),
+});
+export type VatGlRecon = z.infer<typeof VatGlReconSchema>;
+
+export const OutstandingDocumentSchema = z.object({
+  item_type: z.string(),
+  document_id: z.string().uuid(),
+  document_number: z.string(),
+  document_date: z.string(),
+  due_date: z.string().nullable().optional().default(null),
+  party_id: z.string().uuid(),
+  party_name: z.string(),
+  currency_code: z.string().nullable().optional().default(null),
+  original_amount: DecimalStringSchema,
+  balance: DecimalStringSchema,
+  base_balance: DecimalStringSchema,
+  bucket: z.string(),
+  days_overdue: z.number().int().optional().default(0),
+});
+export type OutstandingDocument = z.infer<typeof OutstandingDocumentSchema>;
+
+export const OutstandingDocumentsSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
+  as_of: z.string(),
+  party_type: z.string(),
+  total_balance: DecimalStringSchema,
+  total_base_balance: DecimalStringSchema,
+  lines: z.array(OutstandingDocumentSchema).optional().default([]),
+});
+export type OutstandingDocuments = z.infer<typeof OutstandingDocumentsSchema>;
+
+export const SalesPurchaseAnalysisLineSchema = z.object({
+  group_key: z.string(),
+  group_label: z.string(),
+  document_count: z.number().int(),
+  net_amount: DecimalStringSchema,
+  tax_amount: DecimalStringSchema,
+  grand_total: DecimalStringSchema,
+  account_id: z.string().uuid().nullable().optional().default(null),
+  party_id: z.string().uuid().nullable().optional().default(null),
+  product_id: z.string().uuid().nullable().optional().default(null),
+  salesperson_id: z.string().uuid().nullable().optional().default(null),
+});
+export type SalesPurchaseAnalysisLine = z.infer<typeof SalesPurchaseAnalysisLineSchema>;
+
+export const SalesPurchaseAnalysisSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
+  from_date: z.string(),
+  to_date: z.string(),
+  group_by: z.string(),
+  document_count: z.number().int(),
+  total_net: DecimalStringSchema,
+  total_tax: DecimalStringSchema,
+  total_grand: DecimalStringSchema,
+  lines: z.array(SalesPurchaseAnalysisLineSchema).optional().default([]),
+});
+export type SalesPurchaseAnalysis = z.infer<typeof SalesPurchaseAnalysisSchema>;
+
+export type AnalysisParams = {
+  from: string;
+  to: string;
+  group_by?: string;
 };
 
 export const ThreeWayMatchLineSchema = z.object({

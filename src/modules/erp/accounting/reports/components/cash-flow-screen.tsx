@@ -32,7 +32,7 @@ export function CashFlowScreen() {
   const params = { from, to, branch_id: branchId };
   const reportQuery = useCashFlow(params);
   const report = reportQuery.data;
-  const { csvPending, downloadCsv } = useReportCsv();
+  const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
   const showComparative = Boolean(report?.comparative_from);
@@ -43,8 +43,12 @@ export function CashFlowScreen() {
       title="Cash flow"
       subtitle="Indirect cash flow from posted journals. Totals come from the server."
       csvPending={csvPending}
+      excelPending={excelPending}
       onDownloadCsv={() => {
         void downloadCsv("/reports/cash-flow", params, "cash-flow");
+      }}
+      onDownloadExcel={() => {
+        void downloadExcel("/reports/cash-flow", params, "cash-flow");
       }}
       toolbar={
         <StatementReportFilters
