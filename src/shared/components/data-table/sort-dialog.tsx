@@ -67,7 +67,7 @@ export function SortDialog({
         <Button
           id={triggerId}
           type="button"
-          variant="outline"
+          variant="default"
           size="sm"
           className={toolbarSortButtonClass(active)}
           onClick={() => handleOpenChange(true)}
@@ -75,7 +75,7 @@ export function SortDialog({
           <ArrowUpDown className="size-3.5" />
           {activeLabel}
           {active ? (
-            <Badge className="h-5 min-w-5 px-1">1</Badge>
+            <Badge className="h-5 min-w-5 border-transparent bg-white px-1 text-primary">1</Badge>
           ) : null}
         </Button>
       </ToolbarControl>

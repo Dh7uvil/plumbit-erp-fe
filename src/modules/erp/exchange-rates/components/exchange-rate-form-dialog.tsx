@@ -23,6 +23,7 @@ import {
   useCrudPermissions,
 } from "@/shared/auth/use-crud-permissions";
 import { FormDialogFooter } from "@/shared/components/form/form-dialog-footer";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import {
@@ -160,7 +161,13 @@ export function ExchangeRateFormDialog({
                   <FormItem>
                     <FormLabel>Rate to base</FormLabel>
                     <FormControl>
-                      <Input placeholder="1" disabled={readOnly} {...field} />
+                      <DecimalInput
+                        kind="quantity"
+                        precision={6}
+                        placeholder="1.000000"
+                        disabled={readOnly}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

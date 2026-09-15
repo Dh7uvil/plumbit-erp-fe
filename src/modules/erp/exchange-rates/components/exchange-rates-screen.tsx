@@ -2,9 +2,11 @@
 
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { ExchangeRateFormDialog } from "@/modules/erp/exchange-rates/components/exchange-rate-form-dialog";
+import { useDeleteExchangeRate } from "@/modules/erp/exchange-rates/mutations";
 import { exchangeRatePermissions } from "@/modules/erp/exchange-rates/permissions";
 import { useExchangeRates } from "@/modules/erp/exchange-rates/queries";
 import type { ExchangeRate } from "@/modules/erp/exchange-rates/schemas";
@@ -22,6 +24,7 @@ import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { SortableHeads } from "@/shared/components/data-table/sortable-head";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -30,7 +33,7 @@ import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatDecimal } from "@/shared/lib/format";
 
 const COLUMN_HEADERS = ["From currency", "Rate to base", "Effective date"] as const;
 const SORT_FIELDS = [
@@ -43,7 +46,7 @@ const SORT_FIELD_BY_HEADER: Partial<Record<string, string>> = {
 };
 
 export function ExchangeRatesScreen() {
-  const { canCreate, canRead, canUpdate } = useCrudPermissions(exchangeRatePermissions);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(exchangeRatePermissions);
   const canEditRate = canCreate || canUpdate;
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
@@ -57,10 +60,12 @@ export function ExchangeRatesScreen() {
     sort_order,
   });
   const currenciesQuery = useAllCurrencies();
+  const deleteRate = useDeleteExchangeRate();
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<ExchangeRate | null>(null);
   const [forceReadOnly, setForceReadOnly] = useState(false);
-  const showActions = hasRowActions(canRead, canEditRate);
+  const [deleting, setDeleting] = useState<ExchangeRate | null>(null);
+  const showActions = hasRowActions(canRead, canEditRate, canDelete);
   const headers = tableHeaders(COLUMN_HEADERS, showActions);
 
   const rows = exchangeRatesQuery.data?.data ?? [];
@@ -94,6 +99,19 @@ export function ExchangeRatesScreen() {
     setSelected(rate);
     setForceReadOnly(false);
     setFormOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!deleting) {
+      return;
+    }
+    try {
+      await deleteRate.mutateAsync(deleting.id);
+      toast.success("Exchange rate deleted");
+      setDeleting(null);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
   }
 
   return (
@@ -226,13 +244,14 @@ export function ExchangeRatesScreen() {
                     formatDecimal(rate.rate)
                   )}
                 </TableCell>
-                <TableCell>{rate.effective_date}</TableCell>
+                <TableCell>{formatDate(rate.effective_date)}</TableCell>
                 {showActions ? (
                   <TableCell>
                     <DataTableRowActions
                       entityName={currencyLabel(rate.from_currency_id)}
                       onView={canRead ? () => openView(rate) : undefined}
                       onEdit={canEditRate ? () => openEdit(rate) : undefined}
+                      onDelete={canDelete ? () => setDeleting(rate) : undefined}
                     />
                   </TableCell>
                 ) : null}
@@ -252,6 +271,17 @@ export function ExchangeRatesScreen() {
             setForceReadOnly(false);
           }
         }}
+      />
+      <ConfirmActionDialog
+        open={Boolean(deleting)}
+        title="Delete exchange rate"
+        description={`Delete the rate for ${
+          deleting ? currencyLabel(deleting.from_currency_id) : "this currency"
+        }? Documents already snapshot their rate.`}
+        confirmLabel="Delete"
+        pending={deleteRate.isPending}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        onConfirm={() => void confirmDelete()}
       />
     </ListPage>
   );

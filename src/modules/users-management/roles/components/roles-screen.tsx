@@ -185,7 +185,7 @@ export function RolesScreen() {
                     <span className="font-medium">{role.name}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground max-w-xs truncate text-xs whitespace-normal">
+                <TableCell className="text-muted-foreground max-w-xs truncate text-xs">
                   {role.description || "—"}
                 </TableCell>
                 <TableCell>

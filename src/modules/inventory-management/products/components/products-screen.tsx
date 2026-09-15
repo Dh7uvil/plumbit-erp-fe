@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
 import { useAllCategories } from "@/modules/inventory-management/categories/queries";
 import { ProductFormDialog } from "@/modules/inventory-management/products/components/product-form-dialog";
 import { useDeleteProduct } from "@/modules/inventory-management/products/mutations";
@@ -16,6 +17,7 @@ import {
   type ItemType,
   type Product,
 } from "@/modules/inventory-management/products/schemas";
+import { useAllUnits } from "@/modules/inventory-management/units/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -82,8 +84,12 @@ export function ProductsScreen() {
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraCategory = filters.category_id ?? ALL;
-  const extraCount = extraCategory !== ALL ? 1 : 0;
+  const extraUnit = filters.unit_id ?? ALL;
+  const extraTax = filters.tax_id ?? ALL;
+  const extraCount = [extraCategory, extraUnit, extraTax].filter((value) => value !== ALL).length;
   const [draftCategory, setDraftCategory] = useState(ALL);
+  const [draftUnit, setDraftUnit] = useState(ALL);
+  const [draftTax, setDraftTax] = useState(ALL);
   const productsQuery = useProducts({
     page,
     page_size,
@@ -93,8 +99,12 @@ export function ProductsScreen() {
     item_type: parseItemType(filters.item_type),
     is_active: parseBoolFilter(filters.is_active),
     category_id: filters.category_id,
+    unit_id: filters.unit_id,
+    tax_id: filters.tax_id,
   });
   const categoriesQuery = useAllCategories();
+  const unitsQuery = useAllUnits();
+  const taxesQuery = useAllTaxes();
   const currenciesQuery = useAllCurrencies();
   const deleteProduct = useDeleteProduct();
   const [formOpen, setFormOpen] = useState(false);
@@ -103,6 +113,8 @@ export function ProductsScreen() {
   const rows = productsQuery.data?.data ?? [];
   const meta = productsQuery.data?.meta;
   const categories = categoriesQuery.data ?? [];
+  const units = unitsQuery.data ?? [];
+  const taxes = taxesQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
   const displayCurrency = currencies.find((currency) => currency.is_base) ?? currencies[0];
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
@@ -133,7 +145,13 @@ export function ProductsScreen() {
               title="products"
               canImport={can(productPermissions.import) || canCreate}
               canExport={can(productPermissions.export) || canRead}
-              exportParams={{ search, item_type: filters.item_type, category_id: filters.category_id }}
+              exportParams={{
+                search,
+                item_type: filters.item_type,
+                category_id: filters.category_id,
+                unit_id: filters.unit_id,
+                tax_id: filters.tax_id,
+              }}
               onImported={() => {
                 void productsQuery.refetch();
               }}
@@ -188,13 +206,27 @@ export function ProductsScreen() {
         />
         <MoreFiltersDialog
           extraCount={extraCount}
-          draftCount={draftCategory !== ALL ? 1 : 0}
-          description="Filter by category."
-          onOpen={() => setDraftCategory(extraCategory)}
+          draftCount={[draftCategory, draftUnit, draftTax].filter((value) => value !== ALL).length}
+          description="Filter by category, unit, or tax."
+          onOpen={() => {
+            setDraftCategory(extraCategory);
+            setDraftUnit(extraUnit);
+            setDraftTax(extraTax);
+          }}
           onApply={() =>
-            setParams({ filters: { category_id: draftCategory === ALL ? null : draftCategory } })
+            setParams({
+              filters: {
+                category_id: draftCategory === ALL ? null : draftCategory,
+                unit_id: draftUnit === ALL ? null : draftUnit,
+                tax_id: draftTax === ALL ? null : draftTax,
+              },
+            })
           }
-          onClearDraft={() => setDraftCategory(ALL)}
+          onClearDraft={() => {
+            setDraftCategory(ALL);
+            setDraftUnit(ALL);
+            setDraftTax(ALL);
+          }}
         >
           <FilterField label="Category" htmlFor="product-filter-category">
             <FilterSelect
@@ -206,6 +238,32 @@ export function ProductsScreen() {
               options={[
                 { value: ALL, label: "All categories" },
                 ...categories.map((category) => ({ value: category.id, label: category.name })),
+              ]}
+            />
+          </FilterField>
+          <FilterField label="Unit" htmlFor="product-filter-unit">
+            <FilterSelect
+              id="product-filter-unit"
+              className="w-full"
+              placeholder="Unit"
+              value={draftUnit}
+              onValueChange={setDraftUnit}
+              options={[
+                { value: ALL, label: "All units" },
+                ...units.map((unit) => ({ value: unit.id, label: `${unit.code} · ${unit.name}` })),
+              ]}
+            />
+          </FilterField>
+          <FilterField label="Tax" htmlFor="product-filter-tax">
+            <FilterSelect
+              id="product-filter-tax"
+              className="w-full"
+              placeholder="Tax"
+              value={draftTax}
+              onValueChange={setDraftTax}
+              options={[
+                { value: ALL, label: "All taxes" },
+                ...taxes.map((tax) => ({ value: tax.id, label: tax.name })),
               ]}
             />
           </FilterField>
@@ -226,7 +284,7 @@ export function ProductsScreen() {
                 search: null,
                 sort_by: null,
                 sort_order: null,
-                filters: { is_active: null, item_type: null, category_id: null },
+                filters: { is_active: null, item_type: null, category_id: null, unit_id: null, tax_id: null },
               })
             }
           >
@@ -279,12 +337,20 @@ export function ProductsScreen() {
                 <TableCell className="font-mono text-sm">
                   <RecordLink href={`/products/${product.id}`}>{product.sku}</RecordLink>
                 </TableCell>
-                <TableCell className="font-medium">
-                  <RecordLink href={`/products/${product.id}`}>{product.name}</RecordLink>
+                <TableCell className="max-w-xs min-w-0 font-medium">
+                  <RecordLink href={`/products/${product.id}`} className="block truncate">
+                    {product.name}
+                  </RecordLink>
                 </TableCell>
                 <TableCell>{ITEM_TYPE_LABELS[product.item_type]}</TableCell>
                 <TableCell>
-                  {displayCurrency ? formatMoney(product.selling_rate, displayCurrency.code) : "—"}
+                  {displayCurrency
+                    ? formatMoney(
+                        product.selling_rate,
+                        displayCurrency.code,
+                        displayCurrency.decimal_places,
+                      )
+                    : "—"}
                 </TableCell>
                 <TableCell>
                   <ActiveBadge active={product.is_active} />

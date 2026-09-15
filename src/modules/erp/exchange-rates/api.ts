@@ -44,4 +44,6 @@ export const exchangeRatesApi = {
         },
       }),
     ),
+  delete: async (id: string): Promise<ExchangeRate> =>
+    ExchangeRateSchema.parse(await apiClient.delete(`/exchange-rates/${id}`)),
 };

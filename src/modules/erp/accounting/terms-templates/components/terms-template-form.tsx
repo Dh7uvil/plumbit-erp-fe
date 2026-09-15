@@ -129,14 +129,22 @@ export function TermsTemplateForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Body</FormLabel>
-              <FormControl>
-                <Textarea
-                  rows={8}
-                  placeholder="Terms and conditions"
-                  disabled={disabled}
-                  {...field}
-                />
-              </FormControl>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FormControl>
+                  <Textarea
+                    rows={8}
+                    placeholder="Terms and conditions"
+                    disabled={disabled}
+                    {...field}
+                  />
+                </FormControl>
+                <div className="bg-muted/40 min-h-40 rounded-md border p-3">
+                  <p className="text-muted-foreground mb-1 text-xs font-medium">Preview</p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {field.value.trim() || "The terms body will appear here."}
+                  </p>
+                </div>
+              </div>
               <FormMessage />
             </FormItem>
           )}

@@ -7,12 +7,14 @@ import { usePathname } from "next/navigation";
 import { findActiveNav } from "@/config/navigation";
 import { buildBreadcrumbs } from "@/shared/components/layout/breadcrumb";
 import { useBreadcrumbRecordLabel } from "@/shared/components/layout/breadcrumb-record";
+import { useIsClient } from "@/shared/hooks/use-is-client";
 
 export function AppBreadcrumb() {
   const pathname = usePathname();
+  const isClient = useIsClient();
   const recordLabel = useBreadcrumbRecordLabel();
-  const active = findActiveNav(pathname);
-  const crumbs = buildBreadcrumbs({ pathname, active, recordLabel });
+  const active = isClient ? findActiveNav(pathname) : undefined;
+  const crumbs = isClient ? buildBreadcrumbs({ pathname, active, recordLabel }) : [];
 
   return (
     <nav className="hidden min-w-0 items-center gap-1.5 text-xs sm:flex" aria-label="Breadcrumb">

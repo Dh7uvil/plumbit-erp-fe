@@ -42,4 +42,10 @@ export const auditLogsApi = {
     ),
   byId: async (id: string): Promise<AuditLogDetail> =>
     AuditLogDetailSchema.parse(await apiClient.get(`/audit-logs/${id}`)),
+  exportCsv: (params: AuditLogFilterParams = {}, filename = "audit-logs"): Promise<void> =>
+    apiClient.downloadFile("/audit-logs/export.csv", {
+      params: filterQuery(params),
+      filename,
+      accept: "text/csv",
+    }),
 };

@@ -1,11 +1,13 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
   AssignRolesRequestSchema,
+  AdminResetUserPasswordRequestSchema,
   UserCreateRequestSchema,
   UserDetailSchema,
   UserListSchema,
   UserUpdateRequestSchema,
   type User,
+  type AdminResetUserPasswordRequest,
   type UserCreateRequest,
   type UserDetail,
   type UserListParams,
@@ -68,6 +70,13 @@ export const usersApi = {
       await apiClient.put(
         `/users/${id}/roles`,
         AssignRolesRequestSchema.parse({ role_ids: roleIds }),
+      ),
+    ),
+  resetPassword: async (id: string, values: AdminResetUserPasswordRequest): Promise<UserDetail> =>
+    UserDetailSchema.parse(
+      await apiClient.post(
+        `/users/${id}/password-reset`,
+        AdminResetUserPasswordRequestSchema.parse(values),
       ),
     ),
 };

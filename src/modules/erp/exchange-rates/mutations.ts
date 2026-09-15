@@ -14,3 +14,13 @@ export function useUpsertExchangeRate() {
     },
   });
 }
+
+export function useDeleteExchangeRate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: exchangeRatesApi.delete,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: exchangeRateKeys.all });
+    },
+  });
+}

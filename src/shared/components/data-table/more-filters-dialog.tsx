@@ -78,7 +78,7 @@ export function MoreFiltersDialog({
         <Button
           id={triggerId}
           type="button"
-          variant="outline"
+          variant="default"
           size="sm"
           className={toolbarFilterButtonClass(extraCount > 0)}
           onClick={() => handleOpenChange(true)}
@@ -86,7 +86,7 @@ export function MoreFiltersDialog({
           <ListFilter className="size-3.5" />
           More filters
           {extraCount > 0 ? (
-            <Badge variant="info" className="h-5 min-w-5 px-1">
+            <Badge className="h-5 min-w-5 border-transparent bg-white px-1 text-info">
               {extraCount}
             </Badge>
           ) : null}

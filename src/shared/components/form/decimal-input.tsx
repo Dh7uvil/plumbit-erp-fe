@@ -15,6 +15,7 @@ const KIND_DIGITS: Record<DecimalInputKind, number> = {
 
 export function DecimalInput({
   kind,
+  precision,
   onBlur,
   onChange,
   value,
@@ -23,8 +24,9 @@ export function DecimalInput({
   ...props
 }: Omit<ComponentProps<typeof Input>, "type" | "inputMode"> & {
   kind: DecimalInputKind;
+  precision?: number;
 }) {
-  const digits = KIND_DIGITS[kind];
+  const digits = precision ?? KIND_DIGITS[kind];
   const raw = value == null ? "" : String(value);
   const fraction = raw.includes(".") ? raw.split(".")[1] ?? "" : "";
   const shouldNormalizeDisplay =
@@ -45,7 +47,7 @@ export function DecimalInput({
       onChange={onChange}
       onBlur={(event) => {
         const current = event.target.value;
-        const normalized = normalizeDecimalInput(current, KIND_DIGITS[kind]);
+        const normalized = normalizeDecimalInput(current, digits);
         if (normalized !== current && onChange) {
           event.target.value = normalized;
           onChange(event);

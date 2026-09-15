@@ -28,6 +28,7 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
+import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
@@ -153,7 +154,7 @@ export function PaymentTermForm({
               <FormItem className="col-span-full">
                 <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Input placeholder="Optional" disabled={disabled} {...field} />
+                  <Textarea rows={3} placeholder="Optional" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

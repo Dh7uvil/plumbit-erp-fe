@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -128,6 +128,7 @@ export function UserFormDialog({
   const updateUser = useUpdateUser();
   const assignRoles = useAssignUserRoles();
   const [formError, setFormError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const canAssignRoles = can(userPermissions.assignRoles);
 
   const createForm = useForm<UserCreateFormValues>({
@@ -428,14 +429,30 @@ export function UserFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            autoComplete="new-password"
-                            placeholder="Temporary password"
-                            {...field}
-                          />
-                        </FormControl>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              autoComplete="new-password"
+                              placeholder="Temporary password"
+                              className="pr-9"
+                              {...field}
+                            />
+                          </FormControl>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded-sm p-1"
+                            onClick={() => setShowPassword((value) => !value)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            title={showPassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="size-3.5" />
+                            ) : (
+                              <Eye className="size-3.5" />
+                            )}
+                          </button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}

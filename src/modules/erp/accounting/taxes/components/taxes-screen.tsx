@@ -105,7 +105,7 @@ export function TaxesScreen() {
     <ListPage>
       <PageHeader
         title="Taxes"
-        subtitle="UAE VAT tax master used on quote lines"
+        subtitle="UAE VAT tax master used on commercial documents"
         actions={
           canCreate ? (
             <Button type="button" size="sm" onClick={openCreate}>

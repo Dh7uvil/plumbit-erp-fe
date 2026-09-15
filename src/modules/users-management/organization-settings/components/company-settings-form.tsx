@@ -332,10 +332,8 @@ function SettingsFieldItem({
   return (
     <FormItem className={className}>
       <FormLabel className="text-muted-foreground text-xs font-medium">{label}</FormLabel>
-      <div className="relative">
-        {children}
-        <FormMessage className="absolute top-full right-0 mt-0.5 max-w-full text-right text-xs leading-3" />
-      </div>
+      {children}
+      <FormMessage className="text-xs" />
     </FormItem>
   );
 }
@@ -775,9 +773,11 @@ export function CompanySettingsForm() {
                     onValueChange={(value) => field.onChange(Number(value))}
                     disabled={!canUpdate || !isEditingRegional}
                   >
-                    <SelectTrigger aria-label="Fiscal year start month">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <FormControl>
+                      <SelectTrigger aria-label="Fiscal year start month">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
                     <SelectContent>
                       {FISCAL_MONTHS.map((month) => (
                         <SelectItem key={month.value} value={String(month.value)}>
@@ -799,9 +799,11 @@ export function CompanySettingsForm() {
                     onValueChange={(value) => field.onChange(Number(value))}
                     disabled={!canUpdate || !isEditingRegional}
                   >
-                    <SelectTrigger aria-label="Fiscal year start day">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <FormControl>
+                      <SelectTrigger aria-label="Fiscal year start day">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
                     <SelectContent>
                       {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
                         <SelectItem key={day} value={String(day)}>

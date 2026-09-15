@@ -3118,6 +3118,7 @@ function me() {
       "erp.exchange_rate.read",
       "erp.exchange_rate.create",
       "erp.exchange_rate.update",
+      "erp.exchange_rate.delete",
       "erp.tax.read",
       "erp.tax.create",
       "erp.tax.update",

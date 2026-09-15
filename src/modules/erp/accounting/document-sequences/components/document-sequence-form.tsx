@@ -3,7 +3,7 @@
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import {
@@ -65,6 +65,19 @@ function toCreateRequest(values: DocumentSequenceFormValues): DocumentSequenceCr
   };
 }
 
+function formatSequencePreview(
+  prefix: string,
+  fiscalYear: number,
+  nextNumber: number,
+  padding: number,
+) {
+  const safeNumber = Number.isFinite(nextNumber) ? nextNumber : 1;
+  const safePadding = Number.isFinite(padding) ? padding : 6;
+  return `${prefix || "PREFIX"}-${fiscalYear || new Date().getFullYear()}-${String(
+    safeNumber,
+  ).padStart(safePadding, "0")}`;
+}
+
 export function DocumentSequenceForm({
   sequence,
   disabled = false,
@@ -88,6 +101,16 @@ export function DocumentSequenceForm({
     values: toFormValues(sequence),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  const [prefix, fiscalYear, nextNumber, padding] = useWatch({
+    control: form.control,
+    name: ["prefix", "fiscal_year", "next_number", "padding"],
+  });
+  const preview = formatSequencePreview(
+    prefix,
+    fiscalYear,
+    nextNumber,
+    padding,
+  );
 
   async function onSubmit(values: DocumentSequenceFormValues) {
     setFormError(null);
@@ -267,6 +290,9 @@ export function DocumentSequenceForm({
               )}
             />
           ) : null}
+          <div className="bg-muted/50 text-muted-foreground col-span-full rounded-md border px-3 py-2 text-sm">
+            Next document number preview: <span className="text-foreground font-mono">{preview}</span>
+          </div>
         </div>
         {showCancel || !disabled ? (
           <div className="flex justify-end gap-2">

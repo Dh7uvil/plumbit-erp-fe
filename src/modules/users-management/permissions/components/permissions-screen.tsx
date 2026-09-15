@@ -67,6 +67,7 @@ export function PermissionsScreen() {
   const savePermissions = useSetRolePermissions();
   const resetPermissions = useResetRolePermissions();
   const [draft, setDraft] = useState<{ roleId: string; ids: string[] } | null>(null);
+  const [pendingRoleId, setPendingRoleId] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [draftResource, setDraftResource] = useState(ALL);
 
@@ -84,6 +85,13 @@ export function PermissionsScreen() {
     }
     return new Set(grantedPermissionIds(matrixQuery.data));
   }, [draft, selectedRoleId, matrixQuery.data]);
+
+  const grantedIds = useMemo(
+    () => (matrixQuery.data ? grantedPermissionIds(matrixQuery.data) : []),
+    [matrixQuery.data],
+  );
+  const isDirty =
+    Boolean(draft) && draft?.roleId === selectedRoleId && !sameIdSet([...selectedIds], grantedIds);
 
   const table = useMemo(
     () => (matrixQuery.data ? permissionMatrixTable(matrixQuery.data) : { actions: [], rows: [] }),
@@ -174,9 +182,20 @@ export function PermissionsScreen() {
     writePermissionsQuery(next);
   }
 
-  function selectRole(id: string) {
+  function applyRole(id: string) {
     setDraft(null);
     replaceFilters({ role_id: id });
+  }
+
+  function selectRole(id: string) {
+    if (id === selectedRoleId) {
+      return;
+    }
+    if (isDirty) {
+      setPendingRoleId(id);
+      return;
+    }
+    applyRole(id);
   }
 
   function selectModule(value: string) {
@@ -431,6 +450,25 @@ export function PermissionsScreen() {
           </TableBody>
         </DataTable>
       ) : null}
+      <ConfirmActionDialog
+        open={Boolean(pendingRoleId)}
+        title="Discard unsaved permission changes?"
+        description="You have unsaved permission edits for this role. Switch anyway and lose those changes?"
+        confirmLabel="Discard and switch"
+        variant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingRoleId(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!pendingRoleId) {
+            return;
+          }
+          applyRole(pendingRoleId);
+          setPendingRoleId(null);
+        }}
+      />
       <ConfirmActionDialog
         open={resetOpen}
         title="Reset Superadmin permissions"
