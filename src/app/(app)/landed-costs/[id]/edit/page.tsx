@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { LandedCostDetailScreen } from "@/modules/erp/landed-costs/components/landed-cost-detail-screen";
 import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function LandedCostEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function LandedCostEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={landedCostPermissions.update}>
-      {parsed.success ? (
-        <LandedCostDetailScreen landedCostId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Landed cost not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={landedCostPermissions.update}
+      notFoundMessage="Landed cost not found."
+    >
+      {(id) => <LandedCostDetailScreen landedCostId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

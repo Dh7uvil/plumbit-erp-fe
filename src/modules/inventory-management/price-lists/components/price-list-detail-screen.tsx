@@ -11,6 +11,10 @@ import { toast } from "sonner";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import {
+  priceListItemColumnDefs,
+  type PriceListItemRow,
+} from "@/modules/inventory-management/price-lists/components/price-list-item-columns";
+import {
   useDeletePriceListItem,
   useUpdatePriceList,
   useUpsertPriceListItem,
@@ -25,10 +29,17 @@ import {
 } from "@/modules/inventory-management/price-lists/schemas";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import type { PaginationMeta } from "@/shared/api/envelope";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
 import { DataTable } from "@/shared/components/data-table/data-table";
-import { TableActionTooltip, tableHeaders } from "@/shared/components/data-table/row-actions";
+import { ListSearch } from "@/shared/components/data-table/list-search";
+import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import {
   RecordPageHeader,
@@ -52,15 +63,12 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
-import { formatMoney } from "@/shared/lib/format";
-
-const ITEM_COLUMNS = ["SKU", "Product", "Rate"] as const;
+import { useNestedTableParams } from "@/shared/hooks/use-table-params";
 
 export function PriceListDetailScreen({
   priceListId,
@@ -108,7 +116,6 @@ export function PriceListDetailScreen({
   useDirtyFormGuard(isEdit && form.formState.isDirty);
 
   const items = priceList?.items ?? [];
-  const itemHeaders = tableHeaders(ITEM_COLUMNS, isEdit);
   const assignedProductIds = new Set(items.map((item) => item.product_id));
   const availableProducts = products.filter((product) => !assignedProductIds.has(product.id));
 
@@ -332,59 +339,14 @@ export function PriceListDetailScreen({
               </div>
             </div>
           ) : null}
-          <DataTable>
-            <TableHeader>
-              <TableRow>
-                {itemHeaders.map((header) => (
-                  <TableHead key={header}>{header}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={itemHeaders.length}>
-                    <DataTableEmpty
-                      title="No items"
-                      message={emptyListMessage(isEdit, "Add a product rate to this list.")}
-                    />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-mono text-sm">
-                      {productById.get(item.product_id)?.sku ?? "—"}
-                    </TableCell>
-                    <TableCell className="max-w-xs min-w-0 truncate font-medium">
-                      {productById.get(item.product_id)?.name ?? "—"}
-                    </TableCell>
-                    <TableCell>
-                      {currency
-                        ? formatMoney(item.rate, currency.code, currency.decimal_places)
-                        : "—"}
-                    </TableCell>
-                    {isEdit ? (
-                      <TableCell>
-                        <TableActionTooltip label="Delete item">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive size-7"
-                            aria-label="Delete item"
-                            onClick={() => setDeletingItem(item)}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </TableActionTooltip>
-                      </TableCell>
-                    ) : null}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </DataTable>
+          <PriceListItemsTable
+            items={items}
+            productById={productById}
+            currencyCode={currency?.code ?? ""}
+            decimalPlaces={currency?.decimal_places}
+            isEdit={isEdit}
+            onDelete={setDeletingItem}
+          />
         </CardContent>
       </Card>
       <ConfirmActionDialog
@@ -396,6 +358,171 @@ export function PriceListDetailScreen({
         onOpenChange={(open) => !open && setDeletingItem(null)}
         onConfirm={() => void confirmDeleteItem()}
       />
+    </div>
+  );
+}
+
+const ITEM_SORT_FIELDS = [
+  { value: "sku", label: "SKU" },
+  { value: "product", label: "Product" },
+  { value: "rate", label: "Rate" },
+] as const;
+
+function compareItems(left: PriceListItemRow, right: PriceListItemRow, sortBy?: string, sortOrder?: "asc" | "desc") {
+  if (!sortBy) {
+    return 0;
+  }
+  const direction = sortOrder === "desc" ? -1 : 1;
+  if (sortBy === "rate") {
+    return (Number(left.rate) - Number(right.rate)) * direction;
+  }
+  const leftValue = sortBy === "product" ? left.product_name : left.sku;
+  const rightValue = sortBy === "product" ? right.product_name : right.sku;
+  return leftValue.localeCompare(rightValue, undefined, { numeric: true }) * direction;
+}
+
+function PriceListItemsTable({
+  items,
+  productById,
+  currencyCode,
+  decimalPlaces,
+  isEdit,
+  onDelete,
+}: {
+  items: PriceListItem[];
+  productById: Map<string, { name: string; sku: string }>;
+  currencyCode: string;
+  decimalPlaces?: number;
+  isEdit: boolean;
+  onDelete: (item: PriceListItem) => void;
+}) {
+  const { page, page_size, search, sort_by, sort_order, setParams, setPage, setPageSize } =
+    useNestedTableParams();
+  const rows = useMemo<PriceListItemRow[]>(() => {
+    const needle = (search ?? "").trim().toLowerCase();
+    const mapped = items.map((item) => {
+      const product = productById.get(item.product_id);
+      return {
+        id: item.id,
+        product_id: item.product_id,
+        sku: product?.sku ?? "",
+        product_name: product?.name ?? "",
+        rate: item.rate,
+      };
+    });
+    const filtered = needle
+      ? mapped.filter(
+          (row) =>
+            row.sku.toLowerCase().includes(needle) || row.product_name.toLowerCase().includes(needle),
+        )
+      : mapped;
+    return [...filtered].sort((left, right) => compareItems(left, right, sort_by, sort_order));
+  }, [items, productById, search, sort_by, sort_order]);
+  const total = rows.length;
+  const totalPages = total === 0 ? 0 : Math.max(1, Math.ceil(total / page_size));
+  const currentPage = Math.min(page, Math.max(totalPages, 1));
+  const paged = rows.slice((currentPage - 1) * page_size, currentPage * page_size);
+  const meta: PaginationMeta = {
+    page: currentPage,
+    page_size,
+    total,
+    total_pages: totalPages,
+  };
+  const columnDefs = useMemo(
+    () =>
+      priceListItemColumnDefs({
+        currencyCode,
+        decimalPlaces,
+        actions: isEdit
+          ? (row) => (
+              <TableActionTooltip label="Delete item">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive size-7"
+                  aria-label="Delete item"
+                  onClick={() => {
+                    const item = items.find((candidate) => candidate.id === row.id);
+                    if (item) {
+                      onDelete(item);
+                    }
+                  }}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </TableActionTooltip>
+            )
+          : undefined,
+      }),
+    [currencyCode, decimalPlaces, isEdit, items, onDelete],
+  );
+  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.price_list_items", columnDefs);
+  const hasQuery = Boolean(search || sort_by);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <DataTableToolbar>
+        <ListSearch
+          value={search ?? ""}
+          onChange={(value) => setParams({ search: value || null })}
+          placeholder="Search SKU or name…"
+        />
+        <SortDialog
+          fields={[...ITEM_SORT_FIELDS]}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
+        />
+        {columnsDialog}
+        {hasQuery ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setParams({ search: null, sort_by: null, sort_order: null })}
+          >
+            Clear
+          </Button>
+        ) : null}
+      </DataTableToolbar>
+      <DataTable
+        variant="embedded"
+        footer={
+          total > 0 ? (
+            <DataTablePagination meta={meta} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          ) : null
+        }
+      >
+        <TableHeader>
+          <TableRow>
+            <DataTableColumnHeads
+              columns={columns}
+              sortBy={sort_by}
+              sortOrder={sort_order}
+              onSort={setParams}
+            />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {paged.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={colSpan}>
+                <DataTableEmpty
+                  title="No items"
+                  message={emptyListMessage(isEdit, "Add a product rate to this list.")}
+                />
+              </TableCell>
+            </TableRow>
+          ) : (
+            paged.map((row) => (
+              <TableRow key={row.id}>
+                <DataTableCells columns={columns} row={row} />
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </DataTable>
     </div>
   );
 }

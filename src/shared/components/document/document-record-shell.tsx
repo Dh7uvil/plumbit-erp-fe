@@ -26,6 +26,8 @@ export function DocumentRecordShell({
   title,
   subtitle,
   code,
+  codeLabel,
+  codeTooltip,
   listHref,
   viewHref,
   editHref,
@@ -51,6 +53,8 @@ export function DocumentRecordShell({
   title: string;
   subtitle?: string;
   code?: string | null;
+  codeLabel?: string;
+  codeTooltip?: string;
   listHref: string;
   viewHref: string;
   editHref?: string;
@@ -92,6 +96,8 @@ export function DocumentRecordShell({
         title={title}
         subtitle={subtitle}
         code={code}
+        codeLabel={codeLabel}
+        codeTooltip={codeTooltip}
         badges={badges}
         listHref={listHref}
         viewHref={viewHref}

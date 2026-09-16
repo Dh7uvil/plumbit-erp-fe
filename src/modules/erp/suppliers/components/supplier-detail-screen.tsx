@@ -25,7 +25,6 @@ import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import {
   useSupplier,
   useSupplierOutstandingSummary,
-  useSupplierPaymentHistory,
 } from "@/modules/erp/suppliers/queries";
 import {
   ExtraAddressFormSchema,
@@ -45,16 +44,12 @@ import { PartyDocumentsCard } from "@/shared/components/document/party-documents
 import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
 import { historyHref } from "@/shared/lib/history";
 import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
-import {
-  PartyPaymentHistoryCard,
-  toPartyPaymentHistoryRows,
-} from "@/shared/components/document/party-payment-history-card";
+import { PartyPaymentHistoryCard } from "@/shared/components/document/party-payment-history-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { TableActionTooltip, tableHeaders } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { AddressFields } from "@/shared/components/form/address-fields";
-import { RecordCode } from "@/shared/components/form/record-code";
 import {
   RecordPageHeader,
   type RecordPageMode,
@@ -119,10 +114,6 @@ export function SupplierDetailScreen({
   const { canUpdate } = useCrudPermissions(supplierPermissions);
   const supplierQuery = useSupplier(supplierId);
   const outstandingQuery = useSupplierOutstandingSummary(supplierId, mode !== "edit");
-  const paymentHistoryQuery = useSupplierPaymentHistory(
-    supplierId,
-    mode !== "edit" && can(supplierPaymentPermissions.read),
-  );
   const currenciesQuery = useAllCurrencies();
   const addAddress = useAddSupplierAddress();
   const deleteAddress = useDeleteSupplierAddress();
@@ -217,6 +208,7 @@ export function SupplierDetailScreen({
       <RecordPageHeader
         title={supplier.name}
         code={supplier.code}
+        codeLabel="Supplier"
         listHref="/suppliers"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}
@@ -233,12 +225,9 @@ export function SupplierDetailScreen({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">{isEdit ? "Edit supplier" : "Supplier"}</CardTitle>
-          <div className="flex items-center gap-2">
-            <RecordCode entity="Supplier" code={supplier.code} />
-            {mode === "view" ? (
-              <HistoryHeaderButton href={historyHref("suppliers", supplier.id, supplier.code)} />
-            ) : null}
-          </div>
+          {mode === "view" ? (
+            <HistoryHeaderButton href={historyHref("suppliers", supplier.id, supplier.code)} />
+          ) : null}
         </CardHeader>
         <CardContent>
           <SupplierForm
@@ -259,15 +248,7 @@ export function SupplierDetailScreen({
             reportPermission={reportPermissions.arAp}
           />
           {can(supplierPaymentPermissions.read) ? (
-            <PartyPaymentHistoryCard
-              currencyCode={currencyCode}
-              isLoading={paymentHistoryQuery.isLoading}
-              rows={toPartyPaymentHistoryRows(
-                paymentHistoryQuery.data ?? [],
-                (id) => `/supplier-payments/${id}`,
-                "amount_paid",
-              )}
-            />
+            <PartyPaymentHistoryCard kind="supplier" partyId={supplier.id} />
           ) : null}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2">

@@ -56,6 +56,17 @@ export function actionsColumn<T>(
   ];
 }
 
+export function omitColumnIds<T>(
+  defs: readonly DataTableColumn<T>[],
+  ids: readonly string[] = [],
+): Array<DataTableColumn<T>> {
+  if (ids.length === 0) {
+    return [...defs];
+  }
+  const skip = new Set(ids);
+  return defs.filter((column) => !skip.has(column.id));
+}
+
 export function customizableColumns<T>(
   defs: readonly DataTableColumn<T>[],
 ): Array<DataTableColumn<T>> {

@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { PackageDetailScreen } from "@/modules/inventory-management/packages/components/package-detail-screen";
 import { packagePermissions } from "@/modules/inventory-management/packages/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function PackageDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function PackageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={packagePermissions.read}>
-      {parsed.success ? (
-        <PackageDetailScreen packageId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Package not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={packagePermissions.read}
+      notFoundMessage="Package not found."
+    >
+      {(id) => <PackageDetailScreen packageId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

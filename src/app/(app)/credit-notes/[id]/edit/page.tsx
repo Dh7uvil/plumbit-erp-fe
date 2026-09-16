@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { CreditNoteDetailScreen } from "@/modules/erp/credit-notes/components/credit-note-detail-screen";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function CreditNoteEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function CreditNoteEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={creditNotePermissions.update}>
-      {parsed.success ? (
-        <CreditNoteDetailScreen noteId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Credit note not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={creditNotePermissions.update}
+      notFoundMessage="Credit note not found."
+    >
+      {(id) => <CreditNoteDetailScreen noteId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

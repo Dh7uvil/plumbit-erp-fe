@@ -1,7 +1,7 @@
 import type { NavigationItem } from "@/config/navigation";
 import { navigation } from "@/config/navigation";
 import { findReportByHref } from "@/config/report-catalog";
-import { HISTORY_PAGE_TITLE, parseHistoryPath } from "@/shared/lib/history";
+import { historyPageTitle, parseHistoryPath } from "@/shared/lib/history";
 
 export type BreadcrumbCrumb = {
   label: string;
@@ -42,7 +42,7 @@ export function buildBreadcrumbs({
         label: recordLabel || "Details",
         href: `${history.spec.listHref}/${history.id}`,
       },
-      { label: HISTORY_PAGE_TITLE },
+      { label: historyPageTitle(history.spec.slug) },
     ];
     return crumbs;
   }

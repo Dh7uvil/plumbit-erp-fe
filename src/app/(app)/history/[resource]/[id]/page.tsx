@@ -7,7 +7,19 @@ import { isHistoryResource } from "@/shared/lib/history";
 
 const IdSchema = z.string().uuid();
 
-export default async function HistoryPage({
+export default function HistoryPage({
+  params,
+}: {
+  params: Promise<{ resource: string; id: string }>;
+}) {
+  return (
+    <Suspense fallback={<Skeleton className="m-6 h-96 w-auto" />}>
+      <HistoryPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function HistoryPageContent({
   params,
 }: {
   params: Promise<{ resource: string; id: string }>;
@@ -21,9 +33,5 @@ export default async function HistoryPage({
     );
   }
 
-  return (
-    <Suspense fallback={<Skeleton className="m-6 h-96 w-auto" />}>
-      <EntityHistoryScreen resource={resource} id={parsed.data} />
-    </Suspense>
-  );
+  return <EntityHistoryScreen resource={resource} id={parsed.data} />;
 }

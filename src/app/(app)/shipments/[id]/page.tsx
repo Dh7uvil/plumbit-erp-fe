@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { ShipmentDetailScreen } from "@/modules/inventory-management/shipments/components/shipment-detail-screen";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function ShipmentDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={shipmentPermissions.read}>
-      {parsed.success ? (
-        <ShipmentDetailScreen shipmentId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Shipment not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={shipmentPermissions.read}
+      notFoundMessage="Shipment not found."
+    >
+      {(id) => <ShipmentDetailScreen shipmentId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

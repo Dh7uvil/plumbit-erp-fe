@@ -1,22 +1,15 @@
-import { z } from "zod";
-
 import { SalesOrderDetailScreen } from "@/modules/erp/sales-orders/components/sales-order-detail-screen";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const SalesOrderIdSchema = z.string().uuid();
-
-export default async function SalesOrderEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const parsed = SalesOrderIdSchema.safeParse(id);
-
+export default function SalesOrderEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={salesOrderPermissions.update}>
-      {parsed.success ? (
-        <SalesOrderDetailScreen salesOrderId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Sales order not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={salesOrderPermissions.update}
+      notFoundMessage="Sales order not found."
+    >
+      {(id) => <SalesOrderDetailScreen salesOrderId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

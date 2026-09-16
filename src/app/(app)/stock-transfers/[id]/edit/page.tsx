@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { StockTransferDetailScreen } from "@/modules/inventory-management/stock-transfers/components/stock-transfer-detail-screen";
 import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function StockTransferEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function StockTransferEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={stockTransferPermissions.update}>
-      {parsed.success ? (
-        <StockTransferDetailScreen transferId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Stock transfer not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={stockTransferPermissions.update}
+      notFoundMessage="Stock transfer not found."
+    >
+      {(id) => <StockTransferDetailScreen transferId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

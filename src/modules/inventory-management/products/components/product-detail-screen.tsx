@@ -68,6 +68,7 @@ export function ProductDetailScreen({
       <RecordPageHeader
         title={product.name}
         code={product.sku}
+        codeTooltip="SKU"
         listHref="/products"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}

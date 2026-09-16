@@ -5,20 +5,19 @@ import { type ReactNode } from "react";
 
 import { getErrorMessage } from "@/shared/api/errors";
 import type { PaginationMeta } from "@/shared/api/envelope";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
+import { type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import type { SortPatch } from "@/shared/components/data-table/sort";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
+import type { SortOrder } from "@/shared/hooks/use-table-params";
 
-export type DocumentHistoryColumn<T> = {
-  id: string;
-  header: string;
-  className?: string;
-  cell: (row: T) => ReactNode;
-};
+export type DocumentHistoryColumn<T> = DataTableColumn<T>;
 
 export function DocumentHistoryTable<T>({
   columns,
@@ -37,8 +36,11 @@ export function DocumentHistoryTable<T>({
   expandedId,
   onToggleExpand,
   renderExpanded,
+  sortBy,
+  sortOrder,
+  onSort,
 }: {
-  columns: Array<DocumentHistoryColumn<T>>;
+  columns: Array<DataTableColumn<T>>;
   rows: T[];
   getRowId: (row: T) => string;
   isLoading: boolean;
@@ -54,6 +56,9 @@ export function DocumentHistoryTable<T>({
   expandedId?: string | null;
   onToggleExpand?: (id: string) => void;
   renderExpanded?: (row: T) => ReactNode;
+  sortBy?: string;
+  sortOrder?: SortOrder;
+  onSort?: (next: SortPatch) => void;
 }) {
   const expandEnabled = Boolean(onToggleExpand && renderExpanded);
   const colSpan = columns.length + (expandEnabled ? 1 : 0);
@@ -62,6 +67,7 @@ export function DocumentHistoryTable<T>({
     <div className="flex flex-col gap-3">
       {toolbar}
       <DataTable
+        variant="embedded"
         footer={
           meta && onPageChange ? (
             <DataTablePagination
@@ -74,12 +80,13 @@ export function DocumentHistoryTable<T>({
       >
         <TableHeader>
           <TableRow>
-            {expandEnabled ? <TableHead className="w-8" /> : null}
-            {columns.map((column) => (
-              <TableHead key={column.id} className={column.className}>
-                {column.header}
-              </TableHead>
-            ))}
+            {expandEnabled ? <TableHead className="w-8 min-w-8" /> : null}
+            <DataTableColumnHeads
+              columns={columns}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+            />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -133,11 +140,7 @@ export function DocumentHistoryTable<T>({
                       </Tooltip>
                     </TableCell>
                   ) : null}
-                  {columns.map((column) => (
-                    <TableCell key={column.id} className={column.className}>
-                      {column.cell(row)}
-                    </TableCell>
-                  ))}
+                  <DataTableCells columns={columns} row={row} />
                 </TableRow>
               );
               if (!expanded || !renderExpanded) {

@@ -35,9 +35,9 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full overflow-hidden antialiased`}
     >
-      <body className="min-h-full font-sans">
+      <body className="h-full overflow-hidden font-sans">
         <Script
           id="theme-bootstrap"
           strategy="beforeInteractive"

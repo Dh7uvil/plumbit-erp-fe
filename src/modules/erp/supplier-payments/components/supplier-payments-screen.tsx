@@ -7,12 +7,12 @@ import { toast } from "sonner";
 
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { supplierPaymentColumnDefs } from "@/modules/erp/supplier-payments/components/supplier-payment-columns";
 import { useDeleteSupplierPayment } from "@/modules/erp/supplier-payments/mutations";
 import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
 import { useSupplierPayments } from "@/modules/erp/supplier-payments/queries";
 import {
   INVOICE_DOCUMENT_STATUS_LABELS,
-  INVOICE_DOCUMENT_STATUS_VARIANTS,
   INVOICE_DOCUMENT_STATUSES,
   PAYMENT_METHOD_LABELS,
   PAYMENT_METHODS,
@@ -25,26 +25,16 @@ import { SUPPLIER_PAYMENT_ACTION_REGISTRY } from "@/modules/erp/supplier-payment
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import {
-  auditActorColumns,
-  auditTimestampColumns,
-  useUserNameMap,
-} from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { useUserNameMap } from "@/shared/components/data-table/audit-columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
@@ -55,7 +45,6 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatMoney } from "@/shared/lib/format";
 
 const ALL = "all";
 const SORT_FIELDS = [
@@ -139,135 +128,36 @@ export function SupplierPaymentsScreen() {
     }
   }
 
-  const columnDefs = useMemo((): Array<DataTableColumn<SupplierPayment>> => {
-    return [
-      {
-        id: "document_number",
-        header: "Number",
-        sortableField: "document_number",
-        className: "font-mono text-sm",
-        cell: (payment) => {
-          const number = supplierPaymentDisplayNumber(payment);
-          return (
-            <RecordLink href={`/supplier-payments/${payment.id}`}>{number ?? "—"}</RecordLink>
-          );
-        },
-      },
-      {
-        id: "supplier",
-        header: "Supplier",
-        className: "font-medium",
-        cell: (payment) => (
-          <RecordLink href={`/supplier-payments/${payment.id}`}>
-            {supplierNameById.get(payment.supplier_id) ?? "—"}
-          </RecordLink>
-        ),
-      },
-      {
-        id: "payment_date",
-        header: "Date",
-        sortableField: "payment_date",
-        cell: (payment) => formatDate(payment.payment_date),
-      },
-      {
-        id: "method",
-        header: "Method",
-        cell: (payment) => PAYMENT_METHOD_LABELS[payment.payment_method],
-      },
-      {
-        id: "status",
-        header: "Status",
-        sortableField: "status",
-        cell: (payment) => (
-          <DocumentStatusBadge
-            status={payment.status}
-            labels={INVOICE_DOCUMENT_STATUS_LABELS}
-            variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
-          />
-        ),
-      },
-      {
-        id: "amount",
-        header: "Amount",
-        sortableField: "amount_paid",
-        headerClassName: "text-right",
-        className: "text-right tabular-nums",
-        cell: (payment) =>
-          formatMoney(payment.amount_paid, currencyCodeById.get(payment.currency_id) ?? "AED"),
-      },
-      {
-        id: "is_posted",
-        header: "Posted",
-        defaultVisible: false,
-        cell: (payment) => (payment.is_posted ? "Posted" : "Draft"),
-      },
-      {
-        id: "currency",
-        header: "Currency",
-        defaultVisible: false,
-        cell: (payment) => currencyCodeById.get(payment.currency_id) ?? "—",
-      },
-      {
-        id: "exchange_rate",
-        header: "Exchange rate",
-        defaultVisible: false,
-        className: "tabular-nums",
-        cell: (payment) => payment.exchange_rate,
-      },
-      {
-        id: "reference",
-        header: "Reference",
-        defaultVisible: false,
-        cell: (payment) => payment.reference || "—",
-      },
-      {
-        id: "bank_charges",
-        header: "Bank charges",
-        defaultVisible: false,
-        headerClassName: "text-right",
-        className: "text-right tabular-nums",
-        cell: (payment) =>
-          formatMoney(payment.bank_charges, currencyCodeById.get(payment.currency_id) ?? ""),
-      },
-      {
-        id: "amount_unapplied",
-        header: "Unapplied",
-        defaultVisible: false,
-        headerClassName: "text-right",
-        className: "text-right tabular-nums",
-        cell: (payment) =>
-          formatMoney(payment.amount_unapplied, currencyCodeById.get(payment.currency_id) ?? ""),
-      },
-      {
-        id: "notes",
-        header: "Notes",
-        defaultVisible: false,
-        className: "max-w-xs truncate",
-        cell: (payment) => payment.notes || "—",
-      },
-      ...auditTimestampColumns<SupplierPayment>(),
-      ...auditActorColumns<SupplierPayment>(userNameById),
-      ...actionsColumn<SupplierPayment>(showActions, (payment) => {
-        const number = supplierPaymentDisplayNumber(payment);
-        return (
-          <DataTableRowActions
-            entityName={number}
-            viewHref={canRead ? `/supplier-payments/${payment.id}` : undefined}
-            editHref={
-              canUpdate && payment.status === "DRAFT"
-                ? `/supplier-payments/${payment.id}/edit`
-                : undefined
+  const columnDefs = useMemo(
+    () =>
+      supplierPaymentColumnDefs({
+        supplierNameById,
+        currencyCodeById,
+        userNameById,
+        actions: showActions
+          ? (payment) => {
+              const number = supplierPaymentDisplayNumber(payment);
+              return (
+                <DataTableRowActions
+                  entityName={number}
+                  viewHref={canRead ? `/supplier-payments/${payment.id}` : undefined}
+                  editHref={
+                    canUpdate && payment.status === "DRAFT"
+                      ? `/supplier-payments/${payment.id}/edit`
+                      : undefined
+                  }
+                  onDelete={
+                    payment.available_actions.includes("delete") && canDelete
+                      ? () => setDeleting(payment)
+                      : undefined
+                  }
+                />
+              );
             }
-            onDelete={
-              payment.available_actions.includes("delete") && canDelete
-                ? () => setDeleting(payment)
-                : undefined
-            }
-          />
-        );
+          : undefined,
       }),
-    ];
-  }, [canDelete, canRead, canUpdate, currencyCodeById, showActions, supplierNameById, userNameById]);
+    [canDelete, canRead, canUpdate, currencyCodeById, setDeleting, showActions, supplierNameById, userNameById],
+  );
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_payments", columnDefs);
 

@@ -2,7 +2,7 @@ import { API_VERSION_PREFIX, BFF_AUTH_PREFIX } from "@/config/constants";
 import { publicEnv } from "@/config/env.public";
 import { reportError } from "@/integrations/error-reporting/report";
 import { parseEnvelope, parseListMeta, type ListResponse } from "@/shared/api/envelope";
-import { ApiError, getErrorMessage, isApiError } from "@/shared/api/errors";
+import { ApiError, apiErrorFromBody, getErrorMessage, isApiError } from "@/shared/api/errors";
 import { randomUuid } from "@/shared/lib/uuid";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -182,11 +182,10 @@ async function request<T>(path: string, config: InternalConfig, hasRetried = fal
 
   const envelope = parseEnvelope(payload);
   if (!response.ok || !envelope.success || envelope.error) {
-    const code = envelope.error?.code ?? "UNKNOWN";
-    const apiError = new ApiError(
-      code,
-      getErrorMessage(code),
+    const apiError = apiErrorFromBody(
+      envelope.error?.code ?? "UNKNOWN",
       response.status,
+      envelope.error?.message,
       envelope.error?.details,
     );
     if (shouldReport(apiError)) {
@@ -194,7 +193,7 @@ async function request<T>(path: string, config: InternalConfig, hasRetried = fal
         path,
         method: config.method,
         http_status: response.status,
-        error_code: code,
+        error_code: apiError.code,
       });
     }
     throw apiError;
@@ -267,11 +266,10 @@ async function requestList<T>(
 
   const envelope = parseEnvelope(payload);
   if (!response.ok || !envelope.success || envelope.error) {
-    const code = envelope.error?.code ?? "UNKNOWN";
-    const apiError = new ApiError(
-      code,
-      getErrorMessage(code),
+    const apiError = apiErrorFromBody(
+      envelope.error?.code ?? "UNKNOWN",
       response.status,
+      envelope.error?.message,
       envelope.error?.details,
     );
     if (shouldReport(apiError)) {
@@ -279,7 +277,7 @@ async function requestList<T>(
         path,
         method: config.method,
         http_status: response.status,
-        error_code: code,
+        error_code: apiError.code,
       });
     }
     throw apiError;
@@ -367,8 +365,12 @@ async function downloadFile(
       }
     }
     const envelope = parseEnvelope(payload);
-    const code = envelope.error?.code ?? "UNKNOWN";
-    throw new ApiError(code, getErrorMessage(code), response.status, envelope.error?.details);
+    throw apiErrorFromBody(
+      envelope.error?.code ?? "UNKNOWN",
+      response.status,
+      envelope.error?.message,
+      envelope.error?.details,
+    );
   }
 
   if (!response.ok) {

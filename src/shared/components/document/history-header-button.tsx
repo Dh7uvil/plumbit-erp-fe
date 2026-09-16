@@ -3,12 +3,12 @@
 import Link from "next/link";
 
 import { Button } from "@/shared/components/ui/button";
-import { HISTORY_PAGE_TITLE } from "@/shared/lib/history";
+import { historyPageTitleFromHref } from "@/shared/lib/history";
 
 export function HistoryHeaderButton({ href }: { href: string }) {
   return (
     <Button type="button" size="sm" variant="outline" asChild>
-      <Link href={href}>{HISTORY_PAGE_TITLE}</Link>
+      <Link href={href}>{historyPageTitleFromHref(href)}</Link>
     </Button>
   );
 }

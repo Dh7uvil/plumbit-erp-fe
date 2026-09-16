@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useProduct } from "@/modules/inventory-management/products/queries";
+import { stockBalanceColumnDefs } from "@/modules/inventory-management/stock/components/stock-columns";
+import {
+  MovementSourceCell,
+  stockMovementColumnDefs,
+} from "@/modules/inventory-management/stock/components/stock-movement-columns";
 import { StockReorderDialog } from "@/modules/inventory-management/stock/components/stock-reorder-dialog";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import {
@@ -12,22 +17,28 @@ import {
   useStockMovements,
 } from "@/modules/inventory-management/stock/queries";
 import {
-  qtyIsBelowReorder,
-  qtyIsNegative,
+  parseStockMovementType,
   STOCK_MOVEMENT_TYPE_LABELS,
-  stockMovementSourceHref,
-  stockMovementSourceLabel,
+  STOCK_MOVEMENT_TYPES,
   type StockBalance,
 } from "@/modules/inventory-management/stock/schemas";
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
 import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
+import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import { RecordLink } from "@/shared/components/data-table/record-link";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -40,22 +51,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDateTime, formatMoney, formatQuantity } from "@/shared/lib/format";
-import { cn } from "@/shared/lib/cn";
+import { useNestedTableParams } from "@/shared/hooks/use-table-params";
+import { formatDate, formatMoney, formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-function qtyClass(value: string, emphasizeNegative = false) {
-  return cn(
-    "tabular-nums",
-    emphasizeNegative && qtyIsNegative(value) && "text-destructive font-medium",
-  );
-}
+const ALL = "all";
+const BALANCE_SORT_FIELDS = [
+  { value: "qty_on_hand", label: "On hand" },
+  { value: "qty_quality_hold", label: "QC hold" },
+  { value: "qty_reserved", label: "Reserved" },
+  { value: "qty_available", label: "Available" },
+  { value: "last_movement_at", label: "Last movement" },
+] as const;
+const MOVEMENT_SORT_FIELDS = [
+  { value: "document_date", label: "Date" },
+  { value: "occurred_at", label: "Occurred" },
+  { value: "qty", label: "Qty" },
+] as const;
 
-function MovementSourceCell({ sourceType, sourceId }: { sourceType: string; sourceId: string }) {
-  const href = stockMovementSourceHref(sourceType, sourceId);
-  const label = stockMovementSourceLabel(sourceType);
-  return href ? <RecordLink href={href}>{label}</RecordLink> : label;
+function parseTrueFilter(value: string | undefined): boolean | undefined {
+  return value === "true" ? true : undefined;
 }
 
 function StockBalanceLayers({
@@ -134,6 +149,377 @@ function StockBalanceLayers({
   );
 }
 
+function WarehouseStockTable({
+  productId,
+  canReadCost,
+  currencyCode,
+  canUpdate,
+  onReorder,
+}: {
+  productId: string;
+  canReadCost: boolean;
+  currencyCode: string;
+  canUpdate: boolean;
+  onReorder: (row: StockBalance) => void;
+}) {
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage, setPageSize } =
+    useNestedTableParams();
+  const balancesQuery = useStock({
+    product_id: productId,
+    page,
+    page_size,
+    search,
+    sort_by,
+    sort_order,
+    negative_only: parseTrueFilter(filters.negative_only),
+    below_reorder: parseTrueFilter(filters.below_reorder),
+  });
+  const rows = balancesQuery.data?.data ?? [];
+  const meta = balancesQuery.data?.meta;
+  const showActions = hasRowActions(canUpdate);
+  const columnDefs = useMemo(
+    () =>
+      stockBalanceColumnDefs({
+        canReadCost,
+        currencyCode,
+        omit: ["sku", "product"],
+        actions: showActions
+          ? (row) => (
+              <DataTableRowActions
+                entityName={`${row.warehouse_code} — ${row.warehouse_name}`}
+                extra={
+                  canUpdate ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={() => onReorder(row)}
+                    >
+                      Reorder
+                    </Button>
+                  ) : null
+                }
+              />
+            )
+          : undefined,
+      }),
+    [canReadCost, canUpdate, currencyCode, onReorder, showActions],
+  );
+  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.stock", columnDefs);
+  const hasQuery = Boolean(search || filters.negative_only || filters.below_reorder || sort_by);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Warehouse stock</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <DataTableToolbar>
+          <ListSearch
+            value={search ?? ""}
+            onChange={(value) => setParams({ search: value || null })}
+            placeholder="Search warehouse…"
+          />
+          <FilterSelect
+            label="Below reorder"
+            className="w-40"
+            placeholder="Reorder"
+            value={filters.below_reorder ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { below_reorder: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All" },
+              { value: "true", label: "Below reorder" },
+            ]}
+          />
+          <FilterSelect
+            label="Negative"
+            className="w-36"
+            placeholder="Negative"
+            value={filters.negative_only ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { negative_only: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All" },
+              { value: "true", label: "Negative" },
+            ]}
+          />
+          <SortDialog
+            fields={[...BALANCE_SORT_FIELDS]}
+            sortBy={sort_by}
+            sortOrder={sort_order}
+            onApply={setParams}
+          />
+          {columnsDialog}
+          {hasQuery ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setParams({
+                  search: null,
+                  sort_by: null,
+                  sort_order: null,
+                  filters: { below_reorder: null, negative_only: null },
+                })
+              }
+            >
+              Clear
+            </Button>
+          ) : null}
+        </DataTableToolbar>
+        <DataTable
+          variant="embedded"
+          footer={
+            meta ? (
+              <DataTablePagination
+                meta={meta}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            ) : null
+          }
+        >
+          <TableHeader>
+            <TableRow>
+              <DataTableColumnHeads
+                columns={columns}
+                sortBy={sort_by}
+                sortOrder={sort_order}
+                onSort={setParams}
+              />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {balancesQuery.isLoading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell colSpan={colSpan}>
+                    <Skeleton className="h-6 w-full" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : balancesQuery.isError ? (
+              <TableRow>
+                <TableCell colSpan={colSpan}>
+                  <DataTableError
+                    message={getErrorMessage(balancesQuery.error)}
+                    onRetry={() => balancesQuery.refetch()}
+                  />
+                </TableCell>
+              </TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={colSpan}>
+                  <DataTableEmpty title="No warehouse balances" message="No warehouse balances yet." />
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row) => (
+                <TableRow key={row.id}>
+                  <DataTableCells columns={columns} row={row} />
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </DataTable>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProductMovementsTable({
+  productId,
+  canReadCost,
+  currencyCode,
+}: {
+  productId: string;
+  canReadCost: boolean;
+  currencyCode: string;
+}) {
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage, setPageSize } =
+    useNestedTableParams();
+  const warehousesQuery = useAllWarehouses();
+  const warehouses = warehousesQuery.data ?? [];
+  const movementsQuery = useStockMovements({
+    product_id: productId,
+    page,
+    page_size,
+    search,
+    sort_by,
+    sort_order,
+    warehouse_id: filters.warehouse_id,
+    movement_type: parseStockMovementType(filters.movement_type),
+    document_date_from: filters.document_date_from,
+    document_date_to: filters.document_date_to,
+  });
+  const rows = movementsQuery.data?.data ?? [];
+  const meta = movementsQuery.data?.meta;
+  const columnDefs = useMemo(
+    () => stockMovementColumnDefs({ canReadCost, currencyCode, omit: ["sku", "product"] }),
+    [canReadCost, currencyCode],
+  );
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "inventory.stock_movements",
+    columnDefs,
+  );
+  const hasQuery = Boolean(
+    search ||
+      filters.warehouse_id ||
+      filters.movement_type ||
+      filters.document_date_from ||
+      filters.document_date_to ||
+      sort_by,
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Movements</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <DataTableToolbar>
+          <ListSearch
+            value={search ?? ""}
+            onChange={(value) => setParams({ search: value || null })}
+            placeholder="Search movements…"
+          />
+          <FilterSelect
+            label="Warehouse"
+            className="w-44"
+            placeholder="Warehouse"
+            value={filters.warehouse_id ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { warehouse_id: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All warehouses" },
+              ...warehouses.map((warehouse) => ({
+                value: warehouse.id,
+                label: `${warehouse.code} — ${warehouse.name}`,
+              })),
+            ]}
+          />
+          <FilterSelect
+            label="Type"
+            className="w-44"
+            placeholder="Type"
+            value={filters.movement_type ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { movement_type: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All types" },
+              ...STOCK_MOVEMENT_TYPES.map((type) => ({
+                value: type,
+                label: STOCK_MOVEMENT_TYPE_LABELS[type],
+              })),
+            ]}
+          />
+          <DateRangeFilter
+            layout="inline"
+            from={filters.document_date_from ?? ""}
+            to={filters.document_date_to ?? ""}
+            onFromChange={(value) => setParams({ filters: { document_date_from: value || null } })}
+            onToChange={(value) => setParams({ filters: { document_date_to: value || null } })}
+          />
+          <SortDialog
+            fields={[...MOVEMENT_SORT_FIELDS]}
+            sortBy={sort_by}
+            sortOrder={sort_order}
+            onApply={setParams}
+          />
+          {columnsDialog}
+          {hasQuery ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setParams({
+                  search: null,
+                  sort_by: null,
+                  sort_order: null,
+                  filters: {
+                    warehouse_id: null,
+                    movement_type: null,
+                    document_date_from: null,
+                    document_date_to: null,
+                  },
+                })
+              }
+            >
+              Clear
+            </Button>
+          ) : null}
+        </DataTableToolbar>
+        <DataTable
+          variant="embedded"
+          footer={
+            meta ? (
+              <DataTablePagination
+                meta={meta}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            ) : null
+          }
+        >
+          <TableHeader>
+            <TableRow>
+              <DataTableColumnHeads
+                columns={columns}
+                sortBy={sort_by}
+                sortOrder={sort_order}
+                onSort={setParams}
+              />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {movementsQuery.isLoading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell colSpan={colSpan}>
+                    <Skeleton className="h-6 w-full" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : movementsQuery.isError ? (
+              <TableRow>
+                <TableCell colSpan={colSpan}>
+                  <DataTableError
+                    message={getErrorMessage(movementsQuery.error)}
+                    onRetry={() => movementsQuery.refetch()}
+                  />
+                </TableCell>
+              </TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={colSpan}>
+                  <DataTableEmpty
+                    title="No movements"
+                    message="No stock has moved for this product yet."
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((movement) => (
+                <TableRow key={movement.id}>
+                  <DataTableCells columns={columns} row={movement} />
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </DataTable>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function StockDetailScreen({ productId }: { productId: string }) {
   const can = useCan();
   const { canUpdate } = useCrudPermissions(stockPermissions);
@@ -142,28 +528,11 @@ export function StockDetailScreen({ productId }: { productId: string }) {
   const canTransfer = can(stockTransferPermissions.create);
   const tenantQuery = useCurrentTenant();
   const currencyCode = tenantQuery.data?.default_currency ?? "";
-  const { page, page_size, setPage } = useTableParams();
   const productQuery = useProduct(productId);
-  const balancesQuery = useStock({
-    product_id: productId,
-    page_size: 100,
-    sort_by: "created_at",
-    sort_order: "asc",
-  });
-  const movementsQuery = useStockMovements({
-    product_id: productId,
-    page,
-    page_size,
-    sort_by: "occurred_at",
-    sort_order: "desc",
-  });
+  const layersQuery = useStock({ product_id: productId, page_size: 100 });
   const [reordering, setReordering] = useState<StockBalance | null>(null);
   const product = productQuery.data;
-  const balances = [...(balancesQuery.data?.data ?? [])].sort((left, right) =>
-    left.warehouse_code.localeCompare(right.warehouse_code, undefined, { numeric: true }),
-  );
-  const movements = movementsQuery.data?.data ?? [];
-  const movementMeta = movementsQuery.data?.meta;
+  const layerBalances = layersQuery.data?.data ?? [];
 
   if (productQuery.isLoading) {
     return (
@@ -193,6 +562,7 @@ export function StockDetailScreen({ productId }: { productId: string }) {
       <PageHeader
         title={product.name}
         code={product.sku}
+        codeTooltip="SKU"
         subtitle="Warehouse balances and movement ledger"
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -212,226 +582,30 @@ export function StockDetailScreen({ productId }: { productId: string }) {
           </div>
         }
       />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Warehouse stock</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {balancesQuery.isError ? (
-            <DataTableError
-              message={getErrorMessage(balancesQuery.error)}
-              onRetry={() => balancesQuery.refetch()}
-            />
-          ) : (
-            <div className="overflow-x-auto rounded-md border">
-              <table className="w-full caption-bottom text-sm">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Warehouse</TableHead>
-                    <TableHead className="text-right">On hand</TableHead>
-                    <TableHead className="text-right">QC hold</TableHead>
-                    <TableHead className="text-right">Committed</TableHead>
-                    <TableHead className="text-right">Available</TableHead>
-                    <TableHead className="text-right">Incoming</TableHead>
-                    <TableHead className="text-right">Outgoing</TableHead>
-                    <TableHead className="text-right">In transit</TableHead>
-                    {canReadCost ? (
-                      <>
-                        <TableHead className="text-right">Unit cost</TableHead>
-                        <TableHead className="text-right">Value</TableHead>
-                      </>
-                    ) : null}
-                    <TableHead className="text-right">Reorder</TableHead>
-                    {canUpdate ? <TableHead /> : null}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {balancesQuery.isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={9 + (canReadCost ? 2 : 0) + (canUpdate ? 1 : 0)}>
-                        <Skeleton className="h-6 w-full" />
-                      </TableCell>
-                    </TableRow>
-                  ) : balances.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={9 + (canReadCost ? 2 : 0) + (canUpdate ? 1 : 0)}
-                        className="text-muted-foreground"
-                      >
-                        No warehouse balances yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    balances.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell>
-                          {row.warehouse_code} — {row.warehouse_name}
-                          {qtyIsBelowReorder(row.qty_available, row.reorder_level) ? (
-                            <Badge variant="warning" className="ml-2">
-                              Below reorder
-                            </Badge>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className={cn("text-right", qtyClass(row.qty_on_hand, true))}>
-                          {formatQuantity(row.qty_on_hand)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatQuantity(row.qty_quality_hold)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatQuantity(row.qty_reserved)}
-                        </TableCell>
-                        <TableCell className={cn("text-right", qtyClass(row.qty_available, true))}>
-                          {formatQuantity(row.qty_available)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatQuantity(row.qty_incoming)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatQuantity(row.qty_outgoing)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatQuantity(row.qty_in_transit)}
-                        </TableCell>
-                        {canReadCost ? (
-                          <>
-                            <TableCell className="text-right tabular-nums">
-                              {formatMoney(row.unit_cost, currencyCode)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {formatMoney(row.stock_value, currencyCode)}
-                            </TableCell>
-                          </>
-                        ) : null}
-                        <TableCell className="text-right tabular-nums">
-                          {formatQuantity(row.reorder_level)}
-                          {row.reorder_qty ? ` / ${formatQuantity(row.reorder_qty)}` : ""}
-                        </TableCell>
-                        {canUpdate ? (
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setReordering(row)}
-                            >
-                              Reorder
-                            </Button>
-                          </TableCell>
-                        ) : null}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      {canReadCost && balances.length > 0 ? (
+      <WarehouseStockTable
+        productId={product.id}
+        canReadCost={canReadCost}
+        currencyCode={currencyCode}
+        canUpdate={canUpdate}
+        onReorder={setReordering}
+      />
+      {canReadCost && layerBalances.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Cost layers</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {balances.map((balance) => (
+            {layerBalances.map((balance) => (
               <StockBalanceLayers key={balance.id} balance={balance} currencyCode={currencyCode} />
             ))}
           </CardContent>
         </Card>
       ) : null}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Movements</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {movementsQuery.isError ? (
-            <DataTableError
-              message={getErrorMessage(movementsQuery.error)}
-              onRetry={() => movementsQuery.refetch()}
-            />
-          ) : (
-            <DataTable
-              footer={
-                movementMeta ? (
-                  <DataTablePagination meta={movementMeta} onPageChange={setPage} />
-                ) : null
-              }
-            >
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Occurred</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Warehouse</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Before</TableHead>
-                  <TableHead className="text-right">After</TableHead>
-                  {canReadCost ? (
-                    <>
-                      <TableHead className="text-right">Unit cost</TableHead>
-                      <TableHead className="text-right">Value</TableHead>
-                    </>
-                  ) : null}
-                  <TableHead>Source</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {movementsQuery.isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8 + (canReadCost ? 2 : 0)}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ) : movements.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8 + (canReadCost ? 2 : 0)}>
-                      <DataTableEmpty
-                        title="No movements"
-                        message="No stock has moved for this product yet."
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  movements.map((movement) => (
-                    <TableRow key={movement.id}>
-                      <TableCell>{formatDateTime(movement.occurred_at)}</TableCell>
-                      <TableCell>{formatDate(movement.document_date)}</TableCell>
-                      <TableCell>{movement.warehouse_code}</TableCell>
-                      <TableCell>{STOCK_MOVEMENT_TYPE_LABELS[movement.movement_type]}</TableCell>
-                      <TableCell className={cn("text-right", qtyClass(movement.qty, true))}>
-                        {formatQuantity(movement.qty)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatQuantity(movement.qty_before)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatQuantity(movement.qty_after)}
-                      </TableCell>
-                      {canReadCost ? (
-                        <>
-                          <TableCell className="text-right tabular-nums">
-                            {formatMoney(movement.unit_cost, currencyCode)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {formatMoney(movement.value, currencyCode)}
-                          </TableCell>
-                        </>
-                      ) : null}
-                      <TableCell className="text-muted-foreground text-sm">
-                        <MovementSourceCell
-                          sourceType={movement.source_type}
-                          sourceId={movement.source_id}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </DataTable>
-          )}
-        </CardContent>
-      </Card>
+      <ProductMovementsTable
+        productId={product.id}
+        canReadCost={canReadCost}
+        currencyCode={currencyCode}
+      />
       <StockReorderDialog
         balance={reordering}
         open={Boolean(reordering)}

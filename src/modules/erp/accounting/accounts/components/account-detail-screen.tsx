@@ -71,6 +71,7 @@ export function AccountDetailScreen({
       <RecordPageHeader
         title={account.name}
         code={account.code}
+        codeLabel="Account"
         listHref="/accounts"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}

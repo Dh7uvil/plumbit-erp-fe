@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ContactFormDialog } from "@/modules/crm/contacts/components/contact-form-dialog";
+import { contactColumnDefs } from "@/modules/crm/contacts/components/contact-columns";
 import { useDeleteContact } from "@/modules/crm/contacts/mutations";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useContacts } from "@/modules/crm/contacts/queries";
@@ -12,32 +13,21 @@ import type { Contact } from "@/modules/crm/contacts/schemas";
 import { useCompanyOptions } from "@/modules/crm/contacts/use-company-options";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { useUserNameMap } from "@/shared/components/data-table/audit-columns";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import {
-  auditActorColumns,
-  auditTimestampColumns,
-  useUserNameMap,
-} from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
-import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
-import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
@@ -96,60 +86,24 @@ export function ContactsScreen() {
   const companies = companiesQuery.companies;
   const userNameById = useUserNameMap();
 
-  const columnDefs = useMemo((): Array<DataTableColumn<Contact>> => {
-    return [
-      {
-        id: "name",
-        header: "Name",
-        sortableField: "name",
-        className: "font-medium",
-        cell: (contact) => (
-          <RecordLink href={`/contacts/${contact.id}`}>{contact.name}</RecordLink>
-        ),
-      },
-      {
-        id: "company",
-        header: "Company",
-        cell: (contact) => {
-          const company = companyById.get(contact.customer_id);
-          return company ? <RecordLink href={company.href}>{company.name}</RecordLink> : "—";
-        },
-      },
-      {
-        id: "email",
-        header: "Email",
-        sortableField: "email",
-        cell: (contact) => contact.email || "—",
-      },
-      {
-        id: "phone",
-        header: "Phone",
-        cell: (contact) => contact.phone || "—",
-      },
-      {
-        id: "is_primary",
-        header: "Primary",
-        sortableField: "is_primary",
-        cell: (contact) => (contact.is_primary ? <Badge variant="info">Primary</Badge> : "—"),
-      },
-      {
-        id: "status",
-        header: "Status",
-        sortableField: "is_active",
-        cell: (contact) => <ActiveBadge active={contact.is_active} />,
-      },
-      ...auditTimestampColumns<Contact>(),
-      ...auditActorColumns<Contact>(userNameById),
-      ...actionsColumn<Contact>(showActions, (contact) => (
-        <DataTableRowActions
-          entityName={contact.name}
-          viewHref={canRead ? `/contacts/${contact.id}` : undefined}
-          editHref={canUpdate ? `/contacts/${contact.id}/edit` : undefined}
-          onDelete={canDelete ? () => setDeleting(contact) : undefined}
-        />
-      )),
-    ];
-  }, [canDelete, canRead, canUpdate, companyById, showActions, userNameById]);
+  const columnDefs = useMemo(
+    () =>
+      contactColumnDefs({
+        companyById,
+        userNameById,
+        actions: showActions
+          ? (contact) => (
+              <DataTableRowActions
+                entityName={contact.name}
+                viewHref={canRead ? `/contacts/${contact.id}` : undefined}
+                editHref={canUpdate ? `/contacts/${contact.id}/edit` : undefined}
+                onDelete={canDelete ? () => setDeleting(contact) : undefined}
+              />
+            )
+          : undefined,
+      }),
+    [canDelete, canRead, canUpdate, companyById, showActions, userNameById],
+  );
 
   const { columns, columnsDialog, colSpan } = useTableColumns("crm.contacts", columnDefs);
 

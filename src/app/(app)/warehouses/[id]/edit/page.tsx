@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { WarehouseDetailScreen } from "@/modules/inventory-management/warehouses/components/warehouse-detail-screen";
 import { warehousePermissions } from "@/modules/inventory-management/warehouses/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function WarehouseDetailEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function WarehouseDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={warehousePermissions.update}>
-      {parsed.success ? (
-        <WarehouseDetailScreen warehouseId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Warehouse not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={warehousePermissions.update}
+      notFoundMessage="Warehouse not found."
+    >
+      {(id) => <WarehouseDetailScreen warehouseId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

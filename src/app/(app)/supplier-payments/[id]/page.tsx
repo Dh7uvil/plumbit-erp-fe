@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { SupplierPaymentDetailScreen } from "@/modules/erp/supplier-payments/components/supplier-payment-detail-screen";
 import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function SupplierPaymentDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function SupplierPaymentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={supplierPaymentPermissions.read}>
-      {parsed.success ? (
-        <SupplierPaymentDetailScreen paymentId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Payment not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={supplierPaymentPermissions.read}
+      notFoundMessage="Payment not found."
+    >
+      {(id) => <SupplierPaymentDetailScreen paymentId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

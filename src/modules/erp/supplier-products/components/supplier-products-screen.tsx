@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { LinkProductDialog } from "@/modules/erp/supplier-products/components/link-product-dialog";
+import { supplierProductColumnDefs } from "@/modules/erp/supplier-products/components/supplier-product-columns";
 import { SupplierProductFormDialog } from "@/modules/erp/supplier-products/components/supplier-product-form-dialog";
 import {
   useDeleteSupplierProduct,
@@ -17,35 +18,23 @@ import type { SupplierProduct } from "@/modules/erp/supplier-products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import {
-  auditActorColumns,
-  auditTimestampColumns,
-  useUserNameMap,
-} from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { useUserNameMap } from "@/shared/components/data-table/audit-columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
-import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
-import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDateTime, formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const SORT_FIELDS = [
@@ -64,29 +53,6 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
     return false;
   }
   return undefined;
-}
-
-function MappedProductCell({ row }: { row: SupplierProduct }) {
-  if (!row.is_mapped || !row.product_id) {
-    return <Badge variant="warning">Unmapped</Badge>;
-  }
-  return (
-    <RecordLink href={`/products/${row.product_id}`}>
-      {row.product_sku ? `${row.product_sku} — ${row.product_name}` : (row.product_name ?? "—")}
-    </RecordLink>
-  );
-}
-
-function PreferredBadges({ row }: { row: SupplierProduct }) {
-  if (!row.is_preferred && !row.is_preferred_supplier) {
-    return "—";
-  }
-  return (
-    <div className="flex flex-wrap gap-1">
-      {row.is_preferred ? <Badge variant="info">Preferred SKU</Badge> : null}
-      {row.is_preferred_supplier ? <Badge variant="info">Preferred supplier</Badge> : null}
-    </div>
-  );
 }
 
 export function SupplierProductsScreen() {
@@ -120,113 +86,50 @@ export function SupplierProductsScreen() {
   const suppliers = suppliersQuery.data ?? [];
   const userNameById = useUserNameMap();
 
-  const columnDefs = useMemo((): Array<DataTableColumn<SupplierProduct>> => {
-    return [
-      {
-        id: "supplier_sku",
-        header: "Supplier SKU",
-        sortableField: "supplier_sku",
-        className: "font-mono text-sm",
-        cell: (row) => (
-          <RecordLink href={`/supplier-products/${row.id}`}>{row.supplier_sku}</RecordLink>
-        ),
-      },
-      {
-        id: "supplier_item",
-        header: "Supplier item",
-        sortableField: "supplier_item_name",
-        cell: (row) => (
-          <RecordLink href={`/supplier-products/${row.id}`}>{row.supplier_item_name}</RecordLink>
-        ),
-      },
-      {
-        id: "supplier",
-        header: "Supplier",
-        className: "font-medium",
-        cell: (row) => (
-          <RecordLink href={`/suppliers/${row.supplier_id}`}>{row.supplier_name ?? "—"}</RecordLink>
-        ),
-      },
-      {
-        id: "mapped_product",
-        header: "Mapped product",
-        cell: (row) => <MappedProductCell row={row} />,
-      },
-      {
-        id: "price",
-        header: "Price",
-        cell: (row) =>
-          row.price && row.currency_code ? formatMoney(row.price, row.currency_code) : "—",
-      },
-      {
-        id: "is_preferred",
-        header: "Preferred",
-        cell: (row) => <PreferredBadges row={row} />,
-      },
-      {
-        id: "status",
-        header: "Status",
-        cell: (row) => <ActiveBadge active={row.is_active} />,
-      },
-      {
-        id: "currency_code",
-        header: "Currency",
-        defaultVisible: false,
-        cell: (row) => row.currency_code || "—",
-      },
-      {
-        id: "notes",
-        header: "Notes",
-        defaultVisible: false,
-        className: "text-muted-foreground max-w-xs truncate",
-        cell: (row) => row.notes || "—",
-      },
-      {
-        id: "price_updated_at",
-        header: "Price updated",
-        defaultVisible: false,
-        className: "text-muted-foreground text-xs",
-        cell: (row) => formatDateTime(row.price_updated_at),
-      },
-      ...auditTimestampColumns<SupplierProduct>(),
-      ...auditActorColumns<SupplierProduct>(userNameById),
-      ...actionsColumn<SupplierProduct>(showActions, (row) => (
-        <DataTableRowActions
-          entityName={row.supplier_sku}
-          viewHref={canRead ? `/supplier-products/${row.id}` : undefined}
-          editHref={canUpdate ? `/supplier-products/${row.id}/edit` : undefined}
-          onDelete={canDelete ? () => setDeleting(row) : undefined}
-          extra={
-            canLink ? (
-              row.is_mapped ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  aria-label={`Unlink ${row.supplier_sku}`}
-                  onClick={() => setUnlinking(row)}
-                >
-                  <Unlink className="size-3.5" />
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  aria-label={`Link ${row.supplier_sku}`}
-                  onClick={() => setLinking(row)}
-                >
-                  <Link2 className="size-3.5" />
-                </Button>
-              )
-            ) : null
-          }
-        />
-      )),
-    ];
-  }, [canDelete, canLink, canRead, canUpdate, showActions, userNameById]);
+  const columnDefs = useMemo(
+    () =>
+      supplierProductColumnDefs({
+        userNameById,
+        actions: showActions
+          ? (row) => (
+              <DataTableRowActions
+                entityName={row.supplier_sku}
+                viewHref={canRead ? `/supplier-products/${row.id}` : undefined}
+                editHref={canUpdate ? `/supplier-products/${row.id}/edit` : undefined}
+                onDelete={canDelete ? () => setDeleting(row) : undefined}
+                extra={
+                  canLink ? (
+                    row.is_mapped ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label={`Unlink ${row.supplier_sku}`}
+                        onClick={() => setUnlinking(row)}
+                      >
+                        <Unlink className="size-3.5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label={`Link ${row.supplier_sku}`}
+                        onClick={() => setLinking(row)}
+                      >
+                        <Link2 className="size-3.5" />
+                      </Button>
+                    )
+                  ) : null
+                }
+              />
+            )
+          : undefined,
+      }),
+    [canDelete, canLink, canRead, canUpdate, showActions, userNameById],
+  );
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_products", columnDefs);
 

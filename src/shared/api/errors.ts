@@ -108,6 +108,48 @@ function numberDetail(details: Record<string, unknown>, key: string): number | n
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+const GENERIC_VALIDATION_MESSAGES = new Set([
+  ERROR_MESSAGES.VALIDATION_ERROR,
+  "Request validation failed",
+  "Validation failed",
+]);
+
+const VALIDATION_DETAIL_META_KEYS = new Set([
+  "errors",
+  "content_type",
+  "max_upload_size_mb",
+  "size_bytes",
+  "max_bytes",
+]);
+
+function isUsefulValidationMessage(message: string): boolean {
+  const trimmed = message.trim();
+  return trimmed.length > 0 && !GENERIC_VALIDATION_MESSAGES.has(trimmed);
+}
+
+function firstErrorListMessage(details: Record<string, unknown>): string | null {
+  const errors = details.errors;
+  if (!Array.isArray(errors)) {
+    return null;
+  }
+  for (const item of errors) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const record = item as { msg?: unknown; message?: unknown };
+    const raw =
+      typeof record.msg === "string"
+        ? record.msg
+        : typeof record.message === "string"
+          ? record.message
+          : null;
+    if (raw && isUsefulValidationMessage(raw)) {
+      return sanitizeValidationMessage(raw);
+    }
+  }
+  return null;
+}
+
 function negativeStockBalanceFragment(details: Record<string, unknown>): string | null {
   const balances = details.balances;
   if (!Array.isArray(balances) || balances.length === 0) {
@@ -136,6 +178,16 @@ function negativeStockBalanceFragment(details: Record<string, unknown>): string 
   return remaining > 0 ? `${listed} ${remaining} more.` : listed;
 }
 
+export function apiErrorFromBody(
+  code: string,
+  status: number,
+  message?: string | null,
+  details?: unknown,
+): ApiError {
+  const trimmed = typeof message === "string" ? message.trim() : "";
+  return new ApiError(code, trimmed || getErrorMessage(code), status, details);
+}
+
 export function getErrorMessage(codeOrError: unknown): string {
   const code = codeFrom(codeOrError);
   if (!code) {
@@ -143,6 +195,33 @@ export function getErrorMessage(codeOrError: unknown): string {
   }
   const base = ERROR_MESSAGES[code] ?? FALLBACK_ERROR_MESSAGE;
   const details = isApiError(codeOrError) ? detailsRecord(codeOrError.details) : null;
+  const serverMessage = isApiError(codeOrError) ? codeOrError.message.trim() : "";
+  if (code === "VALIDATION_ERROR") {
+    const maxMb = details ? numberDetail(details, "max_upload_size_mb") : null;
+    if (maxMb != null) {
+      return `Files must be ${maxMb} MB or smaller.`;
+    }
+    if (isUsefulValidationMessage(serverMessage)) {
+      return serverMessage.endsWith(".") ? serverMessage : `${serverMessage}.`;
+    }
+    const contentType = details ? stringDetail(details, "content_type") : null;
+    if (contentType) {
+      return "This file type is not allowed.";
+    }
+    const listed = details ? firstErrorListMessage(details) : null;
+    if (listed) {
+      return listed.endsWith(".") ? listed : `${listed}.`;
+    }
+    const fieldMessages = Object.values(getValidationFieldErrors(codeOrError));
+    if (fieldMessages.length === 1) {
+      const only = fieldMessages[0];
+      return only.endsWith(".") ? only : `${only}.`;
+    }
+    if (fieldMessages.length === 0 && details && Object.keys(details).length > 0) {
+      return "This file could not be uploaded.";
+    }
+    return base;
+  }
   if (!details) {
     return base;
   }
@@ -203,12 +282,6 @@ export function getErrorMessage(codeOrError: unknown): string {
       available ? `Available ${available}.` : null,
     ]);
   }
-  if (code === "VALIDATION_ERROR") {
-    const maxMb = numberDetail(details, "max_upload_size_mb");
-    if (maxMb != null) {
-      return `Files must be ${maxMb} MB or smaller.`;
-    }
-  }
   return base;
 }
 
@@ -259,10 +332,31 @@ export function getValidationFieldErrors(error: unknown): Record<string, string>
   }
 
   if (typeof details === "object") {
-    for (const [key, value] of Object.entries(details)) {
-      if (typeof value === "string") {
-        fields[key] = sanitizeValidationMessage(value);
+    const record = details as Record<string, unknown>;
+    const nested = record.errors;
+    if (Array.isArray(nested)) {
+      for (const item of nested) {
+        if (!item || typeof item !== "object") {
+          continue;
+        }
+        const errorItem = item as { loc?: unknown; path?: unknown; msg?: unknown; message?: unknown };
+        const name = fieldNameFromLoc(errorItem.loc) ?? fieldNameFromLoc(errorItem.path);
+        const message =
+          typeof errorItem.msg === "string"
+            ? errorItem.msg
+            : typeof errorItem.message === "string"
+              ? errorItem.message
+              : null;
+        if (name && message && !VALIDATION_DETAIL_META_KEYS.has(name)) {
+          fields[name] = sanitizeValidationMessage(message);
+        }
       }
+    }
+    for (const [key, value] of Object.entries(record)) {
+      if (VALIDATION_DETAIL_META_KEYS.has(key) || typeof value !== "string") {
+        continue;
+      }
+      fields[key] = sanitizeValidationMessage(value);
     }
   }
 

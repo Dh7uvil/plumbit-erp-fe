@@ -1,22 +1,15 @@
-import { z } from "zod";
-
 import { ProductDetailScreen } from "@/modules/inventory-management/products/components/product-detail-screen";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const ProductIdSchema = z.string().uuid();
-
-export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const parsed = ProductIdSchema.safeParse(id);
-
+export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={productPermissions.read}>
-      {parsed.success ? (
-        <ProductDetailScreen productId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Product not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={productPermissions.read}
+      notFoundMessage="Product not found."
+    >
+      {(id) => <ProductDetailScreen productId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

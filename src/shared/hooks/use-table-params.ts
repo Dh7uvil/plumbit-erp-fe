@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, type PageSizeOption } from "@/config/constants";
 
@@ -16,13 +16,19 @@ export type TableParams = {
   filters: Record<string, string>;
 };
 
-type TableParamPatch = {
+export type TableParamPatch = {
   page?: number;
   page_size?: number;
   search?: string | null;
   sort_by?: string | null;
   sort_order?: SortOrder | null;
   filters?: Record<string, string | undefined | null>;
+};
+
+export type TableParamsController = TableParams & {
+  setParams: (patch: TableParamPatch) => void;
+  setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
 };
 
 const RESERVED = new Set(["page", "page_size", "search", "sort_by", "sort_order"]);
@@ -39,11 +45,71 @@ function parsePageSize(value: string | null): PageSizeOption {
     : DEFAULT_PAGE_SIZE;
 }
 
-export function useTableParams(): TableParams & {
-  setParams: (patch: TableParamPatch) => void;
-  setPage: (page: number) => void;
-  setPageSize: (pageSize: number) => void;
-} {
+function applyTableParamPatch(current: TableParams, patch: TableParamPatch): TableParams {
+  const resetsPage = patch.page === undefined;
+  const next: TableParams = {
+    page: current.page,
+    page_size: current.page_size,
+    search: current.search,
+    sort_by: current.sort_by,
+    sort_order: current.sort_order,
+    filters: { ...current.filters },
+  };
+  if (patch.search !== undefined) {
+    next.search = patch.search || undefined;
+  }
+  if (patch.sort_by !== undefined) {
+    next.sort_by = patch.sort_by || undefined;
+  }
+  if (patch.sort_order !== undefined) {
+    next.sort_order = patch.sort_order ?? undefined;
+  }
+  if (patch.page_size !== undefined) {
+    next.page_size = parsePageSize(String(patch.page_size));
+  }
+  if (patch.filters) {
+    for (const [key, value] of Object.entries(patch.filters)) {
+      if (value) {
+        next.filters[key] = value;
+      } else {
+        delete next.filters[key];
+      }
+    }
+  }
+  if (patch.page !== undefined) {
+    next.page = patch.page > 0 ? patch.page : 1;
+  } else if (resetsPage) {
+    next.page = 1;
+  }
+  return next;
+}
+
+export function useNestedTableParams(): TableParamsController {
+  const [params, setState] = useState<TableParams>({
+    page: 1,
+    page_size: DEFAULT_PAGE_SIZE,
+    filters: {},
+  });
+
+  const setParams = useCallback((patch: TableParamPatch) => {
+    setState((current) => applyTableParamPatch(current, patch));
+  }, []);
+
+  const setPage = useCallback((page: number) => {
+    setParams({ page });
+  }, [setParams]);
+
+  const setPageSize = useCallback(
+    (pageSize: number) => {
+      setParams({ page_size: pageSize });
+    },
+    [setParams],
+  );
+
+  return { ...params, setParams, setPage, setPageSize };
+}
+
+export function useTableParams(): TableParamsController {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();

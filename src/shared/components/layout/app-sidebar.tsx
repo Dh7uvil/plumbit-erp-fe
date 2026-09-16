@@ -158,7 +158,10 @@ function SidebarNav({
   }
 
   return (
-    <nav className="min-h-0 flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "none" }}>
+    <nav
+      className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain py-2"
+      style={{ scrollbarWidth: "none" }}
+    >
       {isSearching && displayGroups.length === 0 ? (
         <p className="text-muted-foreground px-3 py-4 text-center text-xs">
           No pages match “{query.trim()}”
@@ -288,7 +291,7 @@ function SidebarChrome({
             className={cn(
               "text-muted-foreground hover:bg-muted cursor-pointer rounded p-1 transition-colors",
               collapsed
-                ? "bg-sidebar hover:text-foreground absolute top-1/2 -right-2.5 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border shadow-xs"
+                ? "bg-sidebar hover:text-foreground absolute top-1/2 right-0.5 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border shadow-xs"
                 : "ml-auto",
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -350,7 +353,7 @@ export function AppSidebar({
     <>
       <aside
         className={cn(
-          "bg-sidebar border-sidebar-border relative z-10 hidden h-full shrink-0 flex-col self-stretch overflow-visible border-r transition-all duration-200 md:flex",
+          "bg-sidebar border-sidebar-border relative z-10 hidden h-full min-h-0 shrink-0 flex-col self-stretch overflow-hidden border-r transition-all duration-200 md:flex",
           collapsed ? "w-14" : "w-56",
         )}
       >

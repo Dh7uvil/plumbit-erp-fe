@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { historyPermissions } from "@/modules/inventory-management/history/permissions";
+import {
+  tradingHistoryColumnDefs,
+  type TradingHistoryKind,
+} from "@/modules/inventory-management/history/components/trading-history-columns";
 import {
   useCustomerSalesHistory,
   useProductPurchaseHistory,
@@ -12,24 +14,29 @@ import {
   useSupplierPurchaseHistory,
 } from "@/modules/inventory-management/history/queries";
 import type { TradingHistoryLine } from "@/modules/inventory-management/history/schemas";
-import {
-  DocumentHistoryTable,
-  type DocumentHistoryColumn,
-} from "@/shared/components/document/document-history-table";
-import { RecordLink } from "@/shared/components/data-table/record-link";
-import { formatDate, formatQuantity, formatReportMoney } from "@/shared/lib/format";
+import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
+import { DocumentHistoryTable } from "@/shared/components/document/document-history-table";
+import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListSearch } from "@/shared/components/data-table/list-search";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
+import { Button } from "@/shared/components/ui/button";
+import { useNestedTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
-function hrefForDocument(documentNumber: string, documentId: string): string {
-  const prefix = documentNumber.split("-")[0]?.toUpperCase() ?? "";
-  if (prefix === "DN") {
-    return `/delivery-notes/${documentId}`;
-  }
-  if (prefix === "GRN") {
-    return `/goods-receipts/${documentId}`;
-  }
-  return `/delivery-notes/${documentId}`;
-}
+const ALL = "all";
+const HISTORY_SORT_FIELDS = [
+  { value: "document_date", label: "Date" },
+  { value: "document_number", label: "Document" },
+  { value: "quantity", label: "Qty" },
+  { value: "rate", label: "Rate" },
+  { value: "revenue", label: "Revenue" },
+  { value: "party_name", label: "Party" },
+  { value: "product_name", label: "Product" },
+  { value: "sku", label: "SKU" },
+] as const;
 
 export function TradingHistoryLines({
   kind,
@@ -38,7 +45,7 @@ export function TradingHistoryLines({
   productId,
   documentHref,
 }: {
-  kind: "product-sales" | "product-purchases" | "customer-sales" | "supplier-purchases";
+  kind: TradingHistoryKind;
   ownerId: string;
   partyId?: string;
   productId?: string;
@@ -46,9 +53,22 @@ export function TradingHistoryLines({
 }) {
   const can = useCan();
   const showCost = can(historyPermissions.cost);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const params = { page, page_size: pageSize, party_id: partyId, product_id: productId };
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage, setPageSize } =
+    useNestedTableParams();
+  const warehousesQuery = useAllWarehouses();
+  const warehouses = warehousesQuery.data ?? [];
+  const params = {
+    page,
+    page_size,
+    search,
+    sort_by,
+    sort_order,
+    party_id: partyId,
+    product_id: productId,
+    warehouse_id: filters.warehouse_id,
+    document_date_from: filters.document_date_from,
+    document_date_to: filters.document_date_to,
+  };
   const productSales = useProductSalesHistory(ownerId, params, kind === "product-sales");
   const productPurchases = useProductPurchaseHistory(ownerId, params, kind === "product-purchases");
   const customerSales = useCustomerSalesHistory(ownerId, params, kind === "customer-sales");
@@ -68,131 +88,31 @@ export function TradingHistoryLines({
   const rows = query.data?.data ?? [];
   const showParty = kind === "product-sales" || kind === "product-purchases";
   const showProduct = kind === "customer-sales" || kind === "supplier-purchases";
-
-  const columns = useMemo(() => {
-    const cols: Array<DocumentHistoryColumn<TradingHistoryLine>> = [
-      {
-        id: "document",
-        header: "Document",
-        cell: (row) => (
-          <RecordLink
-            href={(
-              documentHref ?? ((item) => hrefForDocument(item.document_number, item.document_id))
-            )(row)}
-          >
-            {row.document_number}
-          </RecordLink>
-        ),
-      },
-      {
-        id: "date",
-        header: "Date",
-        cell: (row) => formatDate(row.document_date),
-      },
-    ];
-    if (showParty) {
-      cols.push({
-        id: "party",
-        header: kind === "product-purchases" ? "Supplier" : "Customer",
-        cell: (row) =>
-          kind === "product-purchases" ? (
-            <Link
-              href={`/suppliers/${row.party_id}`}
-              className="underline-offset-4 hover:underline"
-            >
-              {row.party_name}
-            </Link>
-          ) : (
-            <Link
-              href={`/customers/${row.party_id}`}
-              className="underline-offset-4 hover:underline"
-            >
-              {row.party_name}
-            </Link>
-          ),
-      });
+  const omit = useMemo(
+    () => [...(showParty ? [] : ["party"]), ...(showProduct ? [] : ["product"])],
+    [showParty, showProduct],
+  );
+  const columnDefs = useMemo(
+    () => tradingHistoryColumnDefs({ kind, showCost, documentHref, omit }),
+    [documentHref, kind, omit, showCost],
+  );
+  const { columns, columnsDialog } = useTableColumns("inventory.trading_history", columnDefs);
+  const sortFields = HISTORY_SORT_FIELDS.filter((field) => {
+    if (field.value === "party_name") {
+      return showParty;
     }
-    if (showProduct) {
-      cols.push({
-        id: "product",
-        header: "Product",
-        cell: (row) => (
-          <Link href={`/products/${row.product_id}`} className="underline-offset-4 hover:underline">
-            {row.sku} — {row.product_name}
-          </Link>
-        ),
-      });
+    if (field.value === "product_name" || field.value === "sku") {
+      return showProduct;
     }
-    cols.push(
-      {
-        id: "qty",
-        header: "Qty",
-        className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatQuantity(row.quantity)}</span>,
-      },
-      {
-        id: "invoiced",
-        header: "Invoiced",
-        className: "text-right",
-        cell: (row) => (
-          <span className="tabular-nums">
-            {row.invoiced_quantity != null ? formatQuantity(row.invoiced_quantity) : "—"}
-          </span>
-        ),
-      },
-      {
-        id: "rate",
-        header: "Rate",
-        className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatReportMoney(row.rate)}</span>,
-      },
-      {
-        id: "revenue",
-        header: "Revenue",
-        className: "text-right",
-        cell: (row) => (
-          <span className="tabular-nums">
-            {row.revenue != null ? formatReportMoney(row.revenue) : "—"}
-          </span>
-        ),
-      },
-    );
-    if (showCost) {
-      cols.push(
-        {
-          id: "cost",
-          header: "Unit cost",
-          className: "text-right",
-          cell: (row) => (
-            <span className="tabular-nums">
-              {row.unit_cost != null ? formatReportMoney(row.unit_cost) : "—"}
-            </span>
-          ),
-        },
-        {
-          id: "billed",
-          header: "Billed cost",
-          className: "text-right",
-          cell: (row) => (
-            <span className="tabular-nums">
-              {row.billed_cost != null ? formatReportMoney(row.billed_cost) : "—"}
-            </span>
-          ),
-        },
-        {
-          id: "margin",
-          header: "Margin",
-          className: "text-right",
-          cell: (row) => (
-            <span className="tabular-nums">
-              {row.margin != null ? formatReportMoney(row.margin) : "—"}
-            </span>
-          ),
-        },
-      );
-    }
-    return cols;
-  }, [documentHref, kind, showCost, showParty, showProduct]);
+    return true;
+  });
+  const hasQuery = Boolean(
+    search ||
+      filters.warehouse_id ||
+      filters.document_date_from ||
+      filters.document_date_to ||
+      sort_by,
+  );
 
   return (
     <DocumentHistoryTable
@@ -207,10 +127,65 @@ export function TradingHistoryLines({
       emptyMessage="No posted lines for this selection."
       meta={query.data?.meta}
       onPageChange={setPage}
-      onPageSizeChange={(next) => {
-        setPageSize(next);
-        setPage(1);
-      }}
+      onPageSizeChange={setPageSize}
+      sortBy={sort_by}
+      sortOrder={sort_order}
+      onSort={setParams}
+      toolbar={
+        <DataTableToolbar>
+          <ListSearch
+            value={search ?? ""}
+            onChange={(value) => setParams({ search: value || null })}
+            placeholder="Search document, party, SKU…"
+          />
+          <FilterSelect
+            label="Warehouse"
+            className="w-44"
+            placeholder="Warehouse"
+            value={filters.warehouse_id ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { warehouse_id: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All warehouses" },
+              ...warehouses.map((warehouse) => ({
+                value: warehouse.id,
+                label: `${warehouse.code} — ${warehouse.name}`,
+              })),
+            ]}
+          />
+          <DateRangeFilter
+            layout="inline"
+            from={filters.document_date_from ?? ""}
+            to={filters.document_date_to ?? ""}
+            onFromChange={(value) => setParams({ filters: { document_date_from: value || null } })}
+            onToChange={(value) => setParams({ filters: { document_date_to: value || null } })}
+          />
+          <SortDialog fields={[...sortFields]} sortBy={sort_by} sortOrder={sort_order} onApply={setParams} />
+          {columnsDialog}
+          {hasQuery ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setParams({
+                  search: null,
+                  sort_by: null,
+                  sort_order: null,
+                  filters: {
+                    warehouse_id: null,
+                    document_date_from: null,
+                    document_date_to: null,
+                  },
+                })
+              }
+            >
+              Clear
+            </Button>
+          ) : null}
+        </DataTableToolbar>
+      }
     />
   );
 }

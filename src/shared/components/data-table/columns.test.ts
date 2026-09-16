@@ -4,6 +4,7 @@ import {
   actionsColumn,
   columnPickerDraft,
   defaultColumnPreference,
+  omitColumnIds,
   resolveTableColumns,
   type DataTableColumn,
 } from "@/shared/components/data-table/columns";
@@ -131,6 +132,20 @@ describe("columnPickerDraft", () => {
     expect(draft.filter((item) => item.visible).map((item) => item.id)).toEqual([
       "document_number",
       "customer",
+    ]);
+  });
+});
+
+describe("omitColumnIds", () => {
+  it("drops parent-context columns while keeping actions", () => {
+    const nested = omitColumnIds(DEFS, ["customer"]);
+    expect(nested.map((column) => column.id)).toEqual([
+      "document_number",
+      "order_date",
+      "status",
+      "grand_total",
+      "fulfillment_status",
+      "actions",
     ]);
   });
 });

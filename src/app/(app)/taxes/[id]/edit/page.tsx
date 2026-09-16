@@ -1,22 +1,15 @@
-import { z } from "zod";
-
 import { TaxDetailScreen } from "@/modules/erp/accounting/taxes/components/tax-detail-screen";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function TaxDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function TaxDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={taxPermissions.update}>
-      {parsed.success ? (
-        <TaxDetailScreen taxId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Tax not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={taxPermissions.update}
+      notFoundMessage="Tax not found."
+    >
+      {(id) => <TaxDetailScreen taxId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

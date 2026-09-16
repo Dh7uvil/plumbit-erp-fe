@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { ContactDetailScreen } from "@/modules/crm/contacts/components/contact-detail-screen";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function ContactDetailEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function ContactDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={contactPermissions.update}>
-      {parsed.success ? (
-        <ContactDetailScreen contactId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Contact not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={contactPermissions.update}
+      notFoundMessage="Contact not found."
+    >
+      {(id) => <ContactDetailScreen contactId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

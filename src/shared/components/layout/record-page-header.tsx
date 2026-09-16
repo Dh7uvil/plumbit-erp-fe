@@ -13,6 +13,8 @@ export function RecordPageHeader({
   title,
   subtitle,
   code,
+  codeLabel,
+  codeTooltip,
   badges,
   listHref,
   viewHref,
@@ -24,6 +26,8 @@ export function RecordPageHeader({
   title: string;
   subtitle?: string;
   code?: string | null;
+  codeLabel?: string;
+  codeTooltip?: string;
   badges?: ReactNode;
   listHref: string;
   viewHref: string;
@@ -39,6 +43,8 @@ export function RecordPageHeader({
       title={title}
       subtitle={subtitle}
       code={code}
+      codeLabel={codeLabel}
+      codeTooltip={codeTooltip}
       badges={badges}
       actions={
         <div className="flex flex-wrap items-center gap-2">

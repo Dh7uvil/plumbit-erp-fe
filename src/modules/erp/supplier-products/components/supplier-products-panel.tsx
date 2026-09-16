@@ -1,12 +1,11 @@
 "use client";
 
 import { Link2, Plus, Unlink } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { DEFAULT_PAGE_SIZE } from "@/config/constants";
-
 import { LinkProductDialog } from "@/modules/erp/supplier-products/components/link-product-dialog";
+import { supplierProductColumnDefs } from "@/modules/erp/supplier-products/components/supplier-product-columns";
 import { SupplierProductFormDialog } from "@/modules/erp/supplier-products/components/supplier-product-form-dialog";
 import {
   useDeleteSupplierProduct,
@@ -17,39 +16,42 @@ import { useSupplierProducts } from "@/modules/erp/supplier-products/queries";
 import type { SupplierProduct } from "@/modules/erp/supplier-products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { useUserNameMap } from "@/shared/components/data-table/audit-columns";
+import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import { RecordLink } from "@/shared/components/data-table/record-link";
-import {
-  DataTableRowActions,
-  hasRowActions,
-  tableHeaders,
-} from "@/shared/components/data-table/row-actions";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { ActiveBadge } from "@/shared/components/feedback/active-badge";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
-import { formatMoney } from "@/shared/lib/format";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
+import { useNestedTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
-const COLUMN_HEADERS = [
-  "Supplier SKU",
-  "Our SKU",
-  "Item name",
-  "Price",
-  "Preferred",
-  "Status",
+const SORT_FIELDS = [
+  { value: "supplier_sku", label: "Supplier SKU" },
+  { value: "supplier_item_name", label: "Supplier item" },
+  { value: "created_at", label: "Created" },
+  { value: "updated_at", label: "Updated" },
 ] as const;
+const ALL = "all";
+
+function parseBoolFilter(value: string | undefined): boolean | undefined {
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return undefined;
+}
 
 export function SupplierProductsPanel({ supplierId }: { supplierId: string }) {
   const can = useCan();
@@ -57,10 +59,20 @@ export function SupplierProductsPanel({ supplierId }: { supplierId: string }) {
     supplierProductPermissions,
   );
   const canLink = can(supplierProductPermissions.link);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage, setPageSize } =
+    useNestedTableParams();
   const catalogQuery = useSupplierProducts(
-    { supplier_id: supplierId, page, page_size: pageSize },
+    {
+      supplier_id: supplierId,
+      page,
+      page_size,
+      search,
+      sort_by,
+      sort_order,
+      mapped: parseBoolFilter(filters.mapped),
+      is_active: parseBoolFilter(filters.is_active),
+      is_preferred: parseBoolFilter(filters.is_preferred),
+    },
     canRead,
   );
   const deleteRow = useDeleteSupplierProduct();
@@ -72,13 +84,74 @@ export function SupplierProductsPanel({ supplierId }: { supplierId: string }) {
   const [deleting, setDeleting] = useState<SupplierProduct | null>(null);
   const [unlinking, setUnlinking] = useState<SupplierProduct | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete, canLink);
-  const headers = tableHeaders(COLUMN_HEADERS, showActions);
+  const userNameById = useUserNameMap();
   const rows = catalogQuery.data?.data ?? [];
   const meta = catalogQuery.data?.meta;
-
-  if (!canRead) {
-    return null;
-  }
+  const columnDefs = useMemo(
+    () =>
+      supplierProductColumnDefs({
+        userNameById,
+        omit: ["supplier"],
+        actions: showActions
+          ? (row) => (
+              <DataTableRowActions
+                entityName={row.supplier_sku}
+                onView={
+                  canRead
+                    ? () => {
+                        setEditing(row);
+                        setForceReadOnly(true);
+                        setFormOpen(true);
+                      }
+                    : undefined
+                }
+                onEdit={
+                  canUpdate
+                    ? () => {
+                        setEditing(row);
+                        setForceReadOnly(false);
+                        setFormOpen(true);
+                      }
+                    : undefined
+                }
+                onDelete={canDelete ? () => setDeleting(row) : undefined}
+                extra={
+                  canLink ? (
+                    row.is_mapped ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label={`Unlink ${row.supplier_sku}`}
+                        onClick={() => setUnlinking(row)}
+                      >
+                        <Unlink className="size-3.5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label={`Link ${row.supplier_sku}`}
+                        onClick={() => setLinking(row)}
+                      >
+                        <Link2 className="size-3.5" />
+                      </Button>
+                    )
+                  ) : null
+                }
+              />
+            )
+          : undefined,
+      }),
+    [canDelete, canLink, canRead, canUpdate, setDeleting, setEditing, setForceReadOnly, setFormOpen, setLinking, setUnlinking, showActions, userNameById],
+  );
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_products", columnDefs);
+  const hasQuery = Boolean(
+    search || filters.mapped || filters.is_active || filters.is_preferred || sort_by,
+  );
 
   async function confirmDelete() {
     if (!deleting) {
@@ -106,6 +179,10 @@ export function SupplierProductsPanel({ supplierId }: { supplierId: string }) {
     }
   }
 
+  if (!canRead) {
+    return null;
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
@@ -126,39 +203,113 @@ export function SupplierProductsPanel({ supplierId }: { supplierId: string }) {
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        <DataTableToolbar>
+          <ListSearch
+            value={search ?? ""}
+            onChange={(value) => setParams({ search: value || null })}
+            placeholder="Search SKU or item name…"
+          />
+          <FilterSelect
+            label="Status"
+            className="w-36"
+            placeholder="Status"
+            value={filters.is_active ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { is_active: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All statuses" },
+              { value: "true", label: "Active" },
+              { value: "false", label: "Inactive" },
+            ]}
+          />
+          <FilterSelect
+            label="Mapped"
+            className="w-36"
+            placeholder="Mapped"
+            value={filters.mapped ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { mapped: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All" },
+              { value: "true", label: "Mapped" },
+              { value: "false", label: "Unmapped" },
+            ]}
+          />
+          <FilterSelect
+            label="Preferred"
+            className="w-36"
+            placeholder="Preferred"
+            value={filters.is_preferred ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { is_preferred: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All" },
+              { value: "true", label: "Preferred" },
+              { value: "false", label: "Other" },
+            ]}
+          />
+          <SortDialog
+            fields={[...SORT_FIELDS]}
+            sortBy={sort_by}
+            sortOrder={sort_order}
+            onApply={setParams}
+          />
+          {columnsDialog}
+          {hasQuery ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setParams({
+                  search: null,
+                  sort_by: null,
+                  sort_order: null,
+                  filters: { is_active: null, mapped: null, is_preferred: null },
+                })
+              }
+            >
+              Clear
+            </Button>
+          ) : null}
+        </DataTableToolbar>
         <DataTable
+          variant="embedded"
           footer={
             meta ? (
               <DataTablePagination
                 meta={meta}
                 onPageChange={setPage}
-                onPageSizeChange={(next) => {
-                  setPageSize(next);
-                  setPage(1);
-                }}
+                onPageSizeChange={setPageSize}
               />
             ) : null
           }
         >
           <TableHeader>
             <TableRow>
-              {headers.map((header) => (
-                <TableHead key={header}>{header}</TableHead>
-              ))}
+              <DataTableColumnHeads
+                columns={columns}
+                sortBy={sort_by}
+                sortOrder={sort_order}
+                onSort={setParams}
+              />
             </TableRow>
           </TableHeader>
           <TableBody>
             {catalogQuery.isLoading ? (
               Array.from({ length: 3 }).map((_, index) => (
                 <TableRow key={index}>
-                  <TableCell colSpan={headers.length}>
+                  <TableCell colSpan={colSpan}>
                     <Skeleton className="h-6 w-full" />
                   </TableCell>
                 </TableRow>
               ))
             ) : catalogQuery.isError ? (
               <TableRow>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <DataTableError
                     message={getErrorMessage(catalogQuery.error)}
                     onRetry={() => catalogQuery.refetch()}
@@ -167,7 +318,7 @@ export function SupplierProductsPanel({ supplierId }: { supplierId: string }) {
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={headers.length}>
+                <TableCell colSpan={colSpan}>
                   <DataTableEmpty
                     title="No catalog items"
                     message={emptyListMessage(canCreate, "Add what this supplier sells.")}
@@ -177,87 +328,7 @@ export function SupplierProductsPanel({ supplierId }: { supplierId: string }) {
             ) : (
               rows.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-mono text-sm">{row.supplier_sku}</TableCell>
-                  <TableCell>
-                    {row.is_mapped && row.product_id ? (
-                      <RecordLink href={`/products/${row.product_id}`}>
-                        {row.product_sku ?? row.product_name ?? "—"}
-                      </RecordLink>
-                    ) : (
-                      <Badge variant="warning">Unmapped</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{row.supplier_item_name}</TableCell>
-                  <TableCell>
-                    {row.price && row.currency_code
-                      ? formatMoney(row.price, row.currency_code)
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {row.is_preferred ? <Badge variant="info">Preferred SKU</Badge> : null}
-                      {row.is_preferred_supplier ? (
-                        <Badge variant="info">Preferred supplier</Badge>
-                      ) : null}
-                      {!row.is_preferred && !row.is_preferred_supplier ? "—" : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <ActiveBadge active={row.is_active} />
-                  </TableCell>
-                  {showActions ? (
-                    <TableCell>
-                      <DataTableRowActions
-                        entityName={row.supplier_sku}
-                        onView={
-                          canRead
-                            ? () => {
-                                setEditing(row);
-                                setForceReadOnly(true);
-                                setFormOpen(true);
-                              }
-                            : undefined
-                        }
-                        onEdit={
-                          canUpdate
-                            ? () => {
-                                setEditing(row);
-                                setForceReadOnly(false);
-                                setFormOpen(true);
-                              }
-                            : undefined
-                        }
-                        onDelete={canDelete ? () => setDeleting(row) : undefined}
-                        extra={
-                          canLink ? (
-                            row.is_mapped ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                aria-label={`Unlink ${row.supplier_sku}`}
-                                onClick={() => setUnlinking(row)}
-                              >
-                                <Unlink className="size-3.5" />
-                              </Button>
-                            ) : (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                aria-label={`Link ${row.supplier_sku}`}
-                                onClick={() => setLinking(row)}
-                              >
-                                <Link2 className="size-3.5" />
-                              </Button>
-                            )
-                          ) : null
-                        }
-                      />
-                    </TableCell>
-                  ) : null}
+                  <DataTableCells columns={columns} row={row} />
                 </TableRow>
               ))
             )}

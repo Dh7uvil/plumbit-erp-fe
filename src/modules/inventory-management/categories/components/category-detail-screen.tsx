@@ -62,6 +62,7 @@ export function CategoryDetailScreen({
       <RecordPageHeader
         title={category.name}
         code={category.code}
+        codeLabel="Category"
         listHref="/categories"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}

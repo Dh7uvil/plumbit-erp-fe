@@ -70,9 +70,9 @@ test.describe("quotation approval", () => {
     await page.getByRole("button", { name: "Create quotation" }).click();
 
     await expect(page).toHaveURL(/\/quotations\/[0-9a-f-]{36}$/i);
-    await page.getByRole("link", { name: "Approvals & History" }).click();
+    await page.getByRole("link", { name: "Approvals and History" }).click();
     await expect(page).toHaveURL(/\/history\/quotations\/[0-9a-f-]{36}/i);
-    await expect(page.getByRole("heading", { name: "Approvals & History" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Approvals and History" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Edit History" })).toBeVisible();
     await expect(page.getByText("uploaded the file")).toBeVisible();
     await expect(page.getByText("packing-list.jpg")).toBeVisible();

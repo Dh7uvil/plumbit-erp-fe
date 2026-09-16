@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { CurrencyDetailScreen } from "@/modules/erp/currencies/components/currency-detail-screen";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function CurrencyDetailEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function CurrencyDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={currencyPermissions.update}>
-      {parsed.success ? (
-        <CurrencyDetailScreen currencyId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Currency not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={currencyPermissions.update}
+      notFoundMessage="Currency not found."
+    >
+      {(id) => <CurrencyDetailScreen currencyId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

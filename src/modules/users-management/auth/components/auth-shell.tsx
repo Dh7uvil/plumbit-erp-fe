@@ -16,7 +16,7 @@ const HIGHLIGHTS = [
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <AuthBrandProvider>
-      <div className="bg-background flex min-h-screen">
+      <div className="bg-background flex h-full min-h-0 overflow-y-auto">
         <aside className="bg-primary text-primary-foreground hidden w-[420px] shrink-0 flex-col items-center justify-center p-12 lg:flex">
           <AuthBrandMark />
           <p className="text-primary-foreground/60 mt-2 text-center text-sm">

@@ -1,22 +1,15 @@
-import { z } from "zod";
-
 import { AccountDetailScreen } from "@/modules/erp/accounting/accounts/components/account-detail-screen";
 import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={accountPermissions.read}>
-      {parsed.success ? (
-        <AccountDetailScreen accountId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Account not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={accountPermissions.read}
+      notFoundMessage="Account not found."
+    >
+      {(id) => <AccountDetailScreen accountId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

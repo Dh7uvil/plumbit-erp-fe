@@ -4,30 +4,38 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { customersApi } from "@/modules/crm/customers/api";
 import { suppliersApi } from "@/modules/erp/suppliers/api";
-import type { TradingHistoryListParams } from "@/modules/inventory-management/history/schemas";
+import type {
+  TradingAggregateListParams,
+  TradingHistoryListParams,
+} from "@/modules/inventory-management/history/schemas";
 import { productsApi } from "@/modules/inventory-management/products/api";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const historyKeys = {
   all: ["trading-history"] as const,
-  productCustomers: (productId: string) =>
-    [...historyKeys.all, "product-customers", productId] as const,
+  productCustomers: (productId: string, params: TradingAggregateListParams) =>
+    [...historyKeys.all, "product-customers", productId, params] as const,
   productSales: (productId: string, params: TradingHistoryListParams) =>
     [...historyKeys.all, "product-sales", productId, params] as const,
   productPurchases: (productId: string, params: TradingHistoryListParams) =>
     [...historyKeys.all, "product-purchases", productId, params] as const,
-  customerProducts: (customerId: string) =>
-    [...historyKeys.all, "customer-products", customerId] as const,
+  customerProducts: (customerId: string, params: TradingAggregateListParams) =>
+    [...historyKeys.all, "customer-products", customerId, params] as const,
   customerSales: (customerId: string, params: TradingHistoryListParams) =>
     [...historyKeys.all, "customer-sales", customerId, params] as const,
   supplierPurchases: (supplierId: string, params: TradingHistoryListParams) =>
     [...historyKeys.all, "supplier-purchases", supplierId, params] as const,
 };
 
-export function useProductCustomers(productId: string, enabled = true) {
+export function useProductCustomers(
+  productId: string,
+  params: TradingAggregateListParams = {},
+  enabled = true,
+) {
   return useQuery({
-    queryKey: useTenantQueryKey(historyKeys.productCustomers(productId)),
-    queryFn: () => productsApi.listCustomers(productId),
+    queryKey: useTenantQueryKey(historyKeys.productCustomers(productId, params)),
+    queryFn: () => productsApi.listCustomers(productId, params),
+    placeholderData: keepPreviousData,
     enabled: Boolean(productId) && enabled,
   });
 }
@@ -58,10 +66,15 @@ export function useProductPurchaseHistory(
   });
 }
 
-export function useCustomerProducts(customerId: string, enabled = true) {
+export function useCustomerProducts(
+  customerId: string,
+  params: TradingAggregateListParams = {},
+  enabled = true,
+) {
   return useQuery({
-    queryKey: useTenantQueryKey(historyKeys.customerProducts(customerId)),
-    queryFn: () => customersApi.listProducts(customerId),
+    queryKey: useTenantQueryKey(historyKeys.customerProducts(customerId, params)),
+    queryFn: () => customersApi.listProducts(customerId, params),
+    placeholderData: keepPreviousData,
     enabled: Boolean(customerId) && enabled,
   });
 }

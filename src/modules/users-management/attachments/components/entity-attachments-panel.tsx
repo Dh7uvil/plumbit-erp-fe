@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, FileUp, Loader2, Paperclip, Trash2 } from "lucide-react";
-import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { MAX_ATTACHMENT_BYTES } from "@/config/constants";
@@ -16,18 +16,21 @@ import { useEntityAttachments } from "@/modules/users-management/attachments/que
 import {
   ATTACHMENT_CATEGORIES,
   ATTACHMENT_CATEGORY_LABELS,
+  ATTACHMENT_FILE_ACCEPT,
   isImageAttachment,
   type Attachment,
   type AttachmentCategory,
   type AttachmentEntityType,
 } from "@/modules/users-management/attachments/schemas";
 import { ApiError, getErrorMessage } from "@/shared/api/errors";
-import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListSearch } from "@/shared/components/data-table/list-search";
+import { DataTableToolbar, toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Label } from "@/shared/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -95,14 +98,19 @@ export function EntityAttachmentsPanel({
 }) {
   const can = useCan();
   const canRead = can(attachmentPermissions.read);
+  const canCreate = can(attachmentPermissions.create);
+  const uploadCategoryId = useId();
+  const filterCategoryId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadCategory, setUploadCategory] = useState<AttachmentCategory>(defaultCategory);
   const [filterCategory, setFilterCategory] = useState<AttachmentCategory | "all">("all");
+  const [search, setSearch] = useState("");
   const attachmentsQuery = useEntityAttachments(
     entityType,
     entityId,
     canRead,
     filterCategory === "all" ? undefined : filterCategory,
+    search || undefined,
   );
   const createAttachment = useCreateAttachment();
   const updateAttachment = useUpdateAttachment();
@@ -201,39 +209,39 @@ export function EntityAttachmentsPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-2">
-        <CardTitle className="self-center text-base">Attachments</CardTitle>
-        <div className="flex flex-wrap items-end gap-2">
-          <FilterSelect
-            label="Category"
-            className="w-44"
-            placeholder="Category"
-            value={filterCategory}
-            onValueChange={(value) => setFilterCategory(value as AttachmentCategory | "all")}
-            options={[
-              { value: "all", label: "All categories" },
-              ...ATTACHMENT_CATEGORIES.map((category) => ({
-                value: category,
-                label: ATTACHMENT_CATEGORY_LABELS[category],
-              })),
-            ]}
-          />
-        {can(attachmentPermissions.create) ? (
-          <div className="flex flex-wrap items-end gap-2">
-            <FilterSelect
-              label="Upload as"
-              className="w-44"
-              placeholder="Category"
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-base">Attachments</CardTitle>
+        {canCreate ? (
+          <div className="flex items-center gap-2">
+            <Label
+              htmlFor={uploadCategoryId}
+              className="text-muted-foreground shrink-0 text-sm font-medium"
+            >
+              Upload as
+            </Label>
+            <Select
               value={uploadCategory}
               onValueChange={(value) => setUploadCategory(value as AttachmentCategory)}
-              options={ATTACHMENT_CATEGORIES.map((category) => ({
-                value: category,
-                label: ATTACHMENT_CATEGORY_LABELS[category],
-              }))}
-            />
+            >
+              <SelectTrigger
+                id={uploadCategoryId}
+                className="h-9 w-44"
+                aria-label="Upload as"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ATTACHMENT_CATEGORIES.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {ATTACHMENT_CATEGORY_LABELS[category]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <input
               ref={inputRef}
               type="file"
+              accept={ATTACHMENT_FILE_ACCEPT}
               className="sr-only"
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -247,7 +255,6 @@ export function EntityAttachmentsPanel({
               type="button"
               size="sm"
               variant="outline"
-              className="self-end"
               disabled={createAttachment.isPending}
               onClick={() => inputRef.current?.click()}
             >
@@ -260,9 +267,37 @@ export function EntityAttachmentsPanel({
             </Button>
           </div>
         ) : null}
-        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-3 pb-6">
+        <DataTableToolbar className="grid grid-cols-[minmax(0,1fr)_11rem] flex-nowrap">
+          <ListSearch
+            className="min-w-0 max-w-none w-full"
+            value={search}
+            onChange={setSearch}
+            placeholder="Search filename…"
+          />
+          <div className="flex min-w-0 w-full flex-col gap-1">
+            <Label htmlFor={filterCategoryId} className={toolbarLabelClass}>
+              Category
+            </Label>
+            <Select
+              value={filterCategory}
+              onValueChange={(value) => setFilterCategory(value as AttachmentCategory | "all")}
+            >
+              <SelectTrigger id={filterCategoryId} className="w-full" aria-label="Category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {ATTACHMENT_CATEGORIES.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {ATTACHMENT_CATEGORY_LABELS[category]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </DataTableToolbar>
         {attachmentsQuery.isLoading ? <Skeleton className="h-20 w-full" /> : null}
         {attachmentsQuery.isError ? (
           <DataTableError

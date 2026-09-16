@@ -6,13 +6,10 @@ import { useMemo, useState } from "react";
 import { useAllCategories } from "@/modules/inventory-management/categories/queries";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
 import { StockReorderDialog } from "@/modules/inventory-management/stock/components/stock-reorder-dialog";
+import { stockBalanceColumnDefs } from "@/modules/inventory-management/stock/components/stock-columns";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { useStock } from "@/modules/inventory-management/stock/queries";
-import {
-  qtyIsBelowReorder,
-  qtyIsNegative,
-  type StockBalance,
-} from "@/modules/inventory-management/stock/schemas";
+import { type StockBalance } from "@/modules/inventory-management/stock/schemas";
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
 import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
@@ -20,17 +17,11 @@ import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import { auditTimestampColumns } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -38,13 +29,10 @@ import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
-import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDateTime, formatMoney, formatQuantity } from "@/shared/lib/format";
-import { cn } from "@/shared/lib/cn";
 import { useCan } from "@/shared/providers/session-provider";
 
 const SORT_FIELDS = [
@@ -87,15 +75,6 @@ function parseBoolFilter(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
-function qtyCell(value: string, emphasizeNegative = false) {
-  const negative = emphasizeNegative && qtyIsNegative(value);
-  return (
-    <span className={cn("tabular-nums", negative && "text-destructive font-medium")}>
-      {formatQuantity(value)}
-    </span>
-  );
-}
-
 export function StockScreen() {
   const can = useCan();
   const { canRead, canUpdate } = useCrudPermissions(stockPermissions);
@@ -132,175 +111,55 @@ export function StockScreen() {
   const products = productsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
 
-  const columnDefs = useMemo((): Array<DataTableColumn<StockBalance>> => {
-    return [
-      {
-        id: "sku",
-        header: "SKU",
-        className: "font-mono text-sm",
-        cell: (row) => <RecordLink href={`/stock/${row.product_id}`}>{row.sku}</RecordLink>,
-      },
-      {
-        id: "product",
-        header: "Product",
-        className: "font-medium",
-        cell: (row) => (
-          <RecordLink href={`/stock/${row.product_id}`}>{row.product_name}</RecordLink>
-        ),
-      },
-      {
-        id: "warehouse",
-        header: "Warehouse",
-        cell: (row) => {
-          const belowReorder = qtyIsBelowReorder(row.qty_available, row.reorder_level);
-          return (
-            <>
-              {row.warehouse_code}
-              {belowReorder ? (
-                <Badge variant="warning" className="ml-2">
-                  Below reorder
-                </Badge>
-              ) : null}
-            </>
-          );
-        },
-      },
-      {
-        id: "qty_on_hand",
-        header: "On hand",
-        sortableField: "qty_on_hand",
-        className: "text-right",
-        headerClassName: "text-right",
-        cell: (row) => qtyCell(row.qty_on_hand, true),
-      },
-      {
-        id: "qty_quality_hold",
-        header: "QC hold",
-        sortableField: "qty_quality_hold",
-        className: "text-right",
-        headerClassName: "text-right",
-        cell: (row) => qtyCell(row.qty_quality_hold),
-      },
-      {
-        id: "qty_reserved",
-        header: "Committed",
-        sortableField: "qty_reserved",
-        className: "text-right",
-        headerClassName: "text-right",
-        cell: (row) => qtyCell(row.qty_reserved),
-      },
-      {
-        id: "qty_available",
-        header: "Available",
-        sortableField: "qty_available",
-        className: "text-right",
-        headerClassName: "text-right",
-        cell: (row) => qtyCell(row.qty_available, true),
-      },
-      {
-        id: "qty_incoming",
-        header: "Incoming",
-        className: "text-right",
-        headerClassName: "text-right",
-        cell: (row) => qtyCell(row.qty_incoming),
-      },
-      {
-        id: "qty_outgoing",
-        header: "Outgoing",
-        className: "text-right",
-        headerClassName: "text-right",
-        cell: (row) => qtyCell(row.qty_outgoing),
-      },
-      {
-        id: "qty_in_transit",
-        header: "In transit",
-        className: "text-right",
-        headerClassName: "text-right",
-        cell: (row) => qtyCell(row.qty_in_transit),
-      },
-      ...(canReadCost
-        ? [
-            {
-              id: "unit_cost",
-              header: "Unit cost",
-              className: "text-right tabular-nums",
-              headerClassName: "text-right",
-              cell: (row: StockBalance) => formatMoney(row.unit_cost, currencyCode),
-            },
-            {
-              id: "value",
-              header: "Value",
-              className: "text-right tabular-nums",
-              headerClassName: "text-right",
-              cell: (row: StockBalance) => formatMoney(row.stock_value, currencyCode),
-            },
-          ]
-        : []),
-      {
-        id: "reorder_level",
-        header: "Reorder level",
-        defaultVisible: false,
-        className: "text-right tabular-nums",
-        headerClassName: "text-right",
-        cell: (row) => formatQuantity(row.reorder_level),
-      },
-      {
-        id: "reorder_qty",
-        header: "Reorder qty",
-        defaultVisible: false,
-        className: "text-right tabular-nums",
-        headerClassName: "text-right",
-        cell: (row) => formatQuantity(row.reorder_qty),
-      },
-      {
-        id: "last_movement_at",
-        header: "Last movement",
-        defaultVisible: false,
-        className: "text-muted-foreground text-xs",
-        cell: (row) => formatDateTime(row.last_movement_at),
-      },
-      ...auditTimestampColumns<StockBalance>(),
-      ...actionsColumn<StockBalance>(showActions, (row) => (
-        <DataTableRowActions
-          entityName={row.sku}
-          viewHref={canRead ? `/stock/${row.product_id}` : undefined}
-          extra={
-            <>
-              {canAdjust ? (
-                <Button type="button" variant="ghost" size="sm" className="h-7 px-2" asChild>
-                  <Link
-                    href={`/stock-adjustments/new?product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`}
-                  >
-                    Adjust
-                  </Link>
-                </Button>
-              ) : null}
-              {canTransfer ? (
-                <Button type="button" variant="ghost" size="sm" className="h-7 px-2" asChild>
-                  <Link
-                    href={`/stock-transfers/new?product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`}
-                  >
-                    Transfer
-                  </Link>
-                </Button>
-              ) : null}
-              {canUpdate ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2"
-                  onClick={() => setReordering(row)}
-                >
-                  Reorder
-                </Button>
-              ) : null}
-            </>
-          }
-        />
-      )),
-    ];
-  }, [canAdjust, canRead, canReadCost, canTransfer, canUpdate, currencyCode, showActions]);
+  const columnDefs = useMemo(
+    () =>
+      stockBalanceColumnDefs({
+        canReadCost,
+        currencyCode,
+        actions: showActions
+          ? (row) => (
+              <DataTableRowActions
+                entityName={row.sku}
+                viewHref={canRead ? `/stock/${row.product_id}` : undefined}
+                extra={
+                  <>
+                    {canAdjust ? (
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2" asChild>
+                        <Link
+                          href={`/stock-adjustments/new?product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`}
+                        >
+                          Adjust
+                        </Link>
+                      </Button>
+                    ) : null}
+                    {canTransfer ? (
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2" asChild>
+                        <Link
+                          href={`/stock-transfers/new?product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`}
+                        >
+                          Transfer
+                        </Link>
+                      </Button>
+                    ) : null}
+                    {canUpdate ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => setReordering(row)}
+                      >
+                        Reorder
+                      </Button>
+                    ) : null}
+                  </>
+                }
+              />
+            )
+          : undefined,
+      }),
+    [canAdjust, canRead, canReadCost, canTransfer, canUpdate, currencyCode, showActions],
+  );
 
   const { columns, columnsDialog, colSpan } = useTableColumns("inventory.stock", columnDefs);
 

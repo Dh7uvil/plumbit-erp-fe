@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { SupplierProductDetailScreen } from "@/modules/erp/supplier-products/components/supplier-product-detail-screen";
 import { supplierProductPermissions } from "@/modules/erp/supplier-products/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function SupplierProductDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function SupplierProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={supplierProductPermissions.read}>
-      {parsed.success ? (
-        <SupplierProductDetailScreen catalogId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Catalog item not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={supplierProductPermissions.read}
+      notFoundMessage="Catalog item not found."
+    >
+      {(id) => <SupplierProductDetailScreen catalogId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

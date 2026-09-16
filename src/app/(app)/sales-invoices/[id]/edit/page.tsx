@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { SalesInvoiceDetailScreen } from "@/modules/erp/sales-invoices/components/sales-invoice-detail-screen";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function SalesInvoiceEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function SalesInvoiceEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={salesInvoicePermissions.update}>
-      {parsed.success ? (
-        <SalesInvoiceDetailScreen invoiceId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Sales invoice not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={salesInvoicePermissions.update}
+      notFoundMessage="Sales invoice not found."
+    >
+      {(id) => <SalesInvoiceDetailScreen invoiceId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }
