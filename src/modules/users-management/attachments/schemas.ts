@@ -77,7 +77,32 @@ export const IMAGE_ATTACHMENT_CATEGORIES = new Set<AttachmentCategory>([
   "RETURN_PHOTO",
   "DISPATCH_PHOTO",
   "POD",
+  "OTHER",
 ]);
+
+export const ATTACHMENT_FILE_ACCEPT = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "text/csv",
+  "application/json",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".pdf",
+  ".csv",
+  ".json",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".ppt",
+  ".pptx",
+].join(",");
 
 export const AttachmentSchema = z.object({
   id: z.string().uuid(),
@@ -115,11 +140,14 @@ export type AttachmentListParams = {
 };
 
 export function isImageAttachment(attachment: Attachment): boolean {
-  if (attachment.content_type.startsWith("image/")) {
+  if (attachment.content_type.toLowerCase().startsWith("image/")) {
+    return true;
+  }
+  if (attachment.thumbnail_url) {
     return true;
   }
   if (attachment.category && IMAGE_ATTACHMENT_CATEGORIES.has(attachment.category)) {
-    return Boolean(attachment.thumbnail_url);
+    return Boolean(attachment.image_width);
   }
-  return Boolean(attachment.thumbnail_url);
+  return false;
 }

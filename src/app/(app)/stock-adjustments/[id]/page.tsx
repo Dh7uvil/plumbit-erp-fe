@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { StockAdjustmentDetailScreen } from "@/modules/inventory-management/stock-adjustments/components/stock-adjustment-detail-screen";
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function StockAdjustmentDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function StockAdjustmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={stockAdjustmentPermissions.read}>
-      {parsed.success ? (
-        <StockAdjustmentDetailScreen adjustmentId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Stock adjustment not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={stockAdjustmentPermissions.read}
+      notFoundMessage="Stock adjustment not found."
+    >
+      {(id) => <StockAdjustmentDetailScreen adjustmentId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

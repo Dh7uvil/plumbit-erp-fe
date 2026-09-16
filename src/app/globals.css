@@ -170,10 +170,11 @@
 
   html {
     font-size: var(--font-size);
+    overflow: hidden;
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans overflow-hidden;
   }
 
   h1 {

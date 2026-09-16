@@ -1,22 +1,15 @@
-import { z } from "zod";
-
 import { QuotationDetailScreen } from "@/modules/erp/quotations/components/quotation-detail-screen";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const QuotationIdSchema = z.string().uuid();
-
-export default async function QuotationEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const parsed = QuotationIdSchema.safeParse(id);
-
+export default function QuotationEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={quotationPermissions.update}>
-      {parsed.success ? (
-        <QuotationDetailScreen quotationId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Quotation not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={quotationPermissions.update}
+      notFoundMessage="Quotation not found."
+    >
+      {(id) => <QuotationDetailScreen quotationId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

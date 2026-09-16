@@ -24,6 +24,7 @@ import {
   TradingProductAggregateListSchema,
   type TradingHistoryLine,
   type TradingHistoryListParams,
+  type TradingAggregateListParams,
   type TradingProductAggregate,
 } from "@/modules/inventory-management/history/schemas";
 import { emptyToNull, toAddressPayload } from "@/modules/users-management/tenants/schemas";
@@ -124,8 +125,19 @@ export const customersApi = {
     CustomerExtraAddressSchema.parse(
       await apiClient.delete(`/customers/${id}/addresses/${extraId}`),
     ),
-  listProducts: async (id: string): Promise<ListResponse<TradingProductAggregate[]>> => {
-    const result = await apiClient.getList<unknown>(`/customers/${id}/products`);
+  listProducts: async (
+    id: string,
+    params: TradingAggregateListParams = {},
+  ): Promise<ListResponse<TradingProductAggregate[]>> => {
+    const result = await apiClient.getList<unknown>(`/customers/${id}/products`, {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
+      },
+    });
     return { data: TradingProductAggregateListSchema.parse(result.data), meta: result.meta };
   },
   listSalesHistory: async (
@@ -136,6 +148,9 @@ export const customersApi = {
       params: {
         page: params.page ?? 1,
         page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
         party_id: params.party_id,
         product_id: params.product_id,
         warehouse_id: params.warehouse_id,

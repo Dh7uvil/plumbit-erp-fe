@@ -1,94 +1,58 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { TradingHistoryLines } from "@/modules/inventory-management/history/components/trading-history-lines";
+import {
+  tradingPartyAggregateColumnDefs,
+  tradingProductAggregateColumnDefs,
+} from "@/modules/inventory-management/history/components/trading-history-columns";
 import { historyPermissions } from "@/modules/inventory-management/history/permissions";
 import {
   useCustomerProducts,
   useProductCustomers,
 } from "@/modules/inventory-management/history/queries";
-import type {
-  TradingPartyAggregate,
-  TradingProductAggregate,
-} from "@/modules/inventory-management/history/schemas";
-import {
-  DocumentHistoryTable,
-  type DocumentHistoryColumn,
-} from "@/shared/components/document/document-history-table";
+import { DocumentHistoryTable } from "@/shared/components/document/document-history-table";
+import { ListSearch } from "@/shared/components/data-table/list-search";
+import { SortDialog } from "@/shared/components/data-table/sort-dialog";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
+import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatDate, formatQuantity, formatReportMoney } from "@/shared/lib/format";
+import { useNestedTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
+
+const PARTY_SORT_FIELDS = [
+  { value: "party_name", label: "Customer" },
+  { value: "total_quantity", label: "Qty" },
+  { value: "revenue", label: "Revenue" },
+  { value: "last_date", label: "Last" },
+  { value: "dispatch_count", label: "Dispatches" },
+] as const;
+
+const PRODUCT_SORT_FIELDS = [
+  { value: "sku", label: "SKU" },
+  { value: "product_name", label: "Product" },
+  { value: "total_quantity", label: "Qty" },
+  { value: "revenue", label: "Revenue" },
+  { value: "last_date", label: "Last" },
+  { value: "dispatch_count", label: "Dispatches" },
+] as const;
 
 export function ProductCustomersCard({ productId }: { productId: string }) {
   const can = useCan();
   const enabled = can(historyPermissions.product);
-  const query = useProductCustomers(productId, enabled);
+  const { page, page_size, search, sort_by, sort_order, setParams, setPage, setPageSize } =
+    useNestedTableParams();
+  const query = useProductCustomers(productId, { page, page_size, search, sort_by, sort_order }, enabled);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const rows = query.data?.data ?? [];
-  const columns = useMemo<Array<DocumentHistoryColumn<TradingPartyAggregate>>>(
-    () => [
-      {
-        id: "party",
-        header: "Customer",
-        cell: (row) => (
-          <Link href={`/customers/${row.party_id}`} className="underline-offset-4 hover:underline">
-            {row.party_name}
-          </Link>
-        ),
-      },
-      {
-        id: "qty",
-        header: "Qty",
-        className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatQuantity(row.total_quantity)}</span>,
-      },
-      {
-        id: "invoiced",
-        header: "Invoiced",
-        className: "text-right",
-        cell: (row) => (
-          <span className="tabular-nums">
-            {row.invoiced_quantity != null ? formatQuantity(row.invoiced_quantity) : "—"}
-          </span>
-        ),
-      },
-      {
-        id: "revenue",
-        header: "Revenue",
-        className: "text-right",
-        cell: (row) => (
-          <span className="tabular-nums">
-            {row.revenue != null ? formatReportMoney(row.revenue) : "—"}
-          </span>
-        ),
-      },
-      {
-        id: "dispatches",
-        header: "Dispatches",
-        className: "text-right",
-        cell: (row) => <span className="tabular-nums">{row.dispatch_count}</span>,
-      },
-      {
-        id: "first",
-        header: "First",
-        cell: (row) => formatDate(row.first_date),
-      },
-      {
-        id: "last",
-        header: "Last",
-        cell: (row) => formatDate(row.last_date),
-      },
-      {
-        id: "rate",
-        header: "Last rate",
-        className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatReportMoney(row.last_rate)}</span>,
-      },
-    ],
-    [],
+  const columnDefs = useMemo(() => tradingPartyAggregateColumnDefs(), []);
+  const { columns, columnsDialog } = useTableColumns(
+    "inventory.trading_party_aggregates",
+    columnDefs,
   );
+  const hasQuery = Boolean(search || sort_by);
 
   if (!enabled) {
     return null;
@@ -110,11 +74,43 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
           onRetry={() => query.refetch()}
           emptyTitle="No customers"
           emptyMessage="No posted sales for this product yet."
+          meta={query.data?.meta}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onSort={setParams}
           expandedId={expandedId}
           onToggleExpand={(id) => setExpandedId((current) => (current === id ? null : id))}
           renderExpanded={(row) => (
             <TradingHistoryLines kind="product-sales" ownerId={productId} partyId={row.party_id} />
           )}
+          toolbar={
+            <DataTableToolbar>
+              <ListSearch
+                value={search ?? ""}
+                onChange={(value) => setParams({ search: value || null })}
+                placeholder="Search customer…"
+              />
+              <SortDialog
+                fields={[...PARTY_SORT_FIELDS]}
+                sortBy={sort_by}
+                sortOrder={sort_order}
+                onApply={setParams}
+              />
+              {columnsDialog}
+              {hasQuery ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setParams({ search: null, sort_by: null, sort_order: null })}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </DataTableToolbar>
+          }
         />
       </CardContent>
     </Card>
@@ -168,71 +164,21 @@ export function ProductPurchaseHistoryCard({ productId }: { productId: string })
 export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
   const can = useCan();
   const enabled = can(historyPermissions.customer);
-  const query = useCustomerProducts(customerId, enabled);
+  const { page, page_size, search, sort_by, sort_order, setParams, setPage, setPageSize } =
+    useNestedTableParams();
+  const query = useCustomerProducts(
+    customerId,
+    { page, page_size, search, sort_by, sort_order },
+    enabled,
+  );
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const rows = query.data?.data ?? [];
-  const columns = useMemo<Array<DocumentHistoryColumn<TradingProductAggregate>>>(
-    () => [
-      {
-        id: "product",
-        header: "Product",
-        cell: (row) => (
-          <Link href={`/products/${row.product_id}`} className="underline-offset-4 hover:underline">
-            {row.sku} — {row.product_name}
-          </Link>
-        ),
-      },
-      {
-        id: "qty",
-        header: "Qty",
-        className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatQuantity(row.total_quantity)}</span>,
-      },
-      {
-        id: "invoiced",
-        header: "Invoiced",
-        className: "text-right",
-        cell: (row) => (
-          <span className="tabular-nums">
-            {row.invoiced_quantity != null ? formatQuantity(row.invoiced_quantity) : "—"}
-          </span>
-        ),
-      },
-      {
-        id: "revenue",
-        header: "Revenue",
-        className: "text-right",
-        cell: (row) => (
-          <span className="tabular-nums">
-            {row.revenue != null ? formatReportMoney(row.revenue) : "—"}
-          </span>
-        ),
-      },
-      {
-        id: "dispatches",
-        header: "Dispatches",
-        className: "text-right",
-        cell: (row) => <span className="tabular-nums">{row.dispatch_count}</span>,
-      },
-      {
-        id: "first",
-        header: "First",
-        cell: (row) => formatDate(row.first_date),
-      },
-      {
-        id: "last",
-        header: "Last",
-        cell: (row) => formatDate(row.last_date),
-      },
-      {
-        id: "rate",
-        header: "Last rate",
-        className: "text-right",
-        cell: (row) => <span className="tabular-nums">{formatReportMoney(row.last_rate)}</span>,
-      },
-    ],
-    [],
+  const columnDefs = useMemo(() => tradingProductAggregateColumnDefs(), []);
+  const { columns, columnsDialog } = useTableColumns(
+    "inventory.trading_product_aggregates",
+    columnDefs,
   );
+  const hasQuery = Boolean(search || sort_by);
 
   if (!enabled) {
     return null;
@@ -254,6 +200,12 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
           onRetry={() => query.refetch()}
           emptyTitle="No sold items"
           emptyMessage="No posted deliveries for this customer yet."
+          meta={query.data?.meta}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onSort={setParams}
           expandedId={expandedId}
           onToggleExpand={(id) => setExpandedId((current) => (current === id ? null : id))}
           renderExpanded={(row) => (
@@ -263,6 +215,32 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
               productId={row.product_id}
             />
           )}
+          toolbar={
+            <DataTableToolbar>
+              <ListSearch
+                value={search ?? ""}
+                onChange={(value) => setParams({ search: value || null })}
+                placeholder="Search SKU or product…"
+              />
+              <SortDialog
+                fields={[...PRODUCT_SORT_FIELDS]}
+                sortBy={sort_by}
+                sortOrder={sort_order}
+                onApply={setParams}
+              />
+              {columnsDialog}
+              {hasQuery ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setParams({ search: null, sort_by: null, sort_order: null })}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </DataTableToolbar>
+          }
         />
       </CardContent>
     </Card>

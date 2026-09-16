@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { PurchaseInvoiceDetailScreen } from "@/modules/erp/purchase-invoices/components/purchase-invoice-detail-screen";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function PurchaseInvoiceDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function PurchaseInvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={purchaseInvoicePermissions.read}>
-      {parsed.success ? (
-        <PurchaseInvoiceDetailScreen invoiceId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Purchase invoice not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={purchaseInvoicePermissions.read}
+      notFoundMessage="Purchase invoice not found."
+    >
+      {(id) => <PurchaseInvoiceDetailScreen invoiceId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

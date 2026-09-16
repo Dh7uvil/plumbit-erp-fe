@@ -61,9 +61,20 @@ export const TradingProductAggregateListSchema = z.array(TradingProductAggregate
 export type TradingHistoryListParams = {
   page?: number;
   page_size?: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
   party_id?: string;
   product_id?: string;
   warehouse_id?: string;
   document_date_from?: string;
   document_date_to?: string;
+};
+
+export type TradingAggregateListParams = {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
 };

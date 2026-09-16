@@ -6,17 +6,20 @@ import { useEffect, useId, useRef, useState } from "react";
 import { toolbarLabelClass } from "@/shared/components/data-table/toolbar";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { cn } from "@/shared/lib/cn";
 
 export function ListSearch({
   value,
   onChange,
   placeholder = "Search…",
   label = "Search",
+  className,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   label?: string;
+  className?: string;
 }) {
   const searchId = useId();
   const [input, setInput] = useState(value);
@@ -45,7 +48,7 @@ export function ListSearch({
   }, [input]);
 
   return (
-    <div className="flex max-w-md min-w-48 flex-1 flex-col gap-1">
+    <div className={cn("flex max-w-md min-w-48 flex-1 flex-col gap-1", className)}>
       <Label htmlFor={searchId} className={toolbarLabelClass}>
         {label}
       </Label>

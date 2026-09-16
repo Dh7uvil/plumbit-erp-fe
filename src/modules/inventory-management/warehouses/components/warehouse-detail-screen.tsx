@@ -62,6 +62,7 @@ export function WarehouseDetailScreen({
       <RecordPageHeader
         title={warehouse.name}
         code={warehouse.code}
+        codeLabel="Warehouse"
         listHref="/warehouses"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}

@@ -4,33 +4,28 @@ import { useMemo, useState } from "react";
 
 import { useAllCategories } from "@/modules/inventory-management/categories/queries";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
+import { stockMovementColumnDefs } from "@/modules/inventory-management/stock/components/stock-movement-columns";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { useStockMovements } from "@/modules/inventory-management/stock/queries";
 import {
   parseStockMovementSourceType,
   parseStockMovementType,
-  qtyIsNegative,
   STOCK_MOVEMENT_SOURCE_TYPE_LABELS,
   STOCK_MOVEMENT_SOURCE_TYPES,
   STOCK_MOVEMENT_TYPE_LABELS,
   STOCK_MOVEMENT_TYPES,
-  stockMovementSourceHref,
-  stockMovementSourceLabel,
   type StockMovement,
 } from "@/modules/inventory-management/stock/schemas";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import { auditTimestampColumns } from "@/shared/components/data-table/audit-columns";
-import { type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
-import { RecordLink } from "@/shared/components/data-table/record-link";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
@@ -42,8 +37,6 @@ import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { cn } from "@/shared/lib/cn";
-import { formatDate, formatDateTime, formatMoney, formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const SORT_FIELDS = [
@@ -86,12 +79,6 @@ function extraCountOf(extra: typeof EMPTY_EXTRA) {
   ].filter(Boolean).length;
 }
 
-function MovementSourceCell({ sourceType, sourceId }: { sourceType: string; sourceId: string }) {
-  const href = stockMovementSourceHref(sourceType, sourceId);
-  const label = stockMovementSourceLabel(sourceType);
-  return href ? <RecordLink href={href}>{label}</RecordLink> : label;
-}
-
 export function StockMovementsScreen() {
   const can = useCan();
   const canReadCost = can(stockPermissions.costRead);
@@ -126,108 +113,10 @@ export function StockMovementsScreen() {
   const products = productsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
 
-  const columnDefs = useMemo((): Array<DataTableColumn<StockMovement>> => {
-    return [
-      {
-        id: "sku",
-        header: "SKU",
-        className: "font-mono text-sm",
-        cell: (row) => <RecordLink href={`/stock/${row.product_id}`}>{row.sku}</RecordLink>,
-      },
-      {
-        id: "product",
-        header: "Product",
-        cell: (row) => (
-          <RecordLink href={`/stock/${row.product_id}`}>{row.product_name}</RecordLink>
-        ),
-      },
-      {
-        id: "warehouse",
-        header: "Warehouse",
-        cell: (row) => row.warehouse_code,
-      },
-      {
-        id: "document_date",
-        header: "Date",
-        sortableField: "document_date",
-        cell: (row) => formatDate(row.document_date),
-      },
-      {
-        id: "movement_type",
-        header: "Type",
-        cell: (row) => STOCK_MOVEMENT_TYPE_LABELS[row.movement_type],
-      },
-      {
-        id: "qty",
-        header: "Qty",
-        sortableField: "qty",
-        className: "text-right tabular-nums",
-        headerClassName: "text-right",
-        cell: (row) => (
-          <span className={cn(qtyIsNegative(row.qty) && "text-destructive font-medium")}>
-            {formatQuantity(row.qty)}
-          </span>
-        ),
-      },
-      {
-        id: "source",
-        header: "Source",
-        className: "text-muted-foreground text-sm",
-        cell: (row) => (
-          <MovementSourceCell sourceType={row.source_type} sourceId={row.source_id} />
-        ),
-      },
-      ...(canReadCost
-        ? [
-            {
-              id: "unit_cost",
-              header: "Unit cost",
-              className: "text-right tabular-nums",
-              headerClassName: "text-right",
-              cell: (row: StockMovement) => formatMoney(row.unit_cost, currencyCode),
-            },
-            {
-              id: "value",
-              header: "Value",
-              className: "text-right tabular-nums",
-              headerClassName: "text-right",
-              cell: (row: StockMovement) => formatMoney(row.value, currencyCode),
-            },
-          ]
-        : []),
-      {
-        id: "qty_before",
-        header: "Qty before",
-        defaultVisible: false,
-        className: "text-right tabular-nums",
-        headerClassName: "text-right",
-        cell: (row) => formatQuantity(row.qty_before),
-      },
-      {
-        id: "qty_after",
-        header: "Qty after",
-        defaultVisible: false,
-        className: "text-right tabular-nums",
-        headerClassName: "text-right",
-        cell: (row) => formatQuantity(row.qty_after),
-      },
-      {
-        id: "occurred_at",
-        header: "Occurred",
-        defaultVisible: false,
-        className: "text-muted-foreground text-xs",
-        cell: (row) => formatDateTime(row.occurred_at),
-      },
-      {
-        id: "notes",
-        header: "Notes",
-        defaultVisible: false,
-        className: "text-muted-foreground max-w-xs truncate",
-        cell: (row) => row.notes || "—",
-      },
-      ...auditTimestampColumns<StockMovement>(),
-    ];
-  }, [canReadCost, currencyCode]);
+  const columnDefs = useMemo(
+    () => stockMovementColumnDefs({ canReadCost, currencyCode }),
+    [canReadCost, currencyCode],
+  );
 
   const { columns, columnsDialog, colSpan } = useTableColumns(
     "inventory.stock_movements",

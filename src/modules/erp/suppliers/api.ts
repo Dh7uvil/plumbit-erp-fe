@@ -128,6 +128,9 @@ export const suppliersApi = {
       params: {
         page: params.page ?? 1,
         page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
         party_id: params.party_id,
         product_id: params.product_id,
         warehouse_id: params.warehouse_id,

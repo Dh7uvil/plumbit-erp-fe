@@ -29,7 +29,7 @@ export const attachmentsApi = {
     return { data: AttachmentListSchema.parse(result.data), meta: result.meta };
   },
   listAll: (
-    params: Pick<AttachmentListParams, "entity_type" | "entity_id" | "category">,
+    params: Pick<AttachmentListParams, "entity_type" | "entity_id" | "category" | "search">,
   ): Promise<Attachment[]> =>
     fetchAllPages((page, pageSize) =>
       attachmentsApi.list({ page, page_size: pageSize, ...params }),

@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { GoodsReceiptDetailScreen } from "@/modules/inventory-management/goods-receipts/components/goods-receipt-detail-screen";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function GoodsReceiptEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function GoodsReceiptEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={goodsReceiptPermissions.update}>
-      {parsed.success ? (
-        <GoodsReceiptDetailScreen receiptId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Goods receipt not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={goodsReceiptPermissions.update}
+      notFoundMessage="Goods receipt not found."
+    >
+      {(id) => <GoodsReceiptDetailScreen receiptId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

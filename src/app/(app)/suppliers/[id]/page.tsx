@@ -1,22 +1,15 @@
-import { z } from "zod";
-
 import { SupplierDetailScreen } from "@/modules/erp/suppliers/components/supplier-detail-screen";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const SupplierIdSchema = z.string().uuid();
-
-export default async function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const parsed = SupplierIdSchema.safeParse(id);
-
+export default function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={supplierPermissions.read}>
-      {parsed.success ? (
-        <SupplierDetailScreen supplierId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Supplier not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={supplierPermissions.read}
+      notFoundMessage="Supplier not found."
+    >
+      {(id) => <SupplierDetailScreen supplierId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

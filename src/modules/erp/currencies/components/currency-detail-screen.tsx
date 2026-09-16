@@ -62,6 +62,7 @@ export function CurrencyDetailScreen({
       <RecordPageHeader
         title={currency.name}
         code={currency.code}
+        codeLabel="Currency"
         listHref="/currencies"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}

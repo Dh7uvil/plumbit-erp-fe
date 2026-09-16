@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FileSpreadsheet, LayoutDashboard, Receipt } from "lucide-react";
+import { FileSpreadsheet, LayoutDashboard, Receipt, Users } from "lucide-react";
 
 import { buildBreadcrumbs } from "@/shared/components/layout/breadcrumb";
 
@@ -30,6 +30,16 @@ const reports = {
     href: "/reports",
     permission: null,
     icon: FileSpreadsheet,
+  },
+};
+
+const contacts = {
+  group: "CRM",
+  item: {
+    label: "Contacts",
+    href: "/contacts",
+    permission: null,
+    icon: Users,
   },
 };
 
@@ -94,7 +104,7 @@ describe("buildBreadcrumbs", () => {
     ]);
   });
 
-  it("adds Approvals & History on history routes", () => {
+  it("adds Approvals and History on ERP history routes", () => {
     expect(
       buildBreadcrumbs({
         pathname: "/history/sales-invoices/abc",
@@ -105,7 +115,22 @@ describe("buildBreadcrumbs", () => {
       { label: "Sales" },
       { label: "Sales invoices", href: "/sales-invoices" },
       { label: "INVACM26000001", href: "/sales-invoices/abc" },
-      { label: "Approvals & History" },
+      { label: "Approvals and History" },
+    ]);
+  });
+
+  it("adds History on CRM history routes", () => {
+    expect(
+      buildBreadcrumbs({
+        pathname: "/history/contacts/abc",
+        active: contacts,
+        recordLabel: "Jane Doe",
+      }),
+    ).toEqual([
+      { label: "CRM" },
+      { label: "Contacts", href: "/contacts" },
+      { label: "Jane Doe", href: "/contacts/abc" },
+      { label: "History" },
     ]);
   });
 });

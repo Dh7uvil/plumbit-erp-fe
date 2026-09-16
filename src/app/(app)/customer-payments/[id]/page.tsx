@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { CustomerPaymentDetailScreen } from "@/modules/erp/customer-payments/components/customer-payment-detail-screen";
 import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function CustomerPaymentDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function CustomerPaymentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={customerPaymentPermissions.read}>
-      {parsed.success ? (
-        <CustomerPaymentDetailScreen paymentId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Receipt not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={customerPaymentPermissions.read}
+      notFoundMessage="Receipt not found."
+    >
+      {(id) => <CustomerPaymentDetailScreen paymentId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

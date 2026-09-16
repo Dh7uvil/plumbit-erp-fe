@@ -4,6 +4,7 @@ import {
   TradingPartyAggregateListSchema,
   type TradingHistoryLine,
   type TradingHistoryListParams,
+  type TradingAggregateListParams,
   type TradingPartyAggregate,
 } from "@/modules/inventory-management/history/schemas";
 import {
@@ -52,8 +53,19 @@ export const productsApi = {
     ),
   delete: async (id: string): Promise<Product> =>
     ProductSchema.parse(await apiClient.delete(`/products/${id}`)),
-  listCustomers: async (id: string): Promise<ListResponse<TradingPartyAggregate[]>> => {
-    const result = await apiClient.getList<unknown>(`/products/${id}/customers`);
+  listCustomers: async (
+    id: string,
+    params: TradingAggregateListParams = {},
+  ): Promise<ListResponse<TradingPartyAggregate[]>> => {
+    const result = await apiClient.getList<unknown>(`/products/${id}/customers`, {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
+      },
+    });
     return { data: TradingPartyAggregateListSchema.parse(result.data), meta: result.meta };
   },
   listSalesHistory: async (
@@ -64,6 +76,9 @@ export const productsApi = {
       params: {
         page: params.page ?? 1,
         page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
         party_id: params.party_id,
         warehouse_id: params.warehouse_id,
         document_date_from: params.document_date_from,
@@ -80,6 +95,9 @@ export const productsApi = {
       params: {
         page: params.page ?? 1,
         page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
         party_id: params.party_id,
         warehouse_id: params.warehouse_id,
         document_date_from: params.document_date_from,

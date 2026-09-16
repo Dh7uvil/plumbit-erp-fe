@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { SalesReturnDetailScreen } from "@/modules/inventory-management/sales-returns/components/sales-return-detail-screen";
 import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function SalesReturnEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function SalesReturnEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={salesReturnPermissions.update}>
-      {parsed.success ? (
-        <SalesReturnDetailScreen returnId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Sales return not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={salesReturnPermissions.update}
+      notFoundMessage="Sales return not found."
+    >
+      {(id) => <SalesReturnDetailScreen returnId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

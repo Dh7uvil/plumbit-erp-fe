@@ -28,17 +28,20 @@ export function useEntityAttachments(
   entityId: string | null,
   enabled = true,
   category?: AttachmentCategory,
+  search?: string,
 ) {
   return useQuery({
     queryKey: useTenantQueryKey([
       ...attachmentKeys.forEntity(entityType, entityId ?? ""),
       category ?? "all",
+      search ?? "",
     ]),
     queryFn: () =>
       attachmentsApi.listAll({
         entity_type: entityType,
         entity_id: entityId!,
         category,
+        search: search || undefined,
       }),
     enabled: enabled && Boolean(entityId),
   });

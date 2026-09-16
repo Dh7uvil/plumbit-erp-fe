@@ -26,7 +26,13 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { MAX_PAGE_SIZE } from "@/config/constants";
-import { HISTORY_PAGE_TITLE, getHistoryResource, isHistoryResource } from "@/shared/lib/history";
+import {
+  getHistoryResource,
+  historyHasApprovals,
+  historyPageTitle,
+  isHistoryResource,
+  type HistoryResource,
+} from "@/shared/lib/history";
 
 const EDIT_FILTER_LABELS: Record<EditHistoryFilter, string> = {
   all: "All Activity",
@@ -50,16 +56,24 @@ export function EntityHistoryScreen({ resource, id }: { resource: string; id: st
   }
 
   return (
-    <EntityHistoryLoaded entityType={spec.entityType} id={id} viewHref={viewHref} code={code} />
+    <EntityHistoryLoaded
+      resource={resource}
+      entityType={spec.entityType}
+      id={id}
+      viewHref={viewHref}
+      code={code}
+    />
   );
 }
 
 function EntityHistoryLoaded({
+  resource,
   entityType,
   id,
   viewHref,
   code,
 }: {
+  resource: HistoryResource;
   entityType: string;
   id: string;
   viewHref: string;
@@ -69,13 +83,15 @@ function EntityHistoryLoaded({
   const [tab, setTab] = useState("edits");
   const [editFilter, setEditFilter] = useState<EditHistoryFilter>("all");
   const rows = activityQuery.data?.data ?? [];
+  const showApprovals = historyHasApprovals(resource);
+  const pageTitle = historyPageTitle(resource);
   const approvals = filterHistoryRows(rows, "approvals");
   const edits = filterHistoryRows(rows, "edits", editFilter);
 
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title={HISTORY_PAGE_TITLE}
+        title={pageTitle}
         subtitle={code ?? undefined}
         actions={
           <Button type="button" variant="outline" size="sm" asChild>
@@ -96,59 +112,81 @@ function EntityHistoryLoaded({
         />
       ) : null}
       {!activityQuery.isLoading && !activityQuery.isError ? (
-        <Tabs value={tab} onValueChange={setTab}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b">
-            <TabsList className="h-auto w-full justify-start rounded-none border-0 bg-transparent p-0 sm:w-auto">
-              <TabsTrigger
-                value="approvals"
-                className="data-[state=active]:border-primary rounded-none border-0 border-b-2 border-transparent px-3 py-2 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                Approvals
-              </TabsTrigger>
-              <TabsTrigger
-                value="edits"
-                className="data-[state=active]:border-primary rounded-none border-0 border-b-2 border-transparent px-3 py-2 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                Edit History
-              </TabsTrigger>
-            </TabsList>
-            {tab === "edits" ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline" size="sm">
-                    <ListFilter />
-                    {EDIT_FILTER_LABELS[editFilter]}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuRadioGroup
-                    value={editFilter}
-                    onValueChange={(value) => setEditFilter(value as EditHistoryFilter)}
-                  >
-                    <DropdownMenuRadioItem value="all">All Activity</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="edit">Edits</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="attachment">Attachments</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
-          </div>
-          <TabsContent value="approvals" className="pt-4">
-            <ActivityTimeline
-              rows={approvals}
-              emptyTitle="No approvals"
-              emptyMessage="Submit, approve, and reject events will appear here."
-            />
-          </TabsContent>
-          <TabsContent value="edits" className="pt-4">
+        showApprovals ? (
+          <Tabs value={tab} onValueChange={setTab}>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b">
+              <TabsList className="h-auto w-full justify-start rounded-none border-0 bg-transparent p-0 sm:w-auto">
+                <TabsTrigger
+                  value="approvals"
+                  className="data-[state=active]:border-primary rounded-none border-0 border-b-2 border-transparent px-3 py-2 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  Approvals
+                </TabsTrigger>
+                <TabsTrigger
+                  value="edits"
+                  className="data-[state=active]:border-primary rounded-none border-0 border-b-2 border-transparent px-3 py-2 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  Edit History
+                </TabsTrigger>
+              </TabsList>
+              {tab === "edits" ? (
+                <EditHistoryFilterMenu value={editFilter} onChange={setEditFilter} />
+              ) : null}
+            </div>
+            <TabsContent value="approvals" className="pt-4">
+              <ActivityTimeline
+                rows={approvals}
+                emptyTitle="No approvals"
+                emptyMessage="Submit, approve, and reject events will appear here."
+              />
+            </TabsContent>
+            <TabsContent value="edits" className="pt-4">
+              <ActivityTimeline
+                rows={edits}
+                emptyTitle="No edit history"
+                emptyMessage="Changes and file uploads for this record will appear here."
+              />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-end border-b pb-3">
+              <EditHistoryFilterMenu value={editFilter} onChange={setEditFilter} />
+            </div>
             <ActivityTimeline
               rows={edits}
               emptyTitle="No edit history"
               emptyMessage="Changes and file uploads for this record will appear here."
             />
-          </TabsContent>
-        </Tabs>
+          </div>
+        )
       ) : null}
     </div>
+  );
+}
+
+function EditHistoryFilterMenu({
+  value,
+  onChange,
+}: {
+  value: EditHistoryFilter;
+  onChange: (value: EditHistoryFilter) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="outline" size="sm">
+          <ListFilter />
+          {EDIT_FILTER_LABELS[value]}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuRadioGroup value={value} onValueChange={(next) => onChange(next as EditHistoryFilter)}>
+          <DropdownMenuRadioItem value="all">All Activity</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="edit">Edits</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="attachment">Attachments</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

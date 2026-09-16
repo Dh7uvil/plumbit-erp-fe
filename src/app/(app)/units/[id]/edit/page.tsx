@@ -1,22 +1,15 @@
-import { z } from "zod";
-
 import { UnitDetailScreen } from "@/modules/inventory-management/units/components/unit-detail-screen";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function UnitDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function UnitDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={unitPermissions.update}>
-      {parsed.success ? (
-        <UnitDetailScreen unitId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Unit not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={unitPermissions.update}
+      notFoundMessage="Unit not found."
+    >
+      {(id) => <UnitDetailScreen unitId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

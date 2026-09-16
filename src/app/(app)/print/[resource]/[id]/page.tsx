@@ -7,7 +7,19 @@ import { isPrintableResource } from "@/shared/lib/print";
 
 const IdSchema = z.string().uuid();
 
-export default async function PrintPage({
+export default function PrintPage({
+  params,
+}: {
+  params: Promise<{ resource: string; id: string }>;
+}) {
+  return (
+    <Suspense fallback={<Skeleton className="m-6 h-96 w-auto" />}>
+      <PrintPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function PrintPageContent({
   params,
 }: {
   params: Promise<{ resource: string; id: string }>;
@@ -19,9 +31,5 @@ export default async function PrintPage({
     return <p className="text-muted-foreground p-6 text-sm">Print document not found.</p>;
   }
 
-  return (
-    <Suspense fallback={<Skeleton className="m-6 h-96 w-auto" />}>
-      <PrintDocumentScreen resource={resource} id={parsed.data} />
-    </Suspense>
-  );
+  return <PrintDocumentScreen resource={resource} id={parsed.data} />;
 }

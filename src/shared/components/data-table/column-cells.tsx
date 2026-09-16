@@ -20,7 +20,7 @@ export function DataTableColumnHeads<T>({
   columns: readonly DataTableColumn<T>[];
   sortBy?: string;
   sortOrder?: SortOrder;
-  onSort: (next: SortPatch) => void;
+  onSort?: (next: SortPatch) => void;
 }) {
   return (
     <>
@@ -29,7 +29,7 @@ export function DataTableColumnHeads<T>({
           column.headerClassName,
           column.sticky === "right" && stickyActionsHeadClass,
         );
-        if (!column.sortableField) {
+        if (!column.sortableField || !onSort) {
           return (
             <TableHead key={column.id} className={className}>
               {column.header}

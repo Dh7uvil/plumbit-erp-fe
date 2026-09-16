@@ -29,6 +29,35 @@ describe("getErrorMessage", () => {
     ).toBe("Files must be 25 MB or smaller.");
   });
 
+  it("surfaces attachment validation without pretending fields are highlighted", () => {
+    expect(
+      getErrorMessage(
+        new ApiError("VALIDATION_ERROR", "File type is not allowed", 422, {
+          content_type: "image/heic",
+        }),
+      ),
+    ).toBe("File type is not allowed.");
+    expect(
+      getErrorMessage(
+        new ApiError("VALIDATION_ERROR", "Request validation failed", 422, {
+          content_type: "application/octet-stream",
+        }),
+      ),
+    ).toBe("This file type is not allowed.");
+    expect(
+      getErrorMessage(
+        new ApiError(
+          "VALIDATION_ERROR",
+          "HEIC/HEIF photos are not supported. Save as JPEG or PNG and try again.",
+          422,
+        ),
+      ),
+    ).toBe("HEIC/HEIF photos are not supported. Save as JPEG or PNG and try again.");
+    expect(getErrorMessage("VALIDATION_ERROR")).toBe(
+      "Please check the highlighted fields and try again.",
+    );
+  });
+
   it("appends warehouse and qty from insufficient-stock details", () => {
     expect(
       getErrorMessage(

@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { QualityInspectionDetailScreen } from "@/modules/inventory-management/quality-inspections/components/quality-inspection-detail-screen";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function QualityInspectionEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function QualityInspectionEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={qualityInspectionPermissions.update}>
-      {parsed.success ? (
-        <QualityInspectionDetailScreen inspectionId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Quality inspection not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={qualityInspectionPermissions.update}
+      notFoundMessage="Quality inspection not found."
+    >
+      {(id) => <QualityInspectionDetailScreen inspectionId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

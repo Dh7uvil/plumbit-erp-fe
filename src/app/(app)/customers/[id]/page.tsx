@@ -1,22 +1,15 @@
-import { z } from "zod";
-
 import { CustomerDetailScreen } from "@/modules/crm/customers/components/customer-detail-screen";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const CustomerIdSchema = z.string().uuid();
-
-export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const parsed = CustomerIdSchema.safeParse(id);
-
+export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={customerPermissions.read}>
-      {parsed.success ? (
-        <CustomerDetailScreen customerId={parsed.data} mode="view" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Customer not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={customerPermissions.read}
+      notFoundMessage="Customer not found."
+    >
+      {(id) => <CustomerDetailScreen customerId={id} mode="view" />}
+    </DetailPageRoute>
   );
 }

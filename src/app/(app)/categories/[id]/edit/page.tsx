@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { CategoryDetailScreen } from "@/modules/inventory-management/categories/components/category-detail-screen";
 import { categoryPermissions } from "@/modules/inventory-management/categories/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function CategoryDetailEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function CategoryDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={categoryPermissions.update}>
-      {parsed.success ? (
-        <CategoryDetailScreen categoryId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Category not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={categoryPermissions.update}
+      notFoundMessage="Category not found."
+    >
+      {(id) => <CategoryDetailScreen categoryId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

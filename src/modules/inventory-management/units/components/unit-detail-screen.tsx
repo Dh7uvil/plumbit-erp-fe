@@ -54,6 +54,7 @@ export function UnitDetailScreen({ unitId, mode }: { unitId: string; mode: Recor
       <RecordPageHeader
         title={unit.name}
         code={unit.code}
+        codeLabel="Unit"
         listHref="/units"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}

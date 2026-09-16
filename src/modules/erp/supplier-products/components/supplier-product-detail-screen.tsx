@@ -64,6 +64,7 @@ export function SupplierProductDetailScreen({
       <RecordPageHeader
         title={row.supplier_item_name || row.supplier_sku}
         code={row.supplier_sku}
+        codeTooltip="Supplier SKU"
         listHref="/supplier-products"
         viewHref={viewHref}
         editHref={`${viewHref}/edit`}

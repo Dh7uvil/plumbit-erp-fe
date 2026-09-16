@@ -1,26 +1,15 @@
-import { z } from "zod";
-
 import { PurchaseReturnDetailScreen } from "@/modules/inventory-management/purchase-returns/components/purchase-return-detail-screen";
 import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-const IdSchema = z.string().uuid();
-
-export default async function PurchaseReturnEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const parsed = IdSchema.safeParse(id);
-
+export default function PurchaseReturnEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={purchaseReturnPermissions.update}>
-      {parsed.success ? (
-        <PurchaseReturnDetailScreen returnId={parsed.data} mode="edit" />
-      ) : (
-        <p className="text-muted-foreground text-sm">Purchase return not found.</p>
-      )}
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={purchaseReturnPermissions.update}
+      notFoundMessage="Purchase return not found."
+    >
+      {(id) => <PurchaseReturnDetailScreen returnId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }
