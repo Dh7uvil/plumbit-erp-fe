@@ -9,7 +9,6 @@ import { useAccount, useAccountBalance } from "@/modules/erp/accounting/accounts
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { glHref } from "@/modules/erp/accounting/reports/schemas";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -23,6 +22,8 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { formatReportMoney } from "@/shared/lib/format";
+import { historyHref } from "@/shared/lib/history";
+import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function AccountDetailScreen({
@@ -84,8 +85,11 @@ export function AccountDetailScreen({
         }
       />
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">{isEdit ? "Edit account" : "Account"}</CardTitle>
+          {mode === "view" ? (
+            <HistoryHeaderButton href={historyHref("accounts", account.id, account.code)} />
+          ) : null}
         </CardHeader>
         <CardContent>
           <AccountForm
@@ -115,8 +119,9 @@ export function AccountDetailScreen({
               <p className="text-sm tabular-nums">
                 As of {balanceQuery.data.as_of}: debit{" "}
                 {formatReportMoney(balanceQuery.data.debit, balanceQuery.data.currency_code)},
-                credit {formatReportMoney(balanceQuery.data.credit, balanceQuery.data.currency_code)}
-                . Signed balance{" "}
+                credit{" "}
+                {formatReportMoney(balanceQuery.data.credit, balanceQuery.data.currency_code)}.
+                Signed balance{" "}
                 {formatReportMoney(
                   balanceQuery.data.signed_balance,
                   balanceQuery.data.currency_code,
@@ -130,7 +135,6 @@ export function AccountDetailScreen({
       {isEdit ? null : (
         <>
           <EntityAttachmentsPanel entityType="ACCOUNT" entityId={account.id} />
-          <ActivityFeed entityType="account" entityId={account.id} />
         </>
       )}
     </div>

@@ -1,4 +1,7 @@
+"use client";
+
 import { StatusBadge } from "@/shared/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 
 export type DocumentStatusVariant =
   "muted" | "warning" | "info" | "success" | "destructive" | "secondary";
@@ -38,14 +41,32 @@ export function documentStatusTone(status: string): DocumentStatusVariant {
   return "muted";
 }
 
+export function documentStatusTooltip(kind: string, label: string) {
+  return `${kind}: ${label}`;
+}
+
 export function DocumentStatusBadge<T extends string>({
   status,
   labels,
   variants,
+  kind,
 }: {
   status: T;
   labels: Record<T, string>;
   variants: Record<T, DocumentStatusVariant>;
+  kind?: string;
 }) {
-  return <StatusBadge variant={variants[status]}>{labels[status]}</StatusBadge>;
+  const label = labels[status];
+  const badge = <StatusBadge variant={variants[status]}>{label}</StatusBadge>;
+  if (!kind) {
+    return badge;
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">{badge}</span>
+      </TooltipTrigger>
+      <TooltipContent>{documentStatusTooltip(kind, label)}</TooltipContent>
+    </Tooltip>
+  );
 }

@@ -126,7 +126,7 @@ export function PurchaseReturnsScreen() {
         const number = purchaseReturnDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "purchase return"}
+            entityName={number}
             viewHref={canRead ? `/purchase-returns/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT"

@@ -229,16 +229,19 @@ export function PurchaseOrdersScreen() {
         cell: (purchaseOrder) => (
           <div className="flex flex-wrap items-center gap-1">
             <DocumentStatusBadge
+              kind="Order"
               status={purchaseOrder.status}
               labels={PURCHASE_ORDER_STATUS_LABELS}
               variants={PURCHASE_ORDER_STATUS_VARIANTS}
             />
             <DocumentStatusBadge
+              kind="Receipt"
               status={purchaseOrder.receipt_status}
               labels={RECEIPT_STATUS_LABELS}
               variants={RECEIPT_STATUS_VARIANTS}
             />
             <DocumentStatusBadge
+              kind="Billing"
               status={purchaseOrder.billing_status}
               labels={BILLING_STATUS_LABELS}
               variants={BILLING_STATUS_VARIANTS}
@@ -371,7 +374,7 @@ export function PurchaseOrdersScreen() {
         const number = purchaseOrderDisplayNumber(purchaseOrder);
         return (
           <DataTableRowActions
-            entityName={number ?? "purchase order"}
+            entityName={number}
             viewHref={canRead ? `/purchase-orders/${purchaseOrder.id}` : undefined}
             editHref={
               canUpdate && purchaseOrder.status === "DRAFT"
@@ -385,7 +388,7 @@ export function PurchaseOrdersScreen() {
                   variant="ghost"
                   size="icon"
                   className="size-7"
-                  aria-label="Clone purchase order"
+                  aria-label="Clone"
                   disabled={clonePurchaseOrder.isPending}
                   onClick={() => void onClone(purchaseOrder.id)}
                 >

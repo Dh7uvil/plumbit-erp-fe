@@ -18,7 +18,6 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
@@ -157,9 +156,6 @@ function LandedCostDetailLoaded({
           entityId={document.id}
           parentPosted={document.is_posted}
         />
-      }
-      activity={
-        <ActivityFeed entityType="landed_cost" entityId={document.id} revision={document.version} />
       }
     >
       <LandedCostForm

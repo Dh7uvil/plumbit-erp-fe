@@ -20,7 +20,6 @@ import {
   type PurchaseReturn,
 } from "@/modules/inventory-management/purchase-returns/schemas";
 import { PURCHASE_RETURN_ACTION_REGISTRY } from "@/modules/inventory-management/purchase-returns/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
@@ -190,9 +189,6 @@ function PurchaseReturnDetailLoaded({
           parentPosted={doc.is_posted}
           defaultCategory="RETURN_PHOTO"
         />
-      }
-      activity={
-        <ActivityFeed entityType="purchase_return" entityId={doc.id} revision={doc.version} />
       }
     >
       <PurchaseReturnForm doc={doc} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />

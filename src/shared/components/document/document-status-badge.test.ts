@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { documentStatusTone } from "@/shared/components/document/document-status-badge";
+import {
+  documentStatusTone,
+  documentStatusTooltip,
+} from "@/shared/components/document/document-status-badge";
 
 describe("documentStatusTone", () => {
   it("maps posted and paid to success", () => {
@@ -19,5 +22,13 @@ describe("documentStatusTone", () => {
 
   it("maps cancelled to destructive", () => {
     expect(documentStatusTone("CANCELLED")).toBe("destructive");
+  });
+});
+
+describe("documentStatusTooltip", () => {
+  it("joins kind and label", () => {
+    expect(documentStatusTooltip("Fulfillment", "Partially delivered")).toBe(
+      "Fulfillment: Partially delivered",
+    );
   });
 });

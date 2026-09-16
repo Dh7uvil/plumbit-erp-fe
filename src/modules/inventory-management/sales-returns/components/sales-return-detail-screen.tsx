@@ -20,7 +20,6 @@ import {
   type SalesReturn,
 } from "@/modules/inventory-management/sales-returns/schemas";
 import { SALES_RETURN_ACTION_REGISTRY } from "@/modules/inventory-management/sales-returns/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -180,9 +179,6 @@ function SalesReturnDetailLoaded({
           parentPosted={doc.is_posted}
           defaultCategory="RETURN_PHOTO"
         />
-      }
-      activity={
-        <ActivityFeed entityType="sales_return" entityId={doc.id} revision={doc.version} />
       }
     >
       <SalesReturnForm doc={doc} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />

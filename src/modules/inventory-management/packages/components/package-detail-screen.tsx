@@ -15,7 +15,6 @@ import {
   type Package,
 } from "@/modules/inventory-management/packages/schemas";
 import { PACKAGE_ACTION_REGISTRY } from "@/modules/inventory-management/packages/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -167,7 +166,6 @@ function PackageDetailLoaded({
             defaultCategory="PACKING_LIST"
           />
         }
-        activity={<ActivityFeed entityType="package" entityId={pkg.id} revision={pkg.version} />}
         panels={<RelatedDocumentsCard documents={pkg.related_documents} />}
       >
         <PackageForm pkg={pkg} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />

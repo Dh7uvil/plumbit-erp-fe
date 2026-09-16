@@ -56,6 +56,31 @@ test.describe("quotation approval", () => {
     await expect(page.getByText("Approved", { exact: true })).toBeVisible();
   });
 
+  test("opens approvals and edit history from the quotation header", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/quotations/new");
+    await expect(page.getByRole("heading", { name: "New quotation" })).toBeVisible();
+
+    await page.getByLabel("Customer").click();
+    await page.getByRole("menuitem", { name: "Acme Trading" }).click();
+    await expect(page.getByText("Loading customer defaults…")).toBeHidden();
+
+    await page.getByLabel("Line 1 description").fill("Custom copper fitting");
+    await page.getByLabel("Line 1 rate").fill("25.50");
+    await page.getByRole("button", { name: "Create quotation" }).click();
+
+    await expect(page).toHaveURL(/\/quotations\/[0-9a-f-]{36}$/i);
+    await page.getByRole("link", { name: "Approvals & History" }).click();
+    await expect(page).toHaveURL(/\/history\/quotations\/[0-9a-f-]{36}/i);
+    await expect(page.getByRole("heading", { name: "Approvals & History" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Edit History" })).toBeVisible();
+    await expect(page.getByText("uploaded the file")).toBeVisible();
+    await expect(page.getByText("packing-list.jpg")).toBeVisible();
+
+    await page.getByRole("tab", { name: "Approvals" }).click();
+    await expect(page.getByText("submitted for approval")).toBeVisible();
+  });
+
   test("converts an accepted quotation into a sales order", async ({ page }) => {
     await signIn(page);
     await page.goto("/quotations/new");
@@ -85,13 +110,17 @@ test.describe("quotation approval", () => {
 
     await page.getByRole("button", { name: "Send" }).click();
     confirm = page.getByRole("alertdialog");
-    await expect(confirm.getByRole("heading", { name: "Send quotation QUOACM26000001" })).toBeVisible();
+    await expect(
+      confirm.getByRole("heading", { name: "Send quotation QUOACM26000001" }),
+    ).toBeVisible();
     await confirm.getByRole("button", { name: "Send" }).click();
     await expect(page.getByText("Sent", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Accept" }).click();
     confirm = page.getByRole("alertdialog");
-    await expect(confirm.getByRole("heading", { name: "Accept quotation QUOACM26000001" })).toBeVisible();
+    await expect(
+      confirm.getByRole("heading", { name: "Accept quotation QUOACM26000001" }),
+    ).toBeVisible();
     await confirm.getByRole("button", { name: "Accept" }).click();
     await expect(page.getByText("Accepted", { exact: true })).toBeVisible();
 
@@ -136,13 +165,17 @@ test.describe("quotation approval", () => {
 
     await page.getByRole("button", { name: "Send" }).click();
     confirm = page.getByRole("alertdialog");
-    await expect(confirm.getByRole("heading", { name: "Send quotation QUOACM26000001" })).toBeVisible();
+    await expect(
+      confirm.getByRole("heading", { name: "Send quotation QUOACM26000001" }),
+    ).toBeVisible();
     await confirm.getByRole("button", { name: "Send" }).click();
     await expect(page.getByText("Sent", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Accept" }).click();
     confirm = page.getByRole("alertdialog");
-    await expect(confirm.getByRole("heading", { name: "Accept quotation QUOACM26000001" })).toBeVisible();
+    await expect(
+      confirm.getByRole("heading", { name: "Accept quotation QUOACM26000001" }),
+    ).toBeVisible();
     await confirm.getByRole("button", { name: "Accept" }).click();
     await expect(page.getByText("Accepted", { exact: true })).toBeVisible();
 

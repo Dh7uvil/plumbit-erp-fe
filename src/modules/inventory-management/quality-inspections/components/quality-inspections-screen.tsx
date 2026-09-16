@@ -167,7 +167,7 @@ export function QualityInspectionsScreen() {
         const number = qualityInspectionDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "inspection"}
+            entityName={number}
             viewHref={canRead ? `/quality-inspections/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT"

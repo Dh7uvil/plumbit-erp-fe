@@ -143,7 +143,7 @@ export function PackagesScreen() {
         const number = packageDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "package"}
+            entityName={number}
             viewHref={canRead ? `/packages/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT" ? `/packages/${row.id}/edit` : undefined

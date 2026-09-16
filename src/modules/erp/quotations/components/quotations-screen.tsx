@@ -257,7 +257,7 @@ export function QuotationsScreen() {
         const number = quotationDisplayNumber(quotation);
         return (
           <DataTableRowActions
-            entityName={number ?? "quotation"}
+            entityName={number}
             viewHref={canRead ? `/quotations/${quotation.id}` : undefined}
             editHref={
               canUpdate && quotation.status === "DRAFT"
@@ -271,7 +271,7 @@ export function QuotationsScreen() {
                   variant="ghost"
                   size="icon"
                   className="size-7"
-                  aria-label="Clone quotation"
+                  aria-label="Clone"
                   disabled={cloneQuotation.isPending}
                   onClick={() => void onClone(quotation.id)}
                 >

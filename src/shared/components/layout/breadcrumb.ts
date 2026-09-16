@@ -1,5 +1,7 @@
 import type { NavigationItem } from "@/config/navigation";
+import { navigation } from "@/config/navigation";
 import { findReportByHref } from "@/config/report-catalog";
+import { HISTORY_PAGE_TITLE, parseHistoryPath } from "@/shared/lib/history";
 
 export type BreadcrumbCrumb = {
   label: string;
@@ -15,11 +17,36 @@ export function buildBreadcrumbs({
   active?: { group: string; item: NavigationItem };
   recordLabel?: string | null;
 }): BreadcrumbCrumb[] {
-  if (!active) {
+  const history = parseHistoryPath(pathname);
+  const activeNav =
+    active ??
+    (history
+      ? navigation.flatMap((group) =>
+          group.items
+            .filter((item) => item.href === history.spec.listHref)
+            .map((item) => ({ group: group.label, item })),
+        )[0]
+      : undefined);
+
+  if (!activeNav) {
     return [{ label: "Dashboard" }];
   }
 
-  const { group, item } = active;
+  const { group, item } = activeNav;
+
+  if (history) {
+    const crumbs: BreadcrumbCrumb[] = [
+      { label: group },
+      { label: item.label, href: item.href },
+      {
+        label: recordLabel || "Details",
+        href: `${history.spec.listHref}/${history.id}`,
+      },
+      { label: HISTORY_PAGE_TITLE },
+    ];
+    return crumbs;
+  }
+
   const crumbs: BreadcrumbCrumb[] = [{ label: group }];
 
   if (pathname === item.href) {

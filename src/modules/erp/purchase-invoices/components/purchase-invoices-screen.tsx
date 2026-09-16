@@ -357,7 +357,7 @@ export function PurchaseInvoicesScreen() {
         const number = purchaseInvoiceDisplayNumber(invoice);
         return (
           <DataTableRowActions
-            entityName={number ?? "bill"}
+            entityName={number}
             viewHref={canRead ? `/purchase-invoices/${invoice.id}` : undefined}
             editHref={
               canUpdate && invoice.status === "DRAFT"

@@ -58,6 +58,7 @@ test.describe("permissions", () => {
     await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Units" })).toBeVisible();
     await expect(nav.getByRole("button", { name: "Inventory" })).toBeVisible();
+    await expect(nav.getByRole("button", { name: "Settings" })).toBeVisible();
     await expect(nav.getByRole("button", { name: "Masters" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Customers" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Quotations" })).toHaveCount(0);

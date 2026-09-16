@@ -247,7 +247,7 @@ export function GoodsReceiptsScreen() {
         const number = goodsReceiptDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "goods receipt"}
+            entityName={number}
             viewHref={canRead ? `/goods-receipts/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT"

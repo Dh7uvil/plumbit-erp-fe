@@ -190,7 +190,7 @@ export function DeliveryNotesScreen() {
         const number = deliveryNoteDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "delivery note"}
+            entityName={number}
             viewHref={canRead ? `/delivery-notes/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT"

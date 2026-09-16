@@ -355,7 +355,7 @@ export function SalesInvoicesScreen() {
         const number = salesInvoiceDisplayNumber(invoice);
         return (
           <DataTableRowActions
-            entityName={number ?? "invoice"}
+            entityName={number}
             viewHref={canRead ? `/sales-invoices/${invoice.id}` : undefined}
             editHref={
               canUpdate && invoice.status === "DRAFT"

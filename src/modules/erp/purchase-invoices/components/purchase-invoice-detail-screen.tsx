@@ -30,7 +30,6 @@ import {
   type PurchaseInvoice,
 } from "@/modules/erp/purchase-invoices/schemas";
 import { PURCHASE_INVOICE_ACTION_REGISTRY } from "@/modules/erp/purchase-invoices/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
@@ -149,17 +148,20 @@ function PurchaseInvoiceDetailLoaded({
       badges={
         <>
           <DocumentStatusBadge
+            kind="Document"
             status={invoice.status}
             labels={INVOICE_DOCUMENT_STATUS_LABELS}
             variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
           />
           <DocumentStatusBadge
+            kind="Payment"
             status={invoice.payment_status}
             labels={PAYMENT_STATUS_LABELS}
             variants={PAYMENT_STATUS_VARIANTS}
           />
           {invoice.is_overdue ? (
             <DocumentStatusBadge
+              kind="Overdue"
               status="OVERDUE"
               labels={{ OVERDUE: "Overdue" }}
               variants={{ OVERDUE: "destructive" }}
@@ -167,12 +169,14 @@ function PurchaseInvoiceDetailLoaded({
           ) : null}
           {invoice.is_fully_debited ? (
             <DocumentStatusBadge
+              kind="Debit"
               status="DEBITED"
               labels={{ DEBITED: "Debited" }}
               variants={{ DEBITED: "secondary" }}
             />
           ) : invoice.is_partially_debited ? (
             <DocumentStatusBadge
+              kind="Debit"
               status="PARTIALLY_DEBITED"
               labels={{ PARTIALLY_DEBITED: "Partially debited" }}
               variants={{ PARTIALLY_DEBITED: "warning" }}
@@ -280,13 +284,6 @@ function PurchaseInvoiceDetailLoaded({
           entityId={invoice.id}
           parentPosted={invoice.is_posted}
           defaultCategory="SUPPLIER_INVOICE"
-        />
-      }
-      activity={
-        <ActivityFeed
-          entityType="purchase_invoice"
-          entityId={invoice.id}
-          revision={invoice.version}
         />
       }
     >

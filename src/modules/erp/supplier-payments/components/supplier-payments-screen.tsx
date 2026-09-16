@@ -251,7 +251,7 @@ export function SupplierPaymentsScreen() {
         const number = supplierPaymentDisplayNumber(payment);
         return (
           <DataTableRowActions
-            entityName={number ?? "payment"}
+            entityName={number}
             viewHref={canRead ? `/supplier-payments/${payment.id}` : undefined}
             editHref={
               canUpdate && payment.status === "DRAFT"

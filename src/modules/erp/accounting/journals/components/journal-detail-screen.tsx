@@ -20,7 +20,6 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -157,9 +156,6 @@ function JournalDetailLoaded({
           entityId={journal.id}
           parentPosted={journal.is_posted}
         />
-      }
-      activity={
-        <ActivityFeed entityType="journal_entry" entityId={journal.id} revision={journal.version} />
       }
     >
       <>

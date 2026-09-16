@@ -226,7 +226,7 @@ export function StockAdjustmentsScreen() {
         const number = stockAdjustmentDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "adjustment"}
+            entityName={number}
             viewHref={canRead ? `/stock-adjustments/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT"
@@ -240,7 +240,7 @@ export function StockAdjustmentsScreen() {
                   variant="ghost"
                   size="icon"
                   className="size-7"
-                  aria-label="Clone stock adjustment"
+                  aria-label="Clone"
                   disabled={cloneAdjustment.isPending}
                   onClick={() => void onClone(row.id)}
                 >

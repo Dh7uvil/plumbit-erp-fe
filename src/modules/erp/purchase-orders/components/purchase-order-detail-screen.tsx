@@ -27,7 +27,6 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -175,16 +174,19 @@ function PurchaseOrderDetailLoaded({
       badges={
         <>
           <DocumentStatusBadge
+            kind="Order"
             status={purchaseOrder.status}
             labels={PURCHASE_ORDER_STATUS_LABELS}
             variants={PURCHASE_ORDER_STATUS_VARIANTS}
           />
           <DocumentStatusBadge
+            kind="Receipt"
             status={purchaseOrder.receipt_status}
             labels={RECEIPT_STATUS_LABELS}
             variants={RECEIPT_STATUS_VARIANTS}
           />
           <DocumentStatusBadge
+            kind="Billing"
             status={purchaseOrder.billing_status}
             labels={BILLING_STATUS_LABELS}
             variants={BILLING_STATUS_VARIANTS}
@@ -237,13 +239,6 @@ function PurchaseOrderDetailLoaded({
           entityType="PURCHASE_ORDER"
           entityId={purchaseOrder.id}
           parentPosted={purchaseOrder.is_posted}
-        />
-      }
-      activity={
-        <ActivityFeed
-          entityType="purchase_order"
-          entityId={purchaseOrder.id}
-          revision={purchaseOrder.version}
         />
       }
     >

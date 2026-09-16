@@ -259,7 +259,7 @@ export function ProformaInvoicesScreen() {
         const number = proformaInvoiceDisplayNumber(invoice);
         return (
           <DataTableRowActions
-            entityName={number ?? "invoice"}
+            entityName={number}
             viewHref={canRead ? `/proforma-invoices/${invoice.id}` : undefined}
             editHref={
               canUpdate && invoice.status === "DRAFT"
@@ -273,7 +273,7 @@ export function ProformaInvoicesScreen() {
                   variant="ghost"
                   size="icon"
                   className="size-7"
-                  aria-label="Clone proforma invoice"
+                  aria-label="Clone"
                   disabled={cloneInvoice.isPending}
                   onClick={() => void onClone(invoice.id)}
                 >
