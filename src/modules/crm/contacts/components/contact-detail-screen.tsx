@@ -7,7 +7,6 @@ import { ContactForm } from "@/modules/crm/contacts/components/contact-form";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useContact } from "@/modules/crm/contacts/queries";
 import { useCompanyOptions } from "@/modules/crm/contacts/use-company-options";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -18,6 +17,8 @@ import {
 } from "@/shared/components/layout/record-page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
+import { historyHref } from "@/shared/lib/history";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
 export function ContactDetailScreen({
@@ -78,8 +79,11 @@ export function ContactDetailScreen({
         }
       />
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">{isEdit ? "Edit contact" : "Contact"}</CardTitle>
+          {mode === "view" ? (
+            <HistoryHeaderButton href={historyHref("contacts", contact.id, contact.name)} />
+          ) : null}
         </CardHeader>
         <CardContent>
           <ContactForm
@@ -92,7 +96,6 @@ export function ContactDetailScreen({
       {isEdit ? null : (
         <>
           <EntityAttachmentsPanel entityType="CONTACT" entityId={contact.id} />
-          <ActivityFeed entityType="contact" entityId={contact.id} />
         </>
       )}
     </div>

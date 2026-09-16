@@ -17,16 +17,22 @@ export function useEntityActivity(
   entityType: string,
   entityId: string | null,
   revision?: number | string,
-  enabled = true,
+  options: { enabled?: boolean; pageSize?: number } = {},
 ) {
+  const enabled = options.enabled ?? true;
+  const pageSize = options.pageSize;
   return useQuery({
-    queryKey: useTenantQueryKey(activityKeys.forEntity(entityType, entityId ?? "", revision)),
+    queryKey: useTenantQueryKey([
+      ...activityKeys.forEntity(entityType, entityId ?? "", revision),
+      pageSize ?? "default",
+    ]),
     queryFn: () =>
       activityApi.list({
         entity_type: entityType,
         entity_id: entityId!,
         sort_by: "created_at",
         sort_order: "desc",
+        page_size: pageSize,
       }),
     placeholderData: keepPreviousData,
     enabled: enabled && Boolean(entityId),

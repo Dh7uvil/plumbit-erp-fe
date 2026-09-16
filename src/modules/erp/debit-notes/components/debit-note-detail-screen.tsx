@@ -21,7 +21,6 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
@@ -183,7 +182,6 @@ function DebitNoteDetailLoaded({
           parentPosted={note.is_posted}
         />
       }
-      activity={<ActivityFeed entityType="debit_note" entityId={note.id} revision={note.version} />}
     >
       <DebitNoteForm note={note} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
     </DocumentRecordShell>

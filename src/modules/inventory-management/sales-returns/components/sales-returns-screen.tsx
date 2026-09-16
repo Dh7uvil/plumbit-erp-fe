@@ -126,7 +126,7 @@ export function SalesReturnsScreen() {
         const number = salesReturnDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "sales return"}
+            entityName={number}
             viewHref={canRead ? `/sales-returns/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT" ? `/sales-returns/${row.id}/edit` : undefined

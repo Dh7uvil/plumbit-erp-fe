@@ -255,7 +255,7 @@ export function CreditNotesScreen() {
         const number = creditNoteDisplayNumber(note);
         return (
           <DataTableRowActions
-            entityName={number ?? "credit note"}
+            entityName={number}
             viewHref={canRead ? `/credit-notes/${note.id}` : undefined}
             editHref={
               canUpdate && note.status === "DRAFT" ? `/credit-notes/${note.id}/edit` : undefined

@@ -12,6 +12,8 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { PageLoadingState } from "@/shared/components/feedback/loading-state";
+import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
+import { historyHrefFromViewHref } from "@/shared/lib/history";
 
 export function DocumentRecordShell({
   isLoading,
@@ -36,8 +38,8 @@ export function DocumentRecordShell({
   children,
   panels,
   attachments,
-  activity,
   printHref,
+  historyHref,
 }: {
   isLoading: boolean;
   isError: boolean;
@@ -61,8 +63,8 @@ export function DocumentRecordShell({
   children: ReactNode;
   panels?: ReactNode;
   attachments?: ReactNode;
-  activity?: ReactNode;
   printHref?: string;
+  historyHref?: string;
 }) {
   if (isLoading) {
     return <PageLoadingState />;
@@ -81,6 +83,8 @@ export function DocumentRecordShell({
       </div>
     );
   }
+
+  const resolvedHistoryHref = historyHref ?? historyHrefFromViewHref(viewHref, code);
 
   return (
     <div className="flex flex-col gap-5">
@@ -109,14 +113,16 @@ export function DocumentRecordShell({
       />
       {banner}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">{formTitle}</CardTitle>
+          {mode === "view" && resolvedHistoryHref ? (
+            <HistoryHeaderButton href={resolvedHistoryHref} />
+          ) : null}
         </CardHeader>
         <CardContent>{children}</CardContent>
       </Card>
       {panels}
       {attachments}
-      {activity}
     </div>
   );
 }

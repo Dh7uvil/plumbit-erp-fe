@@ -47,6 +47,7 @@ import {
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
+import { Switch } from "@/shared/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -106,9 +107,7 @@ const FISCAL_MONTHS = [
 
 const EMPTY_CURRENCIES: Currency[] = [];
 
-type CompanyTextFieldPath = Exclude<
-  FieldPath<CompanySettingsFormValues>,
-  | "headquarters"
+type CompanyBooleanFieldPath =
   | "quotation_requires_approval"
   | "sales_order_requires_approval"
   | "purchase_order_requires_approval"
@@ -116,11 +115,16 @@ type CompanyTextFieldPath = Exclude<
   | "allow_negative_cash"
   | "vat_on_advances"
   | "auto_apply_advances_on_invoice"
-  | "credit_limit_policy"
   | "credit_limit_include_open_orders"
-  | "costing_method"
   | "allow_over_receipt"
-  | "qc_required_default"
+  | "qc_required_default";
+
+type CompanyTextFieldPath = Exclude<
+  FieldPath<CompanySettingsFormValues>,
+  | "headquarters"
+  | CompanyBooleanFieldPath
+  | "credit_limit_policy"
+  | "costing_method"
   | "fiscal_year_start_month"
   | "fiscal_year_start_day"
 >;
@@ -336,6 +340,38 @@ function SettingsFieldItem({
       {children}
       <FormMessage className="text-xs" />
     </FormItem>
+  );
+}
+
+function SettingsSwitchField({
+  control,
+  name,
+  label,
+  disabled,
+}: {
+  control: Control<CompanySettingsFormValues>;
+  name: CompanyBooleanFieldPath;
+  label: string;
+  disabled: boolean;
+}) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className="col-span-full flex flex-row items-center justify-between gap-3 space-y-0">
+          <FormLabel className={toolbarLabelClass}>{label}</FormLabel>
+          <FormControl>
+            <Switch
+              checked={field.value}
+              disabled={disabled}
+              aria-label={label}
+              onCheckedChange={field.onChange}
+            />
+          </FormControl>
+        </FormItem>
+      )}
+    />
   );
 }
 
@@ -841,129 +877,47 @@ export function CompanySettingsForm() {
                 </FormLabel>
               </FormItem>
             ) : null}
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="quotation_requires_approval"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    Quotations require approval before sending
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="Quotations require approval before sending"
+              disabled={!canUpdate || !isEditingRegional}
             />
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="sales_order_requires_approval"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    Sales orders require approval before confirming
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="Sales orders require approval before confirming"
+              disabled={!canUpdate || !isEditingRegional}
             />
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="purchase_order_requires_approval"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    Purchase orders require approval before issuing
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="Purchase orders require approval before issuing"
+              disabled={!canUpdate || !isEditingRegional}
             />
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="allow_negative_stock"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>Allow negative stock</FormLabel>
-                </FormItem>
-              )}
+              label="Allow negative stock"
+              disabled={!canUpdate || !isEditingRegional}
             />
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="allow_negative_cash"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    Allow cash and bank accounts to go negative
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="Allow cash and bank accounts to go negative"
+              disabled={!canUpdate || !isEditingRegional}
             />
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="vat_on_advances"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    Charge VAT on standard-rated customer advances
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="Charge VAT on standard-rated customer advances"
+              disabled={!canUpdate || !isEditingRegional}
             />
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="auto_apply_advances_on_invoice"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    Auto-apply matching advances when an invoice posts
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="Auto-apply matching advances when an invoice posts"
+              disabled={!canUpdate || !isEditingRegional}
             />
             <FormField
               control={form.control}
@@ -992,23 +946,11 @@ export function CompanySettingsForm() {
                 </FormItem>
               )}
             />
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="credit_limit_include_open_orders"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    Include confirmed uninvoiced sales orders in credit exposure
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="Include confirmed uninvoiced sales orders in credit exposure"
+              disabled={!canUpdate || !isEditingRegional}
             />
             <FormField
               control={form.control}
@@ -1022,23 +964,11 @@ export function CompanySettingsForm() {
                 </FormItem>
               )}
             />
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="allow_over_receipt"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    Allow over-receipt against purchase orders
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="Allow over-receipt against purchase orders"
+              disabled={!canUpdate || !isEditingRegional}
             />
             {allowOverReceipt ? (
               <FormField
@@ -1059,23 +989,11 @@ export function CompanySettingsForm() {
                 )}
               />
             ) : null}
-            <FormField
+            <SettingsSwitchField
               control={form.control}
               name="qc_required_default"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={!canUpdate || !isEditingRegional}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel className={toolbarLabelClass}>
-                    New products require quality inspection by default
-                  </FormLabel>
-                </FormItem>
-              )}
+              label="New products require quality inspection by default"
+              disabled={!canUpdate || !isEditingRegional}
             />
           </CardContent>
         </Card>

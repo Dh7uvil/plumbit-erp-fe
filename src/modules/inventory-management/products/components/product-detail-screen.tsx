@@ -12,7 +12,6 @@ import {
 import { ProductForm } from "@/modules/inventory-management/products/components/product-form";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useProduct } from "@/modules/inventory-management/products/queries";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -24,6 +23,8 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
+import { historyHref } from "@/shared/lib/history";
 
 export function ProductDetailScreen({
   productId,
@@ -74,8 +75,11 @@ export function ProductDetailScreen({
         mode={mode}
       />
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">{isEdit ? "Edit product" : "Product"}</CardTitle>
+          {mode === "view" ? (
+            <HistoryHeaderButton href={historyHref("products", product.id, product.sku)} />
+          ) : null}
         </CardHeader>
         <CardContent>
           <ProductForm
@@ -92,7 +96,6 @@ export function ProductDetailScreen({
           <ProductSalesHistoryCard productId={product.id} />
           <ProductPurchaseHistoryCard productId={product.id} />
           <EntityAttachmentsPanel entityType="PRODUCT" entityId={product.id} />
-          <ActivityFeed entityType="product" entityId={product.id} />
         </>
       )}
     </div>

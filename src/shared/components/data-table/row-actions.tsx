@@ -60,6 +60,11 @@ function wrapLabeledActions(node: ReactNode): ReactNode {
   });
 }
 
+function actionLabel(verb: string, entityName?: string | null) {
+  const trimmed = entityName?.trim();
+  return trimmed ? `${verb} ${trimmed}` : verb;
+}
+
 export function DataTableRowActions({
   entityName,
   onView,
@@ -69,7 +74,7 @@ export function DataTableRowActions({
   onDelete,
   extra,
 }: {
-  entityName: string;
+  entityName?: string | null;
   onView?: () => void;
   viewHref?: string;
   onEdit?: () => void;
@@ -81,9 +86,9 @@ export function DataTableRowActions({
     return null;
   }
 
-  const viewLabel = `View ${entityName}`;
-  const editLabel = `Edit ${entityName}`;
-  const deleteLabel = `Delete ${entityName}`;
+  const viewLabel = actionLabel("View", entityName);
+  const editLabel = actionLabel("Edit", entityName);
+  const deleteLabel = actionLabel("Delete", entityName);
 
   const viewButton = viewHref ? (
     <TableActionTooltip label={viewLabel}>

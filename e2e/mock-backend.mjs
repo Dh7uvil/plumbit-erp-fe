@@ -59,7 +59,6 @@ const LOGO_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 const EMPTY_LIST_PATHS = new Set([
-  "/api/v1/activity",
   "/api/v1/branches",
   "/api/v1/categories",
   "/api/v1/contacts",
@@ -75,6 +74,14 @@ const EMPTY_LIST_PATHS = new Set([
 
 let currentPassword = PASSWORD;
 let currentSessionKind = "superadmin";
+let profileName = null;
+let profilePhone = null;
+let notificationPreferences = {
+  email_enabled: true,
+  in_app_enabled: true,
+  whatsapp_enabled: false,
+  is_default: true,
+};
 let accessToken = "access-token-1";
 let refreshToken = "refresh-token-1";
 let quotations = new Map();
@@ -170,6 +177,44 @@ function listOk(res, data) {
       total_pages: data.length > 0 ? 1 : 0,
     },
   });
+}
+
+function mockActivity() {
+  return [
+    {
+      action: "CREATE",
+      actor_id: USER_ID,
+      actor_name: "Ada Lovelace",
+      actor_email: EMAIL,
+      occurred_at: NOW,
+      changed_fields: [],
+      status: "SUCCESS",
+      kind: "attachment",
+      summary: "packing-list.jpg",
+    },
+    {
+      action: "SUBMIT",
+      actor_id: USER_ID,
+      actor_name: "Ada Lovelace",
+      actor_email: EMAIL,
+      occurred_at: NOW,
+      changed_fields: [{ field: "status", old_value: "DRAFT", new_value: "PENDING_APPROVAL" }],
+      status: "SUCCESS",
+      kind: "approval",
+      summary: null,
+    },
+    {
+      action: "CREATE",
+      actor_id: USER_ID,
+      actor_name: "Ada Lovelace",
+      actor_email: EMAIL,
+      occurred_at: NOW,
+      changed_fields: [{ field: "status", old_value: null, new_value: "DRAFT" }],
+      status: "SUCCESS",
+      kind: "edit",
+      summary: null,
+    },
+  ];
 }
 
 function filterBySearch(items, search, fields) {
@@ -3088,9 +3133,9 @@ function me() {
     return {
       id: LIMITED_USER_ID,
       tenant_id: TENANT_ID,
-      name: "Riley Reader",
+      name: profileName ?? "Riley Reader",
       email: LIMITED_EMAIL,
-      phone: null,
+      phone: profilePhone,
       status: "ACTIVE",
       last_login_at: NOW,
       employee_id: null,
@@ -3103,9 +3148,9 @@ function me() {
   return {
     id: USER_ID,
     tenant_id: TENANT_ID,
-    name: "Ada Lovelace",
+    name: profileName ?? "Ada Lovelace",
     email: EMAIL,
-    phone: null,
+    phone: profilePhone,
     status: "ACTIVE",
     last_login_at: NOW,
     employee_id: null,
@@ -3336,6 +3381,44 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       ok(res, me());
+      return;
+    }
+
+    if (req.method === "PATCH" && url.pathname === "/api/v1/auth/me") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      if (body.name != null) {
+        profileName = body.name;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "phone")) {
+        profilePhone = body.phone;
+      }
+      ok(res, me());
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/users/me/notification-preferences") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, notificationPreferences);
+      return;
+    }
+
+    if (req.method === "PATCH" && url.pathname === "/api/v1/users/me/notification-preferences") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      notificationPreferences = {
+        email_enabled: body.email_enabled ?? notificationPreferences.email_enabled,
+        in_app_enabled: body.in_app_enabled ?? notificationPreferences.in_app_enabled,
+        whatsapp_enabled: body.whatsapp_enabled ?? notificationPreferences.whatsapp_enabled,
+        is_default: false,
+      };
+      ok(res, notificationPreferences);
       return;
     }
 
@@ -6364,6 +6447,14 @@ const server = http.createServer(async (req, res) => {
       const from = url.searchParams.get("from") ?? url.searchParams.get("from_date");
       const to = url.searchParams.get("to") ?? url.searchParams.get("to_date");
       ok(res, accountStatementReport(partyType, partyId, from, to));
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/activity") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, mockActivity());
       return;
     }
 

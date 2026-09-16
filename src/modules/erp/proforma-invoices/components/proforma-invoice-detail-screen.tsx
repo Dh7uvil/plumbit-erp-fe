@@ -20,7 +20,6 @@ import {
 } from "@/modules/erp/proforma-invoices/schemas";
 import type { ProformaInvoiceWorkflowAction } from "@/modules/erp/proforma-invoices/workflow";
 import { PROFORMA_INVOICE_ACTION_REGISTRY } from "@/modules/erp/proforma-invoices/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
@@ -238,13 +237,6 @@ function ProformaInvoiceDetailLoaded({
           entityType="PROFORMA_INVOICE"
           entityId={invoice.id}
           parentPosted={invoice.is_posted}
-        />
-      }
-      activity={
-        <ActivityFeed
-          entityType="proforma_invoice"
-          entityId={invoice.id}
-          revision={invoice.version}
         />
       }
     >

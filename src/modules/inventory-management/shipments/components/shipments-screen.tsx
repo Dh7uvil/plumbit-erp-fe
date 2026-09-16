@@ -142,7 +142,7 @@ export function ShipmentsScreen() {
         const number = shipmentDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "shipment"}
+            entityName={number}
             viewHref={canRead ? `/shipments/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT" ? `/shipments/${row.id}/edit` : undefined

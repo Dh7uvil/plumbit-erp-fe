@@ -1,7 +1,7 @@
 "use client";
 
-import { KeyRound, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
-import { useState } from "react";
+import { Bell, KeyRound, LogOut, Menu, Moon, Search, Sun, User } from "lucide-react";
+import Link from "next/link";
 
 import { AppBreadcrumb } from "@/shared/components/layout/app-breadcrumb";
 import { CommandSearchTrigger } from "@/shared/components/layout/command-search-trigger";
@@ -13,7 +13,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
-import { ChangePasswordDialog } from "@/modules/users-management/auth/components/change-password-dialog";
 import { useLogout } from "@/modules/users-management/auth/mutations";
 import { useMe } from "@/modules/users-management/auth/queries";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
@@ -40,7 +39,6 @@ export function AppHeader({
   const { data: me } = useMe();
   const logout = useLogout();
   const { theme, toggleTheme } = useTheme();
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const themeTooltip = theme === "dark" ? "Light mode" : "Dark mode";
 
   return (
@@ -58,10 +56,7 @@ export function AppHeader({
         </Button>
         <AppBreadcrumb />
         <div className="flex-1" />
-        <CommandSearchTrigger
-          onOpen={onSearchOpen}
-          className="hidden w-44 md:inline-flex"
-        />
+        <CommandSearchTrigger onOpen={onSearchOpen} className="hidden w-44 md:inline-flex" />
         <Button
           type="button"
           variant="ghost"
@@ -113,9 +108,23 @@ export function AppHeader({
               <p className="text-muted-foreground text-xs">{me?.email ?? ""}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setChangePasswordOpen(true)}>
-              <KeyRound />
-              Change password
+            <DropdownMenuItem asChild>
+              <Link href="/settings/profile">
+                <User />
+                My profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/password">
+                <KeyRound />
+                Change password
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/notifications">
+                <Bell />
+                Notifications
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -128,7 +137,6 @@ export function AppHeader({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
       </header>
     </TooltipProvider>
   );

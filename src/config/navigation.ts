@@ -28,12 +28,15 @@ import {
   Users,
   Wallet,
   Warehouse,
+  Bell,
   ClipboardCheck,
   CircleDollarSign,
   FileSpreadsheet,
+  KeyRound,
   PackageCheck,
   RotateCcw,
   Ship,
+  User,
   type LucideIcon,
 } from "lucide-react";
 
@@ -85,6 +88,7 @@ import { permissionCatalogPermissions } from "@/modules/users-management/permiss
 import { rolePermissions } from "@/modules/users-management/roles/permissions";
 import { userPermissions } from "@/modules/users-management/users/permissions";
 import { can } from "@/shared/auth/permissions";
+import { parseHistoryPath } from "@/shared/lib/history";
 
 export type NavigationItem = {
   label: string;
@@ -373,6 +377,19 @@ export const navigation: NavigationGroup[] = [
     ],
   },
   {
+    label: "Settings",
+    items: [
+      { label: "My Profile", href: "/settings/profile", permission: null, icon: User },
+      { label: "Change Password", href: "/settings/password", permission: null, icon: KeyRound },
+      {
+        label: "Notification Settings",
+        href: "/settings/notifications",
+        permission: null,
+        icon: Bell,
+      },
+    ],
+  },
+  {
     label: "Administration",
     items: [
       { label: "Users", href: "/users", permission: userPermissions.read, icon: UserCog },
@@ -427,12 +444,14 @@ export function searchableNavigation(permissions: readonly string[]): Navigation
 export function findActiveNav(
   pathname: string,
 ): { group: string; item: NavigationItem } | undefined {
+  const history = parseHistoryPath(pathname);
+  const lookupPath = history?.spec.listHref ?? pathname;
   const matches = navigation.flatMap((group) =>
     group.items
       .filter((item) =>
         item.href === "/"
-          ? pathname === "/"
-          : pathname === item.href || pathname.startsWith(`${item.href}/`),
+          ? lookupPath === "/"
+          : lookupPath === item.href || lookupPath.startsWith(`${item.href}/`),
       )
       .map((item) => ({ group: group.label, item })),
   );

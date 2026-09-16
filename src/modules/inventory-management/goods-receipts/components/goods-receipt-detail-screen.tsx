@@ -31,7 +31,6 @@ import {
   QUALITY_INSPECTION_STATUS_VARIANTS,
   qualityInspectionDisplayNumber,
 } from "@/modules/inventory-management/quality-inspections/schemas";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -155,11 +154,13 @@ function GoodsReceiptDetailLoaded({
       badges={
         <>
           <DocumentStatusBadge
+            kind="Document"
             status={receipt.status}
             labels={STOCK_DOCUMENT_STATUS_LABELS}
             variants={STOCK_DOCUMENT_STATUS_VARIANTS}
           />
           <DocumentStatusBadge
+            kind="QC"
             status={receipt.qc_status}
             labels={QC_STATUS_LABELS}
             variants={QC_STATUS_VARIANTS}
@@ -251,13 +252,6 @@ function GoodsReceiptDetailLoaded({
           entityId={receipt.id}
           parentPosted={receipt.is_posted}
           defaultCategory="SUPPLIER_INVOICE"
-        />
-      }
-      activity={
-        <ActivityFeed
-          entityType="goods_receipt"
-          entityId={receipt.id}
-          revision={receipt.version}
         />
       }
     >

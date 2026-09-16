@@ -151,7 +151,7 @@ export function LandedCostsScreen() {
         const href = `/landed-costs/${row.id}`;
         return (
           <DataTableRowActions
-            entityName={number ?? "landed cost"}
+            entityName={number}
             viewHref={canRead ? href : undefined}
             editHref={canUpdate && row.status === "DRAFT" ? `${href}/edit` : undefined}
             onDelete={

@@ -21,7 +21,6 @@ import {
 } from "@/modules/inventory-management/delivery-notes/schemas";
 import { DELIVERY_NOTE_ACTION_REGISTRY } from "@/modules/inventory-management/delivery-notes/workflow";
 import { CreateInvoiceFromDeliveryNotesDialog } from "@/modules/erp/sales-invoices/components/create-from-delivery-notes-dialog";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -201,9 +200,6 @@ function DeliveryNoteDetailLoaded({
           parentPosted={note.is_posted}
           defaultCategory="POD"
         />
-      }
-      activity={
-        <ActivityFeed entityType="delivery_note" entityId={note.id} revision={note.version} />
       }
     >
       <DeliveryNoteForm

@@ -19,11 +19,14 @@ import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
 import { SupplierPurchaseHistoryCard } from "@/modules/inventory-management/history/components/trading-history-cards";
 import { SupplierProductsPanel } from "@/modules/erp/supplier-products/components/supplier-products-panel";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { SupplierForm } from "@/modules/erp/suppliers/components/supplier-form";
 import { useAddSupplierAddress, useDeleteSupplierAddress } from "@/modules/erp/suppliers/mutations";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
-import { useSupplier, useSupplierOutstandingSummary, useSupplierPaymentHistory } from "@/modules/erp/suppliers/queries";
+import {
+  useSupplier,
+  useSupplierOutstandingSummary,
+  useSupplierPaymentHistory,
+} from "@/modules/erp/suppliers/queries";
 import {
   ExtraAddressFormSchema,
   type ExtraAddressFormValues,
@@ -39,6 +42,8 @@ import {
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { PartyDocumentsCard } from "@/shared/components/document/party-documents-card";
+import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
+import { historyHref } from "@/shared/lib/history";
 import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
 import {
   PartyPaymentHistoryCard,
@@ -228,7 +233,12 @@ export function SupplierDetailScreen({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">{isEdit ? "Edit supplier" : "Supplier"}</CardTitle>
-          <RecordCode entity="Supplier" code={supplier.code} />
+          <div className="flex items-center gap-2">
+            <RecordCode entity="Supplier" code={supplier.code} />
+            {mode === "view" ? (
+              <HistoryHeaderButton href={historyHref("suppliers", supplier.id, supplier.code)} />
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent>
           <SupplierForm
@@ -377,7 +387,6 @@ export function SupplierDetailScreen({
           <SupplierProductsPanel supplierId={supplier.id} />
           <SupplierPurchaseHistoryCard supplierId={supplier.id} />
           <EntityAttachmentsPanel entityType="SUPPLIER" entityId={supplier.id} />
-          <ActivityFeed entityType="supplier" entityId={supplier.id} />
         </>
       )}
       <Dialog

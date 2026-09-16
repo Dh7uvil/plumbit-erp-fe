@@ -18,7 +18,6 @@ import {
   type Shipment,
 } from "@/modules/inventory-management/shipments/schemas";
 import { SHIPMENT_ACTION_REGISTRY } from "@/modules/inventory-management/shipments/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -182,7 +181,6 @@ function ShipmentDetailLoaded({
             defaultCategory="LOADING_PHOTO"
           />
         }
-        activity={<ActivityFeed entityType="shipment" entityId={shipment.id} revision={shipment.version} />}
       >
         <ShipmentForm
           shipment={shipment}

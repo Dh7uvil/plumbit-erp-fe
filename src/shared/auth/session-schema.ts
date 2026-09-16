@@ -6,6 +6,14 @@ export const RoleSummarySchema = z.object({
   is_system_role: z.boolean(),
 });
 
+export const EmployeeSummarySchema = z
+  .object({
+    employee_code: z.string(),
+    designation: z.string().nullable(),
+    status: z.string(),
+  })
+  .passthrough();
+
 export const SessionUserSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
@@ -19,7 +27,9 @@ export const SessionUserSchema = z.object({
   updated_at: z.string(),
   roles: z.array(RoleSummarySchema).default([]),
   permissions: z.array(z.string()).default([]),
+  employee: EmployeeSummarySchema.nullable().optional(),
 });
 
 export type SessionUser = z.infer<typeof SessionUserSchema>;
 export type RoleSummary = z.infer<typeof RoleSummarySchema>;
+export type EmployeeSummary = z.infer<typeof EmployeeSummarySchema>;

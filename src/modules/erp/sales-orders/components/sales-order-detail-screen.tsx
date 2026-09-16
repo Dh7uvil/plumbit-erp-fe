@@ -30,7 +30,6 @@ import {
   SALES_ORDER_ACTION_REGISTRY,
   type SalesOrderWorkflowAction,
 } from "@/modules/erp/sales-orders/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
@@ -162,16 +161,19 @@ function SalesOrderDetailLoaded({
       badges={
         <>
           <DocumentStatusBadge
+            kind="Order"
             status={salesOrder.status}
             labels={SALES_ORDER_STATUS_LABELS}
             variants={SALES_ORDER_STATUS_VARIANTS}
           />
           <DocumentStatusBadge
+            kind="Fulfillment"
             status={salesOrder.fulfillment_status}
             labels={FULFILLMENT_STATUS_LABELS}
             variants={FULFILLMENT_STATUS_VARIANTS}
           />
           <DocumentStatusBadge
+            kind="Billing"
             status={salesOrder.billing_status}
             labels={BILLING_STATUS_LABELS}
             variants={BILLING_STATUS_VARIANTS}
@@ -290,13 +292,6 @@ function SalesOrderDetailLoaded({
           entityId={salesOrder.id}
           parentPosted={salesOrder.is_posted}
           defaultCategory="CUSTOMER_PO"
-        />
-      }
-      activity={
-        <ActivityFeed
-          entityType="sales_order"
-          entityId={salesOrder.id}
-          revision={salesOrder.version}
         />
       }
     >

@@ -233,16 +233,19 @@ export function SalesOrdersScreen() {
         cell: (salesOrder) => (
           <div className="flex flex-wrap items-center gap-1">
             <DocumentStatusBadge
+              kind="Order"
               status={salesOrder.status}
               labels={SALES_ORDER_STATUS_LABELS}
               variants={SALES_ORDER_STATUS_VARIANTS}
             />
             <DocumentStatusBadge
+              kind="Fulfillment"
               status={salesOrder.fulfillment_status}
               labels={FULFILLMENT_STATUS_LABELS}
               variants={FULFILLMENT_STATUS_VARIANTS}
             />
             <DocumentStatusBadge
+              kind="Billing"
               status={salesOrder.billing_status}
               labels={BILLING_STATUS_LABELS}
               variants={BILLING_STATUS_VARIANTS}
@@ -372,7 +375,7 @@ export function SalesOrdersScreen() {
         const number = salesOrderDisplayNumber(salesOrder);
         return (
           <DataTableRowActions
-            entityName={number ?? "sales order"}
+            entityName={number}
             viewHref={canRead ? `/sales-orders/${salesOrder.id}` : undefined}
             editHref={
               canUpdate && salesOrder.status === "DRAFT"
@@ -386,7 +389,7 @@ export function SalesOrdersScreen() {
                   variant="ghost"
                   size="icon"
                   className="size-7"
-                  aria-label="Clone sales order"
+                  aria-label="Clone"
                   disabled={cloneSalesOrder.isPending}
                   onClick={() => void onClone(salesOrder.id)}
                 >

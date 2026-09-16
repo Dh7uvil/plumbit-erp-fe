@@ -221,7 +221,7 @@ export function StockTransfersScreen() {
         const number = stockTransferDisplayNumber(row);
         return (
           <DataTableRowActions
-            entityName={number ?? "transfer"}
+            entityName={number}
             viewHref={canRead ? `/stock-transfers/${row.id}` : undefined}
             editHref={
               canUpdate && row.status === "DRAFT"
@@ -235,7 +235,7 @@ export function StockTransfersScreen() {
                   variant="ghost"
                   size="icon"
                   className="size-7"
-                  aria-label="Clone stock transfer"
+                  aria-label="Clone"
                   disabled={cloneTransfer.isPending}
                   onClick={() => void onClone(row.id)}
                 >

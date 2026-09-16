@@ -19,7 +19,6 @@ import {
   type QualityInspection,
 } from "@/modules/inventory-management/quality-inspections/schemas";
 import { QUALITY_INSPECTION_ACTION_REGISTRY } from "@/modules/inventory-management/quality-inspections/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
@@ -169,13 +168,6 @@ function QualityInspectionDetailLoaded({
           defaultCategory="QC_PHOTO"
         />
       }
-        activity={
-          <ActivityFeed
-            entityType="quality_inspection"
-            entityId={inspection.id}
-            revision={inspection.version}
-          />
-        }
         panels={
           <>
             <RelatedDocumentsCard documents={inspection.related_documents} />

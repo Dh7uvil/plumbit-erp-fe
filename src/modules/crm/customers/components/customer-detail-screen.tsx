@@ -14,7 +14,6 @@ import {
   CustomerSalesHistoryCard,
   CustomerSoldItemsCard,
 } from "@/modules/inventory-management/history/components/trading-history-cards";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { useAddCustomerAddress, useDeleteCustomerAddress } from "@/modules/crm/customers/mutations";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
@@ -51,6 +50,8 @@ import {
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { PartyDocumentsCard } from "@/shared/components/document/party-documents-card";
+import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
+import { historyHref } from "@/shared/lib/history";
 import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
 import {
   PartyPaymentHistoryCard,
@@ -246,7 +247,12 @@ export function CustomerDetailScreen({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">{isEdit ? "Edit customer" : "Customer"}</CardTitle>
-          <RecordCode entity="Customer" code={customer.code} />
+          <div className="flex items-center gap-2">
+            <RecordCode entity="Customer" code={customer.code} />
+            {mode === "view" ? (
+              <HistoryHeaderButton href={historyHref("customers", customer.id, customer.code)} />
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent>
           <CustomerForm
@@ -411,7 +417,6 @@ export function CustomerDetailScreen({
           <CustomerSoldItemsCard customerId={customer.id} />
           <CustomerSalesHistoryCard customerId={customer.id} />
           <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />
-          <ActivityFeed entityType="customer" entityId={customer.id} />
         </>
       )}
       <Dialog

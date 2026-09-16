@@ -18,7 +18,6 @@ import {
   type StockAdjustment,
 } from "@/modules/inventory-management/stock-adjustments/schemas";
 import { STOCK_ADJUSTMENT_ACTION_REGISTRY } from "@/modules/inventory-management/stock-adjustments/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -147,13 +146,6 @@ function StockAdjustmentDetailLoaded({
           entityType="STOCK_ADJUSTMENT"
           entityId={adjustment.id}
           parentPosted={adjustment.is_posted}
-        />
-      }
-      activity={
-        <ActivityFeed
-          entityType="stock_adjustment"
-          entityId={adjustment.id}
-          revision={adjustment.version}
         />
       }
     >

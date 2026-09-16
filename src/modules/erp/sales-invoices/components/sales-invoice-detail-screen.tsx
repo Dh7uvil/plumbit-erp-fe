@@ -29,7 +29,6 @@ import {
   type SalesInvoice,
 } from "@/modules/erp/sales-invoices/schemas";
 import { SALES_INVOICE_ACTION_REGISTRY } from "@/modules/erp/sales-invoices/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
@@ -150,17 +149,20 @@ function SalesInvoiceDetailLoaded({
       badges={
         <>
           <DocumentStatusBadge
+            kind="Document"
             status={invoice.status}
             labels={INVOICE_DOCUMENT_STATUS_LABELS}
             variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
           />
           <DocumentStatusBadge
+            kind="Payment"
             status={invoice.payment_status}
             labels={PAYMENT_STATUS_LABELS}
             variants={PAYMENT_STATUS_VARIANTS}
           />
           {invoice.is_overdue ? (
             <DocumentStatusBadge
+              kind="Overdue"
               status="OVERDUE"
               labels={{ OVERDUE: "Overdue" }}
               variants={{ OVERDUE: "destructive" }}
@@ -168,12 +170,14 @@ function SalesInvoiceDetailLoaded({
           ) : null}
           {invoice.is_fully_credited ? (
             <DocumentStatusBadge
+              kind="Credit"
               status="CREDITED"
               labels={{ CREDITED: "Credited" }}
               variants={{ CREDITED: "secondary" }}
             />
           ) : invoice.is_partially_credited ? (
             <DocumentStatusBadge
+              kind="Credit"
               status="PARTIALLY_CREDITED"
               labels={{ PARTIALLY_CREDITED: "Partially credited" }}
               variants={{ PARTIALLY_CREDITED: "warning" }}
@@ -316,9 +320,6 @@ function SalesInvoiceDetailLoaded({
           entityId={invoice.id}
           parentPosted={invoice.is_posted}
         />
-      }
-      activity={
-        <ActivityFeed entityType="sales_invoice" entityId={invoice.id} revision={invoice.version} />
       }
     >
       <SalesInvoiceForm

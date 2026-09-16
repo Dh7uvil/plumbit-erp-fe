@@ -19,7 +19,6 @@ import {
 } from "@/modules/erp/quotations/schemas";
 import type { QuotationWorkflowAction } from "@/modules/erp/quotations/workflow";
 import { QUOTATION_ACTION_REGISTRY } from "@/modules/erp/quotations/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
@@ -192,9 +191,6 @@ function QuotationDetailLoaded({
           entityId={quotation.id}
           parentPosted={quotation.is_posted}
         />
-      }
-      activity={
-        <ActivityFeed entityType="quotation" entityId={quotation.id} revision={quotation.version} />
       }
     >
       <QuotationForm

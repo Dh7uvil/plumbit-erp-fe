@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { SupplierProductForm } from "@/modules/erp/supplier-products/components/supplier-product-form";
 import { supplierProductPermissions } from "@/modules/erp/supplier-products/permissions";
 import { useSupplierProduct } from "@/modules/erp/supplier-products/queries";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -18,6 +17,8 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
+import { historyHref } from "@/shared/lib/history";
 
 export function SupplierProductDetailScreen({
   catalogId,
@@ -46,7 +47,9 @@ export function SupplierProductDetailScreen({
     return (
       <div className="flex flex-col gap-3">
         <DataTableError
-          message={catalogQuery.error ? getErrorMessage(catalogQuery.error) : "Catalog item not found"}
+          message={
+            catalogQuery.error ? getErrorMessage(catalogQuery.error) : "Catalog item not found"
+          }
           onRetry={() => catalogQuery.refetch()}
         />
         <Button type="button" variant="outline" asChild>
@@ -68,10 +71,15 @@ export function SupplierProductDetailScreen({
         mode={mode}
       />
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">
             {isEdit ? "Edit catalog item" : "Catalog item"}
           </CardTitle>
+          {mode === "view" ? (
+            <HistoryHeaderButton
+              href={historyHref("supplier-products", row.id, row.supplier_sku)}
+            />
+          ) : null}
         </CardHeader>
         <CardContent>
           <SupplierProductForm
@@ -84,7 +92,6 @@ export function SupplierProductDetailScreen({
       {row.product_id ? (
         <EntityAttachmentsPanel entityType="PRODUCT" entityId={row.product_id} />
       ) : null}
-      <ActivityFeed entityType="supplier_product" entityId={row.id} />
     </div>
   );
 }

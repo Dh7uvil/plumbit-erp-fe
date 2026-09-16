@@ -255,7 +255,7 @@ export function DebitNotesScreen() {
         const number = debitNoteDisplayNumber(note);
         return (
           <DataTableRowActions
-            entityName={number ?? "debit note"}
+            entityName={number}
             viewHref={canRead ? `/debit-notes/${note.id}` : undefined}
             editHref={
               canUpdate && note.status === "DRAFT" ? `/debit-notes/${note.id}/edit` : undefined

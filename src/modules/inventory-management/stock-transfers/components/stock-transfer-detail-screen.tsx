@@ -18,7 +18,6 @@ import {
   type StockTransfer,
 } from "@/modules/inventory-management/stock-transfers/schemas";
 import { STOCK_TRANSFER_ACTION_REGISTRY } from "@/modules/inventory-management/stock-transfers/workflow";
-import { ActivityFeed } from "@/modules/users-management/activity/components/activity-feed";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -145,13 +144,6 @@ function StockTransferDetailLoaded({
           entityType="STOCK_TRANSFER"
           entityId={transfer.id}
           parentPosted={transfer.is_posted}
-        />
-      }
-      activity={
-        <ActivityFeed
-          entityType="stock_transfer"
-          entityId={transfer.id}
-          revision={transfer.version}
         />
       }
     >

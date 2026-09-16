@@ -93,4 +93,19 @@ describe("buildBreadcrumbs", () => {
       { label: "Trial balance" },
     ]);
   });
+
+  it("adds Approvals & History on history routes", () => {
+    expect(
+      buildBreadcrumbs({
+        pathname: "/history/sales-invoices/abc",
+        active: invoices,
+        recordLabel: "INVACM26000001",
+      }),
+    ).toEqual([
+      { label: "Sales" },
+      { label: "Sales invoices", href: "/sales-invoices" },
+      { label: "INVACM26000001", href: "/sales-invoices/abc" },
+      { label: "Approvals & History" },
+    ]);
+  });
 });
