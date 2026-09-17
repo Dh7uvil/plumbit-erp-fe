@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deliveryNoteKeys } from "@/modules/inventory-management/delivery-notes/queries";
 import { packagesApi } from "@/modules/inventory-management/packages/api";
 import { packageKeys } from "@/modules/inventory-management/packages/queries";
+import { shipmentKeys } from "@/modules/inventory-management/shipments/queries";
 import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { isApiError } from "@/shared/api/errors";
 
@@ -17,6 +18,7 @@ async function invalidatePackages(queryClient: ReturnType<typeof useQueryClient>
   }
   await queryClient.invalidateQueries({ queryKey: deliveryNoteKeys.all });
   await queryClient.invalidateQueries({ queryKey: salesOrderKeys.all });
+  await queryClient.invalidateQueries({ queryKey: shipmentKeys.all });
 }
 
 async function refetchIfStale(

@@ -12,6 +12,7 @@ import {
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
+import { isUsableExpenseChargeLine } from "@/modules/erp/landed-costs/schemas";
 import { ApplyDebitsDialog } from "@/modules/erp/purchase-invoices/components/apply-debits-dialog";
 import { PurchaseInvoiceForm } from "@/modules/erp/purchase-invoices/components/purchase-invoice-form";
 import { PurchaseInvoiceLandedCostCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-landed-cost-card";
@@ -120,14 +121,17 @@ function PurchaseInvoiceDetailLoaded({
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
+  const hasUsableExpense = invoice.lines.some(isUsableExpenseChargeLine);
   const fallbackActions: string[] = [];
   if (invoice.status === "POSTED") {
     fallbackActions.push("create_debit_note");
-    if (invoice.lines.some((line) => line.line_type === "EXPENSE")) {
+    if (hasUsableExpense) {
       fallbackActions.push("create_landed_cost");
     }
   }
-  const workflowActions = appendMissingActions(invoice.available_actions, fallbackActions);
+  const workflowActions = appendMissingActions(invoice.available_actions, fallbackActions).filter(
+    (action) => action !== "create_landed_cost" || hasUsableExpense,
+  );
 
   return (
     <DocumentRecordShell

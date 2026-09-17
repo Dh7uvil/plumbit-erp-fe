@@ -17,6 +17,8 @@ import {
   LandedCostFormSchema,
   emptyAllocationForm,
   emptyChargeForm,
+  isUsableExpenseChargeLine,
+  isUsableLandedCostShipmentStatus,
   optionalSelect,
   type LandedCost,
   type LandedCostCreateRequest,
@@ -165,15 +167,21 @@ export function LandedCostForm({
   const allocationsArray = useFieldArray({ control: form.control, name: "allocations" });
   const charges = useWatch({ control: form.control, name: "charges" }) ?? [];
   const allocations = useWatch({ control: form.control, name: "allocations" }) ?? [];
+  const selectedShipmentId = optionalUuid(
+    useWatch({ control: form.control, name: "shipment_id" }) ?? OPTIONAL_SELECT_NONE,
+  );
 
   const bills = useMemo(
     () => [...(billsQuery.data?.data ?? []), ...(importBillsQuery.data?.data ?? [])],
     [billsQuery.data, importBillsQuery.data],
   );
-  const expenseLines = (billQuery.data?.lines ?? []).filter((line) => line.line_type === "EXPENSE");
+  const expenseLines = (billQuery.data?.lines ?? []).filter(isUsableExpenseChargeLine);
   const eligibleLines = eligibleQuery.data?.lines ?? [];
   const receipts = receiptsQuery.data?.data ?? [];
-  const shipments = shipmentsQuery.data?.data ?? [];
+  const shipments = (shipmentsQuery.data?.data ?? []).filter(
+    (shipment) =>
+      isUsableLandedCostShipmentStatus(shipment.status) || shipment.id === selectedShipmentId,
+  );
   const branches = branchesQuery.data ?? [];
 
   async function onSubmit(values: LandedCostFormValues) {
@@ -341,6 +349,11 @@ export function LandedCostForm({
                   })),
                 ]}
               />
+              {billId && !billQuery.isLoading && expenseLines.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  No remaining expense lines on this posted bill.
+                </p>
+              ) : null}
               {expenseLines.map((line) => {
                 const selected = charges.some(
                   (charge) => charge.purchase_invoice_line_id === line.id,

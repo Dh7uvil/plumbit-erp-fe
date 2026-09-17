@@ -138,9 +138,6 @@ export const ShipmentCreateRequestSchema = z.object({
   port_of_discharge: z.string().nullable().optional(),
   etd: z.string().nullable().optional(),
   eta: z.string().nullable().optional(),
-  gross_weight: NullableDecimalStringSchema.optional(),
-  net_weight: NullableDecimalStringSchema.optional(),
-  total_packages: z.number().int().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 export type ShipmentCreateRequest = z.infer<typeof ShipmentCreateRequestSchema>;
@@ -184,9 +181,6 @@ export const ShipmentFormSchema = z.object({
   port_of_discharge: z.string(),
   etd: z.string(),
   eta: z.string(),
-  gross_weight: z.string(),
-  net_weight: z.string(),
-  total_packages: z.string(),
   notes: z.string(),
 });
 export type ShipmentFormValues = z.infer<typeof ShipmentFormSchema>;
