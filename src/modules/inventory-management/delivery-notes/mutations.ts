@@ -6,6 +6,7 @@ import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { deliveryNotesApi } from "@/modules/inventory-management/delivery-notes/api";
 import { deliveryNoteKeys } from "@/modules/inventory-management/delivery-notes/queries";
 import { packageKeys } from "@/modules/inventory-management/packages/queries";
+import { shipmentKeys } from "@/modules/inventory-management/shipments/queries";
 import { stockKeys } from "@/modules/inventory-management/stock/queries";
 import { isApiError } from "@/shared/api/errors";
 
@@ -22,6 +23,7 @@ async function invalidateNotes(
   }
   await queryClient.invalidateQueries({ queryKey: salesOrderKeys.all });
   await queryClient.invalidateQueries({ queryKey: packageKeys.all });
+  await queryClient.invalidateQueries({ queryKey: shipmentKeys.all });
   if (stockMoved) {
     await queryClient.invalidateQueries({ queryKey: stockKeys.all });
   }

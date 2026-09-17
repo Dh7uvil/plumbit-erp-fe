@@ -8,6 +8,7 @@ import { ShipmentForm } from "@/modules/inventory-management/shipments/component
 import { ShipmentTrackingDialog } from "@/modules/inventory-management/shipments/components/shipment-tracking-dialog";
 import { ShipmentTrackingStrip } from "@/modules/inventory-management/shipments/components/shipment-tracking-strip";
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
+import { isUsableLandedCostShipmentStatus } from "@/modules/erp/landed-costs/schemas";
 import { useShipmentWorkflow } from "@/modules/inventory-management/shipments/hooks/use-shipment-workflow";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { useShipment } from "@/modules/inventory-management/shipments/queries";
@@ -107,10 +108,13 @@ function ShipmentDetailLoaded({
   if (canUpdateTracking(shipment.status)) {
     fallbackActions.push("tracking");
   }
-  if (shipment.status !== "CANCELLED") {
+  const canComposeLandedCost = isUsableLandedCostShipmentStatus(shipment.status);
+  if (canComposeLandedCost) {
     fallbackActions.push("create_landed_cost");
   }
-  const workflowActions = appendMissingActions(shipment.available_actions, fallbackActions);
+  const workflowActions = appendMissingActions(shipment.available_actions, fallbackActions).filter(
+    (action) => action !== "create_landed_cost" || canComposeLandedCost,
+  );
 
   return (
     <>

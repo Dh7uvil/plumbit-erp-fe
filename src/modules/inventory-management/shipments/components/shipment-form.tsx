@@ -36,12 +36,12 @@ import { Button } from "@/shared/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
-import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -54,15 +54,6 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
-
-function optionalInt(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const parsed = Number(trimmed);
-  return Number.isInteger(parsed) ? parsed : null;
-}
 
 function toFormValues(shipment: Shipment | null): ShipmentFormValues {
   return {
@@ -81,9 +72,6 @@ function toFormValues(shipment: Shipment | null): ShipmentFormValues {
     port_of_discharge: shipment?.port_of_discharge ?? "",
     etd: shipment?.etd ?? "",
     eta: shipment?.eta ?? "",
-    gross_weight: shipment?.gross_weight ?? "",
-    net_weight: shipment?.net_weight ?? "",
-    total_packages: shipment?.total_packages != null ? String(shipment.total_packages) : "",
     notes: shipment?.notes ?? "",
   };
 }
@@ -105,9 +93,6 @@ function toPayload(values: ShipmentFormValues): ShipmentCreateRequest {
     port_of_discharge: emptyToNull(values.port_of_discharge),
     etd: emptyToNull(values.etd),
     eta: emptyToNull(values.eta),
-    gross_weight: emptyToNull(values.gross_weight),
-    net_weight: emptyToNull(values.net_weight),
-    total_packages: optionalInt(values.total_packages),
     notes: emptyToNull(values.notes),
   };
 }
@@ -318,45 +303,37 @@ export function ShipmentForm({
               )}
             />
           ))}
-          <FormField
-            control={form.control}
-            name="gross_weight"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Gross weight</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="net_weight"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Net weight</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="total_packages"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Total packages</FormLabel>
-                <FormControl>
-                  <Input inputMode="numeric" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        </div>
+        <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <p className="text-sm font-medium">Logistics totals</p>
+            <FormDescription>
+              Calculated from packages on attached delivery notes. Cancelled packages are excluded.
+            </FormDescription>
+          </div>
+          {shipment ? (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Gross weight</p>
+                <Input disabled value={shipment.gross_weight ?? "—"} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Net weight</p>
+                <Input disabled value={shipment.net_weight ?? "—"} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Total packages</p>
+                <Input
+                  disabled
+                  value={shipment.total_packages != null ? String(shipment.total_packages) : "—"}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-muted-foreground sm:col-span-2 text-sm">
+              Totals appear after delivery notes and packages are attached.
+            </p>
+          )}
         </div>
         <FormField
           control={form.control}

@@ -234,3 +234,27 @@ export function emptyAllocationForm(): LandedCostAllocationFormValues {
 export function optionalSelect(value: string | null | undefined): string {
   return value ?? OPTIONAL_SELECT_NONE;
 }
+
+export function remainingExpenseAmount(line: {
+  line_type: string;
+  amount: string;
+  landed_cost_remaining?: string | null;
+}): number {
+  if (line.line_type !== "EXPENSE") {
+    return 0;
+  }
+  const remaining = Number(line.landed_cost_remaining ?? line.amount);
+  return Number.isFinite(remaining) ? remaining : 0;
+}
+
+export function isUsableExpenseChargeLine(line: {
+  line_type: string;
+  amount: string;
+  landed_cost_remaining?: string | null;
+}): boolean {
+  return remainingExpenseAmount(line) > 0;
+}
+
+export function isUsableLandedCostShipmentStatus(status: string): boolean {
+  return status !== "DRAFT" && status !== "CANCELLED";
+}

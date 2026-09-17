@@ -10,6 +10,7 @@ import { useCreateLandedCostFromBills } from "@/modules/erp/landed-costs/mutatio
 import {
   LANDED_COST_ALLOCATION_METHOD_LABELS,
   LANDED_COST_ALLOCATION_METHODS,
+  isUsableExpenseChargeLine,
   type LandedCostAllocationMethod,
 } from "@/modules/erp/landed-costs/schemas";
 import { usePurchaseInvoice, usePurchaseInvoices } from "@/modules/erp/purchase-invoices/queries";
@@ -50,8 +51,11 @@ function todayIsoDate(): string {
   ).padStart(2, "0")}`;
 }
 
-function expenseLines(invoice: PurchaseInvoice | undefined) {
-  return (invoice?.lines ?? []).filter((line) => line.line_type === "EXPENSE");
+function usableExpenseLines(invoice: PurchaseInvoice | undefined) {
+  if (!invoice || invoice.status !== "POSTED") {
+    return [];
+  }
+  return invoice.lines.filter(isUsableExpenseChargeLine);
 }
 
 export function ComposeFromBillsDialog({
@@ -102,32 +106,45 @@ function ComposeFromBillsBody({
   );
   const [allocationMethod, setAllocationMethod] = useState<LandedCostAllocationMethod>("VALUE");
   const [documentDate, setDocumentDate] = useState(todayIsoDate());
-  const billsQuery = usePurchaseInvoices(
-    { status: "POSTED", page_size: 50, search: search || undefined },
+  const expenseBillsQuery = usePurchaseInvoices(
+    { status: "POSTED", page_size: 50, bill_type: "EXPENSE", search: search || undefined },
+    !purchaseInvoiceId,
+  );
+  const importBillsQuery = usePurchaseInvoices(
+    { status: "POSTED", page_size: 50, bill_type: "IMPORT", search: search || undefined },
     !purchaseInvoiceId,
   );
   const billQuery = usePurchaseInvoice(selectedBillId || null);
   const receiptsQuery = useGoodsReceipts({ status: "POSTED", page_size: 50 }, !goodsReceiptId);
-  const bills = billsQuery.data?.data ?? [];
+  const bills = useMemo(() => {
+    const seen = new Set<string>();
+    return [...(expenseBillsQuery.data?.data ?? []), ...(importBillsQuery.data?.data ?? [])].filter(
+      (bill) => {
+        if (seen.has(bill.id)) {
+          return false;
+        }
+        seen.add(bill.id);
+        return true;
+      },
+    );
+  }, [expenseBillsQuery.data, importBillsQuery.data]);
   const receipts = receiptsQuery.data?.data ?? [];
   const invoice = billQuery.data;
-  const lines = useMemo(() => expenseLines(invoice), [invoice]);
+  const lines = useMemo(() => usableExpenseLines(invoice), [invoice]);
 
   useEffect(() => {
-    if (!invoice) {
-      return;
-    }
-    setSelectedLineIds(expenseLines(invoice).map((line) => line.id));
+    setSelectedLineIds(usableExpenseLines(invoice).map((line) => line.id));
   }, [invoice]);
 
   async function onSubmit() {
-    if (selectedLineIds.length === 0) {
-      toast.error("Select at least one expense line.");
+    const lineIds = selectedLineIds.filter((id) => lines.some((line) => line.id === id));
+    if (lineIds.length === 0) {
+      toast.error("Select at least one expense line with remaining amount.");
       return;
     }
     try {
       const created = await createFromBills.mutateAsync({
-        purchase_invoice_line_ids: selectedLineIds,
+        purchase_invoice_line_ids: lineIds,
         goods_receipt_ids:
           selectedReceiptId && selectedReceiptId !== OPTIONAL_SELECT_NONE
             ? [selectedReceiptId]
@@ -160,8 +177,8 @@ function ComposeFromBillsBody({
             value={selectedBillId}
             onValueChange={setSelectedBillId}
             onSearch={setSearch}
-            loading={billsQuery.isLoading}
-            placeholder="Select a posted bill"
+            loading={expenseBillsQuery.isLoading || importBillsQuery.isLoading}
+            placeholder="Select a posted expense or import bill"
             options={bills.map((bill) => ({
               value: bill.id,
               label: `${purchaseInvoiceDisplayNumber(bill) ?? "Bill"} · ${formatDate(bill.document_date)}`,
@@ -252,7 +269,11 @@ function ComposeFromBillsBody({
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           Cancel
         </Button>
-        <Button type="button" onClick={onSubmit} disabled={createFromBills.isPending}>
+        <Button
+          type="button"
+          onClick={onSubmit}
+          disabled={createFromBills.isPending || lines.length === 0}
+        >
           {createFromBills.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
           Create draft
         </Button>
