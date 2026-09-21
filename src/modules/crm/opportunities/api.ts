@@ -1,4 +1,5 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
+import { QuotationListSchema } from "@/modules/erp/quotations/schemas";
 import {
   OpportunityCreateRequestSchema,
   OpportunityListSchema,
@@ -75,4 +76,10 @@ export const opportunitiesApi = {
     OpportunitySchema.parse(
       await apiClient.post(`/opportunities/${id}/reopen`, {}, { headers: ifMatchHeaders(version) }),
     ),
+  listQuotations: async (id: string, page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
+    const result = await apiClient.getList<unknown>(`/opportunities/${id}/quotations`, {
+      params: { page, page_size: pageSize },
+    });
+    return { data: QuotationListSchema.parse(result.data), meta: result.meta };
+  },
 };

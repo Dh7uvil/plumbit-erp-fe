@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { LeadForm } from "@/modules/crm/leads/components/lead-form";
 import { LeadStatusBadge } from "@/modules/crm/leads/components/lead-status-badge";
+import { ConvertLeadDialog } from "@/modules/crm/leads/components/convert-lead-dialog";
 import { useAssignLead, useChangeLeadStatus } from "@/modules/crm/leads/mutations";
 import { leadPermissions } from "@/modules/crm/leads/permissions";
 import { useLead } from "@/modules/crm/leads/queries";
@@ -39,6 +41,8 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
   const { canUpdate } = useCrudPermissions(leadPermissions);
   const can = useCan();
   const canAssign = can(leadPermissions.assign);
+  const canConvert = can(leadPermissions.convert);
+  const [convertOpen, setConvertOpen] = useState(false);
   const leadQuery = useLead(leadId);
   const activityQuery = useEntityActivity("lead", leadId, undefined, { pageSize: 50 });
   const usersQuery = useAllUsers(canAssign);
@@ -74,6 +78,7 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
   const canEdit = !["CONVERTED", "LOST"].includes(currentLead.status) && canUpdate;
   const title = leadDisplayName(currentLead);
   const canQualify = currentLead.available_actions.includes("set_status:QUALIFIED");
+  const canConvertLead = currentLead.available_actions.includes("convert");
 
   async function onAssign(ownerId: string) {
     try {
@@ -127,6 +132,11 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
                   <Loader2 className="size-4 animate-spin" aria-hidden />
                 ) : null}
                 Mark qualified
+              </Button>
+            ) : null}
+            {canConvert && canConvertLead ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => setConvertOpen(true)}>
+                Convert
               </Button>
             ) : null}
             <LeadStatusBadge status={currentLead.status} />
@@ -201,6 +211,18 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
           </Card>
         </TabsContent>
       </Tabs>
+      <ConvertLeadDialog
+        lead={currentLead}
+        open={convertOpen}
+        onOpenChange={setConvertOpen}
+        onConverted={(opportunityId) => {
+          if (opportunityId) {
+            router.push(`/opportunities/${opportunityId}`);
+            return;
+          }
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

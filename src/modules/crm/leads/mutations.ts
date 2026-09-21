@@ -4,7 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { leadsApi } from "@/modules/crm/leads/api";
 import { leadKeys } from "@/modules/crm/leads/queries";
-import type { LeadStatus } from "@/modules/crm/leads/schemas";
+import type { LeadConvertRequest, LeadStatus } from "@/modules/crm/leads/schemas";
+import { customerKeys } from "@/modules/crm/customers/queries";
+import { contactKeys } from "@/modules/crm/contacts/queries";
+import { opportunityKeys } from "@/modules/crm/opportunities/queries";
 import { isApiError } from "@/shared/api/errors";
 
 async function invalidateLeads(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
@@ -73,6 +76,32 @@ export function useAssignLead() {
     }) => leadsApi.assign(id, ownerId, version),
     onSuccess: async (_data, variables) => {
       await invalidateLeads(queryClient, variables.id);
+    },
+    onError: async (error, variables) => {
+      await refetchIfStale(queryClient, error, variables.id);
+    },
+  });
+}
+
+export function useConvertLead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      ...values
+    }: LeadConvertRequest & { id: string; version: number }) =>
+      leadsApi.convert(id, values, version),
+    onSuccess: async (data, variables) => {
+      await invalidateLeads(queryClient, variables.id);
+      await queryClient.invalidateQueries({ queryKey: customerKeys.all });
+      await queryClient.invalidateQueries({ queryKey: contactKeys.all });
+      await queryClient.invalidateQueries({ queryKey: opportunityKeys.all });
+      if (data.opportunity_id) {
+        await queryClient.invalidateQueries({
+          queryKey: opportunityKeys.detail(data.opportunity_id),
+        });
+      }
     },
     onError: async (error, variables) => {
       await refetchIfStale(queryClient, error, variables.id);

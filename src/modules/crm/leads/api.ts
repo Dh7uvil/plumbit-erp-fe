@@ -1,18 +1,23 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  LeadConvertRequestSchema,
+  LeadConvertResponseSchema,
   LeadCreateRequestSchema,
   LeadListSchema,
   LeadSchema,
   LeadStatusSchema,
   LeadUpdateRequestSchema,
   type Lead,
+  type LeadConvertRequest,
+  type LeadConvertResponse,
   type LeadCreateRequest,
   type LeadListParams,
   type LeadStatus,
   type LeadUpdateRequest,
 } from "@/modules/crm/leads/schemas";
 import { apiClient } from "@/shared/api/client";
-import { ifMatchHeaders } from "@/shared/api/concurrency";
+import { ifMatchHeaders, postDocumentHeaders } from "@/shared/api/concurrency";
+import { randomUuid } from "@/shared/lib/uuid";
 import type { ListResponse } from "@/shared/api/envelope";
 
 export const leadsApi = {
@@ -57,6 +62,19 @@ export const leadsApi = {
         `/leads/${id}/status`,
         { status: LeadStatusSchema.parse(status) },
         { headers: ifMatchHeaders(version) },
+      ),
+    ),
+  convert: async (
+    id: string,
+    values: LeadConvertRequest,
+    version: number,
+    idempotencyKey = randomUuid(),
+  ): Promise<LeadConvertResponse> =>
+    LeadConvertResponseSchema.parse(
+      await apiClient.post(
+        `/leads/${id}/convert`,
+        LeadConvertRequestSchema.parse(values),
+        { headers: postDocumentHeaders(version, idempotencyKey) },
       ),
     ),
 };

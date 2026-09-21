@@ -144,6 +144,59 @@ export const defaultLeadFormValues = (): LeadFormValues => ({
   notes: "",
 });
 
+export const LeadConvertContactSchema = z.object({
+  name: z.string().min(1).max(200),
+  email: z.string().max(255).nullable().optional(),
+  phone: z.string().max(50).nullable().optional(),
+  is_primary: z.boolean().optional().default(true),
+});
+
+export const LeadConvertCustomerCreateSchema = z.object({
+  name: z.string().min(1).max(200),
+  tax_treatment: z.enum(["REGISTERED", "UNREGISTERED", "EXPORT", "GCC", "EXEMPT"]).optional(),
+  currency_id: z.string().uuid().nullable().optional(),
+  trn: z.string().max(50).nullable().optional(),
+});
+
+export const LeadConvertOpportunitySchema = z.object({
+  create: z.boolean().optional().default(true),
+  name: z.string().min(1).max(200).nullable().optional(),
+  pipeline_id: z.string().uuid().nullable().optional(),
+  stage_id: z.string().uuid().nullable().optional(),
+  amount: DecimalStringSchema.nullable().optional(),
+  currency_id: z.string().uuid().nullable().optional(),
+  expected_close_date: z.string().nullable().optional(),
+  owner_id: z.string().uuid().nullable().optional(),
+});
+
+export const LeadConvertRequestSchema = z
+  .object({
+    version: z.number().int().optional(),
+    customer_id: z.string().uuid().optional(),
+    new_customer: LeadConvertCustomerCreateSchema.optional(),
+    contact: LeadConvertContactSchema,
+    opportunity: LeadConvertOpportunitySchema.optional(),
+  })
+  .superRefine((values, ctx) => {
+    if ((values.customer_id === undefined) === (values.new_customer === undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Choose an existing customer or enter a new one",
+        path: ["customer_id"],
+      });
+    }
+  });
+
+export type LeadConvertRequest = z.infer<typeof LeadConvertRequestSchema>;
+
+export const LeadConvertResponseSchema = z.object({
+  lead: LeadSchema,
+  customer_id: z.string().uuid(),
+  contact_id: z.string().uuid(),
+  opportunity_id: z.string().uuid().nullable(),
+});
+export type LeadConvertResponse = z.infer<typeof LeadConvertResponseSchema>;
+
 export type LeadListParams = {
   page?: number;
   page_size?: number;
