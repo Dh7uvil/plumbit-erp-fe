@@ -166,8 +166,11 @@ inventory-management    Implemented: Units, Categories, Products, Price Lists, W
                         Stock, Stock Transfers, Stock Adjustments, Goods Receipts,
                         Quality Inspections, Delivery Notes, Packages, Shipments,
                         Sales Returns.
-crm                     Implemented: Customers, Contacts.
-                        Planned: Leads, Opportunities, Activities.
+crm                     Implemented: Customers, Contacts, Pipelines, Lead Sources,
+                        Lost Reasons, Leads, Opportunities, Activities, Notes.
+                        Planned: Campaigns, reports.
+                        `/activities` is CRM tasks/calls/meetings; `/activity` is the
+                        users-management audit feed. They are not interchangeable.
 communication-service   Email, WhatsApp, Chat, Meetings (planned)
 notifications-service   In-App, Email, WhatsApp and Push notifications, templates, delivery status (planned)
 ```

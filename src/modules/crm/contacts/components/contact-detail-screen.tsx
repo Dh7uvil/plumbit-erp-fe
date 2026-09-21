@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { ActivityTimeline } from "@/modules/crm/activities/components/activity-timeline";
 import { ContactForm } from "@/modules/crm/contacts/components/contact-form";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useContact } from "@/modules/crm/contacts/queries";
 import { useCompanyOptions } from "@/modules/crm/contacts/use-company-options";
+import { NotesPanel } from "@/modules/crm/notes/components/notes-panel";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -20,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
 import { historyHref } from "@/shared/lib/history";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 
 export function ContactDetailScreen({
   contactId,
@@ -96,6 +99,18 @@ export function ContactDetailScreen({
       {isEdit ? null : (
         <>
           <EntityAttachmentsPanel entityType="CONTACT" entityId={contact.id} />
+          <Tabs defaultValue="activities">
+            <TabsList>
+              <TabsTrigger value="activities">Activities</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+            </TabsList>
+            <TabsContent value="activities" className="mt-4">
+              <ActivityTimeline entityType="contact" entityId={contact.id} />
+            </TabsContent>
+            <TabsContent value="notes" className="mt-4">
+              <NotesPanel entityType="contact" entityId={contact.id} />
+            </TabsContent>
+          </Tabs>
         </>
       )}
     </div>

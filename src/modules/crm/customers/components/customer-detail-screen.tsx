@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { ActivityTimeline } from "@/modules/crm/activities/components/activity-timeline";
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
 import { CustomerForm } from "@/modules/crm/customers/components/customer-form";
 import {
@@ -39,6 +40,7 @@ import {
   type CustomerExtraAddress,
   type ExtraAddressFormValues,
 } from "@/modules/crm/customers/schemas";
+import { NotesPanel } from "@/modules/crm/notes/components/notes-panel";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import {
   EMPTY_ADDRESS_FORM,
@@ -83,6 +85,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import {
   TableBody,
   TableCell,
@@ -398,6 +401,18 @@ export function CustomerDetailScreen({
           <CustomerSoldItemsCard customerId={customer.id} />
           <CustomerSalesHistoryCard customerId={customer.id} />
           <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />
+          <Tabs defaultValue="activities">
+            <TabsList>
+              <TabsTrigger value="activities">Activities</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+            </TabsList>
+            <TabsContent value="activities" className="mt-4">
+              <ActivityTimeline entityType="customer" entityId={customer.id} />
+            </TabsContent>
+            <TabsContent value="notes" className="mt-4">
+              <NotesPanel entityType="customer" entityId={customer.id} />
+            </TabsContent>
+          </Tabs>
         </>
       )}
       <Dialog
