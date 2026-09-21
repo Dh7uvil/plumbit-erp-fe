@@ -5,17 +5,23 @@ import {
   ClipboardCheck,
   FileSpreadsheet,
   FileText,
+  Filter,
   History,
   Landmark,
   PackageCheck,
   Percent,
+  PhoneCall,
   Scale,
   ScrollText,
   ShoppingCart,
+  Target,
+  Trophy,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 
 import type { NavigationGroup, NavigationItem } from "@/config/navigation";
+import { crmReportPermissions } from "@/modules/crm/reports/permissions";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { can } from "@/shared/auth/permissions";
 
@@ -225,6 +231,42 @@ export const reportCatalog: ReportCatalogGroup[] = [
         href: "/reports/received-not-billed",
         permission: reportPermissions.inventory,
         icon: PackageCheck,
+      },
+    ],
+  },
+  {
+    label: "CRM reports",
+    icon: Target,
+    items: [
+      {
+        label: "Sales pipeline",
+        href: "/reports/sales-pipeline",
+        permission: crmReportPermissions.read,
+        icon: Target,
+      },
+      {
+        label: "Sales funnel",
+        href: "/reports/sales-funnel",
+        permission: crmReportPermissions.read,
+        icon: Filter,
+      },
+      {
+        label: "Win / loss",
+        href: "/reports/win-loss",
+        permission: crmReportPermissions.read,
+        icon: Trophy,
+      },
+      {
+        label: "Lead conversion",
+        href: "/reports/lead-conversion",
+        permission: crmReportPermissions.read,
+        icon: UserPlus,
+      },
+      {
+        label: "Sales activity",
+        href: "/reports/sales-activity",
+        permission: crmReportPermissions.read,
+        icon: PhoneCall,
       },
     ],
   },

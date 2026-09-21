@@ -17,6 +17,7 @@ const SECTION_ICON_CLASS: Record<string, string> = {
   "Tax reports": "bg-info-muted text-info-foreground",
   "Inventory reports": "bg-success-muted text-success-foreground",
   "Operations reports": "bg-secondary text-secondary-foreground",
+  "CRM reports": "bg-primary/10 text-primary",
 };
 
 export function ReportsHubScreen() {

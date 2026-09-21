@@ -20,6 +20,12 @@ describe("visibleReportCatalog", () => {
     expect(groups[0]?.items.map((item) => item.label)).toContain("VAT 201");
     expect(hasAnyReportAccess([reportPermissions.tax])).toBe(true);
   });
+
+  it("keeps the CRM group when the user has CRM report access", () => {
+    const groups = visibleReportCatalog(["reports.report.crm"]);
+    expect(groups.map((group) => group.label)).toEqual(["CRM reports"]);
+    expect(groups[0]?.items.map((item) => item.label)).toContain("Sales pipeline");
+  });
 });
 
 describe("findReportByHref", () => {
