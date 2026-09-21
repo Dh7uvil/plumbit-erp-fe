@@ -6,6 +6,7 @@ import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/modules/erp/accounting/
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useTrialBalance } from "@/modules/erp/accounting/reports/queries";
+import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
@@ -41,10 +42,19 @@ export function TrialBalanceScreen() {
   const to = filters.to ?? period.to;
   const includeZero = filters.include_zero === "true";
   const branchId = filters.branch_id;
-  const reportQuery = useTrialBalance({ from, to, branch_id: branchId, include_zero: includeZero });
+  const costCenterId = filters.cost_center_id;
+  const reportQuery = useTrialBalance({
+    from,
+    to,
+    branch_id: branchId,
+    cost_center_id: costCenterId,
+    include_zero: includeZero,
+  });
   const branchesQuery = useAllBranches(can("identity.branch.read"));
+  const costCentersQuery = useAllCostCenters(can("masters.cost_center.read"));
   const report = reportQuery.data;
   const branches = branchesQuery.data ?? [];
+  const costCenters = costCentersQuery.data ?? [];
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
@@ -57,6 +67,9 @@ export function TrialBalanceScreen() {
     });
     if (branchId) {
       params.set("branch_id", branchId);
+    }
+    if (costCenterId) {
+      params.set("cost_center_id", costCenterId);
     }
     router.push(`/reports/general-ledger?${params.toString()}`);
   }
@@ -71,14 +84,14 @@ export function TrialBalanceScreen() {
       onDownloadCsv={() => {
         void downloadCsv(
           "/reports/trial-balance",
-          { from, to, branch_id: branchId, include_zero: includeZero },
+          { from, to, branch_id: branchId, cost_center_id: costCenterId, include_zero: includeZero },
           "trial-balance",
         );
       }}
       onDownloadExcel={() => {
         void downloadExcel(
           "/reports/trial-balance",
-          { from, to, branch_id: branchId, include_zero: includeZero },
+          { from, to, branch_id: branchId, cost_center_id: costCenterId, include_zero: includeZero },
           "trial-balance",
         );
       }}
@@ -110,6 +123,23 @@ export function TrialBalanceScreen() {
               })),
             ]}
           />
+          <FilterSelect
+            className="w-48"
+            label="Cost center"
+            placeholder="All cost centers"
+            aria-label="Filter by cost center"
+            value={costCenterId ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { cost_center_id: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All cost centers" },
+              ...costCenters.map((row) => ({
+                value: row.id,
+                label: `${row.code} — ${row.name}`,
+              })),
+            ]}
+          />
           <div className="flex h-9 items-center gap-2">
             <Checkbox
               id="tb-zero"
@@ -122,7 +152,7 @@ export function TrialBalanceScreen() {
               Include zeros
             </Label>
           </div>
-          {from || to || branchId || includeZero ? (
+          {from || to || branchId || costCenterId || includeZero ? (
             <Button
               type="button"
               variant="ghost"
@@ -130,7 +160,13 @@ export function TrialBalanceScreen() {
               className="h-9"
               onClick={() =>
                 setParams({
-                  filters: { from: null, to: null, branch_id: null, include_zero: null },
+                  filters: {
+                    from: null,
+                    to: null,
+                    branch_id: null,
+                    cost_center_id: null,
+                    include_zero: null,
+                  },
                 })
               }
             >

@@ -99,6 +99,7 @@ export type TrialBalanceParams = {
   from: string;
   to: string;
   branch_id?: string;
+  cost_center_id?: string;
   include_zero?: boolean;
 };
 
@@ -108,6 +109,7 @@ export type GeneralLedgerParams = {
   to: string;
   party_id?: string;
   branch_id?: string;
+  cost_center_id?: string;
   source_type?: string;
   side?: string;
   page?: number;
@@ -586,6 +588,7 @@ export type ProfitAndLossParams = {
   from: string;
   to: string;
   branch_id?: string;
+  cost_center_id?: string;
   include_ytd?: boolean;
 };
 
@@ -758,10 +761,19 @@ export const DashboardSchema = z.object({
 });
 export type Dashboard = z.infer<typeof DashboardSchema>;
 
-export function glHref(accountId: string, from: string, to: string, branchId?: string): string {
+export function glHref(
+  accountId: string,
+  from: string,
+  to: string,
+  branchId?: string,
+  costCenterId?: string,
+): string {
   const params = new URLSearchParams({ account_id: accountId, from, to });
   if (branchId) {
     params.set("branch_id", branchId);
+  }
+  if (costCenterId) {
+    params.set("cost_center_id", costCenterId);
   }
   return `/reports/general-ledger?${params.toString()}`;
 }

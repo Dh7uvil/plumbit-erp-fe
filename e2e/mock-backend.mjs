@@ -66,6 +66,7 @@ const EMPTY_LIST_PATHS = new Set([
   "/api/v1/document-sequences",
   "/api/v1/exchange-rates",
   "/api/v1/payment-terms",
+  "/api/v1/cost-centers",
   "/api/v1/price-lists",
   "/api/v1/taxes",
   "/api/v1/terms-templates",
@@ -2723,6 +2724,8 @@ function buildJournal(body, existing = null, overrides = {}) {
     external_reference: line.external_reference ?? null,
     tax_id: line.tax_id ?? null,
     branch_id: line.branch_id ?? body.branch_id ?? existing?.branch_id ?? null,
+    cost_center_id:
+      line.cost_center_id ?? body.cost_center_id ?? existing?.cost_center_id ?? null,
     description: line.description ?? null,
   }));
   const totalDebit = money4(lines.reduce((sum, line) => sum + Number(line.debit_base), 0));
@@ -2745,6 +2748,10 @@ function buildJournal(body, existing = null, overrides = {}) {
     currency_id: body.currency_id ?? existing?.currency_id ?? CURRENCY_ID,
     exchange_rate: money4(body.exchange_rate ?? existing?.exchange_rate ?? "1"),
     branch_id: body.branch_id === undefined ? (existing?.branch_id ?? null) : body.branch_id,
+    cost_center_id:
+      body.cost_center_id === undefined
+        ? (existing?.cost_center_id ?? null)
+        : body.cost_center_id,
     narration: body.narration === undefined ? (existing?.narration ?? null) : body.narration,
     reference: body.reference === undefined ? (existing?.reference ?? null) : body.reference,
     posted_at: isPosted ? (existing?.posted_at ?? now) : null,
@@ -3178,6 +3185,10 @@ function me() {
       "erp.payment_term.create",
       "erp.payment_term.update",
       "erp.payment_term.delete",
+      "masters.cost_center.read",
+      "masters.cost_center.create",
+      "masters.cost_center.update",
+      "masters.cost_center.delete",
       "erp.terms_template.read",
       "erp.terms_template.create",
       "erp.terms_template.update",

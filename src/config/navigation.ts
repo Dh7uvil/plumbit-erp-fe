@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Tags,
+  Layers,
   Truck,
   UserCog,
   Users,
@@ -47,6 +48,7 @@ import { accountPermissions } from "@/modules/erp/accounting/accounts/permission
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
+import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { periodLockPermissions } from "@/modules/erp/period-lock/permissions";
 import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
@@ -361,6 +363,12 @@ export const navigation: NavigationGroup[] = [
         href: "/payment-terms",
         permission: paymentTermPermissions.read,
         icon: ListOrdered,
+      },
+      {
+        label: "Cost centers",
+        href: "/cost-centers",
+        permission: costCenterPermissions.read,
+        icon: Layers,
       },
       {
         label: "Terms templates",

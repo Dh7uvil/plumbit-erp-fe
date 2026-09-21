@@ -42,6 +42,7 @@ function LineRow({
   from,
   to,
   branchId,
+  costCenterId,
   money,
   showComparative,
   showYtd,
@@ -50,6 +51,7 @@ function LineRow({
   from: string;
   to: string;
   branchId?: string;
+  costCenterId?: string;
   money: (value: string | null | undefined) => string;
   showComparative: boolean;
   showYtd: boolean;
@@ -57,10 +59,14 @@ function LineRow({
   return (
     <TableRow>
       <TableCell className="font-mono text-sm">
-        <RecordLink href={glHref(line.account_id, from, to, branchId)}>{line.account_code}</RecordLink>
+        <RecordLink href={glHref(line.account_id, from, to, branchId, costCenterId)}>
+          {line.account_code}
+        </RecordLink>
       </TableCell>
       <TableCell>
-        <RecordLink href={glHref(line.account_id, from, to, branchId)}>{line.account_name}</RecordLink>
+        <RecordLink href={glHref(line.account_id, from, to, branchId, costCenterId)}>
+          {line.account_name}
+        </RecordLink>
       </TableCell>
       <TableCell>{line.account_subtype || line.account_type}</TableCell>
       <TableCell>{money(line.amount)}</TableCell>
@@ -79,7 +85,14 @@ export function ProfitAndLossScreen() {
   const to = filters.to ?? period.to;
   const includeYtd = filters.include_ytd === "true";
   const branchId = filters.branch_id;
-  const params = { from, to, branch_id: branchId, include_ytd: includeYtd };
+  const costCenterId = filters.cost_center_id;
+  const params = {
+    from,
+    to,
+    branch_id: branchId,
+    cost_center_id: costCenterId,
+    include_ytd: includeYtd,
+  };
   const reportQuery = useProfitAndLoss(params);
   const report = reportQuery.data;
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
@@ -111,6 +124,8 @@ export function ProfitAndLossScreen() {
           from={from}
           to={to}
           branchId={branchId}
+          costCenterId={costCenterId}
+          showCostCenterFilter
           includeYtd={includeYtd}
           onChange={(patch) => setParams({ filters: patch })}
         />
@@ -170,6 +185,7 @@ export function ProfitAndLossScreen() {
                   from={from}
                   to={to}
                   branchId={branchId}
+                  costCenterId={costCenterId}
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}
@@ -193,6 +209,7 @@ export function ProfitAndLossScreen() {
                   from={from}
                   to={to}
                   branchId={branchId}
+                  costCenterId={costCenterId}
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}
@@ -232,6 +249,7 @@ export function ProfitAndLossScreen() {
                   from={from}
                   to={to}
                   branchId={branchId}
+                  costCenterId={costCenterId}
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}
