@@ -1,3 +1,4 @@
+import { dunningPermissions } from "@/modules/erp/accounting/dunning-rules/permissions";
 import { writeOffPermissions } from "@/modules/erp/accounting/write-offs/permissions";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
@@ -12,6 +13,7 @@ export const SALES_INVOICE_WORKFLOW_ACTIONS = [
   "apply_credits",
   "create_credit_note",
   "write_off",
+  "send_reminder",
 ] as const;
 export type SalesInvoiceWorkflowAction = (typeof SALES_INVOICE_WORKFLOW_ACTIONS)[number];
 
@@ -44,6 +46,14 @@ export const SALES_INVOICE_ACTION_REGISTRY: DocumentActionSpec<SalesInvoiceWorkf
     label: "Write off",
     permission: writeOffPermissions.create,
     variant: "outline",
+  },
+  {
+    action: "send_reminder",
+    label: "Send reminder",
+    permission: dunningPermissions.send,
+    variant: "outline",
+    confirmCopy: (documentNumber) =>
+      `Queue a payment reminder email for ${documentNumber}? The customer primary contact must have an email address.`,
   },
   {
     action: "cancel",

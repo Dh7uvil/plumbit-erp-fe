@@ -12,7 +12,9 @@ import {
 import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
 import { CreateCreditNoteDialog } from "@/modules/erp/credit-notes/components/create-from-source-dialog";
 import { InvoiceCreditNotesCard } from "@/modules/erp/credit-notes/components/invoice-credit-notes-card";
+import { useSendPaymentReminder } from "@/modules/erp/accounting/dunning-rules/mutations";
 import { ApplyCreditsDialog } from "@/modules/erp/sales-invoices/components/apply-credits-dialog";
+import { PaymentRemindersCard } from "@/modules/erp/sales-invoices/components/payment-reminders-card";
 import { SalesInvoiceWriteOffDialog } from "@/modules/erp/sales-invoices/components/write-off-dialog";
 import { SalesInvoiceForm } from "@/modules/erp/sales-invoices/components/sales-invoice-form";
 import { SalesInvoiceMarginCard } from "@/modules/erp/sales-invoices/components/sales-invoice-margin-card";
@@ -117,6 +119,7 @@ function SalesInvoiceDetailLoaded({
   const number = salesInvoiceDisplayNumber(invoice);
   const onAction = useSalesInvoiceWorkflow(invoice);
   const postInvoice = usePostSalesInvoice();
+  const sendReminder = useSendPaymentReminder();
   const [writeError, setWriteError] = useState<unknown>(null);
   const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
   const [creditOpen, setCreditOpen] = useState(false);
@@ -226,6 +229,11 @@ function SalesInvoiceDetailLoaded({
               setWriteOffOpen(true);
               return;
             }
+            if (action === "send_reminder") {
+              const result = await sendReminder.mutateAsync({ invoiceId: invoice.id });
+              toast.success(`Reminder queued to ${result.recipient_email}`);
+              return;
+            }
             await onAction(action, extras);
           }}
         />
@@ -319,6 +327,7 @@ function SalesInvoiceDetailLoaded({
             reversalJournalEntryId={invoice.reversal_journal_entry_id}
           />
           <InvoiceCreditNotesCard salesInvoiceId={invoice.id} />
+          <PaymentRemindersCard salesInvoiceId={invoice.id} />
         </>
       }
       attachments={
