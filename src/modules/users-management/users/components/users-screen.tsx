@@ -104,7 +104,7 @@ export function UsersScreen() {
         cell: (user) => (
           <div className="flex items-center gap-2">
             <Avatar className="size-7">
-              <AvatarFallback className="text-[10px]">{initials(user.name)}</AvatarFallback>
+              <AvatarFallback className="text-xs">{initials(user.name)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
               <p className="font-medium">{user.name}</p>

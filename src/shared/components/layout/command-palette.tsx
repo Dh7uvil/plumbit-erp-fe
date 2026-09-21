@@ -159,7 +159,7 @@ function CommandPaletteDialog({ onOpenChange }: { onOpenChange: (open: boolean) 
               <X size={14} />
             </button>
           ) : null}
-          <kbd className="bg-muted text-muted-foreground border-border rounded border px-1.5 py-0.5 text-[10px]">
+          <kbd className="bg-muted text-muted-foreground border-border rounded border px-1.5 py-0.5 text-xs">
             ESC
           </kbd>
         </div>
@@ -267,7 +267,7 @@ function CommandPaletteBody({
       <div className="max-h-80 overflow-y-auto py-1">
         {grouped.map((section) => (
           <div key={section.group}>
-            <div className="text-muted-foreground/60 px-4 py-1.5 text-[10px] font-semibold tracking-widest uppercase">
+            <div className="text-muted-foreground/60 px-4 py-1.5 text-xs font-semibold tracking-widest uppercase">
               {section.group}
             </div>
             {section.items.map((row) => {
@@ -296,7 +296,7 @@ function CommandPaletteBody({
         ))}
       </div>
       <div className="border-border bg-muted/30 border-t px-4 py-2">
-        <p className="text-muted-foreground text-[10px]">
+        <p className="text-muted-foreground text-xs">
           {flat.length} result{flat.length === 1 ? "" : "s"}
         </p>
       </div>

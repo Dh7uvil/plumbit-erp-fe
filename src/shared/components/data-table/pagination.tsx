@@ -64,7 +64,7 @@ function PaginationControls({
           <FilterSelect
             id={pageSizeId}
             hideLabel
-            className="h-8 w-16 px-2 text-xs"
+            className="h-9 w-20 px-2 text-sm"
             placeholder="Items"
             aria-label="Items"
             value={pageSize}
@@ -76,7 +76,7 @@ function PaginationControls({
           />
         </div>
         {meta.total > 0 ? (
-          <p className="text-muted-foreground text-xs">{`${from}–${to} of ${meta.total}`}</p>
+          <p className="text-muted-foreground text-sm">{`${from}–${to} of ${meta.total}`}</p>
         ) : null}
       </div>
       {meta.total > 0 ? (

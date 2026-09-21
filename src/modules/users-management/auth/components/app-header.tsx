@@ -43,7 +43,7 @@ export function AppHeader({
 
   return (
     <TooltipProvider>
-      <header className="bg-card border-border flex h-12 shrink-0 items-center gap-2 border-b px-3 md:gap-3 md:px-4">
+      <header className="bg-card border-border flex h-14 shrink-0 items-center gap-2 border-b px-3 md:gap-3 md:px-4">
         <Button
           type="button"
           variant="ghost"
@@ -92,13 +92,13 @@ export function AppHeader({
               aria-label={me?.name ? `Account menu for ${me.name}` : "Account menu"}
             >
               <Avatar className="size-7">
-                <AvatarFallback className="bg-primary text-[10px] text-white">
+                <AvatarFallback className="bg-primary text-xs text-white">
                   {me?.name ? initials(me.name) : "…"}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden flex-col items-start leading-none md:flex">
                 <span className="text-foreground text-xs font-medium">{me?.name ?? "…"}</span>
-                <span className="text-muted-foreground text-[10px]">{me?.email ?? ""}</span>
+                <span className="text-muted-foreground text-xs">{me?.email ?? ""}</span>
               </span>
             </Button>
           </DropdownMenuTrigger>
