@@ -8,6 +8,7 @@ import {
   Contact,
   FileText,
   FolderTree,
+  GitBranch,
   History,
   Inbox,
   Landmark,
@@ -44,6 +45,9 @@ import {
 import { hasAnyReportAccess, visibleReportCatalog } from "@/config/report-catalog";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
+import { leadSourcePermissions } from "@/modules/crm/lead-sources/permissions";
+import { lostReasonPermissions } from "@/modules/crm/lost-reasons/permissions";
+import { pipelinePermissions } from "@/modules/crm/pipelines/permissions";
 import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
@@ -128,6 +132,24 @@ export const navigation: NavigationGroup[] = [
         href: "/contacts",
         permission: contactPermissions.read,
         icon: Contact,
+      },
+      {
+        label: "Pipelines",
+        href: "/pipelines",
+        permission: pipelinePermissions.read,
+        icon: GitBranch,
+      },
+      {
+        label: "Lead sources",
+        href: "/lead-sources",
+        permission: leadSourcePermissions.read,
+        icon: Tags,
+      },
+      {
+        label: "Lost reasons",
+        href: "/lost-reasons",
+        permission: lostReasonPermissions.read,
+        icon: ClipboardList,
       },
     ],
   },
