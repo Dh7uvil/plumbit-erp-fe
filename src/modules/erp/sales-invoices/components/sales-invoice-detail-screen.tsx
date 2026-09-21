@@ -13,6 +13,7 @@ import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credi
 import { CreateCreditNoteDialog } from "@/modules/erp/credit-notes/components/create-from-source-dialog";
 import { InvoiceCreditNotesCard } from "@/modules/erp/credit-notes/components/invoice-credit-notes-card";
 import { ApplyCreditsDialog } from "@/modules/erp/sales-invoices/components/apply-credits-dialog";
+import { SalesInvoiceWriteOffDialog } from "@/modules/erp/sales-invoices/components/write-off-dialog";
 import { SalesInvoiceForm } from "@/modules/erp/sales-invoices/components/sales-invoice-form";
 import { SalesInvoiceMarginCard } from "@/modules/erp/sales-invoices/components/sales-invoice-margin-card";
 import { useSalesInvoiceWorkflow } from "@/modules/erp/sales-invoices/hooks/use-sales-invoice-workflow";
@@ -120,6 +121,7 @@ function SalesInvoiceDetailLoaded({
   const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
   const [creditOpen, setCreditOpen] = useState(false);
   const [applyCreditsOpen, setApplyCreditsOpen] = useState(false);
+  const [writeOffOpen, setWriteOffOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
@@ -220,6 +222,10 @@ function SalesInvoiceDetailLoaded({
               setCreditOpen(true);
               return;
             }
+            if (action === "write_off") {
+              setWriteOffOpen(true);
+              return;
+            }
             await onAction(action, extras);
           }}
         />
@@ -302,6 +308,7 @@ function SalesInvoiceDetailLoaded({
             amountPaid={invoice.amount_paid}
             amountAdjusted={invoice.amount_credited}
             adjustedLabel="Amount credited"
+            amountWrittenOff={invoice.amount_written_off}
             balanceDue={invoice.balance_due}
             currencyCode={currencyCode}
           />
@@ -337,6 +344,12 @@ function SalesInvoiceDetailLoaded({
         currencyCode={currencyCode}
         open={applyCreditsOpen}
         onOpenChange={setApplyCreditsOpen}
+      />
+      <SalesInvoiceWriteOffDialog
+        invoice={invoice}
+        currencyCode={currencyCode}
+        open={writeOffOpen}
+        onOpenChange={setWriteOffOpen}
       />
     </DocumentRecordShell>
   );

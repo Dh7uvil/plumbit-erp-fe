@@ -158,3 +158,26 @@ export function useApplyPurchaseInvoiceDebits() {
     },
   });
 }
+
+export function useWriteOffPurchaseInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      amount,
+      writeOffDate,
+      reason,
+    }: WriteVars & {
+      amount: string;
+      writeOffDate: string;
+      reason?: string | null;
+    }) => purchaseInvoicesApi.writeOff(id, { version, amount, writeOffDate, reason }),
+    onSuccess: async (_data, { id }) => {
+      await invalidate(queryClient, id, true);
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}

@@ -994,6 +994,7 @@ function buildSalesInvoiceFromSource(source, extras = {}) {
     terms_and_conditions: source.terms_and_conditions ?? null,
     amount_paid: "0",
     amount_credited: "0",
+    amount_written_off: "0",
     balance_due: source.grand_total ?? subtotal,
     payment_status: "UNPAID",
     cogs_amount: "0",
