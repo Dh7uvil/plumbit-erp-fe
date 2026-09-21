@@ -31,6 +31,16 @@ async function refetchIfStale(
   await queryClient.invalidateQueries({ queryKey: journalKeys.detail(id) });
 }
 
+export function useCreateContraJournal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: journalsApi.createContra,
+    onSuccess: async (row) => {
+      await invalidateJournals(queryClient, row.id);
+    },
+  });
+}
+
 export function useCreateJournal() {
   const queryClient = useQueryClient();
   return useMutation({

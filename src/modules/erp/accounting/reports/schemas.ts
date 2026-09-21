@@ -71,6 +71,59 @@ export const GeneralLedgerSchema = z.object({
 });
 export type GeneralLedger = z.infer<typeof GeneralLedgerSchema>;
 
+export const DayBookLineSchema = z.object({
+  row_type: z.enum(["opening", "movement", "day_total", "closing"]),
+  account_id: z.string().uuid().nullable().optional(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
+  entry_date: z.string().nullable().optional(),
+  journal_entry_id: z.string().uuid().nullable().optional(),
+  journal_entry_line_id: z.string().uuid().nullable().optional(),
+  document_number: z.string().nullable().optional(),
+  source_type: z.string().nullable().optional(),
+  source_id: z.string().uuid().nullable().optional(),
+  debit: DecimalStringSchema.optional().default("0"),
+  credit: DecimalStringSchema.optional().default("0"),
+  running_balance: DecimalStringSchema,
+  party_id: z.string().uuid().nullable().optional(),
+  description: z.string().nullable().optional(),
+  narration: z.string().nullable().optional(),
+});
+export type DayBookLine = z.infer<typeof DayBookLineSchema>;
+
+export const DayBookAccountSectionSchema = z.object({
+  account_id: z.string().uuid(),
+  account_code: z.string(),
+  account_name: z.string(),
+  opening_balance: DecimalStringSchema,
+  closing_balance: DecimalStringSchema,
+  lines: z.array(DayBookLineSchema).default([]),
+});
+export type DayBookAccountSection = z.infer<typeof DayBookAccountSectionSchema>;
+
+export const DayBookSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
+  book_kind: z.enum(["cash", "bank"]),
+  from_date: z.string(),
+  to_date: z.string(),
+  account_id: z.string().uuid().nullable().optional(),
+  combined_opening_balance: DecimalStringSchema,
+  combined_closing_balance: DecimalStringSchema,
+  sections: z.array(DayBookAccountSectionSchema).default([]),
+  lines: z.array(DayBookLineSchema).default([]),
+});
+export type DayBook = z.infer<typeof DayBookSchema>;
+
+export type DayBookParams = {
+  from: string;
+  to: string;
+  account_id?: string;
+  branch_id?: string;
+  cost_center_id?: string;
+  source_type?: string;
+  side?: string;
+};
+
 export const AccountStatementLineSchema = z.object({
   journal_entry_id: z.string().uuid(),
   document_number: z.string(),

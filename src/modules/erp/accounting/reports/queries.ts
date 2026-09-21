@@ -10,6 +10,7 @@ import type {
   CashFlowParams,
   CustomerStatementParams,
   ExportEvidenceExceptionParams,
+  DayBookParams,
   GeneralLedgerParams,
   InventoryAsOfParams,
   InventoryRangeParams,
@@ -28,6 +29,8 @@ export const reportKeys = {
     [...reportKeys.all, "trial-balance", params] as const,
   generalLedger: (params: GeneralLedgerParams) =>
     [...reportKeys.all, "general-ledger", params] as const,
+  cashBook: (params: DayBookParams) => [...reportKeys.all, "cash-book", params] as const,
+  bankBook: (params: DayBookParams) => [...reportKeys.all, "bank-book", params] as const,
   accountStatement: (params: AccountStatementParams) =>
     [...reportKeys.all, "account-statement", params] as const,
   exportEvidenceExceptions: (params: ExportEvidenceExceptionParams) =>
@@ -84,6 +87,22 @@ export function useGeneralLedger(params: GeneralLedgerParams | null) {
     ),
     queryFn: () => reportsApi.generalLedger(params!),
     enabled: Boolean(params?.account_id && params.from && params.to),
+  });
+}
+
+export function useCashBook(params: DayBookParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.cashBook(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.cashBook(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useBankBook(params: DayBookParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.bankBook(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.bankBook(params!),
+    enabled: Boolean(params?.from && params.to),
   });
 }
 

@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   FileText,
   History,
+  Landmark,
   PackageCheck,
   Percent,
   Scale,
@@ -38,6 +39,18 @@ export const reportCatalog: ReportCatalogGroup[] = [
         href: "/reports/general-ledger",
         permission: reportPermissions.ledger,
         icon: ScrollText,
+      },
+      {
+        label: "Cash book",
+        href: "/reports/cash-book",
+        permission: reportPermissions.ledger,
+        icon: Banknote,
+      },
+      {
+        label: "Bank book",
+        href: "/reports/bank-book",
+        permission: reportPermissions.ledger,
+        icon: Landmark,
       },
       {
         label: "Account statement",

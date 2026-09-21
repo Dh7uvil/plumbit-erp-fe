@@ -4,6 +4,7 @@ import {
   BalanceSheetSchema,
   CashFlowSchema,
   ExportEvidenceExceptionSchema,
+  DayBookSchema,
   GeneralLedgerSchema,
   InvoicedNotDispatchedSchema,
   PartyStatementSchema,
@@ -33,6 +34,8 @@ import {
   type CustomerStatementParams,
   type ExportEvidenceException,
   type ExportEvidenceExceptionParams,
+  type DayBook,
+  type DayBookParams,
   type GeneralLedger,
   type GeneralLedgerParams,
   type InventoryAsOfParams,
@@ -101,6 +104,34 @@ export const reportsApi = {
           side: params.side,
           page: params.page,
           page_size: params.page_size,
+        },
+      }),
+    ),
+  cashBook: async (params: DayBookParams): Promise<DayBook> =>
+    DayBookSchema.parse(
+      await apiClient.get("/reports/cash-book", {
+        params: {
+          from: params.from,
+          to: params.to,
+          account_id: params.account_id,
+          branch_id: params.branch_id,
+          cost_center_id: params.cost_center_id,
+          source_type: params.source_type,
+          side: params.side,
+        },
+      }),
+    ),
+  bankBook: async (params: DayBookParams): Promise<DayBook> =>
+    DayBookSchema.parse(
+      await apiClient.get("/reports/bank-book", {
+        params: {
+          from: params.from,
+          to: params.to,
+          account_id: params.account_id,
+          branch_id: params.branch_id,
+          cost_center_id: params.cost_center_id,
+          source_type: params.source_type,
+          side: params.side,
         },
       }),
     ),

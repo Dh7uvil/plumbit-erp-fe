@@ -1,10 +1,11 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { ArrowLeftRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { ContraEntryDialog } from "@/modules/erp/accounting/journals/components/contra-entry-dialog";
 import { useDeleteJournal } from "@/modules/erp/accounting/journals/mutations";
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
 import { useJournals } from "@/modules/erp/accounting/journals/queries";
@@ -99,6 +100,7 @@ export function JournalsScreen() {
   const branchesQuery = useAllBranches();
   const deleteJournal = useDeleteJournal();
   const [deleting, setDeleting] = useState<JournalEntry | null>(null);
+  const [contraOpen, setContraOpen] = useState(false);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
   const rows = journalsQuery.data?.data ?? [];
   const meta = journalsQuery.data?.meta;
@@ -255,15 +257,22 @@ export function JournalsScreen() {
         subtitle="Manual and system journals posted through the ledger"
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/journals/new">
-                <Plus className="size-3.5" />
-                New journal
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setContraOpen(true)}>
+                <ArrowLeftRight className="size-3.5" />
+                Contra entry
+              </Button>
+              <Button type="button" size="sm" asChild>
+                <Link href="/journals/new">
+                  <Plus className="size-3.5" />
+                  New journal
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
+      <ContraEntryDialog open={contraOpen} onOpenChange={setContraOpen} />
       <DataTableToolbar>
         <ListSearch
           value={search ?? ""}
