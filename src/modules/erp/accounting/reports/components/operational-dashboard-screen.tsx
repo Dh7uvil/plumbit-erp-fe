@@ -4,6 +4,9 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Banknote,
+  CalendarClock,
+  Filter,
+  ListTodo,
   PackageCheck,
   TrendingDown,
   Truck,
@@ -11,6 +14,10 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { activityPermissions } from "@/modules/crm/activities/permissions";
+import { opportunityPermissions } from "@/modules/crm/opportunities/permissions";
+import { crmReportPermissions } from "@/modules/crm/reports/permissions";
+import { useCrmDashboard } from "@/modules/crm/reports/queries";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { useDashboard } from "@/modules/erp/accounting/reports/queries";
 import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
@@ -36,9 +43,18 @@ export function OperationalDashboardScreen() {
   const canArAp = can(reportPermissions.arAp);
   const canInventory = can(reportPermissions.inventory);
   const canFinancial = can(reportPermissions.financial);
-  const enabled = canLedger || canArAp || canInventory || canFinancial;
-  const dashboardQuery = useDashboard(enabled);
+  const canCrm = can(crmReportPermissions.read);
+  const canOpportunities = can(opportunityPermissions.read);
+  const canActivities = can(activityPermissions.read);
+  const financialEnabled = canLedger || canArAp || canInventory || canFinancial;
+  const enabled = financialEnabled || canCrm;
+  const dashboardQuery = useDashboard(financialEnabled);
+  const crmQuery = useCrmDashboard(canCrm);
   const data = dashboardQuery.data;
+  const crm = crmQuery.data;
+  const kpisLoading =
+    (financialEnabled && dashboardQuery.isLoading) || (canCrm && crmQuery.isLoading);
+  const kpisError = (financialEnabled && dashboardQuery.isError) || (canCrm && crmQuery.isError);
 
   if (!enabled) {
     return (
@@ -51,21 +67,56 @@ export function OperationalDashboardScreen() {
 
   return (
     <section className="flex flex-col gap-5">
-      <PageHeader title="Dashboard" subtitle="Posted operational totals. Drafts are excluded." />
-      {dashboardQuery.isLoading ? (
+      <PageHeader
+        title="Dashboard"
+        subtitle="Posted operational totals and open CRM pipeline. Drafts are excluded."
+      />
+      {kpisLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <Skeleton key={index} className="h-28 w-full" />
           ))}
         </div>
-      ) : dashboardQuery.isError ? (
+      ) : kpisError ? (
         <DataTableError
-          message={getErrorMessage(dashboardQuery.error)}
-          onRetry={() => dashboardQuery.refetch()}
+          message={getErrorMessage(dashboardQuery.error ?? crmQuery.error)}
+          onRetry={() => {
+            void dashboardQuery.refetch();
+            void crmQuery.refetch();
+          }}
         />
-      ) : data ? (
+      ) : data || crm ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {canArAp ? (
+          {canCrm && crm ? (
+            <KpiCard
+              title="Open pipeline"
+              value={formatReportMoney(crm.open_pipeline_value, crm.currency_code)}
+              href="/reports/sales-pipeline"
+              hint={`${crm.open_pipeline_count} open`}
+              icon={Filter}
+              iconClass="bg-primary/10 text-primary"
+            />
+          ) : null}
+          {canCrm && canOpportunities && crm ? (
+            <KpiCard
+              title="Closing this month"
+              value={formatReportMoney(crm.closing_this_month_value, crm.currency_code)}
+              href="/opportunities"
+              hint={`${crm.closing_this_month_count} opportunities`}
+              icon={CalendarClock}
+              iconClass="bg-info-muted text-info-foreground"
+            />
+          ) : null}
+          {canCrm && canActivities && crm ? (
+            <KpiCard
+              title="Overdue activities"
+              value={String(crm.overdue_activity_count)}
+              href="/activities?view=overdue"
+              icon={ListTodo}
+              iconClass="bg-warning-muted text-warning-foreground"
+            />
+          ) : null}
+          {canArAp && data ? (
             <KpiCard
               title="Open AR"
               value={formatReportMoney(data.open_ar, data.currency_code)}
@@ -75,7 +126,7 @@ export function OperationalDashboardScreen() {
               iconClass="bg-primary/10 text-primary"
             />
           ) : null}
-          {canArAp ? (
+          {canArAp && data ? (
             <KpiCard
               title="Open AP"
               value={formatReportMoney(data.open_ap, data.currency_code)}
@@ -85,7 +136,7 @@ export function OperationalDashboardScreen() {
               iconClass="bg-warning-muted text-warning-foreground"
             />
           ) : null}
-          {canInventory ? (
+          {canInventory && data ? (
             <KpiCard
               title="Stock valuation"
               value={formatCompactReportMoney(data.stock_valuation, data.currency_code)}
@@ -94,7 +145,7 @@ export function OperationalDashboardScreen() {
               iconClass="bg-success-muted text-success-foreground"
             />
           ) : null}
-          {can(deliveryNotePermissions.read) ? (
+          {can(deliveryNotePermissions.read) && data ? (
             <KpiCard
               title="Deliveries today"
               value={String(data.deliveries_today)}
@@ -103,7 +154,7 @@ export function OperationalDashboardScreen() {
               iconClass="bg-info-muted text-info-foreground"
             />
           ) : null}
-          {can(goodsReceiptPermissions.read) ? (
+          {can(goodsReceiptPermissions.read) && data ? (
             <KpiCard
               title="Receipts today"
               value={String(data.receipts_today)}

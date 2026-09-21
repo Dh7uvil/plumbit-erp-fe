@@ -168,10 +168,8 @@ inventory-management    Implemented: Units, Categories, Products, Price Lists, W
                         Sales Returns.
 crm                     Implemented: Customers, Contacts, Pipelines, Lead Sources,
                         Lost Reasons, Leads, Opportunities, Activities, Notes,
-                        Campaigns.
-                        Planned: reports.
-                        `/activities` is CRM tasks/calls/meetings; `/activity` is the
-                        users-management audit feed. They are not interchangeable.
+                        Campaigns, Reports (flat `/reports/sales-pipeline` and
+                        related CRM report paths gated by `reports.report.crm`).
                         `/activities` is CRM tasks/calls/meetings; `/activity` is the
                         users-management audit feed. They are not interchangeable.
 communication-service   Email, WhatsApp, Chat, Meetings (planned)
