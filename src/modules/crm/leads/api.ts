@@ -33,6 +33,7 @@ export const leadsApi = {
         source_id: params.source_id,
         owner_id: params.owner_id,
         rating: params.rating,
+        campaign_id: params.campaign_id,
       },
     });
     return { data: LeadListSchema.parse(result.data), meta: result.meta };
@@ -71,10 +72,8 @@ export const leadsApi = {
     idempotencyKey = randomUuid(),
   ): Promise<LeadConvertResponse> =>
     LeadConvertResponseSchema.parse(
-      await apiClient.post(
-        `/leads/${id}/convert`,
-        LeadConvertRequestSchema.parse(values),
-        { headers: postDocumentHeaders(version, idempotencyKey) },
-      ),
+      await apiClient.post(`/leads/${id}/convert`, LeadConvertRequestSchema.parse(values), {
+        headers: postDocumentHeaders(version, idempotencyKey),
+      }),
     ),
 };

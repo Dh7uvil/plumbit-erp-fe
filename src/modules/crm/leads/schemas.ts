@@ -49,6 +49,7 @@ export const LeadSchema = z.object({
   rating: z.string().nullable(),
   source_id: z.string().uuid().nullable(),
   owner_id: z.string().uuid().nullable(),
+  campaign_id: z.string().uuid().nullable(),
   estimated_value: DecimalStringSchema.nullable(),
   currency_id: z.string().uuid().nullable(),
   notes: z.string().nullable(),
@@ -67,7 +68,9 @@ export type Lead = z.infer<typeof LeadSchema>;
 
 export const LeadListSchema = z.array(LeadSchema);
 
-export function leadDisplayName(lead: Pick<Lead, "first_name" | "last_name" | "company_name" | "lead_number">) {
+export function leadDisplayName(
+  lead: Pick<Lead, "first_name" | "last_name" | "company_name" | "lead_number">,
+) {
   const parts = [lead.first_name, lead.last_name].filter(Boolean);
   if (parts.length > 0) {
     const name = parts.join(" ");
@@ -86,6 +89,7 @@ export const LeadCreateRequestSchema = z.object({
   rating: z.string().max(20).nullable().optional(),
   source_id: z.string().uuid().nullable().optional(),
   owner_id: z.string().uuid().nullable().optional(),
+  campaign_id: z.string().uuid().nullable().optional(),
   estimated_value: DecimalStringSchema.nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
   notes: z.string().max(4000).nullable().optional(),
@@ -103,6 +107,7 @@ export const LeadUpdateRequestSchema = z.object({
   rating: z.string().max(20).nullable().optional(),
   source_id: z.string().uuid().nullable().optional(),
   owner_id: z.string().uuid().nullable().optional(),
+  campaign_id: z.string().uuid().nullable().optional(),
   estimated_value: DecimalStringSchema.nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
   notes: z.string().max(4000).nullable().optional(),
@@ -119,6 +124,7 @@ export const LeadFormSchema = z
     title: z.string().max(100),
     rating: z.string().max(20),
     source_id: z.string(),
+    campaign_id: z.string(),
     notes: z.string().max(4000),
   })
   .superRefine((values, ctx) => {
@@ -141,6 +147,7 @@ export const defaultLeadFormValues = (): LeadFormValues => ({
   title: "",
   rating: "",
   source_id: OPTIONAL_SELECT_NONE,
+  campaign_id: OPTIONAL_SELECT_NONE,
   notes: "",
 });
 
@@ -207,4 +214,5 @@ export type LeadListParams = {
   source_id?: string;
   owner_id?: string;
   rating?: string;
+  campaign_id?: string;
 };
