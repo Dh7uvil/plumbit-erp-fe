@@ -42,11 +42,13 @@ import {
   UserPlus,
   Target,
   CalendarClock,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 
 import { hasAnyReportAccess, visibleReportCatalog } from "@/config/report-catalog";
 import { activityPermissions } from "@/modules/crm/activities/permissions";
+import { campaignPermissions } from "@/modules/crm/campaigns/permissions";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { leadPermissions } from "@/modules/crm/leads/permissions";
@@ -156,6 +158,12 @@ export const navigation: NavigationGroup[] = [
         href: "/activities",
         permission: activityPermissions.read,
         icon: CalendarClock,
+      },
+      {
+        label: "Campaigns",
+        href: "/campaigns",
+        permission: campaignPermissions.read,
+        icon: Megaphone,
       },
       {
         label: "Pipelines",

@@ -2,10 +2,13 @@
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { CampaignFormDialog } from "@/modules/crm/campaigns/components/campaign-form-dialog";
+import { campaignPermissions } from "@/modules/crm/campaigns/permissions";
+import { useAllCampaigns } from "@/modules/crm/campaigns/queries";
 import { useAllLeadSources } from "@/modules/crm/lead-sources/queries";
 import { useCreateOpportunity, useUpdateOpportunity } from "@/modules/crm/opportunities/mutations";
 import {
@@ -19,6 +22,8 @@ import { useAllPipelines, usePipeline } from "@/modules/crm/pipelines/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { getErrorMessage } from "@/shared/api/errors";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import {
   Form,
@@ -51,6 +56,7 @@ function toFormValues(opportunity: Opportunity | null): OpportunityFormValues {
     currency_id: opportunity.currency_id ?? OPTIONAL_SELECT_NONE,
     expected_close_date: opportunity.expected_close_date?.slice(0, 10) ?? "",
     source_id: opportunity.source_id ?? OPTIONAL_SELECT_NONE,
+    campaign_id: opportunity.campaign_id ?? OPTIONAL_SELECT_NONE,
   };
 }
 
@@ -59,6 +65,8 @@ function toPayload(values: OpportunityFormValues, isEdit: boolean): OpportunityC
   const currencyId =
     values.currency_id === OPTIONAL_SELECT_NONE ? null : values.currency_id || null;
   const sourceId = values.source_id === OPTIONAL_SELECT_NONE ? null : values.source_id || null;
+  const campaignId =
+    values.campaign_id === OPTIONAL_SELECT_NONE ? null : values.campaign_id || null;
   return {
     name: values.name.trim(),
     ...(isEdit
@@ -72,6 +80,7 @@ function toPayload(values: OpportunityFormValues, isEdit: boolean): OpportunityC
     currency_id: amount ? currencyId : null,
     expected_close_date: values.expected_close_date.trim() || null,
     source_id: sourceId,
+    campaign_id: campaignId,
   };
 }
 
@@ -94,6 +103,9 @@ export function OpportunityForm({
   const pipelinesQuery = useAllPipelines(!disabled);
   const currenciesQuery = useAllCurrencies(!disabled);
   const sourcesQuery = useAllLeadSources(!disabled);
+  const campaignsQuery = useAllCampaigns(!disabled);
+  const { canCreate: canCreateCampaign } = useCrudPermissions(campaignPermissions);
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
   const form = useForm<OpportunityFormValues>({
     resolver: zodResolver(OpportunityFormSchema),
     defaultValues: toFormValues(opportunity ?? null),
@@ -145,6 +157,7 @@ export function OpportunityForm({
   const pipelines = pipelinesQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
   const sources = sourcesQuery.data ?? [];
+  const campaigns = campaignsQuery.data ?? [];
 
   return (
     <Form {...form}>
@@ -285,7 +298,11 @@ export function OpportunityForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Lead source</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange} disabled={disabled || pending}>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={disabled || pending}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Optional" />
@@ -304,6 +321,32 @@ export function OpportunityForm({
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="campaign_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Campaign</FormLabel>
+              <MasterSelect
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={disabled || pending}
+                placeholder="Optional"
+                searchPlaceholder="Search campaigns…"
+                createLabel="Create campaign"
+                onCreate={canCreateCampaign ? () => setCreatingCampaign(true) : undefined}
+                options={[
+                  { value: OPTIONAL_SELECT_NONE, label: "None" },
+                  ...campaigns.map((campaign) => ({
+                    value: campaign.id,
+                    label: campaign.name,
+                  })),
+                ]}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         {!disabled ? (
           <div className="flex justify-end gap-2">
             {showCancel ? (
@@ -318,6 +361,12 @@ export function OpportunityForm({
           </div>
         ) : null}
       </form>
+      <CampaignFormDialog
+        open={creatingCampaign}
+        nested
+        onOpenChange={setCreatingCampaign}
+        onCreated={(entity) => form.setValue("campaign_id", entity.id, { shouldDirty: true })}
+      />
     </Form>
   );
 }

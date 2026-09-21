@@ -29,6 +29,7 @@ export const opportunitiesApi = {
         owner_id: params.owner_id,
         customer_id: params.customer_id,
         source_id: params.source_id,
+        campaign_id: params.campaign_id,
       },
     });
     return { data: OpportunityListSchema.parse(result.data), meta: result.meta };
@@ -39,7 +40,11 @@ export const opportunitiesApi = {
     OpportunitySchema.parse(
       await apiClient.post("/opportunities", OpportunityCreateRequestSchema.parse(values)),
     ),
-  update: async (id: string, values: OpportunityUpdateRequest, version: number): Promise<Opportunity> =>
+  update: async (
+    id: string,
+    values: OpportunityUpdateRequest,
+    version: number,
+  ): Promise<Opportunity> =>
     OpportunitySchema.parse(
       await apiClient.patch(`/opportunities/${id}`, OpportunityUpdateRequestSchema.parse(values), {
         headers: ifMatchHeaders(version),

@@ -40,6 +40,7 @@ export const OpportunitySchema = z.object({
   owner_id: z.string().uuid().nullable(),
   source_id: z.string().uuid().nullable(),
   lead_id: z.string().uuid().nullable(),
+  campaign_id: z.string().uuid().nullable(),
   version: z.number().int(),
   available_actions: z.array(z.string()).default([]),
   created_at: z.string(),
@@ -64,6 +65,7 @@ export const OpportunityCreateRequestSchema = z.object({
   owner_id: z.string().uuid().nullable().optional(),
   source_id: z.string().uuid().nullable().optional(),
   lead_id: z.string().uuid().nullable().optional(),
+  campaign_id: z.string().uuid().nullable().optional(),
 });
 export type OpportunityCreateRequest = z.infer<typeof OpportunityCreateRequestSchema>;
 
@@ -78,6 +80,7 @@ export const OpportunityUpdateRequestSchema = z.object({
   expected_close_date: z.string().nullable().optional(),
   owner_id: z.string().uuid().nullable().optional(),
   source_id: z.string().uuid().nullable().optional(),
+  campaign_id: z.string().uuid().nullable().optional(),
 });
 export type OpportunityUpdateRequest = z.infer<typeof OpportunityUpdateRequestSchema>;
 
@@ -89,6 +92,7 @@ export const OpportunityFormSchema = z.object({
   currency_id: z.string(),
   expected_close_date: z.string(),
   source_id: z.string(),
+  campaign_id: z.string(),
 });
 export type OpportunityFormValues = z.infer<typeof OpportunityFormSchema>;
 
@@ -100,6 +104,7 @@ export const defaultOpportunityFormValues = (): OpportunityFormValues => ({
   currency_id: OPTIONAL_SELECT_NONE,
   expected_close_date: "",
   source_id: OPTIONAL_SELECT_NONE,
+  campaign_id: OPTIONAL_SELECT_NONE,
 });
 
 export type OpportunityListParams = {
@@ -114,6 +119,7 @@ export type OpportunityListParams = {
   owner_id?: string;
   customer_id?: string;
   source_id?: string;
+  campaign_id?: string;
 };
 
 export function parseMoveStageAction(action: string): string | null {

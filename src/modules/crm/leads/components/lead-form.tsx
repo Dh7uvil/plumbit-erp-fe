@@ -6,6 +6,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { CampaignFormDialog } from "@/modules/crm/campaigns/components/campaign-form-dialog";
+import { campaignPermissions } from "@/modules/crm/campaigns/permissions";
+import { useAllCampaigns } from "@/modules/crm/campaigns/queries";
 import { useAllLeadSources } from "@/modules/crm/lead-sources/queries";
 import { useCreateLead, useUpdateLead } from "@/modules/crm/leads/mutations";
 import {
@@ -17,6 +20,8 @@ import {
 } from "@/modules/crm/leads/schemas";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { getErrorMessage } from "@/shared/api/errors";
+import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import {
   Form,
@@ -51,12 +56,14 @@ function toFormValues(lead: Lead | null): LeadFormValues {
     title: lead.title ?? "",
     rating: lead.rating ?? "",
     source_id: lead.source_id ?? OPTIONAL_SELECT_NONE,
+    campaign_id: lead.campaign_id ?? OPTIONAL_SELECT_NONE,
     notes: lead.notes ?? "",
   };
 }
 
 function toPayload(values: LeadFormValues): LeadCreateRequest {
   const sourceId = values.source_id === OPTIONAL_SELECT_NONE ? null : values.source_id;
+  const campaignId = values.campaign_id === OPTIONAL_SELECT_NONE ? null : values.campaign_id;
   return {
     first_name: values.first_name.trim() || null,
     last_name: values.last_name.trim() || null,
@@ -66,6 +73,7 @@ function toPayload(values: LeadFormValues): LeadCreateRequest {
     title: values.title.trim() || null,
     rating: values.rating.trim() || null,
     source_id: sourceId,
+    campaign_id: campaignId,
     notes: values.notes.trim() || null,
   };
 }
@@ -86,6 +94,9 @@ export function LeadForm({
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
   const sourcesQuery = useAllLeadSources();
+  const campaignsQuery = useAllCampaigns(!disabled);
+  const { canCreate: canCreateCampaign } = useCrudPermissions(campaignPermissions);
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const isEdit = Boolean(lead);
 
@@ -122,6 +133,7 @@ export function LeadForm({
 
   const pending = createLead.isPending || updateLead.isPending;
   const sources = sourcesQuery.data ?? [];
+  const campaigns = campaignsQuery.data ?? [];
 
   return (
     <Form {...form}>
@@ -223,6 +235,32 @@ export function LeadForm({
         />
         <FormField
           control={form.control}
+          name="campaign_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Campaign</FormLabel>
+              <MasterSelect
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={disabled}
+                placeholder="Optional"
+                searchPlaceholder="Search campaigns…"
+                createLabel="Create campaign"
+                onCreate={canCreateCampaign ? () => setCreatingCampaign(true) : undefined}
+                options={[
+                  { value: OPTIONAL_SELECT_NONE, label: "None" },
+                  ...campaigns.map((campaign) => ({
+                    value: campaign.id,
+                    label: campaign.name,
+                  })),
+                ]}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="notes"
           render={({ field }) => (
             <FormItem>
@@ -248,6 +286,12 @@ export function LeadForm({
           </div>
         ) : null}
       </form>
+      <CampaignFormDialog
+        open={creatingCampaign}
+        nested
+        onOpenChange={setCreatingCampaign}
+        onCreated={(entity) => form.setValue("campaign_id", entity.id, { shouldDirty: true })}
+      />
     </Form>
   );
 }
