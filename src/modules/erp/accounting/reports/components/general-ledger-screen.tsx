@@ -5,6 +5,7 @@ import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useGeneralLedger } from "@/modules/erp/accounting/reports/queries";
 import { sourceDocumentHref } from "@/modules/erp/accounting/reports/schemas";
+import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
@@ -57,16 +58,19 @@ export function GeneralLedgerScreen() {
   const to = filters.to ?? period.to;
   const accountId = filters.account_id ?? "";
   const branchId = filters.branch_id;
+  const costCenterId = filters.cost_center_id;
   const sourceType = filters.source_type;
   const side = filters.side;
   const accountsQuery = useAllAccounts({ is_group: false });
   const branchesQuery = useAllBranches(can("identity.branch.read"));
+  const costCentersQuery = useAllCostCenters(can("masters.cost_center.read"));
   const reportParams = accountId
     ? {
         account_id: accountId,
         from,
         to,
         branch_id: branchId,
+        cost_center_id: costCenterId,
         source_type: sourceType,
         side,
         page,
@@ -76,6 +80,7 @@ export function GeneralLedgerScreen() {
   const reportQuery = useGeneralLedger(reportParams);
   const accounts = (accountsQuery.data ?? []).filter((row) => !row.is_group);
   const branches = branchesQuery.data ?? [];
+  const costCenters = costCentersQuery.data ?? [];
   const report = reportQuery.data;
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
@@ -85,6 +90,7 @@ export function GeneralLedgerScreen() {
     from,
     to,
     branch_id: branchId,
+    cost_center_id: costCenterId,
     source_type: sourceType,
     side,
   };
@@ -178,7 +184,23 @@ export function GeneralLedgerScreen() {
               })),
             ]}
           />
-          {from || to || accountId || branchId || sourceType || side ? (
+          <FilterSelect
+            label="Cost center"
+            className="w-48"
+            placeholder="Cost center"
+            value={costCenterId ?? ALL}
+            onValueChange={(value) =>
+              setParams({ filters: { cost_center_id: value === ALL ? null : value } })
+            }
+            options={[
+              { value: ALL, label: "All cost centers" },
+              ...costCenters.map((row) => ({
+                value: row.id,
+                label: `${row.code} — ${row.name}`,
+              })),
+            ]}
+          />
+          {from || to || accountId || branchId || costCenterId || sourceType || side ? (
             <Button
               type="button"
               variant="ghost"
@@ -191,6 +213,7 @@ export function GeneralLedgerScreen() {
                     to: null,
                     account_id: null,
                     branch_id: null,
+                    cost_center_id: null,
                     source_type: null,
                     side: null,
                   },

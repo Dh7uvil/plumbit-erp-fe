@@ -38,6 +38,7 @@ function toLineInput(line: JournalLineFormValues): JournalLineInput {
     party_id: partyId,
     due_date: emptyToNull(line.due_date),
     external_reference: emptyToNull(line.external_reference),
+    cost_center_id: optionalUuid(line.cost_center_id),
     description: emptyToNull(line.description),
   };
 }

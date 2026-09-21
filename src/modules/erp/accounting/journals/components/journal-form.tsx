@@ -79,6 +79,7 @@ function toFormValues(entry: JournalEntry | null, defaultCurrencyId?: string): J
             party_id: line.party_id ?? OPTIONAL_SELECT_NONE,
             due_date: line.due_date ?? "",
             external_reference: line.external_reference ?? "",
+            cost_center_id: line.cost_center_id ?? OPTIONAL_SELECT_NONE,
             description: line.description ?? "",
           }))
         : [emptyJournalLine(), emptyJournalLine()],

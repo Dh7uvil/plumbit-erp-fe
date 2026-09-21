@@ -53,6 +53,7 @@ export const JournalLineSchema = z.object({
   external_reference: z.string().nullable(),
   tax_id: z.string().uuid().nullable(),
   branch_id: z.string().uuid().nullable(),
+  cost_center_id: z.string().uuid().nullable(),
   description: z.string().nullable(),
 });
 export type JournalLine = z.infer<typeof JournalLineSchema>;
@@ -102,6 +103,7 @@ export const JournalLineInputSchema = z.object({
   external_reference: z.string().nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
   branch_id: z.string().uuid().nullable().optional(),
+  cost_center_id: z.string().uuid().nullable().optional(),
   description: z.string().nullable().optional(),
 });
 export type JournalLineInput = z.infer<typeof JournalLineInputSchema>;
@@ -131,6 +133,7 @@ export const JournalLineFormSchema = z.object({
   party_id: z.string(),
   due_date: z.string(),
   external_reference: z.string(),
+  cost_center_id: z.string(),
   description: z.string(),
 });
 export type JournalLineFormValues = z.infer<typeof JournalLineFormSchema>;
@@ -175,6 +178,7 @@ export function emptyJournalLine(): JournalLineFormValues {
     party_id: OPTIONAL_SELECT_NONE,
     due_date: "",
     external_reference: "",
+    cost_center_id: OPTIONAL_SELECT_NONE,
     description: "",
   };
 }
