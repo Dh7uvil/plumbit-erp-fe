@@ -1,3 +1,4 @@
+import { writeOffPermissions } from "@/modules/erp/accounting/write-offs/permissions";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
@@ -10,6 +11,7 @@ export const SALES_INVOICE_WORKFLOW_ACTIONS = [
   "record_payment",
   "apply_credits",
   "create_credit_note",
+  "write_off",
 ] as const;
 export type SalesInvoiceWorkflowAction = (typeof SALES_INVOICE_WORKFLOW_ACTIONS)[number];
 
@@ -35,6 +37,12 @@ export const SALES_INVOICE_ACTION_REGISTRY: DocumentActionSpec<SalesInvoiceWorkf
     action: "create_credit_note",
     label: "Create credit note",
     permission: creditNotePermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "write_off",
+    label: "Write off",
+    permission: writeOffPermissions.create,
     variant: "outline",
   },
   {

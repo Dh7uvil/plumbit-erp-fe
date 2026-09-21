@@ -14,6 +14,7 @@ import {
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
 import { isUsableExpenseChargeLine } from "@/modules/erp/landed-costs/schemas";
 import { ApplyDebitsDialog } from "@/modules/erp/purchase-invoices/components/apply-debits-dialog";
+import { PurchaseInvoiceWriteOffDialog } from "@/modules/erp/purchase-invoices/components/write-off-dialog";
 import { PurchaseInvoiceForm } from "@/modules/erp/purchase-invoices/components/purchase-invoice-form";
 import { PurchaseInvoiceLandedCostCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-landed-cost-card";
 import { PurchaseInvoiceReverseChargeCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-reverse-charge-card";
@@ -117,6 +118,7 @@ function PurchaseInvoiceDetailLoaded({
   const [writeError, setWriteError] = useState<unknown>(null);
   const [debitOpen, setDebitOpen] = useState(false);
   const [applyDebitsOpen, setApplyDebitsOpen] = useState(false);
+  const [writeOffOpen, setWriteOffOpen] = useState(false);
   const [landedCostOpen, setLandedCostOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
@@ -222,6 +224,10 @@ function PurchaseInvoiceDetailLoaded({
               setLandedCostOpen(true);
               return;
             }
+            if (action === "write_off") {
+              setWriteOffOpen(true);
+              return;
+            }
             await onAction(action, extras);
           }}
         />
@@ -269,6 +275,7 @@ function PurchaseInvoiceDetailLoaded({
             amountPaid={invoice.amount_paid}
             amountAdjusted={invoice.amount_debited}
             adjustedLabel="Amount debited"
+            amountWrittenOff={invoice.amount_written_off}
             balanceDue={invoice.balance_due}
             currencyCode={currencyCode}
           />
@@ -311,6 +318,12 @@ function PurchaseInvoiceDetailLoaded({
         open={landedCostOpen}
         onOpenChange={setLandedCostOpen}
         purchaseInvoiceId={invoice.id}
+      />
+      <PurchaseInvoiceWriteOffDialog
+        invoice={invoice}
+        currencyCode={currencyCode}
+        open={writeOffOpen}
+        onOpenChange={setWriteOffOpen}
       />
     </DocumentRecordShell>
   );

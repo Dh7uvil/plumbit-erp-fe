@@ -146,6 +146,7 @@ export const PurchaseInvoiceSchema = z.object({
   notes: z.string().nullable(),
   amount_paid: MoneySchema,
   amount_debited: MoneySchema,
+  amount_written_off: MoneySchema.optional().default("0"),
   balance_due: MoneySchema,
   payment_status: PaymentStatusSchema,
   journal_entry_id: z.string().uuid().nullable(),

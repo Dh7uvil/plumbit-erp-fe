@@ -160,3 +160,26 @@ export function useDeleteSalesInvoice() {
     },
   });
 }
+
+export function useWriteOffSalesInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      amount,
+      writeOffDate,
+      reason,
+    }: SalesInvoiceWriteVars & {
+      amount: string;
+      writeOffDate: string;
+      reason?: string | null;
+    }) => salesInvoicesApi.writeOff(id, { version, amount, writeOffDate, reason }),
+    onSuccess: async (_data, { id }) => {
+      await invalidateSalesInvoices(queryClient, id, true);
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}

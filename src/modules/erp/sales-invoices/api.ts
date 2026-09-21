@@ -126,4 +126,24 @@ export const salesInvoicesApi = {
     JournalEntrySchema.parse(await apiClient.get(`/sales-invoices/${id}/journal`)),
   margin: async (id: string): Promise<SalesInvoiceMargin> =>
     SalesInvoiceMarginSchema.parse(await apiClient.get(`/sales-invoices/${id}/margin`)),
+  writeOff: async (
+    id: string,
+    options: SalesInvoiceWriteOptions & {
+      amount: string;
+      writeOffDate: string;
+      reason?: string | null;
+    },
+  ): Promise<SalesInvoice> =>
+    SalesInvoiceSchema.parse(
+      await apiClient.post(
+        `/sales-invoices/${id}/write-off`,
+        {
+          amount: options.amount,
+          write_off_date: options.writeOffDate,
+          reason: options.reason ?? null,
+          version: options.version,
+        },
+        { headers: postDocumentHeaders(options.version) },
+      ),
+    ),
 };

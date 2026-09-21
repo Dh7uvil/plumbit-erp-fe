@@ -119,4 +119,24 @@ export const purchaseInvoicesApi = {
         { headers: ifMatchHeaders(options.version) },
       ),
     ),
+  writeOff: async (
+    id: string,
+    options: PurchaseInvoiceWriteOptions & {
+      amount: string;
+      writeOffDate: string;
+      reason?: string | null;
+    },
+  ): Promise<PurchaseInvoice> =>
+    PurchaseInvoiceSchema.parse(
+      await apiClient.post(
+        `/purchase-invoices/${id}/write-off`,
+        {
+          amount: options.amount,
+          write_off_date: options.writeOffDate,
+          reason: options.reason ?? null,
+          version: options.version,
+        },
+        { headers: postDocumentHeaders(options.version) },
+      ),
+    ),
 };
