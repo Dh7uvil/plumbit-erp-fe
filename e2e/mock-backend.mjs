@@ -2986,6 +2986,88 @@ function generalLedgerReport(accountId, from, to) {
   };
 }
 
+function dayBookReport(bookKind, accountId, from, to) {
+  const subtype = bookKind === "cash" ? "CASH" : "BANK";
+  const targets = [...accounts.values()].filter(
+    (row) =>
+      !row.is_group &&
+      row.account_subtype === subtype &&
+      (!accountId || row.id === accountId),
+  );
+  const sections = [];
+  const flat = [];
+  let combinedOpening = 0;
+  let combinedClosing = 0;
+  for (const account of targets) {
+    const gl = generalLedgerReport(account.id, from, to);
+    if (!gl) {
+      continue;
+    }
+    const sectionLines = [
+      {
+        row_type: "opening",
+        entry_date: from,
+        account_id: account.id,
+        account_code: account.code,
+        account_name: account.name,
+        debit: "0.0000",
+        credit: "0.0000",
+        running_balance: gl.opening_balance,
+      },
+      ...gl.lines.map((line) => ({
+        row_type: "movement",
+        account_id: account.id,
+        account_code: account.code,
+        account_name: account.name,
+        entry_date: line.entry_date,
+        journal_entry_id: line.journal_entry_id,
+        journal_entry_line_id: line.journal_entry_line_id,
+        document_number: line.document_number,
+        source_type: line.source_type,
+        source_id: line.source_id,
+        debit: line.debit_base,
+        credit: line.credit_base,
+        running_balance: line.running_balance,
+        party_id: line.party_id,
+        description: line.description,
+        narration: line.narration,
+      })),
+      {
+        row_type: "closing",
+        entry_date: to,
+        account_id: account.id,
+        account_code: account.code,
+        account_name: account.name,
+        debit: "0.0000",
+        credit: "0.0000",
+        running_balance: gl.closing_balance,
+      },
+    ];
+    sections.push({
+      account_id: account.id,
+      account_code: account.code,
+      account_name: account.name,
+      opening_balance: gl.opening_balance,
+      closing_balance: gl.closing_balance,
+      lines: sectionLines,
+    });
+    flat.push(...sectionLines);
+    combinedOpening += Number(gl.opening_balance);
+    combinedClosing += Number(gl.closing_balance);
+  }
+  return {
+    currency_code: tenantState.default_currency_code ?? "AED",
+    book_kind: bookKind,
+    from_date: from,
+    to_date: to,
+    account_id: accountId,
+    combined_opening_balance: money4(combinedOpening),
+    combined_closing_balance: money4(combinedClosing),
+    sections,
+    lines: flat,
+  };
+}
+
 function accountStatementReport(partyType, partyId, from, to) {
   const rows = [];
   for (const journal of journals.values()) {
@@ -6272,6 +6354,33 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/api/v1/journals/contra") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const created = buildJournal({
+        entry_date: body.entry_date,
+        narration: body.narration,
+        reference: body.reference,
+        lines: [
+          {
+            account_id: body.destination_account_id,
+            debit: body.amount,
+            credit: "0",
+          },
+          {
+            account_id: body.source_account_id,
+            debit: "0",
+            credit: body.amount,
+          },
+        ],
+      });
+      journals.set(created.id, created);
+      ok(res, created, 201);
+      return;
+    }
+
     if (req.method === "POST" && url.pathname === "/api/v1/journals") {
       if (unauthorized(req, res)) {
         return;
@@ -6473,6 +6582,21 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       ok(res, report);
+      return;
+    }
+
+    if (
+      req.method === "GET" &&
+      (url.pathname === "/api/v1/reports/cash-book" || url.pathname === "/api/v1/reports/bank-book")
+    ) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const bookKind = url.pathname.endsWith("cash-book") ? "cash" : "bank";
+      const accountId = url.searchParams.get("account_id");
+      const from = url.searchParams.get("from") ?? url.searchParams.get("from_date");
+      const to = url.searchParams.get("to") ?? url.searchParams.get("to_date");
+      ok(res, dayBookReport(bookKind, accountId, from, to));
       return;
     }
 

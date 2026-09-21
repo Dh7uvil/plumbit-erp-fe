@@ -119,6 +119,18 @@ export const JournalEntryCreateRequestSchema = z.object({
 });
 export type JournalEntryCreateRequest = z.infer<typeof JournalEntryCreateRequestSchema>;
 
+export const JournalContraCreateRequestSchema = z.object({
+  source_account_id: z.string().uuid(),
+  destination_account_id: z.string().uuid(),
+  amount: DecimalStringSchema,
+  entry_date: z.string().nullable().optional(),
+  branch_id: z.string().uuid().nullable().optional(),
+  cost_center_id: z.string().uuid().nullable().optional(),
+  narration: z.string().nullable().optional(),
+  reference: z.string().nullable().optional(),
+});
+export type JournalContraCreateRequest = z.infer<typeof JournalContraCreateRequestSchema>;
+
 export const JournalEntryUpdateRequestSchema = JournalEntryCreateRequestSchema.extend({
   version: z.number().int().min(1).optional(),
   lines: z.array(JournalLineInputSchema).min(1).optional(),

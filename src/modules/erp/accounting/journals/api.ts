@@ -1,9 +1,11 @@
 import { DEFAULT_PAGE_SIZE, OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
+  JournalContraCreateRequestSchema,
   JournalEntryCreateRequestSchema,
   JournalEntryListSchema,
   JournalEntrySchema,
   JournalEntryUpdateRequestSchema,
+  type JournalContraCreateRequest,
   type JournalEntry,
   type JournalEntryCreateRequest,
   type JournalEntryUpdateRequest,
@@ -84,6 +86,10 @@ export const journalsApi = {
   create: async (values: JournalEntryCreateRequest): Promise<JournalEntry> =>
     JournalEntrySchema.parse(
       await apiClient.post("/journals", JournalEntryCreateRequestSchema.parse(values)),
+    ),
+  createContra: async (values: JournalContraCreateRequest): Promise<JournalEntry> =>
+    JournalEntrySchema.parse(
+      await apiClient.post("/journals/contra", JournalContraCreateRequestSchema.parse(values)),
     ),
   update: async (
     id: string,

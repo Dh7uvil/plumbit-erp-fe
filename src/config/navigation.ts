@@ -49,6 +49,7 @@ import { documentSequencePermissions } from "@/modules/erp/accounting/document-s
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
+import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { dunningPermissions } from "@/modules/erp/accounting/dunning-rules/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { periodLockPermissions } from "@/modules/erp/period-lock/permissions";
@@ -328,6 +329,18 @@ export const navigation: NavigationGroup[] = [
         href: "/journals",
         permission: journalPermissions.read,
         icon: NotebookPen,
+      },
+      {
+        label: "Cash book",
+        href: "/reports/cash-book",
+        permission: reportPermissions.ledger,
+        icon: Banknote,
+      },
+      {
+        label: "Bank book",
+        href: "/reports/bank-book",
+        permission: reportPermissions.ledger,
+        icon: Landmark,
       },
       {
         label: "Opening balances",
