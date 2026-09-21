@@ -39,12 +39,14 @@ import {
   RotateCcw,
   Ship,
   User,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 
 import { hasAnyReportAccess, visibleReportCatalog } from "@/config/report-catalog";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
+import { leadPermissions } from "@/modules/crm/leads/permissions";
 import { leadSourcePermissions } from "@/modules/crm/lead-sources/permissions";
 import { lostReasonPermissions } from "@/modules/crm/lost-reasons/permissions";
 import { pipelinePermissions } from "@/modules/crm/pipelines/permissions";
@@ -132,6 +134,12 @@ export const navigation: NavigationGroup[] = [
         href: "/contacts",
         permission: contactPermissions.read,
         icon: Contact,
+      },
+      {
+        label: "Leads",
+        href: "/leads",
+        permission: leadPermissions.read,
+        icon: UserPlus,
       },
       {
         label: "Pipelines",

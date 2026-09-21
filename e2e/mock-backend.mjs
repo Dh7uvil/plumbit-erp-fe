@@ -74,6 +74,9 @@ const EMPTY_LIST_PATHS = new Set([
   "/api/v1/users",
 ]);
 
+const leads = new Map();
+let leadSequence = 1;
+
 let currentPassword = PASSWORD;
 let currentSessionKind = "superadmin";
 let profileName = null;
@@ -3354,6 +3357,11 @@ function me() {
       "crm.contact.create",
       "crm.contact.update",
       "crm.contact.delete",
+      "crm.lead.read",
+      "crm.lead.create",
+      "crm.lead.update",
+      "crm.lead.delete",
+      "crm.lead.assign",
       "erp.quotation.read",
       "erp.quotation.create",
       "erp.quotation.update",
@@ -6610,6 +6618,115 @@ const server = http.createServer(async (req, res) => {
       const to = url.searchParams.get("to") ?? url.searchParams.get("to_date");
       ok(res, accountStatementReport(partyType, partyId, from, to));
       return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/leads") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, [...leads.values()]);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/v1/leads") {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const body = await readBody(req);
+      const row = {
+        id: crypto.randomUUID(),
+        tenant_id: TENANT_ID,
+        lead_number: `LEAD-${String(leadSequence++).padStart(5, "0")}`,
+        first_name: body.first_name ?? null,
+        last_name: body.last_name ?? null,
+        company_name: body.company_name ?? null,
+        email: body.email ?? null,
+        phone: body.phone ?? null,
+        title: body.title ?? null,
+        status: "NEW",
+        rating: body.rating ?? null,
+        source_id: body.source_id ?? null,
+        owner_id: body.owner_id ?? null,
+        estimated_value: body.estimated_value ?? null,
+        currency_id: body.currency_id ?? null,
+        notes: body.notes ?? null,
+        version: 1,
+        converted_customer_id: null,
+        converted_contact_id: null,
+        converted_opportunity_id: null,
+        converted_at: null,
+        available_actions: ["assign", "set_status:QUALIFIED", "update", "delete"],
+        created_at: NOW,
+        updated_at: NOW,
+        created_by: USER_ID,
+        updated_by: USER_ID,
+      };
+      leads.set(row.id, row);
+      ok(res, row, 201);
+      return;
+    }
+
+    const leadMatch = url.pathname.match(/^\/api\/v1\/leads\/([^/]+)(?:\/(assign|status))?$/);
+    if (leadMatch) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      const leadId = leadMatch[1];
+      const action = leadMatch[2];
+      const existing = leads.get(leadId);
+      if (!existing) {
+        fail(res, 404, "RESOURCE_NOT_FOUND", "Lead not found");
+        return;
+      }
+      if (req.method === "GET" && !action) {
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "DELETE" && !action) {
+        leads.delete(leadId);
+        ok(res, existing);
+        return;
+      }
+      if (req.method === "POST" && action === "status") {
+        const body = await readBody(req);
+        const next = {
+          ...existing,
+          status: body.status ?? existing.status,
+          version: existing.version + 1,
+          updated_at: NOW,
+          available_actions:
+            body.status === "QUALIFIED"
+              ? ["assign", "update", "delete"]
+              : existing.available_actions,
+        };
+        leads.set(leadId, next);
+        ok(res, next);
+        return;
+      }
+      if (req.method === "POST" && action === "assign") {
+        const body = await readBody(req);
+        const next = {
+          ...existing,
+          owner_id: body.owner_id ?? existing.owner_id,
+          version: existing.version + 1,
+          updated_at: NOW,
+        };
+        leads.set(leadId, next);
+        ok(res, next);
+        return;
+      }
+      if (req.method === "PATCH" && !action) {
+        const body = await readBody(req);
+        const next = {
+          ...existing,
+          ...body,
+          version: existing.version + 1,
+          updated_at: NOW,
+        };
+        leads.set(leadId, next);
+        ok(res, next);
+        return;
+      }
     }
 
     if (req.method === "GET" && url.pathname === "/api/v1/activity") {
