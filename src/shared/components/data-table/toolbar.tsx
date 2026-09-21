@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Label } from "@/shared/components/ui/label";
 import { cn } from "@/shared/lib/cn";
 
-export const toolbarLabelClass = "text-muted-foreground text-xs font-normal";
+export const toolbarLabelClass = "text-muted-foreground text-sm font-normal";
 
 export function DataTableToolbar({
   children,

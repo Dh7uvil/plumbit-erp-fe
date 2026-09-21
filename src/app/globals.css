@@ -5,12 +5,12 @@
 
 /*
   Design tokens
-  Type: 14px root. Spacing uses Tailwind 4px steps (1 = 0.25rem).
+  Type: 16px root. Spacing uses Tailwind 4px steps (1 = 0.25rem).
   Radius: --radius 0.5rem; shadows: --shadow-xs / --shadow-sm / --shadow-md.
 */
 
 :root {
-  --font-size: 14px;
+  --font-size: 16px;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --background: #f4f6f9;

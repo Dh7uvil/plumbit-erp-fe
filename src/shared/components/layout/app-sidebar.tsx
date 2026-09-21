@@ -95,7 +95,7 @@ function SidebarSearch({
         onChange={(event) => onChange(event.target.value)}
         placeholder="Search…"
         aria-label="Search pages"
-        className="bg-muted/40 h-7 pr-7 pl-7 text-xs md:text-xs"
+        className="bg-muted/40 h-8 pr-7 pl-7 text-sm md:text-sm"
       />
       {value ? (
         <button
@@ -182,7 +182,7 @@ function SidebarNav({
                 }}
                 aria-expanded={isOpen}
                 className={cn(
-                  "flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-semibold tracking-widest uppercase transition-colors",
+                  "flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold tracking-widest uppercase transition-colors",
                   isSearching ? "cursor-default" : "cursor-pointer",
                   hasActive
                     ? "text-primary/70"
@@ -221,7 +221,7 @@ function SidebarNav({
                         className={isActive ? "text-primary" : "text-muted-foreground"}
                       />
                       {!collapsed ? (
-                        <span className="truncate text-[13px]">{item.label}</span>
+                        <span className="truncate text-sm">{item.label}</span>
                       ) : null}
                     </Link>
                   );
@@ -263,7 +263,7 @@ function SidebarChrome({
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div
         className={cn(
-          "border-sidebar-border relative flex h-12 shrink-0 items-center border-b",
+          "border-sidebar-border relative flex h-14 shrink-0 items-center border-b",
           collapsed ? "justify-center px-1" : "gap-2.5 px-3",
         )}
       >
@@ -354,7 +354,7 @@ export function AppSidebar({
       <aside
         className={cn(
           "bg-sidebar border-sidebar-border relative z-10 hidden h-full min-h-0 shrink-0 flex-col self-stretch overflow-hidden border-r transition-all duration-200 md:flex",
-          collapsed ? "w-14" : "w-56",
+          collapsed ? "w-16" : "w-64",
         )}
       >
         <SidebarChrome collapsed={collapsed} onToggle={onToggle} brand={brand?.(collapsed)} />

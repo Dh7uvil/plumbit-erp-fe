@@ -16,7 +16,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div className="bg-muted h-12 w-full" />}>
+    <Suspense fallback={<div className="bg-muted h-14 w-full" />}>
       <AuthenticatedShell>{children}</AuthenticatedShell>
     </Suspense>
   );
