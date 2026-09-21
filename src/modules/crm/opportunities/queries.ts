@@ -27,3 +27,11 @@ export function useOpportunity(id: string | null) {
     enabled: Boolean(id),
   });
 }
+
+export function useOpportunityQuotations(opportunityId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...opportunityKeys.detail(opportunityId ?? ""), "quotations"]),
+    queryFn: () => opportunitiesApi.listQuotations(opportunityId!),
+    enabled: enabled && Boolean(opportunityId),
+  });
+}

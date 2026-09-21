@@ -137,6 +137,7 @@ export const QuotationSchema = z.object({
   branch_id: z.string().uuid().nullable(),
   customer_id: z.string().uuid(),
   contact_id: z.string().uuid().nullable(),
+  opportunity_id: z.string().uuid().nullable().optional().default(null),
   customer_trn: z.string().nullable(),
   tax_treatment: TaxTreatmentSchema,
   place_of_supply: PlaceOfSupplySchema,
@@ -211,6 +212,7 @@ export type QuotationLineInput = z.infer<typeof QuotationLineInputSchema>;
 export const QuotationCreateRequestSchema = z.object({
   customer_id: z.string().uuid(),
   contact_id: z.string().uuid().nullable().optional(),
+  opportunity_id: z.string().uuid().nullable().optional(),
   branch_id: z.string().uuid().nullable().optional(),
   quote_date: z.string().nullable().optional(),
   valid_until: z.string().nullable().optional(),

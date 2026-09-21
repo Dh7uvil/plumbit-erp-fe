@@ -169,10 +169,14 @@ function toFormValues(quotation: Quotation | null): QuotationFormValues {
   };
 }
 
-function toCreateRequest(values: QuotationFormValues): QuotationCreateRequest {
+function toCreateRequest(
+  values: QuotationFormValues,
+  opportunityId?: string,
+): QuotationCreateRequest {
   return {
     customer_id: values.customer_id,
     contact_id: optionalUuid(values.contact_id),
+    opportunity_id: opportunityId ?? null,
     branch_id: optionalUuid(values.branch_id),
     quote_date: emptyToNull(values.quote_date),
     valid_until: emptyToNull(values.valid_until),
@@ -218,10 +222,16 @@ export function QuotationForm({
   quotation,
   disabled = false,
   onSuccess,
+  opportunityId,
+  opportunityLabel,
+  defaultCustomerId,
 }: {
   quotation: Quotation | null;
   disabled?: boolean;
   onSuccess?: () => void;
+  opportunityId?: string;
+  opportunityLabel?: string;
+  defaultCustomerId?: string;
 }) {
   const router = useRouter();
   const can = useCan();
@@ -271,6 +281,12 @@ export function QuotationForm({
   const paymentTerms = paymentTermsQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
   const templates = useMemo(() => termsTemplatesQuery.data ?? [], [termsTemplatesQuery.data]);
+
+  useEffect(() => {
+    if (!isEdit && defaultCustomerId) {
+      form.setValue("customer_id", defaultCustomerId);
+    }
+  }, [defaultCustomerId, form, isEdit]);
 
   useEffect(() => {
     const defaults = composeQuery.data;
@@ -337,7 +353,9 @@ export function QuotationForm({
         toast.success("Quotation saved");
         onSuccess?.();
       } else {
-        const created = await createQuotation.mutateAsync(toCreateRequest(values));
+        const created = await createQuotation.mutateAsync(
+          toCreateRequest(values, opportunityId),
+        );
         toast.success("Quotation created");
         router.push(`/quotations/${created.id}`);
       }
@@ -353,6 +371,12 @@ export function QuotationForm({
 
   return (
     <Form {...form}>
+      {opportunityId && opportunityLabel ? (
+        <div className="bg-muted/40 mb-4 rounded-md border px-3 py-2 text-sm">
+          <span className="text-muted-foreground">Opportunity: </span>
+          <span className="font-medium">{opportunityLabel}</span>
+        </div>
+      ) : null}
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
         {composeQuery.isFetching && !isEdit ? (

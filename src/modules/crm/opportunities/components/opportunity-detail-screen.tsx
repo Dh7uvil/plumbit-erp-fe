@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -14,13 +14,20 @@ import {
   useWinOpportunity,
 } from "@/modules/crm/opportunities/mutations";
 import { opportunityPermissions } from "@/modules/crm/opportunities/permissions";
-import { useOpportunity } from "@/modules/crm/opportunities/queries";
+import { useOpportunity, useOpportunityQuotations } from "@/modules/crm/opportunities/queries";
+import { quotationPermissions } from "@/modules/erp/quotations/permissions";
+import {
+  QUOTATION_STATUS_LABELS,
+  QUOTATION_STATUS_VARIANTS,
+} from "@/modules/erp/quotations/schemas";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { useAllLostReasons } from "@/modules/crm/lost-reasons/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { ActivityTimeline } from "@/modules/users-management/activity/components/activity-timeline";
 import { useEntityActivity } from "@/modules/users-management/activity/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { useCan } from "@/shared/providers/session-provider";
 import { DataTableError } from "@/shared/components/data-table/states";
 import {
   RecordPageHeader,
@@ -44,7 +51,15 @@ import {
 } from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import { formatMoney } from "@/shared/lib/format";
+import { formatDate, formatMoney } from "@/shared/lib/format";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 
 export function OpportunityDetailScreen({
   opportunityId,
@@ -55,7 +70,10 @@ export function OpportunityDetailScreen({
 }) {
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(opportunityPermissions);
+  const can = useCan();
+  const canCreateQuotation = can(quotationPermissions.create);
   const opportunityQuery = useOpportunity(opportunityId);
+  const quotationsQuery = useOpportunityQuotations(opportunityId);
   const activityQuery = useEntityActivity("opportunity", opportunityId, undefined, {
     pageSize: 50,
   });
@@ -146,6 +164,8 @@ export function OpportunityDetailScreen({
 
   const activityRows = activityQuery.data?.data ?? [];
   const lostReasons = lostReasonsQuery.data ?? [];
+  const quotations = quotationsQuery.data?.data ?? [];
+  const quotationCurrencyCodeById = currencyCodeById;
 
   return (
     <div className="flex flex-col gap-5">
@@ -198,6 +218,7 @@ export function OpportunityDetailScreen({
       <Tabs defaultValue="details">
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="quotations">Quotations</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="mt-4">
@@ -213,6 +234,72 @@ export function OpportunityDetailScreen({
                 disabled={!isEdit || !canEdit}
                 onSuccess={() => router.push(viewHref)}
               />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="quotations" className="mt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+              <CardTitle className="text-base">Quotations</CardTitle>
+              {canCreateQuotation ? (
+                <Button type="button" size="sm" asChild>
+                  <Link href={`/quotations/new?opportunity_id=${opportunityId}`}>
+                    <Plus className="mr-1 size-4" aria-hidden />
+                    Create quotation
+                  </Link>
+                </Button>
+              ) : null}
+            </CardHeader>
+            <CardContent>
+              {quotationsQuery.isLoading ? (
+                <Skeleton className="h-32 w-full" />
+              ) : quotationsQuery.isError ? (
+                <DataTableError
+                  message={getErrorMessage(quotationsQuery.error)}
+                  onRetry={() => quotationsQuery.refetch()}
+                />
+              ) : quotations.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No quotations linked to this opportunity yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Number</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {quotations.map((quotation) => {
+                      const code = quotationCurrencyCodeById.get(quotation.currency_id);
+                      return (
+                        <TableRow key={quotation.id}>
+                          <TableCell>
+                            <Link
+                              href={`/quotations/${quotation.id}`}
+                              className="text-primary font-medium hover:underline"
+                            >
+                              {quotation.display_number ?? quotation.quote_number}
+                            </Link>
+                          </TableCell>
+                          <TableCell>{formatDate(quotation.quote_date)}</TableCell>
+                          <TableCell>
+                            <DocumentStatusBadge
+                              status={quotation.status}
+                              labels={QUOTATION_STATUS_LABELS}
+                              variants={QUOTATION_STATUS_VARIANTS}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {code ? formatMoney(quotation.grand_total, code) : quotation.grand_total}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

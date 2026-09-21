@@ -4,4 +4,5 @@ export const leadPermissions = {
   update: "crm.lead.update",
   delete: "crm.lead.delete",
   assign: "crm.lead.assign",
+  convert: "crm.lead.convert",
 } as const;
