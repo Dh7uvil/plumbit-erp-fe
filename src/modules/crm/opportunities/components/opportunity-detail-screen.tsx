@@ -6,6 +6,8 @@ import { Loader2, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { ActivityTimeline } from "@/modules/crm/activities/components/activity-timeline";
+import { NotesPanel } from "@/modules/crm/notes/components/notes-panel";
 import { OpportunityForm } from "@/modules/crm/opportunities/components/opportunity-form";
 import { OpportunityStatusBadge } from "@/modules/crm/opportunities/components/opportunity-status-badge";
 import {
@@ -23,7 +25,7 @@ import {
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { useAllLostReasons } from "@/modules/crm/lost-reasons/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { ActivityTimeline } from "@/modules/users-management/activity/components/activity-timeline";
+import { ActivityTimeline as AuditTimeline } from "@/modules/users-management/activity/components/activity-timeline";
 import { useEntityActivity } from "@/modules/users-management/activity/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -105,7 +107,9 @@ export function OpportunityDetailScreen({
       <div className="flex flex-col gap-3">
         <DataTableError
           message={
-            opportunityQuery.error ? getErrorMessage(opportunityQuery.error) : "Opportunity not found"
+            opportunityQuery.error
+              ? getErrorMessage(opportunityQuery.error)
+              : "Opportunity not found"
           }
           onRetry={() => opportunityQuery.refetch()}
         />
@@ -120,9 +124,7 @@ export function OpportunityDetailScreen({
   const isEdit = mode === "edit";
   const viewHref = `/opportunities/${opportunityId}`;
   const canEdit = current.status === "OPEN" && canUpdate;
-  const currencyCode = current.currency_id
-    ? currencyCodeById.get(current.currency_id)
-    : undefined;
+  const currencyCode = current.currency_id ? currencyCodeById.get(current.currency_id) : undefined;
   const canWin = current.available_actions.includes("win");
   const canLose = current.available_actions.includes("lose");
   const canReopen = current.available_actions.includes("reopen");
@@ -180,8 +182,15 @@ export function OpportunityDetailScreen({
         extraActions={
           <>
             {canWin ? (
-              <Button type="button" size="sm" disabled={winOpportunity.isPending} onClick={() => void onWin()}>
-                {winOpportunity.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+              <Button
+                type="button"
+                size="sm"
+                disabled={winOpportunity.isPending}
+                onClick={() => void onWin()}
+              >
+                {winOpportunity.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : null}
                 Mark won
               </Button>
             ) : null}
@@ -219,7 +228,9 @@ export function OpportunityDetailScreen({
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="quotations">Quotations</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="mt-4">
           <Card>
@@ -259,7 +270,9 @@ export function OpportunityDetailScreen({
                   onRetry={() => quotationsQuery.refetch()}
                 />
               ) : quotations.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No quotations linked to this opportunity yet.</p>
+                <p className="text-muted-foreground text-sm">
+                  No quotations linked to this opportunity yet.
+                </p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -292,7 +305,9 @@ export function OpportunityDetailScreen({
                             />
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
-                            {code ? formatMoney(quotation.grand_total, code) : quotation.grand_total}
+                            {code
+                              ? formatMoney(quotation.grand_total, code)
+                              : quotation.grand_total}
                           </TableCell>
                         </TableRow>
                       );
@@ -303,10 +318,16 @@ export function OpportunityDetailScreen({
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="activity" className="mt-4">
+        <TabsContent value="activities" className="mt-4">
+          <ActivityTimeline entityType="opportunity" entityId={opportunityId} />
+        </TabsContent>
+        <TabsContent value="notes" className="mt-4">
+          <NotesPanel entityType="opportunity" entityId={opportunityId} />
+        </TabsContent>
+        <TabsContent value="history" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Activity</CardTitle>
+              <CardTitle className="text-base">History</CardTitle>
             </CardHeader>
             <CardContent>
               {activityQuery.isLoading ? (
@@ -317,9 +338,9 @@ export function OpportunityDetailScreen({
                   onRetry={() => activityQuery.refetch()}
                 />
               ) : (
-                <ActivityTimeline
+                <AuditTimeline
                   rows={activityRows}
-                  emptyTitle="No activity yet"
+                  emptyTitle="No history yet"
                   emptyMessage="Changes to this opportunity will appear here."
                 />
               )}

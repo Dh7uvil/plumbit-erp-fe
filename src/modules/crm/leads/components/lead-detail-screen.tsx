@@ -6,14 +6,16 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ActivityTimeline } from "@/modules/crm/activities/components/activity-timeline";
+import { ConvertLeadDialog } from "@/modules/crm/leads/components/convert-lead-dialog";
 import { LeadForm } from "@/modules/crm/leads/components/lead-form";
 import { LeadStatusBadge } from "@/modules/crm/leads/components/lead-status-badge";
-import { ConvertLeadDialog } from "@/modules/crm/leads/components/convert-lead-dialog";
 import { useAssignLead, useChangeLeadStatus } from "@/modules/crm/leads/mutations";
 import { leadPermissions } from "@/modules/crm/leads/permissions";
 import { useLead } from "@/modules/crm/leads/queries";
 import { leadDisplayName } from "@/modules/crm/leads/schemas";
-import { ActivityTimeline } from "@/modules/users-management/activity/components/activity-timeline";
+import { NotesPanel } from "@/modules/crm/notes/components/notes-panel";
+import { ActivityTimeline as AuditTimeline } from "@/modules/users-management/activity/components/activity-timeline";
 import { useEntityActivity } from "@/modules/users-management/activity/queries";
 import { useAllUsers } from "@/modules/users-management/users/queries";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -135,7 +137,12 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
               </Button>
             ) : null}
             {canConvert && canConvertLead ? (
-              <Button type="button" size="sm" variant="outline" onClick={() => setConvertOpen(true)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setConvertOpen(true)}
+              >
                 Convert
               </Button>
             ) : null}
@@ -171,7 +178,9 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
       <Tabs defaultValue="details">
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="mt-4">
           <Card>
@@ -187,10 +196,16 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="activity" className="mt-4">
+        <TabsContent value="activities" className="mt-4">
+          <ActivityTimeline entityType="lead" entityId={leadId} />
+        </TabsContent>
+        <TabsContent value="notes" className="mt-4">
+          <NotesPanel entityType="lead" entityId={leadId} />
+        </TabsContent>
+        <TabsContent value="history" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Activity</CardTitle>
+              <CardTitle className="text-base">History</CardTitle>
             </CardHeader>
             <CardContent>
               {activityQuery.isLoading ? (
@@ -201,9 +216,9 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
                   onRetry={() => activityQuery.refetch()}
                 />
               ) : (
-                <ActivityTimeline
+                <AuditTimeline
                   rows={activityRows}
-                  emptyTitle="No activity yet"
+                  emptyTitle="No history yet"
                   emptyMessage="Changes to this lead will appear here."
                 />
               )}
