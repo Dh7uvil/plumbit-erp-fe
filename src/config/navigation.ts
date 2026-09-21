@@ -49,6 +49,7 @@ import { documentSequencePermissions } from "@/modules/erp/accounting/document-s
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
+import { dunningPermissions } from "@/modules/erp/accounting/dunning-rules/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { periodLockPermissions } from "@/modules/erp/period-lock/permissions";
 import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
@@ -339,6 +340,12 @@ export const navigation: NavigationGroup[] = [
         href: "/period-lock",
         permission: periodLockPermissions.read,
         icon: Lock,
+      },
+      {
+        label: "Payment reminders",
+        href: "/dunning-rules",
+        permission: dunningPermissions.read,
+        icon: Bell,
       },
     ],
   },

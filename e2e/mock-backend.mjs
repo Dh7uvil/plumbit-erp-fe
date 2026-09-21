@@ -67,6 +67,7 @@ const EMPTY_LIST_PATHS = new Set([
   "/api/v1/exchange-rates",
   "/api/v1/payment-terms",
   "/api/v1/cost-centers",
+  "/api/v1/dunning-rules",
   "/api/v1/price-lists",
   "/api/v1/taxes",
   "/api/v1/terms-templates",
@@ -4188,6 +4189,31 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       ok(res, invoice);
+      return;
+    }
+
+    const salesInvoiceReminders = url.pathname.match(
+      /^\/api\/v1\/sales-invoices\/([0-9a-f-]{36})\/payment-reminders$/i,
+    );
+    if (req.method === "GET" && salesInvoiceReminders) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      listOk(res, []);
+      return;
+    }
+
+    const salesInvoiceSendReminder = url.pathname.match(
+      /^\/api\/v1\/sales-invoices\/([0-9a-f-]{36})\/send-reminder$/i,
+    );
+    if (req.method === "POST" && salesInvoiceSendReminder) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      ok(res, {
+        dunning_log_id: crypto.randomUUID(),
+        recipient_email: "billing@example.com",
+      });
       return;
     }
 
