@@ -31,6 +31,7 @@ export const reportKeys = {
     [...reportKeys.all, "general-ledger", params] as const,
   cashBook: (params: DayBookParams) => [...reportKeys.all, "cash-book", params] as const,
   bankBook: (params: DayBookParams) => [...reportKeys.all, "bank-book", params] as const,
+  dayBook: (params: DayBookParams) => [...reportKeys.all, "day-book", params] as const,
   accountStatement: (params: AccountStatementParams) =>
     [...reportKeys.all, "account-statement", params] as const,
   exportEvidenceExceptions: (params: ExportEvidenceExceptionParams) =>
@@ -106,6 +107,14 @@ export function useBankBook(params: DayBookParams | null) {
   });
 }
 
+export function useDayBook(params: DayBookParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.dayBook(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.dayBook(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
 export function useAccountStatement(params: AccountStatementParams | null) {
   return useQuery({
     queryKey: useTenantQueryKey(
@@ -118,7 +127,10 @@ export function useAccountStatement(params: AccountStatementParams | null) {
   });
 }
 
-export function useExportEvidenceExceptions(params: ExportEvidenceExceptionParams = {}, enabled = true) {
+export function useExportEvidenceExceptions(
+  params: ExportEvidenceExceptionParams = {},
+  enabled = true,
+) {
   return useQuery({
     queryKey: useTenantQueryKey(reportKeys.exportEvidenceExceptions(params)),
     queryFn: () => reportsApi.exportEvidenceExceptions(params),
@@ -188,9 +200,7 @@ export function useStockValuationGl(params: InventoryAsOfParams | null) {
 
 export function useStockMovementReport(params: InventoryRangeParams | null) {
   return useQuery({
-    queryKey: useTenantQueryKey(
-      reportKeys.stockMovement(params ?? { from: "", to: "" }),
-    ),
+    queryKey: useTenantQueryKey(reportKeys.stockMovement(params ?? { from: "", to: "" })),
     queryFn: () => reportsApi.stockMovement(params!),
     enabled: Boolean(params?.from && params.to),
   });
@@ -326,4 +336,3 @@ export function usePurchaseAnalysis(params: AnalysisParams | null) {
     enabled: Boolean(params?.from && params.to),
   });
 }
-

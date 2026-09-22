@@ -46,7 +46,8 @@ import { appendMissingActions } from "@/shared/components/document/workflow-regi
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { isApiError } from "@/shared/api/errors";
-import { formatDate } from "@/shared/lib/format";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { formatDate, multiplyDecimals } from "@/shared/lib/format";
 import { toast } from "sonner";
 
 export function SalesInvoiceDetailScreen({
@@ -126,8 +127,13 @@ function SalesInvoiceDetailLoaded({
   const [applyCreditsOpen, setApplyCreditsOpen] = useState(false);
   const [writeOffOpen, setWriteOffOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
+  const { baseCurrencyCode, baseCurrencyId } = useBaseCurrency();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
+  const baseBalanceDue =
+    baseCurrencyId && invoice.currency_id !== baseCurrencyId
+      ? multiplyDecimals(invoice.balance_due, invoice.exchange_rate)
+      : null;
   const missingExportEvidence =
     invoice.is_export && invoice.status === "POSTED" && !invoice.export_evidence_ok;
   const workflowActions = appendMissingActions(
@@ -320,9 +326,11 @@ function SalesInvoiceDetailLoaded({
             amountWrittenOff={invoice.amount_written_off}
             balanceDue={invoice.balance_due}
             currencyCode={currencyCode}
+            baseBalanceDue={baseBalanceDue}
+            baseCurrencyCode={baseCurrencyCode}
           />
           <RelatedDocumentsCard documents={invoice.related_documents} />
-          <SalesInvoiceMarginCard invoice={invoice} currencyCode={currencyCode} />
+          <SalesInvoiceMarginCard invoice={invoice} />
           <DocumentLedgerCard
             journalEntryId={invoice.journal_entry_id}
             reversalJournalEntryId={invoice.reversal_journal_entry_id}

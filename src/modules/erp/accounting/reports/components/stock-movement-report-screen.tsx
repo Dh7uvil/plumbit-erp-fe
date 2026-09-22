@@ -39,6 +39,8 @@ export function StockMovementReportScreen() {
   const reportQuery = useStockMovementReport(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
+  const reportMoney = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
   const columnCount = canSeeCost ? 11 : 7;
 
   return (
@@ -117,17 +119,13 @@ export function StockMovementReportScreen() {
                     <RecordLink href={`/stock/${line.product_id}`}>{line.product_name}</RecordLink>
                   </TableCell>
                   <TableCell>{formatQuantity(line.opening_qty)}</TableCell>
-                  {canSeeCost ? (
-                    <TableCell>{formatReportMoney(line.opening_value)}</TableCell>
-                  ) : null}
+                  {canSeeCost ? <TableCell>{reportMoney(line.opening_value)}</TableCell> : null}
                   <TableCell>{formatQuantity(line.qty_in)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatReportMoney(line.value_in)}</TableCell> : null}
+                  {canSeeCost ? <TableCell>{reportMoney(line.value_in)}</TableCell> : null}
                   <TableCell>{formatQuantity(line.qty_out)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatReportMoney(line.value_out)}</TableCell> : null}
+                  {canSeeCost ? <TableCell>{reportMoney(line.value_out)}</TableCell> : null}
                   <TableCell>{formatQuantity(line.closing_qty)}</TableCell>
-                  {canSeeCost ? (
-                    <TableCell>{formatReportMoney(line.closing_value)}</TableCell>
-                  ) : null}
+                  {canSeeCost ? <TableCell>{reportMoney(line.closing_value)}</TableCell> : null}
                 </TableRow>
               ))}
               <TableRow>
@@ -139,7 +137,7 @@ export function StockMovementReportScreen() {
                 </TableCell>
                 {canSeeCost ? (
                   <TableCell className="font-medium">
-                    {formatReportMoney(report.total_opening_value)}
+                    {reportMoney(report.total_opening_value)}
                   </TableCell>
                 ) : null}
                 <TableCell />
@@ -151,7 +149,7 @@ export function StockMovementReportScreen() {
                 </TableCell>
                 {canSeeCost ? (
                   <TableCell className="font-medium">
-                    {formatReportMoney(report.total_closing_value)}
+                    {reportMoney(report.total_closing_value)}
                   </TableCell>
                 ) : null}
               </TableRow>

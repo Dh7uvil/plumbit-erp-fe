@@ -33,6 +33,8 @@ export function ExportEvidenceExceptionsScreen() {
   const report = reportQuery.data;
   const lines = report?.lines ?? [];
   const { csvPending, downloadCsv } = useReportCsv();
+  const reportMoney = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
 
   return (
     <ListPage>
@@ -120,9 +122,7 @@ export function ExportEvidenceExceptionsScreen() {
                     {line.customer_name}
                   </RecordLink>
                 </TableCell>
-                <TableCell className="tabular-nums">
-                  {formatReportMoney(line.grand_total)}
-                </TableCell>
+                <TableCell className="tabular-nums">{reportMoney(line.grand_total)}</TableCell>
                 <TableCell
                   className={line.overdue ? "text-destructive tabular-nums" : "tabular-nums"}
                 >

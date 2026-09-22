@@ -110,6 +110,7 @@ export const ShipmentSchema = z.object({
   actual_arrival_date: z.string().nullable(),
   gross_weight: NullableDecimalStringSchema,
   net_weight: NullableDecimalStringSchema,
+  total_cbm: NullableDecimalStringSchema,
   total_packages: z.number().int().nullable(),
   notes: z.string().nullable(),
   available_actions: z.array(z.string()).default([]),

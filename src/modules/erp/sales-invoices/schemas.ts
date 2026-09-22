@@ -297,6 +297,7 @@ export type SalesInvoiceMarginLine = z.infer<typeof SalesInvoiceMarginLineSchema
 
 export const SalesInvoiceMarginSchema = z.object({
   invoice_id: z.string().uuid(),
+  currency_code: z.string(),
   revenue: MoneySchema,
   cogs_amount: MoneySchema,
   cogs_status: CogsStatusSchema,

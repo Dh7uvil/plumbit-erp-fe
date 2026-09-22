@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Banknote,
+  BookOpen,
   Boxes,
   ClipboardCheck,
   FileSpreadsheet,
@@ -45,6 +46,12 @@ export const reportCatalog: ReportCatalogGroup[] = [
         href: "/reports/general-ledger",
         permission: reportPermissions.ledger,
         icon: ScrollText,
+      },
+      {
+        label: "Day book",
+        href: "/reports/day-book",
+        permission: reportPermissions.dayBook,
+        icon: BookOpen,
       },
       {
         label: "Cash book",

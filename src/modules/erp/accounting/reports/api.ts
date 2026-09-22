@@ -67,7 +67,9 @@ import {
 import { apiClient } from "@/shared/api/client";
 import type { RequestParams } from "@/shared/api/client";
 
-function inventoryParams(params: InventoryAsOfParams | InventoryRangeParams | PurchaseSuggestionParams): RequestParams {
+function inventoryParams(
+  params: InventoryAsOfParams | InventoryRangeParams | PurchaseSuggestionParams,
+): RequestParams {
   return {
     ...("from" in params ? { from: params.from, to: params.to } : {}),
     ...("as_of" in params ? { as_of: params.as_of } : {}),
@@ -135,6 +137,22 @@ export const reportsApi = {
         },
       }),
     ),
+  dayBook: async (params: DayBookParams): Promise<DayBook> =>
+    DayBookSchema.parse(
+      await apiClient.get("/reports/day-book", {
+        params: {
+          from: params.from,
+          to: params.to,
+          account_id: params.account_id,
+          party_id: params.party_id,
+          branch_id: params.branch_id,
+          cost_center_id: params.cost_center_id,
+          source_type: params.source_type,
+          voucher_type: params.voucher_type,
+          side: params.side,
+        },
+      }),
+    ),
   accountStatement: async (params: AccountStatementParams): Promise<AccountStatement> =>
     AccountStatementSchema.parse(
       await apiClient.get("/reports/account-statement", {
@@ -157,9 +175,13 @@ export const reportsApi = {
   invoicedNotDispatched: async (): Promise<InvoicedNotDispatched> =>
     InvoicedNotDispatchedSchema.parse(await apiClient.get("/reports/invoiced-not-dispatched")),
   arAging: async (params: AgingParams): Promise<Aging> =>
-    AgingSchema.parse(await apiClient.get("/reports/ar-aging", { params: { as_of: params.as_of } })),
+    AgingSchema.parse(
+      await apiClient.get("/reports/ar-aging", { params: { as_of: params.as_of } }),
+    ),
   apAging: async (params: AgingParams): Promise<Aging> =>
-    AgingSchema.parse(await apiClient.get("/reports/ap-aging", { params: { as_of: params.as_of } })),
+    AgingSchema.parse(
+      await apiClient.get("/reports/ap-aging", { params: { as_of: params.as_of } }),
+    ),
   customerStatement: async (params: CustomerStatementParams): Promise<PartyStatement> =>
     PartyStatementSchema.parse(
       await apiClient.get("/reports/customer-statement", {

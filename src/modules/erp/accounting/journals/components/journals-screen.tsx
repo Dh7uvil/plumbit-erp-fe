@@ -1,11 +1,10 @@
 "use client";
 
-import { ArrowLeftRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { ContraEntryDialog } from "@/modules/erp/accounting/journals/components/contra-entry-dialog";
 import { useDeleteJournal } from "@/modules/erp/accounting/journals/mutations";
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
 import { useJournals } from "@/modules/erp/accounting/journals/queries";
@@ -28,10 +27,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -54,7 +50,7 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatDateTime, formatReportMoney } from "@/shared/lib/format";
 import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
-import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 
 const SORT_FIELDS = [
@@ -73,10 +69,10 @@ function isType(value: string | undefined): value is JournalType {
   return Boolean(value && JOURNAL_TYPES.includes(value as JournalType));
 }
 
-export function JournalsScreen() {
+export function JournalsScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(journalPermissions);
-  const tenantQuery = useCurrentTenant();
-  const currencyCode = tenantQuery.data?.default_currency;
+  const { baseCurrencyCode } = useBaseCurrency();
+  const currencyCode = baseCurrencyCode ?? "";
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
@@ -100,7 +96,6 @@ export function JournalsScreen() {
   const branchesQuery = useAllBranches();
   const deleteJournal = useDeleteJournal();
   const [deleting, setDeleting] = useState<JournalEntry | null>(null);
-  const [contraOpen, setContraOpen] = useState(false);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
   const rows = journalsQuery.data?.data ?? [];
   const meta = journalsQuery.data?.meta;
@@ -121,9 +116,7 @@ export function JournalsScreen() {
         header: "Number",
         sortableField: "document_number",
         className: "font-medium",
-        cell: (row) => (
-          <RecordLink href={`/journals/${row.id}`}>{row.document_number}</RecordLink>
-        ),
+        cell: (row) => <RecordLink href={`/journals/${row.id}`}>{row.document_number}</RecordLink>,
       },
       {
         id: "narration",
@@ -250,29 +243,24 @@ export function JournalsScreen() {
     }
   }
 
-  return (
-    <ListPage>
-      <PageHeader
-        title="Journals"
-        subtitle="Manual and system journals posted through the ledger"
-        actions={
-          canCreate ? (
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setContraOpen(true)}>
-                <ArrowLeftRight className="size-3.5" />
-                Contra entry
-              </Button>
+  const content = (
+    <>
+      {!embedded ? (
+        <PageHeader
+          title="Journals"
+          subtitle="Manual and system journals posted through the ledger"
+          actions={
+            canCreate ? (
               <Button type="button" size="sm" asChild>
                 <Link href="/journals/new">
                   <Plus className="size-3.5" />
                   New journal
                 </Link>
               </Button>
-            </div>
-          ) : undefined
-        }
-      />
-      <ContraEntryDialog open={contraOpen} onOpenChange={setContraOpen} />
+            ) : undefined
+          }
+        />
+      ) : null}
       <DataTableToolbar>
         <ListSearch
           value={search ?? ""}
@@ -284,7 +272,9 @@ export function JournalsScreen() {
           className="w-36"
           placeholder="Status"
           value={filters.status ?? ALL}
-          onValueChange={(value) => setParams({ filters: { status: value === ALL ? null : value } })}
+          onValueChange={(value) =>
+            setParams({ filters: { status: value === ALL ? null : value } })
+          }
           options={[
             { value: ALL, label: "All statuses" },
             ...JOURNAL_STATUSES.map((status) => ({
@@ -418,6 +408,12 @@ export function JournalsScreen() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </ListPage>
+    </>
+  );
+
+  return embedded ? (
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">{content}</div>
+  ) : (
+    <ListPage>{content}</ListPage>
   );
 }

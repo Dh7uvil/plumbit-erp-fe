@@ -18,6 +18,7 @@ import {
 import { useAddCustomerAddress, useDeleteCustomerAddress } from "@/modules/crm/customers/mutations";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { CreditExposureChip } from "@/modules/erp/credit-control/components/credit-exposure-chip";
 import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
@@ -127,6 +128,7 @@ export function CustomerDetailScreen({
   const outstandingQuery = useCustomerOutstandingSummary(customerId, mode !== "edit");
   const exposureQuery = useCustomerCreditExposure(customerId, mode !== "edit");
   const currenciesQuery = useAllCurrencies();
+  const { baseCurrencyCode } = useBaseCurrency();
   const addAddress = useAddCustomerAddress();
   const deleteAddress = useDeleteCustomerAddress();
   const [addressOpen, setAddressOpen] = useState(false);
@@ -214,6 +216,8 @@ export function CustomerDetailScreen({
 
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === customer.currency_id)?.code ?? "";
+  const outstandingCurrencyCode =
+    outstandingQuery.data?.currency_code ?? baseCurrencyCode ?? currencyCode;
 
   return (
     <div className="flex flex-col gap-5">
@@ -259,7 +263,7 @@ export function CustomerDetailScreen({
           <CreditLimitBanner warnings={exposureQuery.data?.warnings} />
           <PartyOutstandingCard
             summary={outstandingQuery.data}
-            currencyCode={currencyCode}
+            currencyCode={outstandingCurrencyCode}
             isLoading={outstandingQuery.isLoading}
             statementHref={`/reports/customer-statement?customer_id=${customer.id}`}
             agingHref="/reports/ar-aging"

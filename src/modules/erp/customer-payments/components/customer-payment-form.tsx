@@ -175,7 +175,7 @@ export function CustomerPaymentForm({
     Object.fromEntries((payment?.allocations ?? []).map((row) => [row.item_id, row.amount])),
   );
   const isEdit = Boolean(payment);
-  const { baseCurrencyId } = useBaseCurrency();
+  const { baseCurrencyId, baseCurrencyCode } = useBaseCurrency();
 
   const form = useForm<CustomerPaymentFormValues>({
     resolver: zodResolver(CustomerPaymentFormSchema),
@@ -272,7 +272,10 @@ export function CustomerPaymentForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="customer_id"
@@ -505,6 +508,7 @@ export function CustomerPaymentForm({
               setAllocationValues((current) => ({ ...current, [itemId]: amount }))
             }
             currencyCode={currencyCode}
+            baseCurrencyCode={baseCurrencyCode}
             received={amountReceived}
             bankCharges={bankCharges}
             unapplied={payment?.amount_unapplied}

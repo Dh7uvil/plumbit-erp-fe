@@ -103,7 +103,7 @@ export type DayBookAccountSection = z.infer<typeof DayBookAccountSectionSchema>;
 
 export const DayBookSchema = z.object({
   currency_code: z.string().nullable().optional().default(null),
-  book_kind: z.enum(["cash", "bank"]),
+  book_kind: z.enum(["cash", "bank", "all"]),
   from_date: z.string(),
   to_date: z.string(),
   account_id: z.string().uuid().nullable().optional(),
@@ -118,9 +118,11 @@ export type DayBookParams = {
   from: string;
   to: string;
   account_id?: string;
+  party_id?: string;
   branch_id?: string;
   cost_center_id?: string;
   source_type?: string;
+  voucher_type?: string;
   side?: string;
 };
 
@@ -138,6 +140,7 @@ export const AccountStatementLineSchema = z.object({
 export type AccountStatementLine = z.infer<typeof AccountStatementLineSchema>;
 
 export const AccountStatementSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   party_type: z.string(),
   party_id: z.string().uuid(),
   from_date: z.string(),
@@ -190,6 +193,7 @@ export const ExportEvidenceExceptionLineSchema = z.object({
 export type ExportEvidenceExceptionLine = z.infer<typeof ExportEvidenceExceptionLineSchema>;
 
 export const ExportEvidenceExceptionSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   as_of: z.string(),
   window_days: z.number().int(),
   lines: z.array(ExportEvidenceExceptionLineSchema).default([]),
@@ -212,6 +216,7 @@ export const InvoicedNotDispatchedLineSchema = z.object({
 export type InvoicedNotDispatchedLine = z.infer<typeof InvoicedNotDispatchedLineSchema>;
 
 export const InvoicedNotDispatchedSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   lines: z.array(InvoicedNotDispatchedLineSchema).default([]),
 });
 export type InvoicedNotDispatched = z.infer<typeof InvoicedNotDispatchedSchema>;
@@ -330,6 +335,12 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   stock_transfer: (id) => `/stock-transfers/${id}`,
   stock_adjustment: (id) => `/stock-adjustments/${id}`,
   opening_balance: (id) => `/journals/${id}`,
+  cash_receipt_voucher: (id) => `/vouchers/${id}`,
+  cash_payment_voucher: (id) => `/vouchers/${id}`,
+  bank_receipt_voucher: (id) => `/vouchers/${id}`,
+  bank_payment_voucher: (id) => `/vouchers/${id}`,
+  contra_voucher: (id) => `/vouchers/${id}`,
+  voucher_allocation: (id) => `/vouchers/${id}`,
 };
 
 export function sourceDocumentHref(
@@ -412,6 +423,7 @@ export const StockMovementReportLineSchema = z.object({
 export type StockMovementReportLine = z.infer<typeof StockMovementReportLineSchema>;
 
 export const StockMovementReportSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   from_date: z.string(),
   to_date: z.string(),
   lines: z.array(StockMovementReportLineSchema).optional().default([]),
@@ -448,6 +460,7 @@ export const StockAgingLineSchema = z.object({
 export type StockAgingLine = z.infer<typeof StockAgingLineSchema>;
 
 export const StockAgingSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   as_of: z.string(),
   lines: z.array(StockAgingLineSchema).optional().default([]),
   totals: StockAgingBucketTotalsSchema,
@@ -582,6 +595,7 @@ export const TaxRegisterLineSchema = z.object({
 export type TaxRegisterLine = z.infer<typeof TaxRegisterLineSchema>;
 
 export const TaxRegisterSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   from_date: z.string(),
   to_date: z.string(),
   total_net: DecimalStringSchema,
@@ -775,6 +789,7 @@ export const ReceivedNotBilledLineSchema = z.object({
 export type ReceivedNotBilledLine = z.infer<typeof ReceivedNotBilledLineSchema>;
 
 export const ReceivedNotBilledSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
   lines: z.array(ReceivedNotBilledLineSchema).optional().default([]),
 });
 export type ReceivedNotBilled = z.infer<typeof ReceivedNotBilledSchema>;

@@ -80,9 +80,7 @@ export function sumCashAllocationAmounts(
   values: Record<string, string>,
 ): string {
   const cashItems = new Set(
-    items
-      .filter((item) => !isNoteOpenItemType(item.item_type))
-      .map((item) => item.document_id),
+    items.filter((item) => !isNoteOpenItemType(item.item_type)).map((item) => item.document_id),
   );
   return sumMoneyStrings(
     Object.entries(values)
@@ -138,6 +136,7 @@ export function PaymentAllocationEditor({
   values,
   onChange,
   currencyCode,
+  baseCurrencyCode,
   received,
   bankCharges,
   unapplied,
@@ -148,12 +147,18 @@ export function PaymentAllocationEditor({
   values: Record<string, string>;
   onChange: (itemId: string, amount: string) => void;
   currencyCode: string;
+  baseCurrencyCode?: string | null;
   received: string;
   bankCharges: string;
   unapplied?: string | null;
   disabled?: boolean;
   emptyMessage?: string;
 }) {
+  const showBaseBalance = Boolean(
+    baseCurrencyCode &&
+    baseCurrencyCode !== currencyCode &&
+    items.some((item) => item.base_balance),
+  );
   const allocated = sumCashAllocationAmounts(items, values);
   const noteApplied = sumMoneyStrings(
     items
@@ -178,6 +183,7 @@ export function PaymentAllocationEditor({
             <TableHead>Date</TableHead>
             <TableHead className="text-right">Original</TableHead>
             <TableHead className="text-right">Balance</TableHead>
+            {showBaseBalance ? <TableHead className="text-right">Base balance</TableHead> : null}
             <TableHead className="text-right">Apply</TableHead>
           </TableRow>
         </TableHeader>
@@ -218,10 +224,22 @@ export function PaymentAllocationEditor({
                     currencyCode,
                   )}
                 </TableCell>
+                {showBaseBalance ? (
+                  <TableCell className="text-right tabular-nums">
+                    {item.base_balance
+                      ? formatMoney(
+                          isNoteOpenItemType(item.item_type)
+                            ? `-${item.base_balance}`
+                            : item.base_balance,
+                          baseCurrencyCode ?? "",
+                        )
+                      : "—"}
+                  </TableCell>
+                ) : null}
                 <TableCell className="text-right">
                   <DecimalInput
                     kind="money"
-                    className="ml-auto h-8 min-w-32 w-32 text-right"
+                    className="ml-auto h-8 w-32 min-w-32 text-right"
                     disabled={disabled}
                     value={values[item.document_id] ?? ""}
                     onChange={(event) => onChange(item.document_id, event.target.value)}

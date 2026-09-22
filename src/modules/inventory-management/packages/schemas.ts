@@ -19,10 +19,7 @@ export const PACKAGE_STATUS_LABELS: Record<PackageStatus, string> = {
   CANCELLED: "Cancelled",
 };
 
-export const PACKAGE_STATUS_VARIANTS: Record<
-  PackageStatus,
-  "muted" | "success" | "destructive"
-> = {
+export const PACKAGE_STATUS_VARIANTS: Record<PackageStatus, "muted" | "success" | "destructive"> = {
   DRAFT: "muted",
   PACKED: "success",
   CANCELLED: "destructive",
@@ -54,6 +51,7 @@ export const PackageSchema = z.object({
   dimension_unit: z.string().nullable(),
   gross_weight: NullableDecimalStringSchema,
   net_weight: NullableDecimalStringSchema,
+  total_cbm: NullableDecimalStringSchema,
   weight_unit: z.string().nullable(),
   shipping_marks: z.string().nullable(),
   notes: z.string().nullable(),

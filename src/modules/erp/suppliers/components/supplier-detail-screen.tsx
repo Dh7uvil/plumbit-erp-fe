@@ -16,16 +16,14 @@ import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissi
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
 import { SupplierPurchaseHistoryCard } from "@/modules/inventory-management/history/components/trading-history-cards";
 import { SupplierProductsPanel } from "@/modules/erp/supplier-products/components/supplier-products-panel";
 import { SupplierForm } from "@/modules/erp/suppliers/components/supplier-form";
 import { useAddSupplierAddress, useDeleteSupplierAddress } from "@/modules/erp/suppliers/mutations";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
-import {
-  useSupplier,
-  useSupplierOutstandingSummary,
-} from "@/modules/erp/suppliers/queries";
+import { useSupplier, useSupplierOutstandingSummary } from "@/modules/erp/suppliers/queries";
 import {
   ExtraAddressFormSchema,
   type ExtraAddressFormValues,
@@ -115,6 +113,7 @@ export function SupplierDetailScreen({
   const supplierQuery = useSupplier(supplierId);
   const outstandingQuery = useSupplierOutstandingSummary(supplierId, mode !== "edit");
   const currenciesQuery = useAllCurrencies();
+  const { baseCurrencyCode } = useBaseCurrency();
   const addAddress = useAddSupplierAddress();
   const deleteAddress = useDeleteSupplierAddress();
   const [addressOpen, setAddressOpen] = useState(false);
@@ -202,6 +201,8 @@ export function SupplierDetailScreen({
 
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === supplier.currency_id)?.code ?? "";
+  const outstandingCurrencyCode =
+    outstandingQuery.data?.currency_code ?? baseCurrencyCode ?? currencyCode;
 
   return (
     <div className="flex flex-col gap-5">
@@ -241,7 +242,7 @@ export function SupplierDetailScreen({
         <>
           <PartyOutstandingCard
             summary={outstandingQuery.data}
-            currencyCode={currencyCode}
+            currencyCode={outstandingCurrencyCode}
             isLoading={outstandingQuery.isLoading}
             statementHref={`/reports/supplier-statement?supplier_id=${supplier.id}`}
             agingHref="/reports/ap-aging"

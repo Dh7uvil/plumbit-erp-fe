@@ -46,6 +46,11 @@ const GL_SOURCE_TYPES = [
   { value: "purchase_return", label: "Purchase return" },
   { value: "landed_cost", label: "Landed cost" },
   { value: "stock_adjustment", label: "Stock adjustment" },
+  { value: "cash_receipt_voucher", label: "Cash receipt voucher" },
+  { value: "cash_payment_voucher", label: "Cash payment voucher" },
+  { value: "bank_receipt_voucher", label: "Bank receipt voucher" },
+  { value: "bank_payment_voucher", label: "Bank payment voucher" },
+  { value: "voucher_allocation", label: "Voucher allocation" },
   { value: "OPENING_BALANCE", label: "Opening balance" },
   { value: "INVENTORY_CATCH_UP", label: "Inventory catch-up" },
 ];
