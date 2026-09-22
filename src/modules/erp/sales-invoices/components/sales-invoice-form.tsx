@@ -79,6 +79,8 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 type ComposeField =
@@ -153,7 +155,7 @@ function toFormLines(invoice: SalesInvoice | null): SalesInvoiceLineFormValues[]
   }));
 }
 
-function toFormValues(invoice: SalesInvoice | null): SalesInvoiceFormValues {
+function toFormValues(invoice: SalesInvoice | null, defaultCurrencyId?: string): SalesInvoiceFormValues {
   return {
     customer_id: invoice?.customer_id ?? OPTIONAL_SELECT_NONE,
     contact_id: invoice?.contact_id ?? OPTIONAL_SELECT_NONE,
@@ -162,7 +164,7 @@ function toFormValues(invoice: SalesInvoice | null): SalesInvoiceFormValues {
     salesperson_id: invoice?.salesperson_id ?? OPTIONAL_SELECT_NONE,
     sales_order_id: invoice?.sales_order_id ?? "",
     payment_terms_id: invoice?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
-    currency_id: invoice?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: invoice?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     notes: invoice?.notes ?? "",
     terms_and_conditions: invoice?.terms_and_conditions ?? "",
     terms_template_id: OPTIONAL_SELECT_NONE,
@@ -250,14 +252,16 @@ export function SalesInvoiceForm({
   >(null);
   const dirtyCompose = useRef(new Set<ComposeField>());
   const isEdit = Boolean(invoice);
+  const { baseCurrencyId } = useBaseCurrency();
   const sourcedLines = Boolean(invoice?.lines.some((line) => line.delivery_note_line_id));
 
   const form = useForm<SalesInvoiceFormValues>({
     resolver: zodResolver(SalesInvoiceFormSchema),
-    defaultValues: toFormValues(invoice),
-    values: invoice ? toFormValues(invoice) : undefined,
+    defaultValues: toFormValues(invoice, baseCurrencyId),
+    values: invoice ? toFormValues(invoice, baseCurrencyId) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const customerId = useWatch({ control: form.control, name: "customer_id" });
   const selectedCustomerId = optionalUuid(customerId);

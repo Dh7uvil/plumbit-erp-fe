@@ -31,7 +31,7 @@ import {
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
-const COLUMN_COUNT = 10;
+const COLUMN_COUNT = 9;
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -63,6 +63,20 @@ function documentHref(doc: AgingDocument): string | null {
   return documentDetailHref(doc.item_type, doc.document_id);
 }
 
+function documentMeta(doc: AgingDocument): string {
+  const parts: string[] = [];
+  if (doc.currency_code) {
+    parts.push(doc.currency_code);
+  }
+  if (doc.document_balance) {
+    parts.push(formatReportMoney(doc.document_balance, doc.currency_code));
+  }
+  if (doc.exchange_rate) {
+    parts.push(`@ ${doc.exchange_rate}`);
+  }
+  return parts.length > 0 ? ` (${parts.join(" · ")})` : "";
+}
+
 export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
   const { filters, setParams } = useTableParams();
   const asOf = filters.as_of || todayIsoDate();
@@ -77,6 +91,7 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
   const path = kind === "ar" ? "/reports/ar-aging" : "/reports/ap-aging";
   const filename = kind === "ar" ? "ar-aging" : "ap-aging";
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const reportCurrency = report?.currency_code;
 
   function toggle(partyId: string) {
     setExpanded((current) => {
@@ -94,9 +109,9 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
     <ReportShell
       title={kind === "ar" ? "AR aging" : "AP aging"}
       subtitle={
-        kind === "ar"
-          ? "Open receivables by customer as of the selected date. Document currency is labeled; base-currency totals appear below."
-          : "Open payables by supplier as of the selected date. Document currency is labeled; base-currency totals appear below."
+        reportCurrency
+          ? `All amounts in ${reportCurrency}. Expand a party to see document currency on each line.`
+          : "Open receivables and payables as of the selected date."
       }
       csvPending={csvPending}
       excelPending={excelPending}
@@ -133,7 +148,6 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
           <TableRow>
             <TableHead className="w-8" />
             <TableHead>{kind === "ar" ? "Customer" : "Supplier"}</TableHead>
-            <TableHead>Currency</TableHead>
             <TableHead>Current</TableHead>
             <TableHead>1–30</TableHead>
             <TableHead>31–60</TableHead>
@@ -204,8 +218,7 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
                       <TableCell>
                         <RecordLink href={partyHref(row)}>{row.party_name}</RecordLink>
                       </TableCell>
-                      <TableCell>{row.currency_code || report?.currency_code || "—"}</TableCell>
-                      <BucketCells row={row} currencyCode={row.currency_code} />
+                      <BucketCells row={row} currencyCode={reportCurrency} />
                     </TableRow>
                     {isOpen
                       ? docs.map((doc) => {
@@ -216,7 +229,7 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
                               className="bg-muted/30"
                             >
                               <TableCell />
-                              <TableCell colSpan={2} className="pl-8 text-sm">
+                              <TableCell colSpan={6} className="pl-8 text-sm">
                                 {href ? (
                                   <RecordLink href={href}>{doc.document_number}</RecordLink>
                                 ) : (
@@ -226,11 +239,11 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
                                   {formatDate(doc.document_date)}
                                   {doc.due_date ? ` · due ${formatDate(doc.due_date)}` : ""}
                                   {` · ${doc.bucket.replaceAll("_", " ")}`}
+                                  {documentMeta(doc)}
                                 </span>
                               </TableCell>
-                              <TableCell colSpan={5} />
                               <TableCell className="tabular-nums">
-                                {formatReportMoney(doc.balance, doc.currency_code)}
+                                {formatReportMoney(doc.balance, reportCurrency)}
                               </TableCell>
                             </TableRow>
                           );
@@ -239,22 +252,13 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
                   </Fragment>
                 );
               })}
-              {(report?.currency_totals ?? []).map((row) => (
-                <TableRow key={`currency-${row.currency_code}`}>
-                  <TableCell />
-                  <TableCell className="font-medium">{row.currency_code} totals</TableCell>
-                  <TableCell>{row.currency_code}</TableCell>
-                  <BucketCells row={row} currencyCode={row.currency_code} />
-                </TableRow>
-              ))}
-              {report?.base_totals ? (
+              {report?.totals ? (
                 <TableRow>
                   <TableCell />
                   <TableCell className="font-medium">
-                    Base totals{report.currency_code ? ` (${report.currency_code})` : ""}
+                    Totals{reportCurrency ? ` (${reportCurrency})` : ""}
                   </TableCell>
-                  <TableCell>{report.currency_code || "—"}</TableCell>
-                  <BucketCells row={report.base_totals} currencyCode={report.currency_code} />
+                  <BucketCells row={report.totals} currencyCode={reportCurrency} />
                 </TableRow>
               ) : null}
             </>

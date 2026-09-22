@@ -72,6 +72,8 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 function todayIsoDate(): string {
@@ -167,7 +169,7 @@ function toFormLines(
   }));
 }
 
-function toFormValues(invoice: PurchaseInvoice | null): PurchaseInvoiceFormValues {
+function toFormValues(invoice: PurchaseInvoice | null, defaultCurrencyId?: string): PurchaseInvoiceFormValues {
   const billType = invoice?.bill_type ?? "GOODS";
   return {
     supplier_id: invoice?.supplier_id ?? OPTIONAL_SELECT_NONE,
@@ -180,7 +182,7 @@ function toFormValues(invoice: PurchaseInvoice | null): PurchaseInvoiceFormValue
     supplier_invoice_number: invoice?.supplier_invoice_number ?? "",
     supplier_invoice_date: invoice?.supplier_invoice_date ?? "",
     payment_terms_id: invoice?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
-    currency_id: invoice?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: invoice?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     notes: invoice?.notes ?? "",
     discount_type: invoice?.discount_type ?? OPTIONAL_SELECT_NONE,
     discount_value: invoice?.discount_value ?? "",
@@ -265,16 +267,18 @@ export function PurchaseInvoiceForm({
   const [creating, setCreating] = useState<"supplier" | "currency" | "paymentTerms" | null>(null);
   const dirtyCompose = useRef(new Set<"currency_id" | "payment_terms_id">());
   const isEdit = Boolean(invoice);
+  const { baseCurrencyId } = useBaseCurrency();
   const sourced = Boolean(
     invoice?.lines.some((line) => line.goods_receipt_line_id || line.purchase_order_line_id),
   );
 
   const form = useForm<PurchaseInvoiceFormValues>({
     resolver: zodResolver(PurchaseInvoiceFormSchema),
-    defaultValues: toFormValues(invoice),
-    values: invoice ? toFormValues(invoice) : undefined,
+    defaultValues: toFormValues(invoice, baseCurrencyId),
+    values: invoice ? toFormValues(invoice, baseCurrencyId) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
   const billType = useWatch({ control: form.control, name: "bill_type" });

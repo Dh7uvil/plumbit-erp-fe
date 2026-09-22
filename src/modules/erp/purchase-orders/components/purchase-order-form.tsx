@@ -79,6 +79,8 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 type ComposeField =
@@ -150,6 +152,7 @@ export type PurchaseOrderSuggestionCompose = {
 
 function toFormValues(
   purchaseOrder: PurchaseOrder | null,
+  defaultCurrencyId?: string,
   suggestionCompose?: PurchaseOrderSuggestionCompose | null,
 ): PurchaseOrderFormValues {
   const values: PurchaseOrderFormValues = {
@@ -160,7 +163,7 @@ function toFormValues(
     order_date: purchaseOrder?.order_date ?? todayIsoDate(),
     expected_delivery_date: purchaseOrder?.expected_delivery_date ?? "",
     reference_number: purchaseOrder?.reference_number ?? "",
-    currency_id: purchaseOrder?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: purchaseOrder?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     payment_terms_id: purchaseOrder?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
     notes: purchaseOrder?.notes ?? "",
     terms_and_conditions: purchaseOrder?.terms_and_conditions ?? "",
@@ -275,13 +278,15 @@ export function PurchaseOrderForm({
   >(null);
   const dirtyCompose = useRef(new Set<ComposeField>());
   const isEdit = Boolean(purchaseOrder);
+  const { baseCurrencyId } = useBaseCurrency();
 
   const form = useForm<PurchaseOrderFormValues>({
     resolver: zodResolver(PurchaseOrderFormSchema),
-    defaultValues: toFormValues(purchaseOrder, suggestionCompose),
-    values: purchaseOrder ? toFormValues(purchaseOrder) : undefined,
+    defaultValues: toFormValues(purchaseOrder, baseCurrencyId, suggestionCompose),
+    values: purchaseOrder ? toFormValues(purchaseOrder, baseCurrencyId, suggestionCompose) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   useEffect(() => {
     if (suggestionCompose?.warehouseId) {

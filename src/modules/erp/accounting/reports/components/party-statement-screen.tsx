@@ -69,7 +69,7 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
     <ListPage>
       <PageHeader
         title={kind === "customer" ? "Customer statement" : "Supplier statement"}
-        subtitle="Document-level running balance. This is not the GL account statement."
+        subtitle="Document-level running balance in org currency. Line metadata shows original document currency where applicable."
         actions={
           partyId ? (
             <Button
@@ -131,8 +131,9 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
       </DataTableToolbar>
       {report ? (
         <p className="text-muted-foreground text-sm">
-          {report.party_name}. Opening {formatReportMoney(report.opening_balance)}. Closing{" "}
-          {formatReportMoney(report.closing_balance)}.
+          {report.party_name}. Opening{" "}
+          {formatReportMoney(report.opening_balance, report.currency_code)}. Closing{" "}
+          {formatReportMoney(report.closing_balance, report.currency_code)}.
         </p>
       ) : null}
       <DataTable>
@@ -195,10 +196,14 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
                   </TableCell>
                   <TableCell>{line.due_date ? formatDate(line.due_date) : "—"}</TableCell>
                   <TableCell className="max-w-xs truncate">{line.description ?? "—"}</TableCell>
-                  <TableCell className="tabular-nums">{formatReportMoney(line.debit)}</TableCell>
-                  <TableCell className="tabular-nums">{formatReportMoney(line.credit)}</TableCell>
                   <TableCell className="tabular-nums">
-                    {formatReportMoney(line.running_balance)}
+                    {formatReportMoney(line.debit, report.currency_code)}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {formatReportMoney(line.credit, report.currency_code)}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {formatReportMoney(line.running_balance, report.currency_code)}
                   </TableCell>
                 </TableRow>
               );

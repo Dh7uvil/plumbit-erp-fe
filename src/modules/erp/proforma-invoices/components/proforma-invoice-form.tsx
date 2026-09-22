@@ -92,6 +92,8 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 type ComposeField =
@@ -197,14 +199,14 @@ function toFormLines(invoice: ProformaInvoice | null): ProformaInvoiceLineFormVa
   }));
 }
 
-function toFormValues(invoice: ProformaInvoice | null): ProformaInvoiceFormValues {
+function toFormValues(invoice: ProformaInvoice | null, defaultCurrencyId?: string): ProformaInvoiceFormValues {
   return {
     customer_id: invoice?.customer_id ?? OPTIONAL_SELECT_NONE,
     contact_id: invoice?.contact_id ?? OPTIONAL_SELECT_NONE,
     branch_id: invoice?.branch_id ?? OPTIONAL_SELECT_NONE,
     proforma_date: invoice?.proforma_date ?? todayIsoDate(),
     valid_until: invoice?.valid_until ?? "",
-    currency_id: invoice?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: invoice?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     price_list_id: invoice?.price_list_id ?? OPTIONAL_SELECT_NONE,
     payment_terms_id: invoice?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
     salesperson_id: invoice?.salesperson_id ?? OPTIONAL_SELECT_NONE,
@@ -333,13 +335,15 @@ export function ProformaInvoiceForm({
   >(null);
   const dirtyCompose = useRef(new Set<ComposeField>());
   const isEdit = Boolean(invoice);
+  const { baseCurrencyId } = useBaseCurrency();
 
   const form = useForm<ProformaInvoiceFormValues>({
     resolver: zodResolver(ProformaInvoiceFormSchema),
-    defaultValues: toFormValues(invoice),
-    values: invoice ? toFormValues(invoice) : undefined,
+    defaultValues: toFormValues(invoice, baseCurrencyId),
+    values: invoice ? toFormValues(invoice, baseCurrencyId) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const customerId = useWatch({ control: form.control, name: "customer_id" });
   const selectedCustomerId = optionalUuid(customerId);

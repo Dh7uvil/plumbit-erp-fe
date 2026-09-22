@@ -46,7 +46,11 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
   return (
     <ReportShell
       title={kind === "invoices" ? "Outstanding invoices" : "Outstanding bills"}
-      subtitle="Open documents from posted invoices and opening items, as of the selected date."
+      subtitle={
+        report?.currency_code
+          ? `Open documents as of the selected date. All balances in ${report.currency_code}.`
+          : "Open documents from posted invoices and opening items, as of the selected date."
+      }
       csvPending={csvPending}
       excelPending={excelPending}
       onDownloadCsv={() => {
@@ -79,8 +83,7 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
     >
       {report ? (
         <p className="text-muted-foreground text-sm">
-          Document total {money(report.total_balance)}. Base total{" "}
-          {money(report.total_base_balance, report.currency_code)}.
+          Total outstanding {money(report.total_balance, report.currency_code)}.
         </p>
       ) : null}
       <DataTable>
@@ -92,7 +95,7 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
             <TableHead>Due</TableHead>
             <TableHead>Bucket</TableHead>
             <TableHead>Balance</TableHead>
-            <TableHead>Base</TableHead>
+            <TableHead>Doc currency</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -146,8 +149,12 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
                 <TableCell>{formatDate(line.document_date)}</TableCell>
                 <TableCell>{formatDate(line.due_date)}</TableCell>
                 <TableCell>{line.bucket.replaceAll("_", " ")}</TableCell>
-                <TableCell>{money(line.balance, line.currency_code)}</TableCell>
-                <TableCell>{money(line.base_balance, report.currency_code)}</TableCell>
+                <TableCell>{money(line.balance, report.currency_code)}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">
+                  {line.currency_code
+                    ? `${line.currency_code}${line.document_balance ? ` ${formatReportMoney(line.document_balance, line.currency_code)}` : ""}`
+                    : "—"}
+                </TableCell>
               </TableRow>
             ))
           )}

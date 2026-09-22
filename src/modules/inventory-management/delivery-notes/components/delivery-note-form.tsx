@@ -60,6 +60,8 @@ import {
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 function todayIsoDate(): string {
@@ -82,14 +84,14 @@ function toLineInput(line: DeliveryNoteFormValues["lines"][number]): DeliveryNot
   };
 }
 
-function toFormValues(note: DeliveryNote | null): DeliveryNoteFormValues {
+function toFormValues(note: DeliveryNote | null, defaultCurrencyId?: string): DeliveryNoteFormValues {
   const lines = note?.lines ?? [];
   return {
     sales_order_id: note?.sales_order_id ?? OPTIONAL_SELECT_NONE,
     warehouse_id: note?.warehouse_id ?? OPTIONAL_SELECT_NONE,
     document_date: note?.document_date ?? todayIsoDate(),
     branch_id: note?.branch_id ?? OPTIONAL_SELECT_NONE,
-    currency_id: note?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: note?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     vehicle_number: note?.vehicle_number ?? "",
     driver_name: note?.driver_name ?? "",
     driver_contact: note?.driver_contact ?? "",
@@ -128,12 +130,15 @@ export function DeliveryNoteForm({
   const salesOrdersQuery = useSalesOrders({ status: "CONFIRMED", page_size: 100 });
   const [creating, setCreating] = useState<"warehouse" | "branch" | null>(null);
   const [writeError, setWriteError] = useState<unknown>(null);
+  const isEdit = Boolean(note);
+  const { baseCurrencyId } = useBaseCurrency();
   const form = useForm<DeliveryNoteFormValues>({
     resolver: zodResolver(DeliveryNoteFormSchema),
-    defaultValues: toFormValues(note),
+    defaultValues: toFormValues(note, baseCurrencyId),
   });
   const pending = createNote.isPending || updateNote.isPending;
   useDirtyFormGuard(!disabled && form.formState.isDirty);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const salesOrderId = useWatch({ control: form.control, name: "sales_order_id" });
   const deliverableQuery = useSalesOrderDeliverableLines(
     optionalUuid(salesOrderId),
@@ -143,7 +148,7 @@ export function DeliveryNoteForm({
   const watchedLines = useWatch({ control: form.control, name: "lines" });
 
   useEffect(() => {
-    form.reset(toFormValues(note));
+    form.reset(toFormValues(note, baseCurrencyId));
   }, [form, note]);
 
   useEffect(() => {

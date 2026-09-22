@@ -66,6 +66,8 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 function todayIsoDate(): string {
@@ -80,11 +82,12 @@ function optionalUuid(value: string): string | null {
 function toFormValues(
   payment: CustomerPayment | null,
   defaults?: CustomerPaymentFormDefaults,
+  defaultCurrencyId?: string,
 ): CustomerPaymentFormValues {
   return {
     customer_id: payment?.customer_id ?? defaults?.customerId ?? OPTIONAL_SELECT_NONE,
     payment_date: payment?.payment_date ?? todayIsoDate(),
-    currency_id: payment?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: payment?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     amount_received: payment?.amount_received ?? "",
     bank_charges: payment?.bank_charges && payment.bank_charges !== "0" ? payment.bank_charges : "",
     payment_account_id: payment?.payment_account_id ?? OPTIONAL_SELECT_NONE,
@@ -171,13 +174,16 @@ export function CustomerPaymentForm({
   const [allocationValues, setAllocationValues] = useState<Record<string, string>>(() =>
     Object.fromEntries((payment?.allocations ?? []).map((row) => [row.item_id, row.amount])),
   );
+  const isEdit = Boolean(payment);
+  const { baseCurrencyId } = useBaseCurrency();
 
   const form = useForm<CustomerPaymentFormValues>({
     resolver: zodResolver(CustomerPaymentFormSchema),
-    defaultValues: toFormValues(payment, defaults),
-    values: payment ? toFormValues(payment) : undefined,
+    defaultValues: toFormValues(payment, defaults, baseCurrencyId),
+    values: payment ? toFormValues(payment, defaults, baseCurrencyId) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const customerId = useWatch({ control: form.control, name: "customer_id" });
   const amountReceived = useWatch({ control: form.control, name: "amount_received" });
