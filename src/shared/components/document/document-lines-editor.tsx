@@ -83,6 +83,7 @@ const RECEIVE_LINE_HEADERS = [
   "Rate",
   "Net wt",
   "Gross wt",
+  "Volume",
   "",
 ] as const;
 
@@ -98,6 +99,7 @@ function lineHeaders(
   showSupplierSku: boolean,
   mode: DocumentLinesMode,
   showPacking: boolean,
+  showHsCode: boolean,
 ): readonly string[] {
   let headers: readonly string[];
   if (mode === "expense") {
@@ -121,9 +123,13 @@ function lineHeaders(
       "",
     ];
   }
-  if (showPacking && mode === "standard") {
+  if (mode === "standard" && (showPacking || showHsCode)) {
     const withoutActions = headers.slice(0, -1);
-    return [...withoutActions, "Item code", "PKG", "Ctns", "CBM", "Weight", ""];
+    const packing = showPacking
+      ? (["Item code", "PKG", "Ctns", "CBM", "Weight"] as const)
+      : ([] as const);
+    const hs = showHsCode ? (["HS code"] as const) : ([] as const);
+    return [...withoutActions, ...packing, ...hs, ""];
   }
   return headers;
 }
@@ -277,6 +283,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   supplierCatalog,
   lineMode = "standard",
   showPacking = false,
+  showHsCode = false,
 }: {
   form: UseFormReturn<TFieldValues>;
   disabled: boolean;
@@ -284,6 +291,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   supplierCatalog?: SupplierCatalogProps;
   lineMode?: DocumentLinesMode;
   showPacking?: boolean;
+  showHsCode?: boolean;
 }) {
   const can = useCan();
   const productsQuery = useAllProducts();
@@ -315,7 +323,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const isReceive = lineMode === "receive";
   const isExpense = lineMode === "expense";
   const showSupplierSku = Boolean(supplierCatalog) || isReceive;
-  const headers = lineHeaders(showSupplierSku, lineMode, showPacking);
+  const headers = lineHeaders(showSupplierSku, lineMode, showPacking, showHsCode);
   const rawCurrencyId = useWatch({
     control: form.control,
     name: "currency_id" as Path<TFieldValues>,
@@ -492,58 +500,58 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         )}
                       />
                     </TableCell>
-                  <TableCell className="w-28 min-w-28 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "rate")}
-                      render={({ field: rateField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <DecimalInput
-                              kind="money"
-                              className="w-full min-w-0 text-right"
-                              disabled={disabled}
-                              aria-label={`Line ${index + 1} amount`}
-                              {...rateField}
-                            />
+                    <TableCell className="w-28 min-w-28 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "rate")}
+                        render={({ field: rateField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <DecimalInput
+                                kind="money"
+                                className="w-full min-w-0 text-right"
+                                disabled={disabled}
+                                aria-label={`Line ${index + 1} amount`}
+                                {...rateField}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </TableCell>
-                  <TableCell className="min-w-44 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "tax_id")}
-                      render={({ field: taxField }) => (
-                        <FormItem>
-                          <MasterSelect
-                            compact
-                            value={String(taxField.value ?? OPTIONAL_SELECT_NONE)}
-                            onValueChange={taxField.onChange}
-                            disabled={disabled || taxesQuery.isLoading}
-                            placeholder="None"
-                            searchPlaceholder="Search tax…"
-                            createLabel="Create tax"
-                            onCreate={
-                              can(taxPermissions.create)
-                                ? () => setLineCreate({ type: "tax", index })
-                                : undefined
-                            }
-                            options={[
-                              { value: OPTIONAL_SELECT_NONE, label: "None" },
-                              ...taxes.map((tax) => ({
-                                value: tax.id,
-                                label: tax.name,
-                              })),
-                            ]}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
+                    <TableCell className="min-w-44 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "tax_id")}
+                        render={({ field: taxField }) => (
+                          <FormItem>
+                            <MasterSelect
+                              compact
+                              value={String(taxField.value ?? OPTIONAL_SELECT_NONE)}
+                              onValueChange={taxField.onChange}
+                              disabled={disabled || taxesQuery.isLoading}
+                              placeholder="None"
+                              searchPlaceholder="Search tax…"
+                              createLabel="Create tax"
+                              onCreate={
+                                can(taxPermissions.create)
+                                  ? () => setLineCreate({ type: "tax", index })
+                                  : undefined
+                              }
+                              options={[
+                                { value: OPTIONAL_SELECT_NONE, label: "None" },
+                                ...taxes.map((tax) => ({
+                                  value: tax.id,
+                                  label: tax.name,
+                                })),
+                              ]}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
                     <TableCell className="align-top">
                       {disabled ? null : (
                         <TableActionTooltip label="Remove line">
@@ -562,395 +570,435 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                     </TableCell>
                   </TableRow>
                 ) : (
-                <TableRow key={field.id}>
-                  <TableCell className="min-w-56 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "product_id")}
-                      render={({ field: productField }) => (
-                        <FormItem>
-                          <MasterSelect
-                            compact
-                            value={String(productField.value ?? OPTIONAL_SELECT_NONE)}
-                            onValueChange={(value) => {
-                              productField.onChange(value);
-                              if (value !== OPTIONAL_SELECT_NONE) {
-                                applyProduct(index, value);
+                  <TableRow key={field.id}>
+                    <TableCell className="min-w-56 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "product_id")}
+                        render={({ field: productField }) => (
+                          <FormItem>
+                            <MasterSelect
+                              compact
+                              value={String(productField.value ?? OPTIONAL_SELECT_NONE)}
+                              onValueChange={(value) => {
+                                productField.onChange(value);
+                                if (value !== OPTIONAL_SELECT_NONE) {
+                                  applyProduct(index, value);
+                                }
+                              }}
+                              disabled={disabled || productsQuery.isLoading}
+                              placeholder="Custom line"
+                              searchPlaceholder="Search product…"
+                              emptyText={
+                                productsQuery.isError ? "Could not load products" : "No products"
                               }
-                            }}
-                            disabled={disabled || productsQuery.isLoading}
-                            placeholder="Custom line"
-                            searchPlaceholder="Search product…"
-                            emptyText={
-                              productsQuery.isError
-                                ? "Could not load products"
-                                : "No products"
-                            }
-                            createLabel="Create product"
-                            onCreate={
-                              can(productPermissions.create)
-                                ? () => setLineCreate({ type: "product", index })
-                                : undefined
-                            }
-                            options={[
-                              { value: OPTIONAL_SELECT_NONE, label: "Custom line" },
-                              ...productOptions,
-                            ]}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {supplierCatalog && !disabled ? (
-                      <UnmappedCatalogLink
-                        form={form}
-                        index={index}
-                        catalog={catalog}
-                        canLink={can(supplierProductPermissions.link)}
-                        onLink={(row) => setLinking({ row, index })}
+                              createLabel="Create product"
+                              onCreate={
+                                can(productPermissions.create)
+                                  ? () => setLineCreate({ type: "product", index })
+                                  : undefined
+                              }
+                              options={[
+                                { value: OPTIONAL_SELECT_NONE, label: "Custom line" },
+                                ...productOptions,
+                              ]}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    ) : null}
-                  </TableCell>
-                  {showSupplierSku ? (
-                    <TableCell className="min-w-48 align-top">
-                      {disabled ? (
-                        <FormField
-                          control={form.control}
-                          name={linePath<TFieldValues>(index, "supplier_sku")}
-                          render={({ field: skuField }) => (
-                            <span className="font-mono text-sm">
-                              {String(skuField.value || "—")}
-                            </span>
-                          )}
+                      {supplierCatalog && !disabled ? (
+                        <UnmappedCatalogLink
+                          form={form}
+                          index={index}
+                          catalog={catalog}
+                          canLink={can(supplierProductPermissions.link)}
+                          onLink={(row) => setLinking({ row, index })}
                         />
-                      ) : (
-                        <FormField
-                          control={form.control}
-                          name={linePath<TFieldValues>(index, "supplier_product_id")}
-                          render={({ field: catalogField }) => (
-                            <FormItem>
-                              <MasterSelect
-                                compact
-                                value={String(catalogField.value ?? OPTIONAL_SELECT_NONE)}
-                                onValueChange={(value) => {
-                                  catalogField.onChange(value);
-                                  if (value === OPTIONAL_SELECT_NONE) {
-                                    setLineValue(index, "supplier_sku", "");
-                                    return;
-                                  }
-                                  const row = catalog.find((item) => item.id === value);
-                                  if (row) {
-                                    applyCatalogRow(index, row);
-                                  }
-                                }}
-                                disabled={!supplierId || catalogQuery.isLoading}
-                                placeholder="None"
-                                searchPlaceholder="Search supplier SKU…"
-                                options={[
-                                  { value: OPTIONAL_SELECT_NONE, label: "None" },
-                                  ...catalog.map((row) => ({
-                                    value: row.id,
-                                    label: `${row.supplier_sku} — ${row.supplier_item_name}`,
-                                  })),
-                                ]}
-                              />
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
+                      ) : null}
                     </TableCell>
-                  ) : null}
-                  <TableCell className="min-w-64 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "description")}
-                      render={({ field: descriptionField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input
-                              disabled={disabled}
-                              aria-label={`Line ${index + 1} description`}
-                              {...descriptionField}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
-                  <TableCell className="w-24 min-w-24 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "quantity")}
-                      render={({ field: quantityField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <DecimalInput
-                              kind="quantity"
-                              className="w-full min-w-0 text-right"
-                              disabled={disabled}
-                              aria-label={`Line ${index + 1} quantity`}
-                              {...quantityField}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
-                  <TableCell className="min-w-32 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "unit_id")}
-                      render={({ field: unitField }) => (
-                        <FormItem>
-                          <MasterSelect
-                            compact
-                            value={String(unitField.value ?? OPTIONAL_SELECT_NONE)}
-                            onValueChange={unitField.onChange}
-                            disabled={disabled || unitsQuery.isLoading}
-                            placeholder="None"
-                            searchPlaceholder="Search unit…"
-                            createLabel="Create unit"
-                            onCreate={
-                              can(unitPermissions.create)
-                                ? () => setLineCreate({ type: "unit", index })
-                                : undefined
-                            }
-                            options={[
-                              { value: OPTIONAL_SELECT_NONE, label: "None" },
-                              ...units.map((unit) => ({
-                                value: unit.id,
-                                label: unit.code,
-                              })),
-                            ]}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
-                  <TableCell className="w-28 min-w-28 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "rate")}
-                      render={({ field: rateField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <DecimalInput
-                              kind="money"
-                              className="w-full min-w-0 text-right"
-                              disabled={disabled}
-                              aria-label={`Line ${index + 1} rate`}
-                              {...rateField}
-                            />
-                          </FormControl>
-                          {supplierCatalog ? (
-                            <CatalogRateHint
-                              form={form}
-                              index={index}
-                              catalog={catalog}
-                              documentCurrencyId={documentCurrencyId}
-                            />
-                          ) : null}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
-                  {isReceive ? (
-                    <>
-                      <TableCell className="w-24 min-w-24 align-top">
-                        <FormField
-                          control={form.control}
-                          name={linePath<TFieldValues>(index, "net_weight")}
-                          render={({ field: weightField }) => (
-                            <FormItem>
-                              <FormControl>
-                                <DecimalInput
-                                  kind="quantity"
-                                  className="w-full min-w-0 text-right"
-                                  disabled={disabled}
-                                  aria-label={`Line ${index + 1} net weight`}
-                                  {...weightField}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell className="w-24 min-w-24 align-top">
-                        <FormField
-                          control={form.control}
-                          name={linePath<TFieldValues>(index, "gross_weight")}
-                          render={({ field: weightField }) => (
-                            <FormItem>
-                              <FormControl>
-                                <DecimalInput
-                                  kind="quantity"
-                                  className="w-full min-w-0 text-right"
-                                  disabled={disabled}
-                                  aria-label={`Line ${index + 1} gross weight`}
-                                  {...weightField}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TableCell>
-                    </>
-                  ) : (
-                    <>
-                  <TableCell className="min-w-36 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "discount_type")}
-                      render={({ field: typeField }) => (
-                        <FormItem>
-                          <Select
-                            value={String(typeField.value ?? OPTIONAL_SELECT_NONE)}
-                            onValueChange={typeField.onChange}
-                            disabled={disabled}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="None" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                              {DISCOUNT_TYPES.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {DISCOUNT_TYPE_LABELS[type]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
-                  <TableCell className="w-24 min-w-24 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "discount_value")}
-                      render={({ field: discountField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <DecimalInput
-                              kind="money"
-                              className="w-full min-w-0 text-right"
-                              disabled={disabled}
-                              aria-label={`Line ${index + 1} discount`}
-                              {...discountField}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
-                  <TableCell className="min-w-44 align-top">
-                    <FormField
-                      control={form.control}
-                      name={linePath<TFieldValues>(index, "tax_id")}
-                      render={({ field: taxField }) => (
-                        <FormItem>
-                          <MasterSelect
-                            compact
-                            value={String(taxField.value ?? OPTIONAL_SELECT_NONE)}
-                            onValueChange={taxField.onChange}
-                            disabled={disabled || taxesQuery.isLoading}
-                            placeholder="None"
-                            searchPlaceholder="Search tax…"
-                            createLabel="Create tax"
-                            onCreate={
-                              can(taxPermissions.create)
-                                ? () => setLineCreate({ type: "tax", index })
-                                : undefined
-                            }
-                            options={[
-                              { value: OPTIONAL_SELECT_NONE, label: "None" },
-                              ...taxes.map((tax) => ({
-                                value: tax.id,
-                                label: tax.name,
-                              })),
-                            ]}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
-                    </>
-                  )}
-                  {!isReceive && !isExpense ? (
-                    <TableCell className="w-28 min-w-28 align-top">
-                      <LineAmountCell form={form} index={index} />
-                    </TableCell>
-                  ) : null}
-                  {showPacking && !isReceive && !isExpense
-                    ? (
-                        [
-                          ["item_code", "Item code", false],
-                          ["packing_unit", "PKG", false],
-                          ["carton_qty", "Ctns", true],
-                          ["cbm", "CBM", true],
-                          ["weight", "Weight", true],
-                        ] as const
-                      ).map(([name, label, decimal]) => (
-                        <TableCell key={name} className="w-24 min-w-24 align-top">
+                    {showSupplierSku ? (
+                      <TableCell className="min-w-48 align-top">
+                        {disabled ? (
                           <FormField
                             control={form.control}
-                            name={linePath<TFieldValues>(index, name)}
-                            render={({ field: packingField }) => (
+                            name={linePath<TFieldValues>(index, "supplier_sku")}
+                            render={({ field: skuField }) => (
+                              <span className="font-mono text-sm">
+                                {String(skuField.value || "—")}
+                              </span>
+                            )}
+                          />
+                        ) : (
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, "supplier_product_id")}
+                            render={({ field: catalogField }) => (
+                              <FormItem>
+                                <MasterSelect
+                                  compact
+                                  value={String(catalogField.value ?? OPTIONAL_SELECT_NONE)}
+                                  onValueChange={(value) => {
+                                    catalogField.onChange(value);
+                                    if (value === OPTIONAL_SELECT_NONE) {
+                                      setLineValue(index, "supplier_sku", "");
+                                      return;
+                                    }
+                                    const row = catalog.find((item) => item.id === value);
+                                    if (row) {
+                                      applyCatalogRow(index, row);
+                                    }
+                                  }}
+                                  disabled={!supplierId || catalogQuery.isLoading}
+                                  placeholder="None"
+                                  searchPlaceholder="Search supplier SKU…"
+                                  options={[
+                                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                                    ...catalog.map((row) => ({
+                                      value: row.id,
+                                      label: `${row.supplier_sku} — ${row.supplier_item_name}`,
+                                    })),
+                                  ]}
+                                />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </TableCell>
+                    ) : null}
+                    <TableCell className="min-w-64 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "description")}
+                        render={({ field: descriptionField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                disabled={disabled}
+                                aria-label={`Line ${index + 1} description`}
+                                {...descriptionField}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="w-24 min-w-24 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "quantity")}
+                        render={({ field: quantityField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <DecimalInput
+                                kind="quantity"
+                                className="w-full min-w-0 text-right"
+                                disabled={disabled}
+                                aria-label={`Line ${index + 1} quantity`}
+                                {...quantityField}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="min-w-32 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "unit_id")}
+                        render={({ field: unitField }) => (
+                          <FormItem>
+                            <MasterSelect
+                              compact
+                              value={String(unitField.value ?? OPTIONAL_SELECT_NONE)}
+                              onValueChange={unitField.onChange}
+                              disabled={disabled || unitsQuery.isLoading}
+                              placeholder="None"
+                              searchPlaceholder="Search unit…"
+                              createLabel="Create unit"
+                              onCreate={
+                                can(unitPermissions.create)
+                                  ? () => setLineCreate({ type: "unit", index })
+                                  : undefined
+                              }
+                              options={[
+                                { value: OPTIONAL_SELECT_NONE, label: "None" },
+                                ...units.map((unit) => ({
+                                  value: unit.id,
+                                  label: unit.code,
+                                })),
+                              ]}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="w-28 min-w-28 align-top">
+                      <FormField
+                        control={form.control}
+                        name={linePath<TFieldValues>(index, "rate")}
+                        render={({ field: rateField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <DecimalInput
+                                kind="money"
+                                className="w-full min-w-0 text-right"
+                                disabled={disabled}
+                                aria-label={`Line ${index + 1} rate`}
+                                {...rateField}
+                              />
+                            </FormControl>
+                            {supplierCatalog ? (
+                              <CatalogRateHint
+                                form={form}
+                                index={index}
+                                catalog={catalog}
+                                documentCurrencyId={documentCurrencyId}
+                              />
+                            ) : null}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                    {isReceive ? (
+                      <>
+                        <TableCell className="w-24 min-w-24 align-top">
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, "net_weight")}
+                            render={({ field: weightField }) => (
                               <FormItem>
                                 <FormControl>
-                                  {decimal ? (
-                                    <DecimalInput
-                                      kind="quantity"
-                                      className="w-full min-w-0 text-right"
-                                      disabled={disabled}
-                                      aria-label={`Line ${index + 1} ${label}`}
-                                      {...packingField}
-                                    />
-                                  ) : (
-                                    <Input
-                                      disabled={disabled}
-                                      className="w-full min-w-0"
-                                      aria-label={`Line ${index + 1} ${label}`}
-                                      {...packingField}
-                                    />
-                                  )}
+                                  <DecimalInput
+                                    kind="quantity"
+                                    className="w-full min-w-0 text-right"
+                                    disabled={disabled}
+                                    aria-label={`Line ${index + 1} net weight`}
+                                    {...weightField}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
                         </TableCell>
-                      ))
-                    : null}
-                  <TableCell className="align-top">
-                    {disabled ? null : (
-                      <TableActionTooltip label="Remove line">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive size-7"
-                          aria-label="Remove line"
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </TableActionTooltip>
+                        <TableCell className="w-24 min-w-24 align-top">
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, "gross_weight")}
+                            render={({ field: weightField }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <DecimalInput
+                                    kind="quantity"
+                                    className="w-full min-w-0 text-right"
+                                    disabled={disabled}
+                                    aria-label={`Line ${index + 1} gross weight`}
+                                    {...weightField}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell className="w-24 min-w-24 align-top">
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, "volume")}
+                            render={({ field: volumeField }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <DecimalInput
+                                    kind="quantity"
+                                    className="w-full min-w-0 text-right"
+                                    disabled={disabled}
+                                    aria-label={`Line ${index + 1} volume`}
+                                    {...volumeField}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="min-w-36 align-top">
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, "discount_type")}
+                            render={({ field: typeField }) => (
+                              <FormItem>
+                                <Select
+                                  value={String(typeField.value ?? OPTIONAL_SELECT_NONE)}
+                                  onValueChange={typeField.onChange}
+                                  disabled={disabled}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="None" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
+                                    {DISCOUNT_TYPES.map((type) => (
+                                      <SelectItem key={type} value={type}>
+                                        {DISCOUNT_TYPE_LABELS[type]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell className="w-24 min-w-24 align-top">
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, "discount_value")}
+                            render={({ field: discountField }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <DecimalInput
+                                    kind="money"
+                                    className="w-full min-w-0 text-right"
+                                    disabled={disabled}
+                                    aria-label={`Line ${index + 1} discount`}
+                                    {...discountField}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell className="min-w-44 align-top">
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, "tax_id")}
+                            render={({ field: taxField }) => (
+                              <FormItem>
+                                <MasterSelect
+                                  compact
+                                  value={String(taxField.value ?? OPTIONAL_SELECT_NONE)}
+                                  onValueChange={taxField.onChange}
+                                  disabled={disabled || taxesQuery.isLoading}
+                                  placeholder="None"
+                                  searchPlaceholder="Search tax…"
+                                  createLabel="Create tax"
+                                  onCreate={
+                                    can(taxPermissions.create)
+                                      ? () => setLineCreate({ type: "tax", index })
+                                      : undefined
+                                  }
+                                  options={[
+                                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                                    ...taxes.map((tax) => ({
+                                      value: tax.id,
+                                      label: tax.name,
+                                    })),
+                                  ]}
+                                />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TableCell>
+                      </>
                     )}
-                  </TableCell>
-                </TableRow>
+                    {!isReceive && !isExpense ? (
+                      <TableCell className="w-28 min-w-28 align-top">
+                        <LineAmountCell form={form} index={index} />
+                      </TableCell>
+                    ) : null}
+                    {showPacking && !isReceive && !isExpense
+                      ? (
+                          [
+                            ["item_code", "Item code", false],
+                            ["packing_unit", "PKG", false],
+                            ["carton_qty", "Ctns", true],
+                            ["cbm", "CBM", true],
+                            ["weight", "Weight", true],
+                          ] as const
+                        ).map(([name, label, decimal]) => (
+                          <TableCell key={name} className="w-24 min-w-24 align-top">
+                            <FormField
+                              control={form.control}
+                              name={linePath<TFieldValues>(index, name)}
+                              render={({ field: packingField }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    {decimal ? (
+                                      <DecimalInput
+                                        kind="quantity"
+                                        className="w-full min-w-0 text-right"
+                                        disabled={disabled}
+                                        aria-label={`Line ${index + 1} ${label}`}
+                                        {...packingField}
+                                      />
+                                    ) : (
+                                      <Input
+                                        disabled={disabled}
+                                        className="w-full min-w-0"
+                                        aria-label={`Line ${index + 1} ${label}`}
+                                        {...packingField}
+                                      />
+                                    )}
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+                        ))
+                      : null}
+                    {showHsCode && !isReceive && !isExpense ? (
+                      <TableCell className="w-24 min-w-24 align-top">
+                        <FormField
+                          control={form.control}
+                          name={linePath<TFieldValues>(index, "hs_code")}
+                          render={({ field: hsField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  disabled={disabled}
+                                  className="w-full min-w-0"
+                                  maxLength={20}
+                                  aria-label={`Line ${index + 1} HS code`}
+                                  {...hsField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                    ) : null}
+                    <TableCell className="align-top">
+                      {disabled ? null : (
+                        <TableActionTooltip label="Remove line">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive size-7"
+                            aria-label="Remove line"
+                            onClick={() => remove(index)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </TableActionTooltip>
+                      )}
+                    </TableCell>
+                  </TableRow>
                 ),
               )
             )}

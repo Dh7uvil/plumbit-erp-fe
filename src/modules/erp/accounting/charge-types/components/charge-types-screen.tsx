@@ -18,6 +18,7 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
+import { MasterSelect } from "@/shared/components/form/master-select";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -64,6 +65,29 @@ export function ChargeTypesScreen() {
     }
   };
 
+  const updateDefaultAccount = async (row: ChargeType, accountId: string) => {
+    if (!canUpdate || !accountId || accountId === row.default_account_id) {
+      return;
+    }
+    try {
+      await updateChargeType.mutateAsync({
+        id: row.id,
+        payload: { default_account_id: accountId },
+      });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  const accountOptions = useMemo(
+    () =>
+      (accountsQuery.data?.data ?? []).map((account) => ({
+        value: account.id,
+        label: `${account.code} — ${account.name}`,
+      })),
+    [accountsQuery.data?.data],
+  );
+
   const columnDefs = useMemo((): Array<DataTableColumn<ChargeType>> => {
     return [
       {
@@ -92,7 +116,20 @@ export function ChargeTypesScreen() {
       {
         id: "default_account_id",
         header: "Default GL account",
-        cell: (row) => accountNameById.get(row.default_account_id) ?? row.default_account_id,
+        cell: (row) =>
+          canUpdate ? (
+            <MasterSelect
+              compact
+              value={row.default_account_id}
+              onValueChange={(value) => void updateDefaultAccount(row, value)}
+              disabled={accountsQuery.isLoading || updateChargeType.isPending}
+              placeholder="Select account"
+              searchPlaceholder="Search account…"
+              options={accountOptions}
+            />
+          ) : (
+            (accountNameById.get(row.default_account_id) ?? row.default_account_id)
+          ),
       },
       {
         id: "allocation_basis",
@@ -106,7 +143,13 @@ export function ChargeTypesScreen() {
         cell: (row) => <ActiveBadge active={row.is_active} />,
       },
     ];
-  }, [accountNameById, canUpdate, updateChargeType]);
+  }, [
+    accountNameById,
+    accountOptions,
+    accountsQuery.isLoading,
+    canUpdate,
+    updateChargeType.isPending,
+  ]);
 
   const { columns, colSpan } = useTableColumns("erp.charge_types", columnDefs);
 

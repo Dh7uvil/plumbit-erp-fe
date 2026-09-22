@@ -599,7 +599,11 @@ export function PurchaseInvoiceForm({
           />
         </div>
         {billType === "IMPORT" || billType === "GOODS" ? (
-          <DocumentChargesPanel form={form} disabled={disabled || sourced} appliesTo="IMPORT" />
+          <DocumentChargesPanel
+            form={form}
+            disabled={disabled || sourced}
+            appliesTo={billType === "IMPORT" ? "IMPORT" : "BOTH"}
+          />
         ) : null}
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
         <FormField

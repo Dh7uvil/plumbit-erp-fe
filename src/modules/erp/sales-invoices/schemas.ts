@@ -126,6 +126,7 @@ export const SalesInvoiceLineSchema = z.object({
   cogs_amount: MoneySchema,
   cogs_status: CogsStatusSchema,
   qty_credited: DecimalStringSchema,
+  hs_code: z.string().nullable().optional().default(null),
   ...PackingLineResponseFields,
 });
 export type SalesInvoiceLine = z.infer<typeof SalesInvoiceLineSchema>;
@@ -169,6 +170,7 @@ export const SalesInvoiceSchema = z.object({
   base_amount: MoneySchema,
   bill_to_snapshot: z.string().nullable(),
   ship_to_snapshot: z.string().nullable(),
+  country_of_origin: z.string().nullable().optional().default(null),
   notes: z.string().nullable(),
   terms_and_conditions: z.string().nullable(),
   amount_paid: MoneySchema,
@@ -214,6 +216,7 @@ export const SalesInvoiceLineInputSchema = z.object({
   discount_type: DiscountTypeSchema.nullable().optional(),
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
+  hs_code: z.string().max(20).nullable().optional(),
   ...PackingLineInputFields,
 });
 export type SalesInvoiceLineInput = z.infer<typeof SalesInvoiceLineInputSchema>;
@@ -236,6 +239,7 @@ export const SalesInvoiceCreateRequestSchema = z.object({
   adjustment_amount: MoneySchema.optional(),
   round_off_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  country_of_origin: z.string().max(2).nullable().optional(),
   lines: z.array(SalesInvoiceLineInputSchema),
 });
 export type SalesInvoiceCreateRequest = z.infer<typeof SalesInvoiceCreateRequestSchema>;
@@ -256,6 +260,7 @@ export const SalesInvoiceUpdateRequestSchema = z.object({
   adjustment_amount: MoneySchema.nullable().optional(),
   round_off_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  country_of_origin: z.string().max(2).nullable().optional(),
   lines: z.array(SalesInvoiceLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -314,6 +319,7 @@ export const SalesInvoiceLineFormSchema = z
     sales_order_line_id: z.string(),
     delivery_note_id: z.string(),
     delivery_note_line_id: z.string(),
+    hs_code: z.string().optional(),
   })
   .merge(PackingLineFormFieldsSchema);
 export type SalesInvoiceLineFormValues = z.infer<typeof SalesInvoiceLineFormSchema>;
@@ -353,6 +359,7 @@ export const SalesInvoiceFormSchema = z
     tax_treatment: z.string(),
     bill_to_snapshot: z.string(),
     ship_to_snapshot: z.string(),
+    country_of_origin: z.string(),
     lines: z.array(SalesInvoiceLineFormSchema),
   })
   .superRefine((values, ctx) => {

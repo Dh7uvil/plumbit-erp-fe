@@ -121,6 +121,7 @@ function toLineInput(line: SalesInvoiceLineFormValues): SalesInvoiceLineInput {
     sales_order_line_id: optionalUuid(line.sales_order_line_id),
     delivery_note_id: optionalUuid(line.delivery_note_id),
     delivery_note_line_id: optionalUuid(line.delivery_note_line_id),
+    hs_code: emptyToNull(line.hs_code ?? ""),
     ...packingLineInput(line),
   };
 }
@@ -134,6 +135,7 @@ function toFormLines(invoice: SalesInvoice | null): SalesInvoiceLineFormValues[]
         sales_order_line_id: "",
         delivery_note_id: "",
         delivery_note_line_id: "",
+        hs_code: "",
       },
     ];
   }
@@ -149,6 +151,7 @@ function toFormLines(invoice: SalesInvoice | null): SalesInvoiceLineFormValues[]
     sales_order_line_id: line.sales_order_line_id ?? "",
     delivery_note_id: line.delivery_note_id ?? "",
     delivery_note_line_id: line.delivery_note_line_id ?? "",
+    hs_code: line.hs_code ?? "",
     ...packingFromLine(line),
   }));
 }
@@ -176,6 +179,7 @@ function toFormValues(invoice: SalesInvoice | null): SalesInvoiceFormValues {
     tax_treatment: invoice?.tax_treatment ?? "",
     bill_to_snapshot: invoice?.bill_to_snapshot ?? "",
     ship_to_snapshot: invoice?.ship_to_snapshot ?? "",
+    country_of_origin: invoice?.country_of_origin ?? "",
     lines: toFormLines(invoice),
   };
 }
@@ -199,6 +203,7 @@ function toCreateRequest(values: SalesInvoiceFormValues): SalesInvoiceCreateRequ
     adjustment_amount: values.adjustment_amount.trim() || "0",
     round_off_amount: values.round_off_amount.trim() || "0",
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
+    country_of_origin: emptyToNull(values.country_of_origin)?.toUpperCase() ?? null,
     lines: values.lines.filter((line) => !isBlankSalesInvoiceLine(line)).map(toLineInput),
   };
 }
@@ -221,6 +226,7 @@ function toUpdateRequest(values: SalesInvoiceFormValues): SalesInvoiceUpdateRequ
     adjustment_amount: created.adjustment_amount,
     round_off_amount: created.round_off_amount,
     place_of_supply: created.place_of_supply,
+    country_of_origin: created.country_of_origin,
     lines: created.lines,
   };
 }
@@ -347,7 +353,10 @@ export function SalesInvoiceForm({
         {customerQuery.isFetching && !isEdit ? (
           <p className="text-muted-foreground text-sm">Loading customer defaults…</p>
         ) : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="customer_id"
@@ -557,6 +566,19 @@ export function SalesInvoiceForm({
           />
           <FormField
             control={form.control}
+            name="country_of_origin"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country of origin</FormLabel>
+                <FormControl>
+                  <Input maxLength={2} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="discount_type"
             render={({ field }) => (
               <FormItem>
@@ -639,7 +661,9 @@ export function SalesInvoiceForm({
           <div
             data-slot="form-grid"
             className={
-              isEdit ? "col-span-full" : "col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+              isEdit
+                ? "col-span-full"
+                : "col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
             }
           >
             <FormItem>
@@ -699,6 +723,7 @@ export function SalesInvoiceForm({
             disabled={disabled || sourcedLines}
             productSide="sales"
             showPacking
+            showHsCode
           />
         </div>
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}

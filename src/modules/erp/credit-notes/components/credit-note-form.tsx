@@ -84,13 +84,16 @@ function toLineInput(line: CreditNoteLineFormValues): CreditNoteLineInput {
     tax_id: optionalUuid(line.tax_id),
     sales_invoice_line_id: optionalUuid(line.sales_invoice_line_id ?? ""),
     sales_return_line_id: optionalUuid(line.sales_return_line_id ?? ""),
+    hs_code: emptyToNull(line.hs_code ?? ""),
   };
 }
 
 function toFormLines(note: CreditNote | null): CreditNoteLineFormValues[] {
   const lines = note?.lines ?? [];
   if (lines.length === 0) {
-    return [{ ...emptyDocumentLine(), sales_invoice_line_id: "", sales_return_line_id: "" }];
+    return [
+      { ...emptyDocumentLine(), sales_invoice_line_id: "", sales_return_line_id: "", hs_code: "" },
+    ];
   }
   return lines.map((line) => ({
     product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
@@ -103,6 +106,7 @@ function toFormLines(note: CreditNote | null): CreditNoteLineFormValues[] {
     tax_id: line.tax_id ?? OPTIONAL_SELECT_NONE,
     sales_invoice_line_id: line.sales_invoice_line_id ?? "",
     sales_return_line_id: line.sales_return_line_id ?? "",
+    hs_code: line.hs_code ?? "",
   }));
 }
 
@@ -122,6 +126,7 @@ function toFormValues(note: CreditNote | null): CreditNoteFormValues {
     adjustment_amount: note?.adjustment_amount ?? "0",
     round_off_amount: note?.round_off_amount ?? "0",
     place_of_supply: note?.place_of_supply ?? OPTIONAL_SELECT_NONE,
+    country_of_origin: note?.country_of_origin ?? "",
     lines: toFormLines(note),
   };
 }
@@ -146,6 +151,7 @@ function toCreateRequest(values: CreditNoteFormValues): CreditNoteCreateRequest 
     place_of_supply: PLACES_OF_SUPPLY.includes(values.place_of_supply as PlaceOfSupply)
       ? (values.place_of_supply as PlaceOfSupply)
       : null,
+    country_of_origin: emptyToNull(values.country_of_origin)?.toUpperCase() ?? null,
     lines: values.lines.filter((line) => !isBlankCreditNoteLine(line)).map(toLineInput),
   };
 }
@@ -166,6 +172,7 @@ function toUpdateRequest(values: CreditNoteFormValues): CreditNoteUpdateRequest 
     adjustment_amount: created.adjustment_amount,
     round_off_amount: created.round_off_amount,
     place_of_supply: created.place_of_supply,
+    country_of_origin: created.country_of_origin,
     lines: created.lines,
   };
 }
@@ -231,7 +238,10 @@ export function CreditNoteForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="customer_id"
@@ -346,6 +356,19 @@ export function CreditNoteForm({
           />
           <FormField
             control={form.control}
+            name="country_of_origin"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country of origin</FormLabel>
+                <FormControl>
+                  <Input maxLength={2} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="discount_type"
             render={({ field }) => (
               <FormItem>
@@ -385,7 +408,12 @@ export function CreditNoteForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor form={form} disabled={disabled || sourced} productSide="sales" />
+          <DocumentLinesEditor
+            form={form}
+            disabled={disabled || sourced}
+            productSide="sales"
+            showHsCode
+          />
         </div>
         {note ? <DocumentTotalsPanel totals={note} currencies={currencies} /> : null}
         <FormField

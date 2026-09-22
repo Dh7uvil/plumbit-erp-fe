@@ -67,6 +67,7 @@ export const GoodsReceiptLineSchema = z.object({
   rate: MoneySchema,
   net_weight: NullableDecimalStringSchema,
   gross_weight: NullableDecimalStringSchema,
+  volume: NullableDecimalStringSchema,
   qty_accepted: DecimalStringSchema,
   qty_rejected: DecimalStringSchema,
   qty_on_hold: DecimalStringSchema,
@@ -130,6 +131,7 @@ export const GoodsReceiptLineInputSchema = z.object({
   rate: MoneySchema.optional(),
   net_weight: NullableDecimalStringSchema.optional(),
   gross_weight: NullableDecimalStringSchema.optional(),
+  volume: NullableDecimalStringSchema.optional(),
 });
 export type GoodsReceiptLineInput = z.infer<typeof GoodsReceiptLineInputSchema>;
 
@@ -191,6 +193,7 @@ export const GoodsReceiptLineFormSchema = z.object({
   tax_id: z.string(),
   net_weight: z.string(),
   gross_weight: z.string(),
+  volume: z.string(),
   purchase_order_line_id: z.string(),
 });
 export type GoodsReceiptLineFormValues = z.infer<typeof GoodsReceiptLineFormSchema>;
@@ -220,12 +223,8 @@ export function isBlankGoodsReceiptLine(line: GoodsReceiptLineFormValues): boole
 
 export const GoodsReceiptFormSchema = z
   .object({
-    supplier_id: z
-      .string()
-      .refine((value) => hasId(value), "Select a supplier"),
-    warehouse_id: z
-      .string()
-      .refine((value) => hasId(value), "Select a warehouse"),
+    supplier_id: z.string().refine((value) => hasId(value), "Select a supplier"),
+    warehouse_id: z.string().refine((value) => hasId(value), "Select a warehouse"),
     document_date: z.string().min(1, "Enter a date"),
     purchase_order_id: z.string(),
     branch_id: z.string(),
@@ -252,7 +251,11 @@ export const GoodsReceiptFormSchema = z
       if (isBlankGoodsReceiptLine(line)) {
         return;
       }
-      if (!hasId(line.product_id) && !hasId(line.supplier_product_id) && !line.supplier_sku.trim()) {
+      if (
+        !hasId(line.product_id) &&
+        !hasId(line.supplier_product_id) &&
+        !line.supplier_sku.trim()
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["lines", index, "product_id"],
