@@ -65,6 +65,8 @@ export const DeliveryNoteSchema = z.object({
   currency_id: z.string().uuid(),
   base_currency_id: z.string().uuid(),
   exchange_rate: MoneySchema,
+  foreign_amount: MoneySchema.optional().default("0"),
+  base_amount: MoneySchema.optional().default("0"),
   vehicle_number: z.string().nullable(),
   driver_name: z.string().nullable(),
   driver_contact: z.string().nullable(),
@@ -131,7 +133,9 @@ export const DeliveryNoteCreateFromSalesOrderSchema = z.object({
   document_date: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
-export type DeliveryNoteCreateFromSalesOrder = z.infer<typeof DeliveryNoteCreateFromSalesOrderSchema>;
+export type DeliveryNoteCreateFromSalesOrder = z.infer<
+  typeof DeliveryNoteCreateFromSalesOrderSchema
+>;
 
 export const DeliveryNoteLineFormSchema = z.object({
   sales_order_line_id: z.string(),

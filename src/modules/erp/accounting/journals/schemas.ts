@@ -13,10 +13,7 @@ export const JOURNAL_STATUS_LABELS: Record<JournalStatus, string> = {
   CANCELLED: "Cancelled",
 };
 
-export const JOURNAL_STATUS_VARIANTS: Record<
-  JournalStatus,
-  "muted" | "success" | "destructive"
-> = {
+export const JOURNAL_STATUS_VARIANTS: Record<JournalStatus, "muted" | "success" | "destructive"> = {
   DRAFT: "muted",
   POSTED: "success",
   CANCELLED: "destructive",
@@ -80,6 +77,7 @@ export const JournalEntrySchema = z.object({
   posted_by: z.string().uuid().nullable(),
   total_debit_base: DecimalStringSchema,
   total_credit_base: DecimalStringSchema,
+  warnings: z.array(z.string()).optional().default([]),
   available_actions: z.array(z.string()).default([]),
   period_locked: z.boolean().default(false),
   lines: z.array(JournalLineSchema).optional().default([]),

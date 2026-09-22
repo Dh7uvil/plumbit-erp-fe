@@ -9,6 +9,7 @@ export const ExchangeRateSchema = z.object({
   to_currency_id: z.string().uuid(),
   effective_date: z.string(),
   rate: MoneySchema,
+  warnings: z.array(z.string()).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
   created_by: z.string().uuid().nullable().optional().default(null),
@@ -30,6 +31,7 @@ export const ExchangeRateResolveSchema = z.object({
   to_currency_id: z.string().uuid(),
   effective_date: z.string(),
   rate: MoneySchema,
+  is_derived_reciprocal: z.boolean().optional().default(false),
 });
 export type ExchangeRateResolve = z.infer<typeof ExchangeRateResolveSchema>;
 
@@ -51,5 +53,6 @@ export type ExchangeRateListParams = {
 
 export type ExchangeRateResolveParams = {
   from_currency_id: string;
+  to_currency_id?: string;
   on_date?: string;
 };

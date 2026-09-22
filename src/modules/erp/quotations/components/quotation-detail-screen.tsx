@@ -164,6 +164,7 @@ function QuotationDetailLoaded({
             exchangeRate={quotation.exchange_rate}
             taxTreatmentLabel={TAX_TREATMENT_LABELS[quotation.tax_treatment]}
             paymentTermsId={quotation.payment_terms_id}
+            baseAmount={quotation.base_amount}
           />
           {quotation.status === "PARTIALLY_CONVERTED" ? (
             <p className="text-muted-foreground text-sm">

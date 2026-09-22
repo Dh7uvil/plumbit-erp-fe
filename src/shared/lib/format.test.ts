@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  compareDecimals,
   formatDecimal,
   formatFixedDecimal,
   formatMoney,
@@ -9,7 +10,9 @@ import {
   formatQuantitySummary,
   humanizeEnum,
   isZeroDecimal,
+  multiplyDecimals,
   normalizeDecimalInput,
+  subtractDecimals,
 } from "@/shared/lib/format";
 
 function digitsAndDot(value: string): string {
@@ -113,6 +116,34 @@ describe("normalizeDecimalInput", () => {
   it("returns the original string when the value is not a decimal", () => {
     expect(normalizeDecimalInput("1,000.5")).toBe("1,000.5");
     expect(normalizeDecimalInput("abc")).toBe("abc");
+  });
+});
+
+describe("multiplyDecimals", () => {
+  it("multiplies without float coercion and rounds half-up", () => {
+    expect(multiplyDecimals("2.5", "2", 2)).toBe("5.00");
+    expect(multiplyDecimals("100.0001", "3.3333", 4)).toBe("333.3303");
+    expect(multiplyDecimals("9007199254740993", "1", 2)).toBe("9007199254740993.00");
+  });
+
+  it("returns null for invalid input", () => {
+    expect(multiplyDecimals("abc", "2")).toBeNull();
+    expect(multiplyDecimals("1", "")).toBeNull();
+  });
+});
+
+describe("compareDecimals", () => {
+  it("compares decimal strings without Number()", () => {
+    expect(compareDecimals("10.00", "10")).toBe(0);
+    expect(compareDecimals("10.01", "10")).toBe(1);
+    expect(compareDecimals("9.999", "10")).toBe(-1);
+    expect(compareDecimals("abc", "1")).toBeNull();
+  });
+});
+
+describe("subtractDecimals", () => {
+  it("subtracts decimal strings", () => {
+    expect(subtractDecimals("10.50", "1.25", 2)).toBe("9.25");
   });
 });
 

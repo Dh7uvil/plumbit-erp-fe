@@ -51,6 +51,8 @@ export const SupplierPaymentSchema = z.object({
   currency_id: z.string().uuid(),
   base_currency_id: z.string().uuid(),
   exchange_rate: MoneySchema,
+  foreign_amount: MoneySchema.optional().default("0"),
+  base_amount: MoneySchema.optional().default("0"),
   amount_paid: MoneySchema,
   bank_charges: MoneySchema,
   amount_unapplied: MoneySchema,
@@ -132,10 +134,16 @@ export const SupplierPaymentFormSchema = z.object({
     .refine((value) => POSITIVE_DECIMAL.test(value.trim()), "Enter an amount greater than 0"),
   bank_charges: z
     .string()
-    .refine((value) => !value.trim() || NON_NEGATIVE_DECIMAL.test(value.trim()), "Enter a valid bank charge"),
+    .refine(
+      (value) => !value.trim() || NON_NEGATIVE_DECIMAL.test(value.trim()),
+      "Enter a valid bank charge",
+    ),
   payment_account_id: z
     .string()
-    .refine((value) => value !== OPTIONAL_SELECT_NONE && Boolean(value), "Select a cash or bank account"),
+    .refine(
+      (value) => value !== OPTIONAL_SELECT_NONE && Boolean(value),
+      "Select a cash or bank account",
+    ),
   payment_method: PaymentMethodSchema,
   reference: z.string(),
   purchase_order_id: z.string(),

@@ -2,30 +2,44 @@
 
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { formatDecimal } from "@/shared/lib/format";
+import { formatDecimal, formatMoney } from "@/shared/lib/format";
 
 export function AppliedCommercialTerms({
   currencyId,
   exchangeRate,
   taxTreatmentLabel,
   paymentTermsId,
+  baseAmount,
+  isDerivedReciprocal = false,
 }: {
   currencyId: string;
   exchangeRate: string;
   taxTreatmentLabel: string;
   paymentTermsId?: string | null;
+  baseAmount?: string | null;
+  isDerivedReciprocal?: boolean;
 }) {
   const currenciesQuery = useAllCurrencies();
   const paymentTermsQuery = useAllPaymentTerms();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === currencyId)?.code ?? "";
+  const baseCurrencyCode = currenciesQuery.data?.find((currency) => currency.is_base)?.code ?? "";
   const paymentTermsName = paymentTermsId
     ? (paymentTermsQuery.data?.find((term) => term.id === paymentTermsId)?.name ?? null)
     : null;
 
   const items = [
     { label: "Currency", value: currencyCode || null },
-    { label: "Rate", value: formatDecimal(exchangeRate) },
+    {
+      label: "Rate",
+      value: exchangeRate
+        ? `${formatDecimal(exchangeRate)}${isDerivedReciprocal ? " (derived reciprocal)" : ""}`
+        : null,
+    },
+    {
+      label: "Base total",
+      value: baseAmount ? formatMoney(baseAmount, baseCurrencyCode || "AED") : null,
+    },
     { label: "Tax", value: taxTreatmentLabel },
     { label: "Payment terms", value: paymentTermsName },
   ].filter((item) => item.value);

@@ -30,6 +30,7 @@ import {
   RelatedDocumentRefSchema,
   type ExpenseCategory,
 } from "@/shared/components/document/schemas";
+import { compareDecimals, isZeroDecimal } from "@/shared/lib/format";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export {
@@ -48,13 +49,7 @@ export {
   TAX_TREATMENT_LABELS,
   TAX_TREATMENTS,
 };
-export type {
-  DiscountType,
-  ExpenseCategory,
-  InvoiceDocumentStatus,
-  PaymentStatus,
-  PlaceOfSupply,
-};
+export type { DiscountType, ExpenseCategory, InvoiceDocumentStatus, PaymentStatus, PlaceOfSupply };
 
 export const BILL_TYPES = ["GOODS", "EXPENSE", "IMPORT"] as const;
 export const BillTypeSchema = z.enum(BILL_TYPES);
@@ -398,10 +393,8 @@ export function lineHasPurchasePriceVariance(line: PurchaseInvoiceLine): boolean
   if (line.line_type !== "PRODUCT" || !line.grn_unit_cost.trim() || !line.rate.trim()) {
     return false;
   }
-  const grn = Number(line.grn_unit_cost);
-  const rate = Number(line.rate);
-  if (!Number.isFinite(grn) || !Number.isFinite(rate) || grn === 0) {
+  if (isZeroDecimal(line.grn_unit_cost)) {
     return false;
   }
-  return grn !== rate;
+  return compareDecimals(line.grn_unit_cost, line.rate) !== 0;
 }

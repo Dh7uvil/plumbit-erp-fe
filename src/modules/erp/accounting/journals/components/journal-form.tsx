@@ -162,7 +162,17 @@ export function JournalForm({
       <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <StockWriteAlert periodLocked={journal?.period_locked} error={writeError} />
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        {journal?.warnings?.length ? (
+          <div className="text-destructive text-sm">
+            {journal.warnings.map((warning) => (
+              <p key={warning}>{warning}</p>
+            ))}
+          </div>
+        ) : null}
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="entry_date"
@@ -268,7 +278,9 @@ export function JournalForm({
         <JournalLinesEditor
           form={form}
           disabled={disabled}
-          currencyCode={currencies.find((currency) => currency.id === form.watch("currency_id"))?.code}
+          currencyCode={
+            currencies.find((currency) => currency.id === form.watch("currency_id"))?.code
+          }
         />
         {disabled ? null : (
           <div className="flex justify-end">

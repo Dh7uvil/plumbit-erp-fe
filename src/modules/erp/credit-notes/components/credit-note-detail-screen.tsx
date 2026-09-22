@@ -32,13 +32,7 @@ import { DocumentWorkflowButtons } from "@/shared/components/document/document-w
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
-export function CreditNoteDetailScreen({
-  noteId,
-  mode,
-}: {
-  noteId: string;
-  mode: RecordPageMode;
-}) {
+export function CreditNoteDetailScreen({ noteId, mode }: { noteId: string; mode: RecordPageMode }) {
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(creditNotePermissions);
   const noteQuery = useCreditNote(noteId);
@@ -152,6 +146,7 @@ function CreditNoteDetailLoaded({
             currencyId={note.currency_id}
             exchangeRate={note.exchange_rate}
             taxTreatmentLabel={TAX_TREATMENT_LABELS[note.tax_treatment]}
+            baseAmount={note.base_amount}
           />
           <p className="text-muted-foreground text-sm">
             {CREDIT_NOTE_REASON_LABELS[note.reason_code]}

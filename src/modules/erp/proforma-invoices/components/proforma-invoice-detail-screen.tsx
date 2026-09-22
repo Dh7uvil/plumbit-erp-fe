@@ -162,6 +162,7 @@ function ProformaInvoiceDetailLoaded({
             exchangeRate={invoice.exchange_rate}
             taxTreatmentLabel={TAX_TREATMENT_LABELS[invoice.tax_treatment]}
             paymentTermsId={invoice.payment_terms_id}
+            baseAmount={invoice.base_amount}
           />
           {invoice.source_quotation_id ? (
             <p className="text-muted-foreground text-sm">

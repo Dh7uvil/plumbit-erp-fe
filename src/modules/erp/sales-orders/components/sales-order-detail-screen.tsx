@@ -206,6 +206,7 @@ function SalesOrderDetailLoaded({
             exchangeRate={salesOrder.exchange_rate}
             taxTreatmentLabel={TAX_TREATMENT_LABELS[salesOrder.tax_treatment]}
             paymentTermsId={salesOrder.payment_terms_id}
+            baseAmount={salesOrder.base_amount}
           />
           {salesOrder.quantity_progress ? (
             <QuantityProgressStrip
@@ -217,7 +218,9 @@ function SalesOrderDetailLoaded({
           {salesOrder.customer_po_number ? (
             <p className="text-sm">
               Customer PO {salesOrder.customer_po_number}
-              {salesOrder.customer_po_date ? ` dated ${formatDate(salesOrder.customer_po_date)}` : ""}
+              {salesOrder.customer_po_date
+                ? ` dated ${formatDate(salesOrder.customer_po_date)}`
+                : ""}
               {salesOrder.acknowledged_at
                 ? `. Acknowledged on ${formatDateTime(salesOrder.acknowledged_at)}`
                 : ""}

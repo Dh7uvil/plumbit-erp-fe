@@ -119,7 +119,10 @@ export function formatQuantitySummary(summary: string | null | undefined): strin
   if (summary == null || summary === "") {
     return "";
   }
-  return summary.replace(/qty\s+(-?\d+(?:\.\d+)?)/gi, (_match, qty: string) => `qty ${formatQuantity(qty)}`);
+  return summary.replace(
+    /qty\s+(-?\d+(?:\.\d+)?)/gi,
+    (_match, qty: string) => `qty ${formatQuantity(qty)}`,
+  );
 }
 
 export function formatPercent(value: string | null | undefined): string {
@@ -162,6 +165,80 @@ export function isZeroDecimal(value: string | null | undefined): boolean {
   } catch {
     return false;
   }
+}
+
+const MONEY_SCALE = 4;
+const MONEY_FACTOR = BigInt(10) ** BigInt(MONEY_SCALE);
+
+function toScaledMoney(value: string): bigint | null {
+  if (value.trim() === "") {
+    return null;
+  }
+  try {
+    const { negative, whole, fraction } = parseDecimalParts(value);
+    const padded = (fraction + "0".repeat(MONEY_SCALE)).slice(0, MONEY_SCALE);
+    const scaled = BigInt(whole) * MONEY_FACTOR + BigInt(padded || "0");
+    return negative ? -scaled : scaled;
+  } catch {
+    return null;
+  }
+}
+
+function fromScaledMoney(value: bigint, fractionDigits = MONEY_SCALE): string {
+  const negative = value < BigInt(0);
+  const abs = negative ? -value : value;
+  const whole = abs / MONEY_FACTOR;
+  const fraction = (abs % MONEY_FACTOR).toString().padStart(MONEY_SCALE, "0");
+  const rounded = roundHalfUp(whole.toString(), fraction, fractionDigits);
+  const sign = negative && !isZeroParts(rounded.whole, rounded.fraction) ? "-" : "";
+  if (fractionDigits === 0) {
+    return `${sign}${rounded.whole}`;
+  }
+  return `${sign}${rounded.whole}.${rounded.fraction}`;
+}
+
+export function multiplyDecimals(
+  left: string,
+  right: string,
+  fractionDigits = MONEY_SCALE,
+): string | null {
+  const scaledLeft = toScaledMoney(left);
+  const scaledRight = toScaledMoney(right);
+  if (scaledLeft === null || scaledRight === null) {
+    return null;
+  }
+  const product = scaledLeft * scaledRight;
+  const extra = MONEY_FACTOR;
+  const half = extra / BigInt(2);
+  const negative = product < BigInt(0);
+  const abs = negative ? -product : product;
+  const rounded = (abs + half) / extra;
+  return fromScaledMoney(negative ? -rounded : rounded, fractionDigits);
+}
+
+export function subtractDecimals(
+  left: string,
+  right: string,
+  fractionDigits = MONEY_SCALE,
+): string | null {
+  const scaledLeft = toScaledMoney(left);
+  const scaledRight = toScaledMoney(right);
+  if (scaledLeft === null || scaledRight === null) {
+    return null;
+  }
+  return fromScaledMoney(scaledLeft - scaledRight, fractionDigits);
+}
+
+export function compareDecimals(left: string, right: string): number | null {
+  const scaledLeft = toScaledMoney(left);
+  const scaledRight = toScaledMoney(right);
+  if (scaledLeft === null || scaledRight === null) {
+    return null;
+  }
+  if (scaledLeft === scaledRight) {
+    return 0;
+  }
+  return scaledLeft < scaledRight ? -1 : 1;
 }
 
 export function formatReportMoney(
