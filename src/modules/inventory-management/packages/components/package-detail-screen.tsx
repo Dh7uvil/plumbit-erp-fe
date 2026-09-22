@@ -183,6 +183,7 @@ function PackageDetailLoaded({
             </p>
             <p>
               Gross {pkg.gross_weight ?? "—"} / Net {pkg.net_weight ?? "—"} {pkg.weight_unit ?? ""}
+              {pkg.total_cbm ? ` · CBM ${pkg.total_cbm}` : ""}
             </p>
             <p>Marks: {pkg.shipping_marks ?? "—"}</p>
             <ul className="list-disc pl-5">

@@ -92,7 +92,8 @@ function toFormValues(
   return {
     supplier_id: payment?.supplier_id ?? defaults?.supplierId ?? OPTIONAL_SELECT_NONE,
     payment_date: payment?.payment_date ?? todayIsoDate(),
-    currency_id: payment?.currency_id ?? defaults?.currencyId ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
+    currency_id:
+      payment?.currency_id ?? defaults?.currencyId ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     amount_paid: payment?.amount_paid ?? "",
     bank_charges: payment?.bank_charges && payment.bank_charges !== "0" ? payment.bank_charges : "",
     payment_account_id: payment?.payment_account_id ?? OPTIONAL_SELECT_NONE,
@@ -166,7 +167,7 @@ export function SupplierPaymentForm({
     Object.fromEntries((payment?.allocations ?? []).map((row) => [row.item_id, row.amount])),
   );
   const isEdit = Boolean(payment);
-  const { baseCurrencyId } = useBaseCurrency();
+  const { baseCurrencyId, baseCurrencyCode } = useBaseCurrency();
 
   const form = useForm<SupplierPaymentFormValues>({
     resolver: zodResolver(SupplierPaymentFormSchema),
@@ -268,7 +269,10 @@ export function SupplierPaymentForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="supplier_id"
@@ -453,6 +457,7 @@ export function SupplierPaymentForm({
               setAllocationValues((current) => ({ ...current, [itemId]: amount }))
             }
             currencyCode={currencyCode}
+            baseCurrencyCode={baseCurrencyCode}
             received={amountPaid}
             bankCharges={bankCharges}
             unapplied={payment?.amount_unapplied}

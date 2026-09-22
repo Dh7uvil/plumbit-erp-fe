@@ -245,6 +245,9 @@ export function formatReportMoney(
   value: string | null | undefined,
   currencyCode?: string | null,
 ): string {
+  if (!currencyCode && process.env.NODE_ENV === "development") {
+    console.warn("formatReportMoney called without currency_code; falling back to AED");
+  }
   return formatMoney(value, currencyCode || "AED");
 }
 

@@ -45,6 +45,8 @@ export function StockAgingScreen() {
   const reportQuery = useStockAging(params);
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
+  const reportMoney = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
   const columnCount = canSeeCost ? 8 : 7;
 
   return (
@@ -119,7 +121,7 @@ export function StockAgingScreen() {
                   <TableCell>{line.days}</TableCell>
                   <TableCell>{BUCKET_LABELS[line.bucket] ?? line.bucket}</TableCell>
                   <TableCell>{formatQuantity(line.qty_remaining)}</TableCell>
-                  {canSeeCost ? <TableCell>{formatReportMoney(line.stock_value)}</TableCell> : null}
+                  {canSeeCost ? <TableCell>{reportMoney(line.stock_value)}</TableCell> : null}
                 </TableRow>
               ))}
               <TableRow>
@@ -128,9 +130,7 @@ export function StockAgingScreen() {
                 </TableCell>
                 <TableCell />
                 {canSeeCost ? (
-                  <TableCell className="font-medium">
-                    {formatReportMoney(report.totals.total)}
-                  </TableCell>
+                  <TableCell className="font-medium">{reportMoney(report.totals.total)}</TableCell>
                 ) : null}
               </TableRow>
             </>

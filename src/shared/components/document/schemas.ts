@@ -61,6 +61,7 @@ export const OpenItemRowSchema = z.object({
   currency_id: z.string(),
   original_amount: MoneySchema,
   balance: MoneySchema,
+  base_balance: MoneySchema.nullable().optional().default(null),
   is_debit: z.boolean(),
   exchange_rate: MoneySchema.nullable().optional().default(null),
 });

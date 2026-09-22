@@ -39,6 +39,8 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
   const path = kind === "sales" ? "/reports/sales-register" : "/reports/purchase-register";
   const filename = kind === "sales" ? "sales-register" : "purchase-register";
   const lines = report?.lines ?? [];
+  const reportMoney = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
 
   return (
     <ReportShell
@@ -154,9 +156,9 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
                     <TableCell>{line.tax_treatment}</TableCell>
                     <TableCell>{line.tax_category || "—"}</TableCell>
                     <TableCell>{line.place_of_supply}</TableCell>
-                    <TableCell>{formatReportMoney(line.net_amount)}</TableCell>
-                    <TableCell>{formatReportMoney(line.tax_amount)}</TableCell>
-                    <TableCell>{formatReportMoney(line.grand_total)}</TableCell>
+                    <TableCell>{reportMoney(line.net_amount)}</TableCell>
+                    <TableCell>{reportMoney(line.tax_amount)}</TableCell>
+                    <TableCell>{reportMoney(line.grand_total)}</TableCell>
                     <TableCell>
                       {[
                         line.is_export ? "Export" : null,
@@ -174,15 +176,9 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
                   <TableCell colSpan={7} className="font-medium">
                     Totals
                   </TableCell>
-                  <TableCell className="font-medium">
-                    {formatReportMoney(report.total_net)}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {formatReportMoney(report.total_tax)}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {formatReportMoney(report.total_grand)}
-                  </TableCell>
+                  <TableCell className="font-medium">{reportMoney(report.total_net)}</TableCell>
+                  <TableCell className="font-medium">{reportMoney(report.total_tax)}</TableCell>
+                  <TableCell className="font-medium">{reportMoney(report.total_grand)}</TableCell>
                   <TableCell />
                 </TableRow>
               ) : null}

@@ -30,10 +30,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -130,6 +127,24 @@ export function ShipmentsScreen() {
         cell: (row) => formatDate(row.eta),
       },
       {
+        id: "total_packages",
+        header: "Packages",
+        defaultVisible: false,
+        cell: (row) => row.total_packages ?? "—",
+      },
+      {
+        id: "gross_weight",
+        header: "Gross kg",
+        defaultVisible: false,
+        cell: (row) => row.gross_weight ?? "—",
+      },
+      {
+        id: "total_cbm",
+        header: "CBM",
+        defaultVisible: false,
+        cell: (row) => row.total_cbm ?? "—",
+      },
+      {
         id: "notes",
         header: "Notes",
         defaultVisible: false,
@@ -144,9 +159,7 @@ export function ShipmentsScreen() {
           <DataTableRowActions
             entityName={number}
             viewHref={canRead ? `/shipments/${row.id}` : undefined}
-            editHref={
-              canUpdate && row.status === "DRAFT" ? `/shipments/${row.id}/edit` : undefined
-            }
+            editHref={canUpdate && row.status === "DRAFT" ? `/shipments/${row.id}/edit` : undefined}
             onDelete={
               row.available_actions.includes("delete") && canDelete
                 ? () => setDeleting(row)

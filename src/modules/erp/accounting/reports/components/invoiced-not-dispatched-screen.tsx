@@ -25,8 +25,11 @@ const COLUMN_COUNT = 6;
 
 export function InvoicedNotDispatchedScreen() {
   const reportQuery = useInvoicedNotDispatched();
-  const lines = reportQuery.data?.lines ?? [];
+  const report = reportQuery.data;
+  const lines = report?.lines ?? [];
   const { csvPending, downloadCsv } = useReportCsv();
+  const reportMoney = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
 
   return (
     <ListPage>
@@ -102,7 +105,7 @@ export function InvoicedNotDispatchedScreen() {
                 </TableCell>
                 <TableCell>{line.description}</TableCell>
                 <TableCell className="tabular-nums">{formatQuantity(line.quantity)}</TableCell>
-                <TableCell className="tabular-nums">{formatReportMoney(line.amount)}</TableCell>
+                <TableCell className="tabular-nums">{reportMoney(line.amount)}</TableCell>
               </TableRow>
             ))
           )}

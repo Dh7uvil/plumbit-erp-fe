@@ -59,6 +59,7 @@ import { pipelinePermissions } from "@/modules/crm/pipelines/permissions";
 import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
+import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { chargeTypePermissions } from "@/modules/erp/accounting/charge-types/permissions";
 import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
@@ -381,6 +382,18 @@ export const navigation: NavigationGroup[] = [
         icon: NotebookPen,
       },
       {
+        label: "Vouchers",
+        href: "/vouchers",
+        permission: voucherPermissions.read,
+        icon: ArrowLeftRight,
+      },
+      {
+        label: "Day book",
+        href: "/reports/day-book",
+        permission: reportPermissions.dayBook,
+        icon: BookOpen,
+      },
+      {
         label: "Cash book",
         href: "/reports/cash-book",
         permission: reportPermissions.ledger,
@@ -549,11 +562,20 @@ function purchasesWorkspaceLookupPath(pathname: string): string {
   return pathname;
 }
 
+function vouchersWorkspaceLookupPath(pathname: string): string {
+  if (pathname === "/vouchers" || pathname.startsWith("/vouchers/")) {
+    return "/vouchers";
+  }
+  return pathname;
+}
+
 export function findActiveNav(
   pathname: string,
 ): { group: string; item: NavigationItem } | undefined {
   const history = parseHistoryPath(pathname);
-  const lookupPath = purchasesWorkspaceLookupPath(history?.spec.listHref ?? pathname);
+  const lookupPath = vouchersWorkspaceLookupPath(
+    purchasesWorkspaceLookupPath(history?.spec.listHref ?? pathname),
+  );
   const matches = navigation.flatMap((group) =>
     group.items
       .filter((item) =>

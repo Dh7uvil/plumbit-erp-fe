@@ -25,12 +25,14 @@ import { formatDate, formatMoney } from "@/shared/lib/format";
 export function customerPaymentColumnDefs({
   customerNameById,
   currencyCodeById,
+  baseCurrencyCode,
   userNameById,
   actions,
   omit = [],
 }: {
   customerNameById?: Map<string, string>;
   currencyCodeById: Map<string, string>;
+  baseCurrencyCode?: string | null;
   userNameById: Map<string, string>;
   actions?: (payment: CustomerPayment) => ReactNode;
   omit?: readonly string[];
@@ -44,9 +46,7 @@ export function customerPaymentColumnDefs({
         className: "font-mono text-sm",
         cell: (payment) => {
           const number = customerPaymentDisplayNumber(payment);
-          return (
-            <RecordLink href={`/customer-payments/${payment.id}`}>{number ?? "—"}</RecordLink>
-          );
+          return <RecordLink href={`/customer-payments/${payment.id}`}>{number ?? "—"}</RecordLink>;
         },
       },
       {
@@ -99,6 +99,14 @@ export function customerPaymentColumnDefs({
             </>
           );
         },
+      },
+      {
+        id: "base_amount",
+        header: "Base amount",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (payment) => formatMoney(payment.base_amount, baseCurrencyCode ?? ""),
       },
       {
         id: "is_posted",

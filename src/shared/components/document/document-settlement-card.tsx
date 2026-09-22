@@ -10,6 +10,8 @@ export function DocumentSettlementCard({
   amountWrittenOff,
   balanceDue,
   currencyCode,
+  baseBalanceDue,
+  baseCurrencyCode,
 }: {
   amountPaid: string;
   amountAdjusted: string;
@@ -17,7 +19,14 @@ export function DocumentSettlementCard({
   amountWrittenOff?: string;
   balanceDue: string;
   currencyCode: string;
+  baseBalanceDue?: string | null;
+  baseCurrencyCode?: string | null;
 }) {
+  const showBase =
+    baseBalanceDue &&
+    baseCurrencyCode &&
+    baseCurrencyCode !== currencyCode &&
+    baseBalanceDue !== balanceDue;
   const writtenOff = amountWrittenOff ?? "0";
   const showWrittenOff = Number.parseFloat(writtenOff) > 0;
 
@@ -47,6 +56,11 @@ export function DocumentSettlementCard({
           <div>
             <dt className="text-muted-foreground">Balance due</dt>
             <dd className="font-medium tabular-nums">{formatMoney(balanceDue, currencyCode)}</dd>
+            {showBase ? (
+              <dd className="text-muted-foreground text-xs tabular-nums">
+                {formatMoney(baseBalanceDue, baseCurrencyCode)} base
+              </dd>
+            ) : null}
           </div>
         </dl>
       </CardContent>

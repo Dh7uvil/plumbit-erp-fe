@@ -186,6 +186,7 @@ export type CustomerListParams = {
 
 export const OutstandingSummarySchema = z.object({
   party_id: z.string(),
+  currency_code: z.string().nullable().optional().default(null),
   balance_due: MoneySchema,
   overdue: MoneySchema,
   unapplied_credits: MoneySchema,

@@ -28,6 +28,7 @@ import {
 } from "@/modules/inventory-management/packages/schemas";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { packingFromLine, packingLineInput } from "@/shared/components/document/schemas";
+import { sumMoneyStrings } from "@/shared/components/document/payment-allocation-editor";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
@@ -139,6 +140,12 @@ export function PackageForm({
   );
   const { fields } = useFieldArray({ control: form.control, name: "lines" });
   const watchedLines = useWatch({ control: form.control, name: "lines" });
+  const lineWeightTotal = sumMoneyStrings(
+    (watchedLines ?? []).map((line) => line.weight).filter(Boolean),
+  );
+  const lineCbmTotal = sumMoneyStrings(
+    (watchedLines ?? []).map((line) => line.cbm).filter(Boolean),
+  );
 
   useEffect(() => {
     form.reset(toFormValues(pkg, salesOrderId, deliveryNoteId));
@@ -452,8 +459,24 @@ export function PackageForm({
             </TableBody>
           </table>
         </div>
+        <p className="text-muted-foreground text-sm">
+          Line totals: weight {lineWeightTotal || "0"}, CBM {lineCbmTotal || "0"}
+        </p>
         {disabled ? null : (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending || lineWeightTotal === "0"}
+              onClick={() => {
+                if (lineWeightTotal !== "0") {
+                  form.setValue("gross_weight", lineWeightTotal, { shouldDirty: true });
+                  form.setValue("net_weight", lineWeightTotal, { shouldDirty: true });
+                }
+              }}
+            >
+              Use calculated weight
+            </Button>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2 className="size-4 animate-spin" /> : null}
               {pkg ? "Save package" : "Create package"}

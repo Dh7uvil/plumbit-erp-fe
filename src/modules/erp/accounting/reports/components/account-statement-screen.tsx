@@ -46,6 +46,8 @@ export function AccountStatementScreen() {
   );
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
+  const money = (value: string | null | undefined) =>
+    formatReportMoney(value, report?.currency_code);
 
   return (
     <ListPage>
@@ -132,8 +134,7 @@ export function AccountStatementScreen() {
       </DataTableToolbar>
       {report ? (
         <p className="text-muted-foreground text-sm">
-          Opening {formatReportMoney(report.opening_balance)}. Closing{" "}
-          {formatReportMoney(report.closing_balance)}.
+          Opening {money(report.opening_balance)}. Closing {money(report.closing_balance)}.
         </p>
       ) : null}
       <DataTable>
@@ -192,9 +193,9 @@ export function AccountStatementScreen() {
                 </TableCell>
                 <TableCell>{formatDate(line.due_date)}</TableCell>
                 <TableCell>{line.external_reference ?? "—"}</TableCell>
-                <TableCell>{formatReportMoney(line.debit)}</TableCell>
-                <TableCell>{formatReportMoney(line.credit)}</TableCell>
-                <TableCell>{formatReportMoney(line.running_balance)}</TableCell>
+                <TableCell>{money(line.debit)}</TableCell>
+                <TableCell>{money(line.credit)}</TableCell>
+                <TableCell>{money(line.running_balance)}</TableCell>
               </TableRow>
             ))
           )}

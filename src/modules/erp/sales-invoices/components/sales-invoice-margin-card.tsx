@@ -7,13 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { formatMoney, formatPercent } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
-export function SalesInvoiceMarginCard({
-  invoice,
-  currencyCode,
-}: {
-  invoice: SalesInvoice;
-  currencyCode: string;
-}) {
+export function SalesInvoiceMarginCard({ invoice }: { invoice: SalesInvoice }) {
   const can = useCan();
   const enabled = can(historyPermissions.cost) && invoice.status === "POSTED";
   const marginQuery = useSalesInvoiceMargin(invoice.id, enabled);
@@ -39,15 +33,21 @@ export function SalesInvoiceMarginCard({
           <>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Revenue</span>
-              <span className="tabular-nums">{formatMoney(margin.revenue, currencyCode)}</span>
+              <span className="tabular-nums">
+                {formatMoney(margin.revenue, margin.currency_code)}
+              </span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">COGS</span>
-              <span className="tabular-nums">{formatMoney(margin.cogs_amount, currencyCode)}</span>
+              <span className="tabular-nums">
+                {formatMoney(margin.cogs_amount, margin.currency_code)}
+              </span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Margin</span>
-              <span className="tabular-nums">{formatMoney(margin.margin, currencyCode)}</span>
+              <span className="tabular-nums">
+                {formatMoney(margin.margin, margin.currency_code)}
+              </span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Margin %</span>

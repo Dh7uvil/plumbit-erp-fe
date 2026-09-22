@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { customerPaymentColumnDefs } from "@/modules/erp/customer-payments/components/customer-payment-columns";
 import { useDeleteCustomerPayment } from "@/modules/erp/customer-payments/mutations";
 import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
@@ -65,7 +66,9 @@ function parseMethod(value: string | undefined): PaymentMethod | undefined {
 }
 
 export function CustomerPaymentsScreen() {
-  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(customerPaymentPermissions);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(
+    customerPaymentPermissions,
+  );
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
@@ -96,6 +99,7 @@ export function CustomerPaymentsScreen() {
   });
   const customersQuery = useAllCustomers();
   const currenciesQuery = useAllCurrencies();
+  const { baseCurrencyCode } = useBaseCurrency();
   const deletePayment = useDeleteCustomerPayment();
   const [deleting, setDeleting] = useState<CustomerPayment | null>(null);
   const deleteSpec = getDocumentAction(customerPaymentActionRegistry(null), "delete");
@@ -133,6 +137,7 @@ export function CustomerPaymentsScreen() {
       customerPaymentColumnDefs({
         customerNameById,
         currencyCodeById,
+        baseCurrencyCode,
         userNameById,
         actions: showActions
           ? (payment) => {
@@ -156,7 +161,17 @@ export function CustomerPaymentsScreen() {
             }
           : undefined,
       }),
-    [canDelete, canRead, canUpdate, currencyCodeById, customerNameById, setDeleting, showActions, userNameById],
+    [
+      baseCurrencyCode,
+      canDelete,
+      canRead,
+      canUpdate,
+      currencyCodeById,
+      customerNameById,
+      setDeleting,
+      showActions,
+      userNameById,
+    ],
   );
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.customer_payments", columnDefs);
@@ -287,11 +302,7 @@ export function CustomerPaymentsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search ||
-        filters.status ||
-        filters.customer_id ||
-        extraCount > 0 ||
-        sort_by ? (
+        {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
             variant="ghost"

@@ -20,6 +20,7 @@ const invoice: OpenItemRow = {
   currency_id: "22222222-2222-4222-8222-222222222222",
   original_amount: "100.00",
   balance: "40.50",
+  base_balance: null,
   is_debit: true,
   exchange_rate: "1",
 };

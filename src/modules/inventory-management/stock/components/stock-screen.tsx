@@ -13,7 +13,7 @@ import { type StockBalance } from "@/modules/inventory-management/stock/schemas"
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
 import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
-import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
@@ -81,8 +81,8 @@ export function StockScreen() {
   const canReadCost = can(stockPermissions.costRead);
   const canAdjust = can(stockAdjustmentPermissions.create);
   const canTransfer = can(stockTransferPermissions.create);
-  const tenantQuery = useCurrentTenant();
-  const currencyCode = tenantQuery.data?.default_currency ?? "";
+  const { baseCurrencyCode } = useBaseCurrency();
+  const currencyCode = baseCurrencyCode ?? "";
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = extraFromFilters(filters);
