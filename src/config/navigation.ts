@@ -59,6 +59,9 @@ import { pipelinePermissions } from "@/modules/crm/pipelines/permissions";
 import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
+import { bankAccountPermissions } from "@/modules/erp/accounting/bank-accounts/permissions";
+import { bankReconciliationPermissions } from "@/modules/erp/accounting/bank-reconciliation/permissions";
+import { chequePermissions } from "@/modules/erp/accounting/cheques/permissions";
 import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { chargeTypePermissions } from "@/modules/erp/accounting/charge-types/permissions";
@@ -386,6 +389,24 @@ export const navigation: NavigationGroup[] = [
         href: "/vouchers",
         permission: voucherPermissions.read,
         icon: ArrowLeftRight,
+      },
+      {
+        label: "Bank accounts",
+        href: "/bank-accounts",
+        permission: bankAccountPermissions.read,
+        icon: Landmark,
+      },
+      {
+        label: "Bank reconciliation",
+        href: "/bank-reconciliation",
+        permission: bankReconciliationPermissions.read,
+        icon: ClipboardCheck,
+      },
+      {
+        label: "Cheques",
+        href: "/cheques",
+        permission: chequePermissions.read,
+        icon: Wallet,
       },
       {
         label: "Day book",
