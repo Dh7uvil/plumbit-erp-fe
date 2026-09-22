@@ -49,12 +49,31 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 };
 
 export const CustomerPaymentAllocationSchema = z.object({
+  id: z.string().uuid().optional(),
   item_type: z.string(),
   item_id: z.string().uuid(),
+  item_document_number: z.string().nullable().optional(),
   amount: MoneySchema,
   journal_entry_id: z.string().uuid().nullable().optional().default(null),
+  reversed_at: z.string().nullable().optional(),
+  created_at: z.string().optional(),
 });
 export type CustomerPaymentAllocation = z.infer<typeof CustomerPaymentAllocationSchema>;
+
+export const PaymentAllocationRecordSchema = z.object({
+  id: z.string().uuid(),
+  payment_type: z.string(),
+  payment_id: z.string().uuid(),
+  item_type: OpenItemTypeSchema,
+  item_id: z.string().uuid(),
+  item_document_number: z.string().nullable().optional(),
+  amount: MoneySchema,
+  journal_entry_id: z.string().uuid().nullable().optional(),
+  reversed_at: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type PaymentAllocationRecord = z.infer<typeof PaymentAllocationRecordSchema>;
 
 export const CustomerPaymentSchema = z.object({
   id: z.string().uuid(),

@@ -16,6 +16,7 @@ import {
   customerPaymentDisplayNumber,
   type CustomerPayment,
 } from "@/modules/erp/customer-payments/schemas";
+import { CustomerPaymentAllocationHistoryPanel } from "@/modules/erp/customer-payments/components/payment-allocation-history-panel";
 import { customerPaymentActionRegistry } from "@/modules/erp/customer-payments/workflow";
 import {
   StockWriteAlert,
@@ -23,6 +24,7 @@ import {
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { useCan } from "@/shared/providers/session-provider";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -41,6 +43,8 @@ export function CustomerPaymentDetailScreen({
 }) {
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(customerPaymentPermissions);
+  const can = useCan();
+  const canUnapply = can(customerPaymentPermissions.post);
   const paymentQuery = useCustomerPayment(paymentId);
   const payment = paymentQuery.data;
   const isDraft = payment?.status === "DRAFT";
@@ -81,6 +85,7 @@ export function CustomerPaymentDetailScreen({
       payment={payment}
       mode={mode}
       canEditDraft={canEditDraft}
+      canUnapply={canUnapply}
       viewHref={viewHref}
     />
   );
@@ -90,11 +95,13 @@ function CustomerPaymentDetailLoaded({
   payment,
   mode,
   canEditDraft,
+  canUnapply,
   viewHref,
 }: {
   payment: CustomerPayment;
   mode: RecordPageMode;
   canEditDraft: boolean;
+  canUnapply: boolean;
   viewHref: string;
 }) {
   const router = useRouter();
@@ -180,6 +187,11 @@ function CustomerPaymentDetailLoaded({
       panels={
         <>
           <RelatedDocumentsCard documents={payment.related_documents} />
+          <CustomerPaymentAllocationHistoryPanel
+            payment={payment}
+            currencyCode={currencyCode}
+            canUnapply={canUnapply}
+          />
           <DocumentLedgerCard
             journalEntryId={payment.journal_entry_id}
             reversalJournalEntryId={payment.reversal_journal_entry_id}

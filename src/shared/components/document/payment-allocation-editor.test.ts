@@ -6,6 +6,7 @@ import {
   defaultAllocationAmounts,
   filterOpenItemsForPaymentAllocation,
   paymentAllocationsPayload,
+  sumCashAllocationAmounts,
   sumMoneyStrings,
 } from "@/shared/components/document/payment-allocation-editor";
 import type { OpenItemRow } from "@/shared/components/document/schemas";
@@ -39,32 +40,20 @@ describe("payment allocation helpers", () => {
     ]);
   });
 
-  it("keeps credit (negative) apply amounts", () => {
+  it("sums only cash lines toward received", () => {
+    const credit: OpenItemRow = {
+      ...invoice,
+      item_type: "CREDIT_NOTE",
+      document_id: "66666666-6666-4666-8666-666666666666",
+      document_number: "CN-1",
+      is_debit: false,
+    };
     expect(
-      paymentAllocationsPayload([invoice], {
-        [invoice.document_id]: "-5.00",
+      sumCashAllocationAmounts([invoice, credit], {
+        [invoice.document_id]: "50.00",
+        [credit.document_id]: "20.00",
       }),
-    ).toEqual([
-      {
-        item_type: "SALES_INVOICE",
-        item_id: invoice.document_id,
-        amount: "-5.00",
-      },
-    ]);
-  });
-
-  it("keeps credit (negative) apply amounts", () => {
-    expect(
-      paymentAllocationsPayload([invoice], {
-        [invoice.document_id]: "-5.00",
-      }),
-    ).toEqual([
-      {
-        item_type: "SALES_INVOICE",
-        item_id: invoice.document_id,
-        amount: "-5.00",
-      },
-    ]);
+    ).toBe("50");
   });
 
   it("defaults the linked invoice to the API balance", () => {
@@ -100,7 +89,7 @@ describe("payment allocation helpers", () => {
     ).toEqual([bill]);
   });
 
-  it("keeps only invoices and opening AR when allocating a customer receipt", () => {
+  it("keeps invoices, opening AR, and credit notes when allocating a customer receipt", () => {
     const receipt: OpenItemRow = {
       ...invoice,
       item_type: "CUSTOMER_PAYMENT",
@@ -108,12 +97,19 @@ describe("payment allocation helpers", () => {
       document_number: "REC-1",
       is_debit: false,
     };
+    const credit: OpenItemRow = {
+      ...invoice,
+      item_type: "CREDIT_NOTE",
+      document_id: "66666666-6666-4666-8666-666666666666",
+      document_number: "CN-1",
+      is_debit: false,
+    };
     expect(
       filterOpenItemsForPaymentAllocation(
-        [receipt, invoice],
+        [receipt, invoice, credit],
         CUSTOMER_PAYMENT_ALLOCATE_TYPES,
         receipt.document_id,
       ),
-    ).toEqual([invoice]);
+    ).toEqual([invoice, credit]);
   });
 });

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { AllocateSupplierPaymentDialog } from "@/modules/erp/supplier-payments/components/allocate-supplier-payment-dialog";
+import { SupplierPaymentAllocationHistoryPanel } from "@/modules/erp/supplier-payments/components/payment-allocation-history-panel";
 import { SupplierPaymentForm } from "@/modules/erp/supplier-payments/components/supplier-payment-form";
 import { useSupplierPaymentWorkflow } from "@/modules/erp/supplier-payments/hooks/use-supplier-payment-workflow";
 import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
@@ -23,6 +24,7 @@ import {
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { useCan } from "@/shared/providers/session-provider";
 import { AppliedCommercialTerms } from "@/shared/components/document/applied-commercial-terms";
 import { DocumentLedgerCard } from "@/shared/components/document/document-ledger-card";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
@@ -41,6 +43,8 @@ export function SupplierPaymentDetailScreen({
 }) {
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(supplierPaymentPermissions);
+  const can = useCan();
+  const canUnapply = can(supplierPaymentPermissions.post);
   const paymentQuery = useSupplierPayment(paymentId);
   const payment = paymentQuery.data;
   const isDraft = payment?.status === "DRAFT";
@@ -81,6 +85,7 @@ export function SupplierPaymentDetailScreen({
       payment={payment}
       mode={mode}
       canEditDraft={canEditDraft}
+      canUnapply={canUnapply}
       viewHref={viewHref}
     />
   );
@@ -90,11 +95,13 @@ function SupplierPaymentDetailLoaded({
   payment,
   mode,
   canEditDraft,
+  canUnapply,
   viewHref,
 }: {
   payment: SupplierPayment;
   mode: RecordPageMode;
   canEditDraft: boolean;
+  canUnapply: boolean;
   viewHref: string;
 }) {
   const router = useRouter();
@@ -180,6 +187,11 @@ function SupplierPaymentDetailLoaded({
       panels={
         <>
           <RelatedDocumentsCard documents={payment.related_documents} />
+          <SupplierPaymentAllocationHistoryPanel
+            payment={payment}
+            currencyCode={currencyCode}
+            canUnapply={canUnapply}
+          />
           <DocumentLedgerCard
             journalEntryId={payment.journal_entry_id}
             reversalJournalEntryId={payment.reversal_journal_entry_id}

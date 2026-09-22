@@ -61,11 +61,35 @@ export function sumMoneyStrings(values: readonly string[]): string {
 export const SUPPLIER_PAYMENT_ALLOCATE_TYPES = new Set<OpenItemType>([
   "PURCHASE_INVOICE",
   "OPENING_AP",
+  "DEBIT_NOTE",
 ]);
 export const CUSTOMER_PAYMENT_ALLOCATE_TYPES = new Set<OpenItemType>([
   "SALES_INVOICE",
   "OPENING_AR",
+  "CREDIT_NOTE",
 ]);
+
+export const SUPPLIER_NOTE_ALLOCATE_TYPES = new Set<OpenItemType>(["DEBIT_NOTE"]);
+
+export function isNoteOpenItemType(type: OpenItemType): boolean {
+  return type === "CREDIT_NOTE" || type === "DEBIT_NOTE";
+}
+
+export function sumCashAllocationAmounts(
+  items: readonly OpenItemRow[],
+  values: Record<string, string>,
+): string {
+  const cashItems = new Set(
+    items
+      .filter((item) => !isNoteOpenItemType(item.item_type))
+      .map((item) => item.document_id),
+  );
+  return sumMoneyStrings(
+    Object.entries(values)
+      .filter(([documentId]) => cashItems.has(documentId))
+      .map(([, amount]) => amount),
+  );
+}
 
 export function filterOpenItemsForPaymentAllocation(
   items: readonly OpenItemRow[],
@@ -130,7 +154,12 @@ export function PaymentAllocationEditor({
   disabled?: boolean;
   emptyMessage?: string;
 }) {
-  const allocated = sumMoneyStrings(Object.values(values));
+  const allocated = sumCashAllocationAmounts(items, values);
+  const noteApplied = sumMoneyStrings(
+    items
+      .filter((item) => isNoteOpenItemType(item.item_type))
+      .map((item) => values[item.document_id] ?? ""),
+  );
   const leftover =
     unapplied != null && unapplied !== ""
       ? unapplied
@@ -184,7 +213,10 @@ export function PaymentAllocationEditor({
                   {formatMoney(item.original_amount, currencyCode)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatMoney(item.balance, currencyCode)}
+                  {formatMoney(
+                    isNoteOpenItemType(item.item_type) ? `-${item.balance}` : item.balance,
+                    currencyCode,
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DecimalInput
@@ -207,9 +239,15 @@ export function PaymentAllocationEditor({
           <dd className="tabular-nums">{formatMoney(received || "0", currencyCode)}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Allocated</dt>
+          <dt className="text-muted-foreground">Cash allocated</dt>
           <dd className="tabular-nums">{formatMoney(allocated, currencyCode)}</dd>
         </div>
+        {noteApplied !== "0" ? (
+          <div>
+            <dt className="text-muted-foreground">Credits / debits</dt>
+            <dd className="tabular-nums">{formatMoney(noteApplied, currencyCode)}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-muted-foreground">Unapplied</dt>
           <dd className="tabular-nums">{formatMoney(leftover, currencyCode)}</dd>

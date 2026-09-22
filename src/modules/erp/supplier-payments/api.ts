@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { JournalEntrySchema, type JournalEntry } from "@/modules/erp/accounting/journals/schemas";
 import {
@@ -6,7 +8,9 @@ import {
   SupplierPaymentListSchema,
   SupplierPaymentSchema,
   SupplierPaymentUpdateRequestSchema,
+  PaymentAllocationRecordSchema,
   type PaymentAllocateRequest,
+  type PaymentAllocationRecord,
   type SupplierPayment,
   type SupplierPaymentCreateRequest,
   type SupplierPaymentListParams,
@@ -102,4 +106,19 @@ export const supplierPaymentsApi = {
     ),
   journal: async (id: string): Promise<JournalEntry> =>
     JournalEntrySchema.parse(await apiClient.get(`/supplier-payments/${id}/journal`)),
+  listAllocations: async (id: string): Promise<PaymentAllocationRecord[]> =>
+    z.array(PaymentAllocationRecordSchema).parse(
+      await apiClient.get(`/supplier-payments/${id}/allocations`),
+    ),
+  unallocate: async (
+    paymentId: string,
+    allocationId: string,
+    options: SupplierPaymentWriteOptions,
+  ): Promise<SupplierPayment> =>
+    SupplierPaymentSchema.parse(
+      await apiClient.delete(
+        `/supplier-payments/${paymentId}/allocations/${allocationId}`,
+        { headers: postDocumentHeaders(options.version, randomUuid()) },
+      ),
+    ),
 };
