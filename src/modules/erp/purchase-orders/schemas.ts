@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { OrderTrackerRowSchema } from "@/modules/erp/sales-orders/schemas";
 import {
   QuantityProgressSchema,
   RelatedDocumentRefSchema,
@@ -380,3 +381,9 @@ export function purchaseOrderDisplayNumber(
   const value = (order.document_number || "").trim();
   return value ? value : null;
 }
+
+export const PurchaseOrderCycleSchema = z.object({
+  purchase_order_id: z.string().uuid(),
+  rows: z.array(OrderTrackerRowSchema).default([]),
+});
+export type PurchaseOrderCycle = z.infer<typeof PurchaseOrderCycleSchema>;

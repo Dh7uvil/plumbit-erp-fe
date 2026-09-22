@@ -7,7 +7,12 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import Link from "next/link";
+
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { ContactFormDialog } from "@/modules/crm/contacts/components/contact-form-dialog";
+import { contactPermissions } from "@/modules/crm/contacts/permissions";
+import { useAllContacts } from "@/modules/crm/contacts/queries";
 import { PaymentTermFormDialog } from "@/modules/erp/accounting/payment-terms/components/payment-term-form-dialog";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
@@ -43,11 +48,14 @@ import {
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { useAllSuppliers, useSupplier } from "@/modules/erp/suppliers/queries";
+import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
+import { branchPermissions } from "@/modules/users-management/branches/permissions";
+import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
-import { emptyDocumentLine, emptyExpenseDocumentLine } from "@/shared/components/document/schemas";
+import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
@@ -109,15 +117,6 @@ function emptyProductLine(): PurchaseInvoiceLineFormValues {
   };
 }
 
-function emptyExpenseLine(): PurchaseInvoiceLineFormValues {
-  return {
-    ...emptyExpenseDocumentLine(),
-    goods_receipt_id: "",
-    goods_receipt_line_id: "",
-    grn_unit_cost: "",
-  };
-}
-
 function toLineInput(line: PurchaseInvoiceLineFormValues): PurchaseInvoiceLineInput {
   const isExpense = (line.line_type ?? "PRODUCT") === "EXPENSE";
   return {
@@ -140,13 +139,10 @@ function toLineInput(line: PurchaseInvoiceLineFormValues): PurchaseInvoiceLineIn
   };
 }
 
-function toFormLines(
-  invoice: PurchaseInvoice | null,
-  billType: BillType,
-): PurchaseInvoiceLineFormValues[] {
+function toFormLines(invoice: PurchaseInvoice | null): PurchaseInvoiceLineFormValues[] {
   const lines = invoice?.lines ?? [];
   if (lines.length === 0) {
-    return [billType === "EXPENSE" ? emptyExpenseLine() : emptyProductLine()];
+    return [emptyProductLine()];
   }
   return lines.map((line) => ({
     line_type: line.line_type,
@@ -193,7 +189,7 @@ function toFormValues(invoice: PurchaseInvoice | null, defaultCurrencyId?: strin
     is_reverse_charge: invoice?.is_reverse_charge ?? false,
     supplier_trn: invoice?.supplier_trn ?? "",
     tax_treatment: invoice?.tax_treatment ?? "",
-    lines: toFormLines(invoice, billType),
+    lines: toFormLines(invoice),
   };
 }
 
@@ -261,10 +257,14 @@ export function PurchaseInvoiceForm({
   const createInvoice = useCreatePurchaseInvoice();
   const updateInvoice = useUpdatePurchaseInvoice();
   const suppliersQuery = useAllSuppliers();
+  const contactsQuery = useAllContacts();
+  const branchesQuery = useAllBranches();
   const currenciesQuery = useAllCurrencies();
   const paymentTermsQuery = useAllPaymentTerms();
   const [formError, setFormError] = useState<string | null>(null);
-  const [creating, setCreating] = useState<"supplier" | "currency" | "paymentTerms" | null>(null);
+  const [creating, setCreating] = useState<
+    "supplier" | "contact" | "branch" | "currency" | "paymentTerms" | null
+  >(null);
   const dirtyCompose = useRef(new Set<"currency_id" | "payment_terms_id">());
   const isEdit = Boolean(invoice);
   const { baseCurrencyId } = useBaseCurrency();
@@ -281,13 +281,17 @@ export function PurchaseInvoiceForm({
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
-  const billType = useWatch({ control: form.control, name: "bill_type" });
   const selectedSupplierId = optionalUuid(supplierId);
   const supplierQuery = useSupplier(isEdit ? null : selectedSupplierId);
   const suppliers = suppliersQuery.data ?? [];
+  const contacts = (contactsQuery.data ?? []).filter(
+    (contact) => contact.customer_id === selectedSupplierId,
+  );
+  const branches = branchesQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
   const paymentTerms = paymentTermsQuery.data ?? [];
-  const isExpenseBill = billType === "EXPENSE";
+  const purchaseOrderId = useWatch({ control: form.control, name: "purchase_order_id" });
+  const goodsReceiptId = useWatch({ control: form.control, name: "goods_receipt_id" });
   const varianceLines = (invoice?.lines ?? []).filter(lineHasPurchasePriceVariance);
 
   useEffect(() => {
@@ -345,7 +349,10 @@ export function PurchaseInvoiceForm({
             </AlertDescription>
           </Alert>
         ) : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="supplier_id"
@@ -380,13 +387,7 @@ export function PurchaseInvoiceForm({
                 <Select
                   value={field.value}
                   onValueChange={(value) => {
-                    const next = value as BillType;
-                    field.onChange(next);
-                    if (!invoice) {
-                      form.setValue("lines", [
-                        next === "EXPENSE" ? emptyExpenseLine() : emptyProductLine(),
-                      ]);
-                    }
+                    field.onChange(value as BillType);
                   }}
                   disabled={disabled || sourced}
                 >
@@ -403,6 +404,56 @@ export function PurchaseInvoiceForm({
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="contact_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact</FormLabel>
+                <MasterSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled || contactsQuery.isLoading || !selectedSupplierId}
+                  placeholder="None"
+                  searchPlaceholder="Search contact…"
+                  createLabel="Create contact"
+                  onCreate={
+                    can(contactPermissions.create) && selectedSupplierId
+                      ? () => setCreating("contact")
+                      : undefined
+                  }
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...contacts.map((contact) => ({ value: contact.id, label: contact.name })),
+                  ]}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="branch_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Branch</FormLabel>
+                <MasterSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled || branchesQuery.isLoading}
+                  placeholder="None"
+                  searchPlaceholder="Search branch…"
+                  createLabel="Create branch"
+                  onCreate={can(branchPermissions.create) ? () => setCreating("branch") : undefined}
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+                  ]}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -569,6 +620,85 @@ export function PurchaseInvoiceForm({
           />
           <FormField
             control={form.control}
+            name="shipping_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Shipping amount</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="adjustment_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Adjustment amount</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="round_off_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Round off amount</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {purchaseOrderId ? (
+            <FormItem>
+              <FormLabel>Purchase order</FormLabel>
+              <Button type="button" variant="link" className="h-auto px-0" asChild>
+                <Link href={`/purchase-orders/${purchaseOrderId}`}>View purchase order</Link>
+              </Button>
+            </FormItem>
+          ) : (
+            <FormField
+              control={form.control}
+              name="purchase_order_id"
+              render={({ field }) => (
+                <FormItem className="hidden">
+                  <FormControl>
+                    <Input type="hidden" {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          )}
+          {goodsReceiptId ? (
+            <FormItem>
+              <FormLabel>Goods receipt</FormLabel>
+              <Button type="button" variant="link" className="h-auto px-0" asChild>
+                <Link href={`/goods-receipts/${goodsReceiptId}`}>View goods receipt</Link>
+              </Button>
+            </FormItem>
+          ) : (
+            <FormField
+              control={form.control}
+              name="goods_receipt_id"
+              render={({ field }) => (
+                <FormItem className="hidden">
+                  <FormControl>
+                    <Input type="hidden" {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          )}
+          <FormField
+            control={form.control}
             name="is_reverse_charge"
             render={({ field }) => (
               <FormItem className="flex flex-row items-center gap-2 space-y-0">
@@ -590,10 +720,8 @@ export function PurchaseInvoiceForm({
             form={form}
             disabled={disabled || sourced}
             productSide="purchase"
-            lineMode={isExpenseBill ? "expense" : "standard"}
-            supplierCatalog={
-              isExpenseBill || !selectedSupplierId ? undefined : { supplierId: selectedSupplierId }
-            }
+            lineMode="mixed"
+            supplierCatalog={selectedSupplierId ? { supplierId: selectedSupplierId } : undefined}
           />
         </div>
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
@@ -637,6 +765,21 @@ export function PurchaseInvoiceForm({
         nested
         onCreated={(entity) => form.setValue("payment_terms_id", entity.id)}
         onOpenChange={(open) => setCreating(open ? "paymentTerms" : null)}
+      />
+      <ContactFormDialog
+        open={creating === "contact"}
+        contact={null}
+        nested
+        defaultCustomerId={selectedSupplierId ?? undefined}
+        onCreated={(entity) => form.setValue("contact_id", entity.id)}
+        onOpenChange={(open) => setCreating(open ? "contact" : null)}
+      />
+      <BranchFormDialog
+        open={creating === "branch"}
+        branch={null}
+        nested
+        onCreated={(entity) => form.setValue("branch_id", entity.id)}
+        onOpenChange={(open) => setCreating(open ? "branch" : null)}
       />
     </Form>
   );

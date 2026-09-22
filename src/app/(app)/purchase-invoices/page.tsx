@@ -1,11 +1,5 @@
-import { PurchaseInvoicesScreen } from "@/modules/erp/purchase-invoices/components/purchase-invoices-screen";
-import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { redirect } from "next/navigation";
 
 export default function PurchaseInvoicesPage() {
-  return (
-    <PermissionGate permission={purchaseInvoicePermissions.read}>
-      <PurchaseInvoicesScreen />
-    </PermissionGate>
-  );
+  redirect("/purchases?tab=bills");
 }

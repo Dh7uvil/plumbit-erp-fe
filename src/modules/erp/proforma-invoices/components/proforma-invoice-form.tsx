@@ -448,7 +448,10 @@ export function ProformaInvoiceForm({
         {composeQuery.isFetching && !isEdit ? (
           <p className="text-muted-foreground text-sm">Loading customer defaults…</p>
         ) : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="customer_id"
@@ -773,9 +776,7 @@ export function ProformaInvoiceForm({
           </FormItem>
           <div
             data-slot="form-grid"
-            className={
-              isEdit ? "col-span-full" : "col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
-            }
+            className={"col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"}
           >
             <FormItem>
               <FormLabel>Tax treatment</FormLabel>
@@ -831,7 +832,10 @@ export function ProformaInvoiceForm({
           <CardHeader>
             <CardTitle className="text-base">Export details</CardTitle>
           </CardHeader>
-          <CardContent data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+          <CardContent
+            data-slot="form-grid"
+            className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+          >
             <FormField
               control={form.control}
               name="incoterm"

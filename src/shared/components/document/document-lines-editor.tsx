@@ -58,6 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
+import { MixedDocumentLineRow } from "@/shared/components/document/mixed-document-line-row";
 import {
   formatFixedDecimal,
   formatMoney,
@@ -98,7 +99,47 @@ export type SupplierCatalogProps = {
   supplierId: string | null;
 };
 
-export type DocumentLinesMode = "standard" | "receive" | "expense";
+export type DocumentLinesMode = "standard" | "receive" | "expense" | "mixed";
+
+const MIXED_LINE_HEADERS_WITH_SKU = [
+  "Type",
+  "Product / account",
+  "Supplier SKU",
+  "Category",
+  "Description",
+  "Qty",
+  "Unit",
+  "Rate",
+  "Discount type",
+  "Discount",
+  "Tax",
+  "Amount",
+  "",
+] as const;
+
+const MIXED_LINE_HEADERS = [
+  "Type",
+  "Product / account",
+  "Category",
+  "Description",
+  "Qty",
+  "Unit",
+  "Rate",
+  "Discount type",
+  "Discount",
+  "Tax",
+  "Amount",
+  "",
+] as const;
+
+function emptyMixedProductLine() {
+  return {
+    ...emptyDocumentLine(),
+    line_type: "PRODUCT" as const,
+    expense_account_id: OPTIONAL_SELECT_NONE,
+    expense_category: OPTIONAL_SELECT_NONE,
+  };
+}
 
 function lineHeaders(
   showSupplierSku: boolean,
@@ -106,7 +147,9 @@ function lineHeaders(
   showPacking: boolean,
 ): readonly string[] {
   let headers: readonly string[];
-  if (mode === "expense") {
+  if (mode === "mixed") {
+    headers = showSupplierSku ? MIXED_LINE_HEADERS_WITH_SKU : MIXED_LINE_HEADERS;
+  } else if (mode === "expense") {
     headers = EXPENSE_LINE_HEADERS;
   } else if (mode === "receive") {
     headers = RECEIVE_LINE_HEADERS;
@@ -298,7 +341,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const taxesQuery = useAllTaxes();
   const accountsQuery = useAllAccounts(
     { is_group: false, is_active: true },
-    lineMode === "expense",
+    lineMode === "expense" || lineMode === "mixed",
   );
   const supplierId = supplierCatalog?.supplierId ?? null;
   const catalogQuery = useAllSupplierProducts(
@@ -321,6 +364,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const catalog = catalogQuery.data ?? [];
   const isReceive = lineMode === "receive";
   const isExpense = lineMode === "expense";
+  const isMixed = lineMode === "mixed";
   const showSupplierSku = Boolean(supplierCatalog) || isReceive;
   const headers = lineHeaders(showSupplierSku, lineMode, showPacking);
   const rawCurrencyId = useWatch({
@@ -423,7 +467,39 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
               </TableRow>
             ) : (
               fields.map((field, index) =>
-                isExpense ? (
+                isMixed ? (
+                  <MixedDocumentLineRow
+                    key={field.id}
+                    form={form}
+                    index={index}
+                    disabled={disabled}
+                    productOptions={productOptions}
+                    units={units}
+                    taxes={taxes}
+                    accounts={accounts}
+                    catalog={catalog}
+                    supplierId={supplierId}
+                    showSupplierSku={showSupplierSku}
+                    onApplyProduct={applyProduct}
+                    onApplyCatalogRow={applyCatalogRow}
+                    onRemove={remove}
+                    onCreateProduct={
+                      can(productPermissions.create)
+                        ? (rowIndex) => setLineCreate({ type: "product", index: rowIndex })
+                        : undefined
+                    }
+                    onCreateUnit={
+                      can(unitPermissions.create)
+                        ? (rowIndex) => setLineCreate({ type: "unit", index: rowIndex })
+                        : undefined
+                    }
+                    onCreateTax={
+                      can(taxPermissions.create)
+                        ? (rowIndex) => setLineCreate({ type: "tax", index: rowIndex })
+                        : undefined
+                    }
+                  />
+                ) : isExpense ? (
                   <TableRow key={field.id}>
                     <TableCell className="min-w-56 align-top">
                       <FormField
@@ -969,10 +1045,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
           size="sm"
           onClick={() =>
             append(
-              (isExpense ? emptyExpenseDocumentLine() : emptyDocumentLine()) as FieldArray<
-                TFieldValues,
-                ArrayPath<TFieldValues>
-              >,
+              (isExpense
+                ? emptyExpenseDocumentLine()
+                : isMixed
+                  ? emptyMixedProductLine()
+                  : emptyDocumentLine()) as FieldArray<TFieldValues, ArrayPath<TFieldValues>>,
             )
           }
         >

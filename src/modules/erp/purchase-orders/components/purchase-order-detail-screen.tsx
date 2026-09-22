@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { CreateBillFromPurchaseOrderDialog } from "@/modules/erp/purchase-invoices/components/create-from-purchase-order-dialog";
+import { PurchaseOrderCycleCard } from "@/modules/erp/purchase-orders/components/purchase-order-cycle-card";
 import { PurchaseOrderForm } from "@/modules/erp/purchase-orders/components/purchase-order-form";
 import { usePurchaseOrderWorkflow } from "@/modules/erp/purchase-orders/hooks/use-purchase-order-workflow";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
@@ -76,10 +77,10 @@ export function PurchaseOrderDetailScreen({
         error={purchaseOrderQuery.error}
         notFoundMessage="Purchase order not found"
         onRetry={() => purchaseOrderQuery.refetch()}
-        backHref="/purchase-orders"
-        backLabel="Back to purchase orders"
+        backHref="/purchases?tab=orders"
+        backLabel="Back to purchases"
         title="Purchase order"
-        listHref="/purchase-orders"
+        listHref="/purchases?tab=orders"
         viewHref={viewHref}
         canUpdate={false}
         mode={mode}
@@ -161,11 +162,11 @@ function PurchaseOrderDetailLoaded({
       isError={false}
       notFoundMessage="Purchase order not found"
       onRetry={() => undefined}
-      backHref="/purchase-orders"
-      backLabel="Back to purchase orders"
+      backHref="/purchases?tab=orders"
+      backLabel="Back to purchases"
       title={number ?? "Purchase order"}
       subtitle={number ? undefined : "Number not assigned yet"}
-      listHref="/purchase-orders"
+      listHref="/purchases?tab=orders"
       viewHref={viewHref}
       printHref={printHref("purchase-orders", purchaseOrder.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
@@ -234,7 +235,12 @@ function PurchaseOrderDetailLoaded({
         </div>
       }
       formTitle={isEdit ? "Edit purchase order" : "Purchase order"}
-      panels={<RelatedDocumentsCard documents={purchaseOrder.related_documents} />}
+      panels={
+        <>
+          <PurchaseOrderCycleCard purchaseOrderId={purchaseOrder.id} />
+          <RelatedDocumentsCard documents={purchaseOrder.related_documents} />
+        </>
+      }
       attachments={
         <EntityAttachmentsPanel
           entityType="PURCHASE_ORDER"

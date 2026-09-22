@@ -15,6 +15,7 @@ import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/co
 import { isUsableExpenseChargeLine } from "@/modules/erp/landed-costs/schemas";
 import { ApplyDebitsDialog } from "@/modules/erp/purchase-invoices/components/apply-debits-dialog";
 import { PurchaseInvoiceWriteOffDialog } from "@/modules/erp/purchase-invoices/components/write-off-dialog";
+import { PurchaseOrderCycleCard } from "@/modules/erp/purchase-orders/components/purchase-order-cycle-card";
 import { PurchaseInvoiceForm } from "@/modules/erp/purchase-invoices/components/purchase-invoice-form";
 import { PurchaseInvoiceLandedCostCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-landed-cost-card";
 import { PurchaseInvoiceReverseChargeCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-reverse-charge-card";
@@ -76,10 +77,10 @@ export function PurchaseInvoiceDetailScreen({
         error={invoiceQuery.error}
         notFoundMessage="Purchase invoice not found"
         onRetry={() => invoiceQuery.refetch()}
-        backHref="/purchase-invoices"
-        backLabel="Back to purchase invoices"
+        backHref="/purchases?tab=bills"
+        backLabel="Back to purchases"
         title="Purchase invoice"
-        listHref="/purchase-invoices"
+        listHref="/purchases?tab=bills"
         viewHref={viewHref}
         canUpdate={false}
         mode={mode}
@@ -141,11 +142,11 @@ function PurchaseInvoiceDetailLoaded({
       isError={false}
       notFoundMessage="Purchase invoice not found"
       onRetry={() => undefined}
-      backHref="/purchase-invoices"
-      backLabel="Back to purchase invoices"
+      backHref="/purchases?tab=bills"
+      backLabel="Back to purchases"
       title={number ?? "Purchase invoice"}
       subtitle={number ? undefined : "Number not assigned yet"}
-      listHref="/purchase-invoices"
+      listHref="/purchases?tab=bills"
       viewHref={viewHref}
       printHref={printHref("purchase-invoices", invoice.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
@@ -272,6 +273,9 @@ function PurchaseInvoiceDetailLoaded({
       formTitle={isEdit ? "Edit purchase invoice" : "Purchase invoice"}
       panels={
         <>
+          {invoice.purchase_order_id ? (
+            <PurchaseOrderCycleCard purchaseOrderId={invoice.purchase_order_id} />
+          ) : null}
           <DocumentSettlementCard
             amountPaid={invoice.amount_paid}
             amountAdjusted={invoice.amount_debited}

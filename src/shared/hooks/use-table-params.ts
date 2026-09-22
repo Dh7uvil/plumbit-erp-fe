@@ -31,7 +31,7 @@ export type TableParamsController = TableParams & {
   setPageSize: (pageSize: number) => void;
 };
 
-const RESERVED = new Set(["page", "page_size", "search", "sort_by", "sort_order"]);
+const RESERVED = new Set(["page", "page_size", "search", "sort_by", "sort_order", "tab"]);
 
 function parsePositiveInt(value: string | null, fallback: number): number {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -95,9 +95,12 @@ export function useNestedTableParams(): TableParamsController {
     setState((current) => applyTableParamPatch(current, patch));
   }, []);
 
-  const setPage = useCallback((page: number) => {
-    setParams({ page });
-  }, [setParams]);
+  const setPage = useCallback(
+    (page: number) => {
+      setParams({ page });
+    },
+    [setParams],
+  );
 
   const setPageSize = useCallback(
     (pageSize: number) => {

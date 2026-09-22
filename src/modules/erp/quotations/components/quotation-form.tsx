@@ -357,9 +357,7 @@ export function QuotationForm({
         toast.success("Quotation saved");
         onSuccess?.();
       } else {
-        const created = await createQuotation.mutateAsync(
-          toCreateRequest(values, opportunityId),
-        );
+        const created = await createQuotation.mutateAsync(toCreateRequest(values, opportunityId));
         toast.success("Quotation created");
         router.push(`/quotations/${created.id}`);
       }
@@ -386,7 +384,10 @@ export function QuotationForm({
         {composeQuery.isFetching && !isEdit ? (
           <p className="text-muted-foreground text-sm">Loading customer defaults…</p>
         ) : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="customer_id"
@@ -711,9 +712,7 @@ export function QuotationForm({
           </FormItem>
           <div
             data-slot="form-grid"
-            className={
-              isEdit ? "col-span-full" : "col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
-            }
+            className={"col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"}
           >
             <FormItem>
               <FormLabel>Tax treatment</FormLabel>
