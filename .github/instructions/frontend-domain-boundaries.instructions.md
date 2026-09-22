@@ -9,6 +9,11 @@ This is a multi-tenant UAE trading ERP client for a modular backend. The boundar
 tenant data separated, keep financial figures trustworthy, and keep a module extractable later.
 Convenience never outranks them.
 
+Product scope matches the backend: Zoho Books + Inventory + CRM trading flows. Out of scope:
+manufacturing, POS, full payroll, e-commerce, projects/timesheets. Bank reconciliation, PDC,
+recurring templates, vouchers, import/export cost sheets, charge-type masters, and budgets are
+in scope as planned accounting modules.
+
 Document posting, lock, stock, VAT and e-invoicing UX:
 [erp-documents-and-workflows](erp-documents-and-workflows.instructions.md). Do not mock settings
 the tenant API does not expose.
@@ -161,7 +166,8 @@ erp                     Implemented: Quotations, Sales Orders, Purchase Orders, 
                         invoiced-not-dispatched, AR/AP aging, customer/supplier statements), Sales Invoices, Purchase
                         Invoices, Credit Notes, Debit Notes, Customer Payments, Supplier Payments, Landed Costs.
                         Planned: Logistics (Imports, Exports, Shipments, Containers),
-                        e-invoicing status UX on sales invoices and credit notes.
+                        e-invoicing status UX on sales invoices and credit notes, vouchers, cost-sheets,
+                        bank-accounts, bank-reconciliation, cheques, budgets, recurring.
 inventory-management    Implemented: Units, Categories, Products, Price Lists, Warehouses,
                         Stock, Stock Transfers, Stock Adjustments, Goods Receipts,
                         Quality Inspections, Delivery Notes, Packages, Shipments,

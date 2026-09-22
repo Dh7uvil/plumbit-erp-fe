@@ -53,6 +53,22 @@ e2e/
 Do not add `leads.spec.ts` until the leads API exists. Add a spec when a flow becomes
 business-critical, not for every new screen.
 
+### Accounting refactor baseline (Playwright)
+
+Before refactors to purchases, payments, journals and AR/AP reporting, treat the following specs as
+the green baseline on `develop` (backend characterization tests cover posting journals separately):
+
+```text
+Purchase invoices     invoicing.spec.ts (list shell; sales invoice create/post in same file)
+Purchase orders       purchase-orders.spec.ts, goods-receipts.spec.ts (receive path)
+Journals              journal-posting.spec.ts
+Payments              (no dedicated e2e yet — covered by API tests in plumbit-erp-be)
+AR/AP aging           (no dedicated e2e yet — trial-balance.spec.ts links account statement nav)
+Party statements      trial-balance.spec.ts (account statement entry in reports nav)
+```
+
+Re-run the full Playwright suite after Phases 2–3 touch those screens.
+
 Add a spec when a flow becomes business-critical, not for every new screen. If a flow is not worth an
 end-to-end test, it is also not worth a mountain of unit tests — rely on the types and review it well.
 

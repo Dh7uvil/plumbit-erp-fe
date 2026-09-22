@@ -6,7 +6,9 @@ You are working on a production-grade multi-tenant UAE trading ERP front-end bui
 The product scope is Zoho Books + Inventory + CRM / Odoo Sales, Purchase, Inventory, Accounting,
 CRM: quotes, orders, invoices, GRN, credit/debit notes, payments, stock, journals, UAE VAT, and
 UAE e-invoicing through third-party Accredited Service Providers (ASPs). Manufacturing, POS, full
-payroll, e-commerce, projects/timesheets, recurring invoices, and banking/PDC are out of scope.
+payroll, e-commerce, and projects/timesheets are out of scope. Bank reconciliation, PDC,
+recurring templates, vouchers, cost sheets, charge types, and budgets are planned in-scope
+accounting work — see the module map below.
 Plumbit is not a Peppol Access Point and does not treat Zoho Books or TallyPrime as the ledger.
 
 Follow the project's architecture and guardrails strictly. Tenant isolation, session handling and
@@ -67,7 +69,9 @@ src/
 │   │                             export-evidence-exceptions, invoiced-not-dispatched),
 │   │                             sales-invoices, purchase-invoices, credit-notes, debit-notes,
 │   │                             customer-payments, supplier-payments, landed-costs
-│   │                             planned: logistics, einvoicing status UX on invoices and credit notes
+│   │                             planned: logistics, einvoicing status UX on invoices and credit notes,
+│   │                             vouchers, cost-sheets, bank-accounts, bank-reconciliation, cheques,
+│   │                             budgets, recurring
 │   ├── communication-service/    planned: email, whatsapp, chat, meetings
 │   └── notifications-service/    planned: notifications, templates, delivery
 ├── shared/                       api/ auth/ components/ hooks/ lib/ providers/ types/
