@@ -40,6 +40,7 @@ export const exchangeRatesApi = {
       await apiClient.get("/exchange-rates/resolve", {
         params: {
           from_currency_id: params.from_currency_id,
+          to_currency_id: params.to_currency_id,
           on_date: params.on_date,
         },
       }),

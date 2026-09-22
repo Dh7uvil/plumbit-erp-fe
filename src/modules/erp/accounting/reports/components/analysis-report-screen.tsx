@@ -82,6 +82,13 @@ export function AnalysisReportScreen({ kind }: { kind: "sales" | "purchase" }) {
         </>
       }
     >
+      {report?.warnings?.length ? (
+        <div className="text-destructive mb-3 text-sm">
+          {report.warnings.map((warning) => (
+            <p key={warning}>{warning}</p>
+          ))}
+        </div>
+      ) : null}
       <DataTable>
         <TableHeader>
           <TableRow>

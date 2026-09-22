@@ -106,6 +106,10 @@ function SupplierPaymentDetailLoaded({
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === payment.currency_id)?.code ?? "";
+  const baseCurrencyCode =
+    currenciesQuery.data?.find((currency) => currency.id === payment.base_currency_id)?.code ??
+    currenciesQuery.data?.find((currency) => currency.is_base)?.code ??
+    "";
 
   return (
     <DocumentRecordShell
@@ -155,6 +159,7 @@ function SupplierPaymentDetailLoaded({
             currencyId={payment.currency_id}
             exchangeRate={payment.exchange_rate}
             taxTreatmentLabel=""
+            baseAmount={payment.base_amount}
           />
           <p className="text-muted-foreground text-sm">
             {PAYMENT_METHOD_LABELS[payment.payment_method]}
@@ -165,7 +170,7 @@ function SupplierPaymentDetailLoaded({
               <> · Refunded {formatMoney(payment.amount_refunded, currencyCode)}</>
             ) : null}
             {payment.realized_fx_amount && payment.realized_fx_amount !== "0" ? (
-              <> · Realized FX {formatMoney(payment.realized_fx_amount, currencyCode)}</>
+              <> · Realized FX (base) {formatMoney(payment.realized_fx_amount, baseCurrencyCode)}</>
             ) : null}
             .
           </p>

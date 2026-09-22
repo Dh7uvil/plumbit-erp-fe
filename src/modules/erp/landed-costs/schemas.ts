@@ -13,6 +13,7 @@ import {
   EXPENSE_CATEGORY_LABELS,
   RelatedDocumentRefSchema,
 } from "@/shared/components/document/schemas";
+import { compareDecimals, isZeroDecimal } from "@/shared/lib/format";
 import { DecimalStringSchema, NullableDecimalStringSchema } from "@/shared/lib/money";
 
 export {
@@ -218,7 +219,9 @@ export type LandedCostListParams = {
   document_date_to?: string;
 };
 
-export function landedCostDisplayNumber(document: Pick<LandedCost, "document_number">): string | null {
+export function landedCostDisplayNumber(
+  document: Pick<LandedCost, "document_number">,
+): string | null {
   const value = document.document_number.trim();
   return value ? value : null;
 }
@@ -239,12 +242,11 @@ export function remainingExpenseAmount(line: {
   line_type: string;
   amount: string;
   landed_cost_remaining?: string | null;
-}): number {
+}): string {
   if (line.line_type !== "EXPENSE") {
-    return 0;
+    return "0";
   }
-  const remaining = Number(line.landed_cost_remaining ?? line.amount);
-  return Number.isFinite(remaining) ? remaining : 0;
+  return line.landed_cost_remaining ?? line.amount;
 }
 
 export function isUsableExpenseChargeLine(line: {
@@ -252,7 +254,8 @@ export function isUsableExpenseChargeLine(line: {
   amount: string;
   landed_cost_remaining?: string | null;
 }): boolean {
-  return remainingExpenseAmount(line) > 0;
+  const remaining = remainingExpenseAmount(line);
+  return !isZeroDecimal(remaining) && (compareDecimals(remaining, "0") ?? 0) > 0;
 }
 
 export function isUsableLandedCostShipmentStatus(status: string): boolean {

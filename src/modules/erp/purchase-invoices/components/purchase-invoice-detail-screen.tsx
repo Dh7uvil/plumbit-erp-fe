@@ -239,6 +239,7 @@ function PurchaseInvoiceDetailLoaded({
             exchangeRate={invoice.exchange_rate}
             taxTreatmentLabel={TAX_TREATMENT_LABELS[invoice.tax_treatment]}
             paymentTermsId={invoice.payment_terms_id}
+            baseAmount={invoice.base_amount}
           />
           <p className="text-muted-foreground text-sm">
             {BILL_TYPE_LABELS[invoice.bill_type]} bill

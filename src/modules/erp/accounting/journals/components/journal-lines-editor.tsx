@@ -388,7 +388,7 @@ export function JournalLinesEditor({
               >
                 {totals.isBalanced
                   ? "Balanced"
-                  : `Difference ${formatReportMoney(totals.difference, currencyCode)} (server confirms on post)`}
+                  : `Difference ${formatReportMoney(totals.difference, currencyCode)} (draft can stay unbalanced; post requires a match)`}
               </TableCell>
             </TableRow>
           </TableBody>

@@ -730,6 +730,7 @@ export const SalesPurchaseAnalysisSchema = z.object({
   total_net: DecimalStringSchema,
   total_tax: DecimalStringSchema,
   total_grand: DecimalStringSchema,
+  warnings: z.array(z.string()).optional().default([]),
   lines: z.array(SalesPurchaseAnalysisLineSchema).optional().default([]),
 });
 export type SalesPurchaseAnalysis = z.infer<typeof SalesPurchaseAnalysisSchema>;
@@ -858,4 +859,3 @@ export function taxRegisterLineMatchesBox(line: TaxRegisterLine, boxCode: string
   }
   return true;
 }
-

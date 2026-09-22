@@ -21,7 +21,10 @@ import {
   purchaseOrderDisplayNumber,
   type PurchaseOrder,
 } from "@/modules/erp/purchase-orders/schemas";
-import { PURCHASE_ORDER_ACTION_REGISTRY, type PurchaseOrderWorkflowAction } from "@/modules/erp/purchase-orders/workflow";
+import {
+  PURCHASE_ORDER_ACTION_REGISTRY,
+  type PurchaseOrderWorkflowAction,
+} from "@/modules/erp/purchase-orders/workflow";
 import { useCreateGoodsReceiptFromPurchaseOrder } from "@/modules/inventory-management/goods-receipts/mutations";
 import {
   StockWriteAlert,
@@ -116,10 +119,7 @@ function PurchaseOrderDetailLoaded({
   const [writeError, setWriteError] = useState<unknown>(null);
   const [billOpen, setBillOpen] = useState(false);
   const fallbackActions: string[] = [];
-  if (
-    purchaseOrder.status === "ISSUED" &&
-    purchaseOrder.receipt_status !== "RECEIVED"
-  ) {
+  if (purchaseOrder.status === "ISSUED" && purchaseOrder.receipt_status !== "RECEIVED") {
     fallbackActions.push("create_goods_receipt");
   }
   if (
@@ -210,6 +210,7 @@ function PurchaseOrderDetailLoaded({
             exchangeRate={purchaseOrder.exchange_rate}
             taxTreatmentLabel={TAX_TREATMENT_LABELS[purchaseOrder.tax_treatment]}
             paymentTermsId={purchaseOrder.payment_terms_id}
+            baseAmount={purchaseOrder.base_amount}
           />
           {purchaseOrder.quantity_progress ? (
             <QuantityProgressStrip

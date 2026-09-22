@@ -101,8 +101,12 @@ export function ExchangeRateFormDialog({
     }
     setFormError(null);
     try {
-      await upsertExchangeRate.mutateAsync(toUpsertRequest(values));
-      toast.success(hasRecord ? "Exchange rate updated" : "Exchange rate saved");
+      const saved = await upsertExchangeRate.mutateAsync(toUpsertRequest(values));
+      if (saved.warnings.length > 0) {
+        toast.warning(saved.warnings.join(" "));
+      } else {
+        toast.success(hasRecord ? "Exchange rate updated" : "Exchange rate saved");
+      }
       handleOpenChange(false);
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {
@@ -126,7 +130,10 @@ export function ExchangeRateFormDialog({
             className="flex flex-col gap-3"
           >
             {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-            <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              data-slot="form-grid"
+              className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+            >
               <FormField
                 control={form.control}
                 name="currency_id"

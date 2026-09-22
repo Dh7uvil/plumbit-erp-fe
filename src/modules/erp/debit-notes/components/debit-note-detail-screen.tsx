@@ -32,13 +32,7 @@ import { DocumentWorkflowButtons } from "@/shared/components/document/document-w
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
-export function DebitNoteDetailScreen({
-  noteId,
-  mode,
-}: {
-  noteId: string;
-  mode: RecordPageMode;
-}) {
+export function DebitNoteDetailScreen({ noteId, mode }: { noteId: string; mode: RecordPageMode }) {
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(debitNotePermissions);
   const noteQuery = useDebitNote(noteId);
@@ -152,6 +146,7 @@ function DebitNoteDetailLoaded({
             currencyId={note.currency_id}
             exchangeRate={note.exchange_rate}
             taxTreatmentLabel={TAX_TREATMENT_LABELS[note.tax_treatment]}
+            baseAmount={note.base_amount}
           />
           <p className="text-muted-foreground text-sm">
             {DEBIT_NOTE_REASON_LABELS[note.reason_code]} · Against{" "}

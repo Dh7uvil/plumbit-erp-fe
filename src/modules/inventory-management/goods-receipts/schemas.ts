@@ -92,6 +92,8 @@ export const GoodsReceiptSchema = z.object({
   currency_id: z.string().uuid(),
   base_currency_id: z.string().uuid(),
   exchange_rate: MoneySchema,
+  foreign_amount: MoneySchema.optional().default("0"),
+  base_amount: MoneySchema.optional().default("0"),
   supplier_invoice_number: z.string().nullable(),
   delivery_challan_number: z.string().nullable(),
   bill_of_entry_number: z.string().nullable(),
@@ -220,12 +222,8 @@ export function isBlankGoodsReceiptLine(line: GoodsReceiptLineFormValues): boole
 
 export const GoodsReceiptFormSchema = z
   .object({
-    supplier_id: z
-      .string()
-      .refine((value) => hasId(value), "Select a supplier"),
-    warehouse_id: z
-      .string()
-      .refine((value) => hasId(value), "Select a warehouse"),
+    supplier_id: z.string().refine((value) => hasId(value), "Select a supplier"),
+    warehouse_id: z.string().refine((value) => hasId(value), "Select a warehouse"),
     document_date: z.string().min(1, "Enter a date"),
     purchase_order_id: z.string(),
     branch_id: z.string(),
@@ -252,7 +250,11 @@ export const GoodsReceiptFormSchema = z
       if (isBlankGoodsReceiptLine(line)) {
         return;
       }
-      if (!hasId(line.product_id) && !hasId(line.supplier_product_id) && !line.supplier_sku.trim()) {
+      if (
+        !hasId(line.product_id) &&
+        !hasId(line.supplier_product_id) &&
+        !line.supplier_sku.trim()
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["lines", index, "product_id"],
