@@ -14,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import { cn } from "@/shared/lib/cn";
 
 export type CreatedMaster = {
@@ -59,6 +60,10 @@ export function MasterSelect({
     createActions ?? (onCreate && createLabel ? [{ label: createLabel, onSelect: onCreate }] : []);
   const canCreate = !disabled && actions.length > 0;
 
+  const createButtonSize = compact ? ("icon-sm" as const) : ("icon" as const);
+  const createButtonClassName = compact ? "shrink-0" : "size-9 shrink-0";
+  const plusIconClassName = compact ? "size-3.5" : "size-4";
+
   return (
     <div className={cn("flex w-full items-center gap-1", className)}>
       <div className="min-w-0 flex-1">
@@ -77,31 +82,41 @@ export function MasterSelect({
           loading={loading}
         />
       </div>
-      {canCreate && !compact ? (
+      {canCreate ? (
         actions.length === 1 ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-9 shrink-0"
-            aria-label={actions[0].label}
-            onClick={actions[0].onSelect}
-          >
-            <Plus className="size-4" />
-          </Button>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 type="button"
                 variant="outline"
-                size="icon"
-                className="size-9 shrink-0"
-                aria-label="Create"
+                size={createButtonSize}
+                className={createButtonClassName}
+                aria-label={actions[0].label}
+                onClick={actions[0].onSelect}
               >
-                <Plus className="size-4" />
+                <Plus className={plusIconClassName} />
               </Button>
-            </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{actions[0].label}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size={createButtonSize}
+                    className={createButtonClassName}
+                    aria-label="Create"
+                  >
+                    <Plus className={plusIconClassName} />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Create</TooltipContent>
+            </Tooltip>
             <DropdownMenuContent align="end">
               {actions.map((action) => (
                 <DropdownMenuItem key={action.label} onSelect={action.onSelect}>

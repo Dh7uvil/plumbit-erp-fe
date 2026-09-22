@@ -91,6 +91,99 @@ export function matrixActionColumns(rows: PermissionMatrixRow[]): string[] {
   return [...PREFERRED_ACTIONS.filter((action) => actionSet.has(action)), ...rest];
 }
 
+const READ_ACTION = "read";
+
+export type MatrixPermissionLocation = {
+  module: string;
+  resource: string;
+  action: PermissionMatrixAction;
+  resourceActions: PermissionMatrixAction[];
+};
+
+export function findMatrixPermission(
+  matrix: PermissionMatrixResponse,
+  permissionId: string,
+): MatrixPermissionLocation | null {
+  for (const mod of matrix.modules) {
+    for (const resource of mod.resources) {
+      const action = resource.actions.find((item) => item.id === permissionId);
+      if (action) {
+        return {
+          module: mod.module,
+          resource: resource.resource,
+          action,
+          resourceActions: resource.actions,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+/** Enforces: non-read grants require read; clearing read clears all actions on that resource. */
+export function applyPermissionToggle(
+  matrix: PermissionMatrixResponse,
+  currentIds: ReadonlySet<string>,
+  permissionId: string,
+  checked: boolean,
+): string[] {
+  const location = findMatrixPermission(matrix, permissionId);
+  if (!location) {
+    return [...currentIds];
+  }
+
+  const next = new Set(currentIds);
+  const readAction = location.resourceActions.find((item) => item.action === READ_ACTION);
+
+  if (checked) {
+    next.add(permissionId);
+    if (readAction && location.action.action !== READ_ACTION) {
+      next.add(readAction.id);
+    }
+    return [...next];
+  }
+
+  if (location.action.action === READ_ACTION) {
+    for (const item of location.resourceActions) {
+      next.delete(item.id);
+    }
+    return [...next];
+  }
+
+  next.delete(permissionId);
+  return [...next];
+}
+
+export function normalizePermissionIds(
+  matrix: PermissionMatrixResponse,
+  ids: ReadonlySet<string>,
+): string[] {
+  const next = new Set(ids);
+
+  for (const mod of matrix.modules) {
+    for (const resource of mod.resources) {
+      const readAction = resource.actions.find((item) => item.action === READ_ACTION);
+      if (!readAction) {
+        continue;
+      }
+
+      const hasNonReadGrant = resource.actions.some(
+        (item) => item.action !== READ_ACTION && next.has(item.id),
+      );
+
+      if (hasNonReadGrant) {
+        next.add(readAction.id);
+      } else if (!next.has(readAction.id)) {
+        for (const item of resource.actions) {
+          next.delete(item.id);
+        }
+      }
+    }
+  }
+
+  return [...next];
+}
+
 export function permissionMatrixTable(matrix: PermissionMatrixResponse): {
   actions: string[];
   rows: PermissionMatrixRow[];

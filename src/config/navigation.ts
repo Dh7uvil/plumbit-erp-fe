@@ -66,6 +66,7 @@ import { reportPermissions } from "@/modules/erp/accounting/reports/permissions"
 import { dunningPermissions } from "@/modules/erp/accounting/dunning-rules/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { periodLockPermissions } from "@/modules/erp/period-lock/permissions";
+import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
 import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
@@ -408,6 +409,12 @@ export const navigation: NavigationGroup[] = [
         href: "/dunning-rules",
         permission: dunningPermissions.read,
         icon: Bell,
+      },
+      {
+        label: "Cost sheets",
+        href: "/cost-sheets",
+        permission: costSheetPermissions.read,
+        icon: FileSpreadsheet,
       },
     ],
   },

@@ -219,7 +219,7 @@ export function JournalLinesEditor({
                     />
                   </TableCell>
                   {showPartyColumns ? (
-                    <TableCell className="min-w-44 align-top">
+                    <TableCell className="min-w-52 align-top">
                       {partyType ? (
                         <FormField
                           control={form.control}
@@ -285,7 +285,7 @@ export function JournalLinesEditor({
                       )}
                     </TableCell>
                   ) : null}
-                  <TableCell className="min-w-44 align-top">
+                  <TableCell className="min-w-52 align-top">
                     <FormField
                       control={form.control}
                       name={`lines.${index}.cost_center_id`}

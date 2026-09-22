@@ -152,7 +152,7 @@ export function StockTransferLinesEditor({
                         )}
                       />
                     </TableCell>
-                    <TableCell className="min-w-32 align-top">
+                    <TableCell className="min-w-40 align-top">
                       <FormField
                         control={form.control}
                         name={`lines.${index}.unit_id`}
@@ -212,7 +212,7 @@ export function StockTransferLinesEditor({
                         {formatQuantity(destQty ?? null)}
                       </TableCell>
                     ) : null}
-                    <TableCell className="min-w-40 align-top">
+                    <TableCell className="min-w-32 align-top">
                       <FormField
                         control={form.control}
                         name={`lines.${index}.notes`}
