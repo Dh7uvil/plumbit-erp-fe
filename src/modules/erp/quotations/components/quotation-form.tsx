@@ -80,6 +80,8 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 type ComposeField =
@@ -142,14 +144,14 @@ function toFormLines(quotation: Quotation | null): QuotationLineFormValues[] {
   }));
 }
 
-function toFormValues(quotation: Quotation | null): QuotationFormValues {
+function toFormValues(quotation: Quotation | null, defaultCurrencyId?: string): QuotationFormValues {
   return {
     customer_id: quotation?.customer_id ?? OPTIONAL_SELECT_NONE,
     contact_id: quotation?.contact_id ?? OPTIONAL_SELECT_NONE,
     branch_id: quotation?.branch_id ?? OPTIONAL_SELECT_NONE,
     quote_date: quotation?.quote_date ?? todayIsoDate(),
     valid_until: quotation?.valid_until ?? "",
-    currency_id: quotation?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: quotation?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     price_list_id: quotation?.price_list_id ?? OPTIONAL_SELECT_NONE,
     payment_terms_id: quotation?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
     salesperson_id: quotation?.salesperson_id ?? OPTIONAL_SELECT_NONE,
@@ -257,13 +259,15 @@ export function QuotationForm({
   >(null);
   const dirtyCompose = useRef(new Set<ComposeField>());
   const isEdit = Boolean(quotation);
+  const { baseCurrencyId } = useBaseCurrency();
 
   const form = useForm<QuotationFormValues>({
     resolver: zodResolver(QuotationFormSchema),
-    defaultValues: toFormValues(quotation),
-    values: quotation ? toFormValues(quotation) : undefined,
+    defaultValues: toFormValues(quotation, baseCurrencyId),
+    values: quotation ? toFormValues(quotation, baseCurrencyId) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const customerId = useWatch({ control: form.control, name: "customer_id" });
   const selectedCustomerId = optionalUuid(customerId);

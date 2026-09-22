@@ -57,6 +57,8 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -111,14 +113,14 @@ function toFormLines(note: DebitNote | null): DebitNoteLineFormValues[] {
   }));
 }
 
-function toFormValues(note: DebitNote | null): DebitNoteFormValues {
+function toFormValues(note: DebitNote | null, defaultCurrencyId?: string): DebitNoteFormValues {
   return {
     purchase_invoice_id: note?.purchase_invoice_id ?? OPTIONAL_SELECT_NONE,
     supplier_id: note?.supplier_id ?? OPTIONAL_SELECT_NONE,
     reason_code: note?.reason_code ?? "PRICE_ADJUSTMENT",
     branch_id: note?.branch_id ?? OPTIONAL_SELECT_NONE,
     debit_note_date: note?.debit_note_date ?? todayIsoDate(),
-    currency_id: note?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: note?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     notes: note?.notes ?? "",
     discount_type: note?.discount_type ?? OPTIONAL_SELECT_NONE,
     discount_value: note?.discount_value ?? "",
@@ -188,13 +190,16 @@ export function DebitNoteForm({
   const billsQuery = usePurchaseInvoices({ status: "POSTED", page_size: 100 }, !note);
   const [formError, setFormError] = useState<string | null>(null);
   const sourced = Boolean(note?.lines.some((line) => line.purchase_invoice_line_id));
+  const isEdit = Boolean(note);
+  const { baseCurrencyId } = useBaseCurrency();
 
   const form = useForm<DebitNoteFormValues>({
     resolver: zodResolver(DebitNoteFormSchema),
-    defaultValues: toFormValues(note),
-    values: note ? toFormValues(note) : undefined,
+    defaultValues: toFormValues(note, baseCurrencyId),
+    values: note ? toFormValues(note, baseCurrencyId) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const purchaseInvoiceId = useWatch({ control: form.control, name: "purchase_invoice_id" });
   const selectedBillId = optionalUuid(purchaseInvoiceId);

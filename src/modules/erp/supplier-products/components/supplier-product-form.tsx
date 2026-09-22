@@ -42,11 +42,14 @@ import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 function toFormValues(
   row: SupplierProduct | null,
   defaults?: { supplierId?: string; productId?: string },
+  defaultCurrencyId?: string,
 ): SupplierProductFormValues {
   return {
     supplier_id: row?.supplier_id ?? defaults?.supplierId ?? OPTIONAL_SELECT_NONE,
@@ -55,7 +58,7 @@ function toFormValues(
     supplier_item_name: row?.supplier_item_name ?? "",
     supplier_description: row?.supplier_description ?? "",
     price: row?.price ?? "",
-    currency_id: row?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: row?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     is_preferred: row?.is_preferred ?? false,
     is_preferred_supplier: row?.is_preferred_supplier ?? false,
     notes: row?.notes ?? "",
@@ -93,17 +96,23 @@ export function SupplierProductForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState<"supplier" | "product" | "currency" | null>(null);
   const isEdit = Boolean(supplierProduct);
+  const { baseCurrencyId } = useBaseCurrency();
   const supplierLocked = lockSupplier || isEdit;
   const productLocked = lockProduct || isEdit;
 
   const form = useForm<SupplierProductFormValues>({
     resolver: zodResolver(SupplierProductFormSchema),
-    values: toFormValues(supplierProduct, {
-      supplierId: defaultSupplierId,
-      productId: defaultProductId,
-    }),
+    values: toFormValues(
+      supplierProduct,
+      {
+        supplierId: defaultSupplierId,
+        productId: defaultProductId,
+      },
+      baseCurrencyId,
+    ),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
   const suppliers = suppliersQuery.data ?? [];

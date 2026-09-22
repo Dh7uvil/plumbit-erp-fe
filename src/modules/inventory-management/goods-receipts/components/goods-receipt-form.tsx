@@ -58,6 +58,8 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 function todayIsoDate(): string {
@@ -106,14 +108,14 @@ function toFormLines(receipt: GoodsReceipt | null): GoodsReceiptLineFormValues[]
   }));
 }
 
-function toFormValues(receipt: GoodsReceipt | null): GoodsReceiptFormValues {
+function toFormValues(receipt: GoodsReceipt | null, defaultCurrencyId?: string): GoodsReceiptFormValues {
   return {
     supplier_id: receipt?.supplier_id ?? OPTIONAL_SELECT_NONE,
     warehouse_id: receipt?.warehouse_id ?? OPTIONAL_SELECT_NONE,
     document_date: receipt?.document_date ?? todayIsoDate(),
     purchase_order_id: receipt?.purchase_order_id ?? OPTIONAL_SELECT_NONE,
     branch_id: receipt?.branch_id ?? OPTIONAL_SELECT_NONE,
-    currency_id: receipt?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: receipt?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     supplier_invoice_number: receipt?.supplier_invoice_number ?? "",
     delivery_challan_number: receipt?.delivery_challan_number ?? "",
     bill_of_entry_number: receipt?.bill_of_entry_number ?? "",
@@ -137,6 +139,7 @@ export function GoodsReceiptForm({
   const can = useCan();
   const router = useRouter();
   const isEdit = Boolean(receipt);
+  const { baseCurrencyId } = useBaseCurrency();
   const createReceipt = useCreateGoodsReceipt();
   const updateReceipt = useUpdateGoodsReceipt();
   const suppliersQuery = useAllSuppliers();
@@ -148,15 +151,16 @@ export function GoodsReceiptForm({
   const [writeError, setWriteError] = useState<unknown>(null);
   const form = useForm<GoodsReceiptFormValues>({
     resolver: zodResolver(GoodsReceiptFormSchema),
-    defaultValues: toFormValues(receipt),
+    defaultValues: toFormValues(receipt, baseCurrencyId),
   });
   const pending = createReceipt.isPending || updateReceipt.isPending;
   useDirtyFormGuard(!disabled && form.formState.isDirty);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
   const skuUnmapped = isApiError(writeError) && writeError.code === "SUPPLIER_SKU_NOT_MAPPED";
 
   useEffect(() => {
-    form.reset(toFormValues(receipt));
+    form.reset(toFormValues(receipt, baseCurrencyId));
   }, [form, receipt]);
 
   const issuedOrders = useMemo(

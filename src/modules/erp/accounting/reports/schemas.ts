@@ -238,8 +238,9 @@ export const AgingDocumentSchema = z.object({
   document_date: z.string(),
   due_date: z.string().nullable().optional().default(null),
   currency_code: z.string().nullable().optional().default(null),
+  exchange_rate: DecimalStringSchema.nullable().optional().default(null),
+  document_balance: DecimalStringSchema.nullable().optional().default(null),
   balance: DecimalStringSchema,
-  base_balance: DecimalStringSchema,
   bucket: z.string(),
 });
 export type AgingDocument = z.infer<typeof AgingDocumentSchema>;
@@ -247,25 +248,15 @@ export type AgingDocument = z.infer<typeof AgingDocumentSchema>;
 export const AgingPartyRowSchema = AgingBucketTotalsSchema.extend({
   party_id: z.string().uuid(),
   party_name: z.string(),
-  currency_id: z.string().uuid().nullable().optional().default(null),
-  currency_code: z.string().nullable().optional().default(null),
-  base: AgingBucketTotalsSchema.nullable().optional().default(null),
   documents: z.array(AgingDocumentSchema).optional().default([]),
 });
 export type AgingPartyRow = z.infer<typeof AgingPartyRowSchema>;
 
-export const AgingCurrencyTotalsSchema = AgingBucketTotalsSchema.extend({
-  currency_code: z.string(),
-});
-export type AgingCurrencyTotals = z.infer<typeof AgingCurrencyTotalsSchema>;
-
 export const AgingSchema = z.object({
-  currency_code: z.string().nullable().optional().default(null),
+  currency_code: z.string(),
   as_of: z.string(),
   rows: z.array(AgingPartyRowSchema).default([]),
   totals: AgingBucketTotalsSchema,
-  base_totals: AgingBucketTotalsSchema.nullable().optional().default(null),
-  currency_totals: z.array(AgingCurrencyTotalsSchema).optional().default([]),
 });
 export type Aging = z.infer<typeof AgingSchema>;
 
@@ -279,6 +270,8 @@ export const PartyStatementLineSchema = z.object({
   document_number: z.string(),
   document_date: z.string(),
   due_date: z.string().nullable().optional().default(null),
+  currency_code: z.string().nullable().optional().default(null),
+  exchange_rate: DecimalStringSchema.nullable().optional().default(null),
   debit: DecimalStringSchema,
   credit: DecimalStringSchema,
   running_balance: DecimalStringSchema,
@@ -287,6 +280,7 @@ export const PartyStatementLineSchema = z.object({
 export type PartyStatementLine = z.infer<typeof PartyStatementLineSchema>;
 
 export const PartyStatementSchema = z.object({
+  currency_code: z.string(),
   party_type: z.string(),
   party_id: z.string().uuid(),
   party_name: z.string(),
@@ -689,20 +683,19 @@ export const OutstandingDocumentSchema = z.object({
   party_id: z.string().uuid(),
   party_name: z.string(),
   currency_code: z.string().nullable().optional().default(null),
-  original_amount: DecimalStringSchema,
+  exchange_rate: DecimalStringSchema.nullable().optional().default(null),
+  document_balance: DecimalStringSchema.nullable().optional().default(null),
   balance: DecimalStringSchema,
-  base_balance: DecimalStringSchema,
   bucket: z.string(),
   days_overdue: z.number().int().optional().default(0),
 });
 export type OutstandingDocument = z.infer<typeof OutstandingDocumentSchema>;
 
 export const OutstandingDocumentsSchema = z.object({
-  currency_code: z.string().nullable().optional().default(null),
+  currency_code: z.string(),
   as_of: z.string(),
   party_type: z.string(),
   total_balance: DecimalStringSchema,
-  total_base_balance: DecimalStringSchema,
   lines: z.array(OutstandingDocumentSchema).optional().default([]),
 });
 export type OutstandingDocuments = z.infer<typeof OutstandingDocumentsSchema>;

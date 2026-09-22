@@ -43,8 +43,10 @@ import {
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 
-function toFormValues(opportunity: Opportunity | null): OpportunityFormValues {
+function toFormValues(opportunity: Opportunity | null, defaultCurrencyId?: string): OpportunityFormValues {
   if (!opportunity) {
     return defaultOpportunityFormValues();
   }
@@ -53,7 +55,7 @@ function toFormValues(opportunity: Opportunity | null): OpportunityFormValues {
     pipeline_id: opportunity.pipeline_id,
     stage_id: opportunity.stage_id,
     amount: opportunity.amount ?? "",
-    currency_id: opportunity.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: opportunity.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     expected_close_date: opportunity.expected_close_date?.slice(0, 10) ?? "",
     source_id: opportunity.source_id ?? OPTIONAL_SELECT_NONE,
     campaign_id: opportunity.campaign_id ?? OPTIONAL_SELECT_NONE,
@@ -98,6 +100,7 @@ export function OpportunityForm({
   onCancel?: () => void;
 }) {
   const isEdit = Boolean(opportunity);
+  const { baseCurrencyId } = useBaseCurrency();
   const createOpportunity = useCreateOpportunity();
   const updateOpportunity = useUpdateOpportunity();
   const pipelinesQuery = useAllPipelines(!disabled);
@@ -111,6 +114,7 @@ export function OpportunityForm({
     defaultValues: toFormValues(opportunity ?? null),
   });
   useDirtyFormGuard(form.formState.isDirty);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const pipelineId = form.watch("pipeline_id");
   const pipelineQuery = usePipeline(
     pipelineId && pipelineId !== OPTIONAL_SELECT_NONE ? pipelineId : null,

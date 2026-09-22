@@ -49,9 +49,11 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
-function toFormValues(account: Account | null): AccountFormValues {
+function toFormValues(account: Account | null, defaultCurrencyId?: string): AccountFormValues {
   if (!account) {
     return EMPTY_ACCOUNT_FORM;
   }
@@ -64,7 +66,7 @@ function toFormValues(account: Account | null): AccountFormValues {
     parent_id: account.parent_id ?? OPTIONAL_SELECT_NONE,
     is_group: account.is_group,
     is_active: account.is_active,
-    currency_id: account.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: account.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
   };
 }
 
@@ -92,13 +94,15 @@ export function AccountForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [creatingCurrency, setCreatingCurrency] = useState(false);
   const isEdit = Boolean(account);
+  const { baseCurrencyId } = useBaseCurrency();
   const codeLocked = account?.is_system === true;
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(AccountFormSchema),
-    values: toFormValues(account),
+    values: toFormValues(account, baseCurrencyId),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const accountType = useWatch({ control: form.control, name: "account_type" });
   const subtypeOptions = ACCOUNT_SUBTYPES_BY_TYPE[accountType] ?? [];
   const groups = useMemo(
@@ -122,7 +126,7 @@ export function AccountForm({
           })
         : await createAccount.mutateAsync(values);
       toast.success(isEdit ? "Account saved" : "Account created");
-      form.reset(toFormValues(saved));
+      form.reset(toFormValues(saved, baseCurrencyId));
       onSuccess?.(saved);
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {

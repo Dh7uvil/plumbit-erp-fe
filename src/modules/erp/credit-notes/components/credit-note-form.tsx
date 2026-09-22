@@ -59,6 +59,8 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 function todayIsoDate(): string {
@@ -106,7 +108,7 @@ function toFormLines(note: CreditNote | null): CreditNoteLineFormValues[] {
   }));
 }
 
-function toFormValues(note: CreditNote | null): CreditNoteFormValues {
+function toFormValues(note: CreditNote | null, defaultCurrencyId?: string): CreditNoteFormValues {
   return {
     customer_id: note?.customer_id ?? OPTIONAL_SELECT_NONE,
     sales_invoice_id: note?.sales_invoice_id ?? "",
@@ -114,7 +116,7 @@ function toFormValues(note: CreditNote | null): CreditNoteFormValues {
     reason_code: note?.reason_code ?? "PRICE_ADJUSTMENT",
     branch_id: note?.branch_id ?? OPTIONAL_SELECT_NONE,
     credit_note_date: note?.credit_note_date ?? todayIsoDate(),
-    currency_id: note?.currency_id ?? OPTIONAL_SELECT_NONE,
+    currency_id: note?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     notes: note?.notes ?? "",
     discount_type: note?.discount_type ?? OPTIONAL_SELECT_NONE,
     discount_value: note?.discount_value ?? "",
@@ -190,13 +192,16 @@ export function CreditNoteForm({
   const sourced = Boolean(
     note?.lines.some((line) => line.sales_invoice_line_id || line.sales_return_line_id),
   );
+  const isEdit = Boolean(note);
+  const { baseCurrencyId } = useBaseCurrency();
 
   const form = useForm<CreditNoteFormValues>({
     resolver: zodResolver(CreditNoteFormSchema),
-    defaultValues: toFormValues(note),
-    values: note ? toFormValues(note) : undefined,
+    defaultValues: toFormValues(note, baseCurrencyId),
+    values: note ? toFormValues(note, baseCurrencyId) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const customers = customersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
