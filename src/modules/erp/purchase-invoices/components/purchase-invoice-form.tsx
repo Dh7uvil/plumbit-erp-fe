@@ -45,6 +45,7 @@ import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { useAllSuppliers, useSupplier } from "@/modules/erp/suppliers/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DocumentChargesPanel } from "@/shared/components/document/document-charges-panel";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { emptyDocumentLine, emptyExpenseDocumentLine } from "@/shared/components/document/schemas";
@@ -132,6 +133,7 @@ function toLineInput(line: PurchaseInvoiceLineFormValues): PurchaseInvoiceLineIn
     supplier_sku: isExpense ? null : emptyToNull(line.supplier_sku ?? ""),
     expense_account_id: isExpense ? optionalUuid(line.expense_account_id ?? "") : null,
     expense_category: isExpense ? optionalExpenseCategory(line.expense_category ?? "") : null,
+    charge_type_id: isExpense ? emptyToNull(line.charge_type_id ?? "") : null,
     discount_type: optionalDiscountType(line.discount_type),
     discount_value: emptyToNull(line.discount_value),
     tax_id: optionalUuid(line.tax_id),
@@ -163,6 +165,7 @@ function toFormLines(
     goods_receipt_line_id: line.goods_receipt_line_id ?? "",
     expense_account_id: line.expense_account_id ?? OPTIONAL_SELECT_NONE,
     expense_category: line.expense_category ?? OPTIONAL_SELECT_NONE,
+    charge_type_id: line.charge_type_id ?? "",
     grn_unit_cost: line.grn_unit_cost ?? "",
   }));
 }
@@ -341,7 +344,10 @@ export function PurchaseInvoiceForm({
             </AlertDescription>
           </Alert>
         ) : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="supplier_id"
@@ -592,6 +598,9 @@ export function PurchaseInvoiceForm({
             }
           />
         </div>
+        {billType === "IMPORT" || billType === "GOODS" ? (
+          <DocumentChargesPanel form={form} disabled={disabled || sourced} appliesTo="IMPORT" />
+        ) : null}
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
         <FormField
           control={form.control}

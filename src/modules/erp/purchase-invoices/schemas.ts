@@ -88,6 +88,7 @@ export const PurchaseInvoiceLineSchema = z.object({
   supplier_sku: z.string().nullable(),
   expense_account_id: z.string().uuid().nullable(),
   expense_category: ExpenseCategorySchema.nullable(),
+  charge_type_id: z.string().uuid().nullable().optional(),
   discount_type: DiscountTypeSchema.nullable(),
   discount_value: MoneySchema.nullable(),
   discount_amount: MoneySchema,
@@ -184,6 +185,7 @@ export const PurchaseInvoiceLineInputSchema = z.object({
   supplier_sku: z.string().nullable().optional(),
   expense_account_id: z.string().uuid().nullable().optional(),
   expense_category: ExpenseCategorySchema.nullable().optional(),
+  charge_type_id: z.string().uuid().nullable().optional(),
   discount_type: DiscountTypeSchema.nullable().optional(),
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
@@ -273,6 +275,7 @@ export const PurchaseInvoiceLineFormSchema = z.object({
   goods_receipt_line_id: z.string().optional(),
   expense_account_id: z.string().optional(),
   expense_category: z.string().optional(),
+  charge_type_id: z.string().optional(),
   grn_unit_cost: z.string().optional(),
 });
 export type PurchaseInvoiceLineFormValues = z.infer<typeof PurchaseInvoiceLineFormSchema>;
@@ -285,6 +288,9 @@ function hasId(value: string): boolean {
 
 export function isBlankPurchaseInvoiceLine(line: PurchaseInvoiceLineFormValues): boolean {
   if (line.line_type === "EXPENSE") {
+    if (line.charge_type_id) {
+      return !line.rate.trim();
+    }
     return !hasId(line.expense_account_id ?? "") && !line.description.trim() && !line.rate.trim();
   }
   return !hasId(line.product_id) && !line.description.trim();

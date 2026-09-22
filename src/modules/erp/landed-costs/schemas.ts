@@ -25,7 +25,7 @@ export {
 };
 export type { StockDocumentStatus };
 
-export const LANDED_COST_ALLOCATION_METHODS = ["VALUE", "WEIGHT", "QUANTITY"] as const;
+export const LANDED_COST_ALLOCATION_METHODS = ["VALUE", "WEIGHT", "QUANTITY", "VOLUME"] as const;
 export const LandedCostAllocationMethodSchema = z.enum(LANDED_COST_ALLOCATION_METHODS);
 export type LandedCostAllocationMethod = z.infer<typeof LandedCostAllocationMethodSchema>;
 
@@ -33,6 +33,7 @@ export const LANDED_COST_ALLOCATION_METHOD_LABELS: Record<LandedCostAllocationMe
   VALUE: "Value",
   WEIGHT: "Weight",
   QUANTITY: "Quantity",
+  VOLUME: "Volume",
 };
 
 export const ExpenseCategorySchema = z.enum(EXPENSE_CATEGORIES);
