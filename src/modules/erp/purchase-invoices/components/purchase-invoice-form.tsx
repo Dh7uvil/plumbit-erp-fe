@@ -295,6 +295,7 @@ export function PurchaseInvoiceForm({
   const paymentTerms = paymentTermsQuery.data ?? [];
   const purchaseOrderId = useWatch({ control: form.control, name: "purchase_order_id" });
   const goodsReceiptId = useWatch({ control: form.control, name: "goods_receipt_id" });
+  const billType = useWatch({ control: form.control, name: "bill_type" });
   const varianceLines = (invoice?.lines ?? []).filter(lineHasPurchasePriceVariance);
 
   useEffect(() => {
