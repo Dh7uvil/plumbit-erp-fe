@@ -254,8 +254,8 @@ export const navigation: NavigationGroup[] = [
         icon: Boxes,
       },
       {
-        label: "Purchase orders",
-        href: "/purchase-orders",
+        label: "Purchases",
+        href: "/purchases",
         permission: purchaseOrderPermissions.read,
         icon: ShoppingBag,
       },
@@ -270,12 +270,6 @@ export const navigation: NavigationGroup[] = [
         href: "/quality-inspections",
         permission: qualityInspectionPermissions.read,
         icon: ClipboardCheck,
-      },
-      {
-        label: "Purchase invoices",
-        href: "/purchase-invoices",
-        permission: purchaseInvoicePermissions.read,
-        icon: FileSpreadsheet,
       },
       {
         label: "Debit notes",
@@ -513,6 +507,12 @@ export function visibleNavigation(permissions: readonly string[]): NavigationGro
         if (item.href === "/reports") {
           return canSeeReports;
         }
+        if (item.href === "/purchases") {
+          return (
+            can(purchaseOrderPermissions.read, permissions) ||
+            can(purchaseInvoicePermissions.read, permissions)
+          );
+        }
         return item.permission === null || can(item.permission, permissions);
       }),
     }))
@@ -523,11 +523,23 @@ export function searchableNavigation(permissions: readonly string[]): Navigation
   return [...visibleNavigation(permissions), ...visibleReportCatalog(permissions)];
 }
 
+function purchasesWorkspaceLookupPath(pathname: string): string {
+  if (
+    pathname === "/purchase-orders" ||
+    pathname.startsWith("/purchase-orders/") ||
+    pathname === "/purchase-invoices" ||
+    pathname.startsWith("/purchase-invoices/")
+  ) {
+    return "/purchases";
+  }
+  return pathname;
+}
+
 export function findActiveNav(
   pathname: string,
 ): { group: string; item: NavigationItem } | undefined {
   const history = parseHistoryPath(pathname);
-  const lookupPath = history?.spec.listHref ?? pathname;
+  const lookupPath = purchasesWorkspaceLookupPath(history?.spec.listHref ?? pathname);
   const matches = navigation.flatMap((group) =>
     group.items
       .filter((item) =>

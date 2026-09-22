@@ -1,13 +1,19 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  PurchaseOrderBillingQueueListSchema,
+  type BillingQueueListParams,
+} from "@/modules/erp/purchases/schemas";
+import {
   PurchaseOrderComposeDefaultsSchema,
   PurchaseOrderCreateRequestSchema,
+  PurchaseOrderCycleSchema,
   PurchaseOrderListSchema,
   PurchaseOrderSchema,
   PurchaseOrderUpdateRequestSchema,
   type PurchaseOrder,
   type PurchaseOrderComposeDefaults,
   type PurchaseOrderCreateRequest,
+  type PurchaseOrderCycle,
   type PurchaseOrderListParams,
   type PurchaseOrderUpdateRequest,
 } from "@/modules/erp/purchase-orders/schemas";
@@ -26,6 +32,17 @@ export const purchaseOrdersApi = {
         params: { supplier_id: supplierId },
       }),
     ),
+  billingQueue: async (params: BillingQueueListParams = {}) => {
+    const result = await apiClient.getList<unknown>("/purchase-orders/billing-queue", {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+      },
+    });
+    return { data: PurchaseOrderBillingQueueListSchema.parse(result.data), meta: result.meta };
+  },
+  getCycle: async (id: string): Promise<PurchaseOrderCycle> =>
+    PurchaseOrderCycleSchema.parse(await apiClient.get(`/purchase-orders/${id}/cycle`)),
   list: async (params: PurchaseOrderListParams = {}): Promise<ListResponse<PurchaseOrder[]>> => {
     const result = await apiClient.getList<unknown>("/purchase-orders", {
       params: {

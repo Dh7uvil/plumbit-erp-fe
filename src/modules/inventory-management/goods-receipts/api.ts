@@ -1,4 +1,6 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
+import { GoodsReceiptBillingQueueListSchema } from "@/modules/erp/purchases/schemas";
+import type { BillingQueueListParams } from "@/modules/erp/purchases/schemas";
 import {
   GoodsReceiptCreateFromPurchaseOrderSchema,
   GoodsReceiptCreateRequestSchema,
@@ -40,6 +42,15 @@ export const goodsReceiptsApi = {
       },
     });
     return { data: GoodsReceiptListSchema.parse(result.data), meta: result.meta };
+  },
+  billingQueue: async (params: BillingQueueListParams = {}) => {
+    const result = await apiClient.getList<unknown>("/goods-receipts/billing-queue", {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+      },
+    });
+    return { data: GoodsReceiptBillingQueueListSchema.parse(result.data), meta: result.meta };
   },
   get: async (id: string): Promise<GoodsReceipt> =>
     GoodsReceiptSchema.parse(await apiClient.get(`/goods-receipts/${id}`)),

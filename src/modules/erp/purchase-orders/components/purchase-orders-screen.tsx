@@ -44,10 +44,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -100,7 +97,13 @@ function parseBilling(value: string | undefined): BillingStatus | undefined {
   return BILLING_STATUSES.includes(value as BillingStatus) ? (value as BillingStatus) : undefined;
 }
 
-export function PurchaseOrdersScreen() {
+export function PurchaseOrdersScreen({
+  embedded = false,
+  toReceiveOnly = false,
+}: {
+  embedded?: boolean;
+  toReceiveOnly?: boolean;
+} = {}) {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(purchaseOrderPermissions);
   const router = useRouter();
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
@@ -150,7 +153,13 @@ export function PurchaseOrdersScreen() {
   const [deleting, setDeleting] = useState<PurchaseOrder | null>(null);
   const [fromClone, setFromClone] = useState(false);
 
-  const rows = purchaseOrdersQuery.data?.data ?? [];
+  const rows = useMemo(() => {
+    const data = purchaseOrdersQuery.data?.data ?? [];
+    if (!toReceiveOnly) {
+      return data;
+    }
+    return data.filter((purchaseOrder) => purchaseOrder.receipt_status !== "RECEIVED");
+  }, [purchaseOrdersQuery.data?.data, toReceiveOnly]);
   const meta = purchaseOrdersQuery.data?.meta;
   const suppliers = suppliersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
@@ -200,9 +209,7 @@ export function PurchaseOrdersScreen() {
         cell: (purchaseOrder) => {
           const number = purchaseOrderDisplayNumber(purchaseOrder);
           return (
-            <RecordLink href={`/purchase-orders/${purchaseOrder.id}`}>
-              {number ?? "—"}
-            </RecordLink>
+            <RecordLink href={`/purchase-orders/${purchaseOrder.id}`}>{number ?? "—"}</RecordLink>
           );
         },
       },
@@ -419,43 +426,40 @@ export function PurchaseOrdersScreen() {
     warehousesQuery.data,
   ]);
 
-  const { columns, columnsDialog, colSpan } = useTableColumns("erp.purchase_orders", columnDefs);
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    toReceiveOnly ? "erp.purchases.to_receive" : "erp.purchase_orders",
+    columnDefs,
+  );
 
-  return (
-    <ListPage>
-      <PageHeader
-        title="Purchase orders"
-        subtitle="Supplier orders"
-        actions={
-          canCreate ? (
-            <div className="flex flex-wrap gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={CONVERT_FROM_TRIGGER_CLASSNAME}
-                  >
-                    Convert from
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
-                  <DropdownMenuItem onSelect={() => setFromClone(true)}>
-                    Purchase order
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button type="button" size="sm" asChild>
-                <Link href="/purchase-orders/new">
-                  <Plus className="size-3.5" />
-                  New purchase order
-                </Link>
-              </Button>
-            </div>
-          ) : undefined
-        }
-      />
+  const headerActions =
+    !embedded && canCreate ? (
+      <div className="flex flex-wrap gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={CONVERT_FROM_TRIGGER_CLASSNAME}
+            >
+              Convert from
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+            <DropdownMenuItem onSelect={() => setFromClone(true)}>Purchase order</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button type="button" size="sm" asChild>
+          <Link href="/purchase-orders/new">
+            <Plus className="size-3.5" />
+            New purchase order
+          </Link>
+        </Button>
+      </div>
+    ) : undefined;
+
+  const table = (
+    <>
       <DataTableToolbar>
         <ListSearch
           value={search ?? ""}
@@ -692,8 +696,12 @@ export function PurchaseOrdersScreen() {
             <TableRow>
               <TableCell colSpan={colSpan}>
                 <DataTableEmpty
-                  title="No purchase orders"
-                  message={emptyListMessage(canCreate, "Create a purchase order to get started.")}
+                  title={toReceiveOnly ? "Nothing to receive" : "No purchase orders"}
+                  message={
+                    toReceiveOnly
+                      ? "Issued orders with remaining receipt quantity appear here."
+                      : emptyListMessage(canCreate, "Create a purchase order to get started.")
+                  }
                 />
               </TableCell>
             </TableRow>
@@ -726,6 +734,17 @@ export function PurchaseOrdersScreen() {
         onConfirm={() => void onDelete()}
       />
       <ClonePurchaseOrderDialog open={fromClone} onOpenChange={setFromClone} />
+    </>
+  );
+
+  if (embedded) {
+    return table;
+  }
+
+  return (
+    <ListPage>
+      <PageHeader title="Purchase orders" subtitle="Supplier orders" actions={headerActions} />
+      {table}
     </ListPage>
   );
 }

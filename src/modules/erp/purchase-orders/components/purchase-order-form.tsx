@@ -402,7 +402,10 @@ export function PurchaseOrderForm({
         {composeQuery.isFetching && !isEdit ? (
           <p className="text-muted-foreground text-sm">Loading supplier defaults…</p>
         ) : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="supplier_id"
@@ -726,9 +729,7 @@ export function PurchaseOrderForm({
           </FormItem>
           <div
             data-slot="form-grid"
-            className={
-              isEdit ? "col-span-full" : "col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
-            }
+            className={"col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"}
           >
             <FormItem>
               <FormLabel>Tax treatment</FormLabel>

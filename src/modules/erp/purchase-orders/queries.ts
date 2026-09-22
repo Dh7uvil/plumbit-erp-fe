@@ -12,6 +12,7 @@ export const purchaseOrderKeys = {
   detail: (id: string) => [...purchaseOrderKeys.all, "detail", id] as const,
   composeDefaults: (supplierId: string) =>
     [...purchaseOrderKeys.all, "compose-defaults", supplierId] as const,
+  cycle: (id: string) => [...purchaseOrderKeys.all, "cycle", id] as const,
 };
 
 export function usePurchaseOrders(params: PurchaseOrderListParams, enabled = true) {
@@ -36,5 +37,13 @@ export function usePurchaseOrderComposeDefaults(supplierId: string | null) {
     queryKey: useTenantQueryKey(purchaseOrderKeys.composeDefaults(supplierId ?? "")),
     queryFn: () => purchaseOrdersApi.composeDefaults(supplierId!),
     enabled: Boolean(supplierId),
+  });
+}
+
+export function usePurchaseOrderCycle(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(purchaseOrderKeys.cycle(id ?? "")),
+    queryFn: () => purchaseOrdersApi.getCycle(id!),
+    enabled: Boolean(id) && enabled,
   });
 }

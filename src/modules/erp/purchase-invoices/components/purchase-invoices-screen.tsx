@@ -40,10 +40,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -54,7 +51,10 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -102,7 +102,7 @@ function parseBillType(value: string | undefined): BillType | undefined {
   return BILL_TYPES.includes(value as BillType) ? (value as BillType) : undefined;
 }
 
-export function PurchaseInvoicesScreen() {
+export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(
     purchaseInvoicePermissions,
   );
@@ -185,11 +185,7 @@ export function PurchaseInvoicesScreen() {
         className: "font-mono text-sm",
         cell: (invoice) => {
           const number = purchaseInvoiceDisplayNumber(invoice);
-          return (
-            <RecordLink href={`/purchase-invoices/${invoice.id}`}>
-              {number ?? "—"}
-            </RecordLink>
-          );
+          return <RecordLink href={`/purchase-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>;
         },
       },
       {
@@ -385,53 +381,42 @@ export function PurchaseInvoicesScreen() {
     userNameById,
   ]);
 
-  const { columns, columnsDialog, colSpan } = useTableColumns(
-    "erp.purchase_invoices",
-    columnDefs,
-  );
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.purchase_invoices", columnDefs);
 
-  return (
-    <ListPage>
-      <PageHeader
-        title="Purchase invoices"
-        subtitle="Supplier bills. Posting updates payables and goods received not invoiced; stock does not move."
-        actions={
-          canCreate ? (
-            <div className="flex flex-wrap gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={CONVERT_FROM_TRIGGER_CLASSNAME}
-                  >
-                    Convert from
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
-                  {can(purchaseOrderPermissions.read) ? (
-                    <DropdownMenuItem onSelect={() => setFromPo(true)}>
-                      Purchase order
-                    </DropdownMenuItem>
-                  ) : null}
-                  {can(goodsReceiptPermissions.read) ? (
-                    <DropdownMenuItem onSelect={() => setFromGrn(true)}>
-                      Goods receipt
-                    </DropdownMenuItem>
-                  ) : null}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button type="button" size="sm" asChild>
-                <Link href="/purchase-invoices/new">
-                  <Plus className="size-3.5" />
-                  New purchase invoice
-                </Link>
-              </Button>
-            </div>
-          ) : undefined
-        }
-      />
+  const headerActions =
+    !embedded && canCreate ? (
+      <div className="flex flex-wrap gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={CONVERT_FROM_TRIGGER_CLASSNAME}
+            >
+              Convert from
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+            {can(purchaseOrderPermissions.read) ? (
+              <DropdownMenuItem onSelect={() => setFromPo(true)}>Purchase order</DropdownMenuItem>
+            ) : null}
+            {can(goodsReceiptPermissions.read) ? (
+              <DropdownMenuItem onSelect={() => setFromGrn(true)}>Goods receipt</DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button type="button" size="sm" asChild>
+          <Link href="/purchase-invoices/new">
+            <Plus className="size-3.5" />
+            New purchase invoice
+          </Link>
+        </Button>
+      </div>
+    ) : undefined;
+
+  const table = (
+    <>
       <DataTableToolbar>
         <ListSearch
           value={search ?? ""}
@@ -482,8 +467,7 @@ export function PurchaseInvoicesScreen() {
           onApply={() =>
             setParams({
               filters: {
-                payment_status:
-                  draftExtra.paymentStatus === ALL ? null : draftExtra.paymentStatus,
+                payment_status: draftExtra.paymentStatus === ALL ? null : draftExtra.paymentStatus,
                 bill_type: draftExtra.billType === ALL ? null : draftExtra.billType,
                 invoice_date_from: draftExtra.invoiceDateFrom || null,
                 invoice_date_to: draftExtra.invoiceDateTo || null,
@@ -647,6 +631,21 @@ export function PurchaseInvoicesScreen() {
       />
       <CreateBillFromPurchaseOrderDialog open={fromPo} onOpenChange={setFromPo} />
       <CreateBillFromGoodsReceiptDialog open={fromGrn} onOpenChange={setFromGrn} />
+    </>
+  );
+
+  if (embedded) {
+    return table;
+  }
+
+  return (
+    <ListPage>
+      <PageHeader
+        title="Purchase invoices"
+        subtitle="Supplier bills. Posting updates payables and goods received not invoiced; stock does not move."
+        actions={headerActions}
+      />
+      {table}
     </ListPage>
   );
 }
