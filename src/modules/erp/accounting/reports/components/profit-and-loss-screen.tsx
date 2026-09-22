@@ -21,13 +21,7 @@ import {
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatReportMoney } from "@/shared/lib/format";
 
-function SectionHeader({
-  label,
-  columnCount,
-}: {
-  label: string;
-  columnCount: number;
-}) {
+function SectionHeader({ label, columnCount }: { label: string; columnCount: number }) {
   return (
     <TableRow>
       <TableCell colSpan={columnCount} className="bg-muted/40 font-medium">
@@ -177,7 +171,9 @@ export function ProfitAndLossScreen() {
             </TableRow>
           ) : (
             <>
-              {incomeLines.length > 0 ? <SectionHeader label="Income" columnCount={columnCount} /> : null}
+              {incomeLines.length > 0 ? (
+                <SectionHeader label="Income" columnCount={columnCount} />
+              ) : null}
               {incomeLines.map((line) => (
                 <LineRow
                   key={line.account_id}

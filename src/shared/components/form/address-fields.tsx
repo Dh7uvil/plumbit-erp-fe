@@ -12,14 +12,8 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
-import {
-  countryCodeForName,
-  countryNameForCode,
-  isoCountryOptions,
-} from "@/shared/lib/countries";
-import {
-  SearchableSelect,
-} from "@/shared/components/form/searchable-select";
+import { countryCodeForName, countryNameForCode, isoCountryOptions } from "@/shared/lib/countries";
+import { SearchableSelect } from "@/shared/components/form/searchable-select";
 
 const LINE_FIELDS = [
   { key: "address_line_1", label: "Address line 1" },
@@ -66,7 +60,10 @@ export function AddressFields<TFieldValues extends FieldValues>({
           />
         ))}
       </div>
-      <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        data-slot="form-grid"
+        className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+      >
         {LOCALITY_FIELDS.map((field) => (
           <FormField
             key={field.key}

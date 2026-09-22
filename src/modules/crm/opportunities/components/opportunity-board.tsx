@@ -104,7 +104,7 @@ export function OpportunityBoard({
         {stages.map((stage) => (
           <Card
             key={stage.id}
-            className="min-w-72 shrink-0 bg-muted/20"
+            className="bg-muted/20 min-w-72 shrink-0"
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
               event.preventDefault();
@@ -144,9 +144,13 @@ export function OpportunityBoard({
                     <Link href={`/opportunities/${row.id}`} className="font-medium hover:underline">
                       {row.name}
                     </Link>
-                    <p className="text-muted-foreground mt-1 font-mono text-xs">{row.opportunity_number}</p>
+                    <p className="text-muted-foreground mt-1 font-mono text-xs">
+                      {row.opportunity_number}
+                    </p>
                     {row.amount && currencyCode ? (
-                      <p className="mt-2 tabular-nums text-sm">{formatMoney(row.amount, currencyCode)}</p>
+                      <p className="mt-2 text-sm tabular-nums">
+                        {formatMoney(row.amount, currencyCode)}
+                      </p>
                     ) : null}
                   </div>
                 );

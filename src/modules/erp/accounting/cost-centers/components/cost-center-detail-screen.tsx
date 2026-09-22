@@ -17,13 +17,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
-export function CostCenterDetailScreen({
-  termId,
-  mode,
-}: {
-  termId: string;
-  mode: RecordPageMode;
-}) {
+export function CostCenterDetailScreen({ termId, mode }: { termId: string; mode: RecordPageMode }) {
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(costCenterPermissions);
   const termQuery = useCostCenter(termId);
@@ -66,9 +60,7 @@ export function CostCenterDetailScreen({
       />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            {isEdit ? "Edit cost center" : "Cost center"}
-          </CardTitle>
+          <CardTitle className="text-base">{isEdit ? "Edit cost center" : "Cost center"}</CardTitle>
         </CardHeader>
         <CardContent>
           <CostCenterForm

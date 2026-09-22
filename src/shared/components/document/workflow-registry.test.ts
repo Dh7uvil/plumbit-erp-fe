@@ -50,9 +50,11 @@ describe("visibleActions", () => {
       visibleActions(["send", "revise"], registry, () => true).map((spec) => spec.action),
     ).toEqual(["send", "revise"]);
     expect(
-      visibleActions(["send", "revise"], registry, (permission) => permission !== "sales.quotation.revise").map(
-        (spec) => spec.action,
-      ),
+      visibleActions(
+        ["send", "revise"],
+        registry,
+        (permission) => permission !== "sales.quotation.revise",
+      ).map((spec) => spec.action),
     ).toEqual(["send"]);
   });
 });

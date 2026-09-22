@@ -4,12 +4,7 @@ import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { employeePermissions } from "@/modules/users-management/employees/permissions";
 import { useActiveEmployees } from "@/modules/users-management/employees/queries";
 import { MasterSelect } from "@/shared/components/form/master-select";
-import {
-  FormControl,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/shared/components/ui/form";
+import { FormControl, FormItem, FormLabel, FormMessage } from "@/shared/components/ui/form";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function EmployeeSelect({

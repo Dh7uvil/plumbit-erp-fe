@@ -168,13 +168,13 @@ function QualityInspectionDetailLoaded({
           defaultCategory="QC_PHOTO"
         />
       }
-        panels={
-          <>
-            <RelatedDocumentsCard documents={inspection.related_documents} />
-            <DocumentLedgerCard journalEntryId={inspection.journal_entry_id} />
-          </>
-        }
-      >
+      panels={
+        <>
+          <RelatedDocumentsCard documents={inspection.related_documents} />
+          <DocumentLedgerCard journalEntryId={inspection.journal_entry_id} />
+        </>
+      }
+    >
       <QualityInspectionForm
         inspection={inspection}
         disabled={!isEdit}

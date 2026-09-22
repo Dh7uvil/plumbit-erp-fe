@@ -30,10 +30,7 @@ export function DataTable({
   if (variant === "embedded") {
     return (
       <div
-        className={cn(
-          "flex min-h-0 w-full flex-col overflow-hidden rounded-md border",
-          className,
-        )}
+        className={cn("flex min-h-0 w-full flex-col overflow-hidden rounded-md border", className)}
       >
         {table}
       </div>

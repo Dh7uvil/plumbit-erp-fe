@@ -173,7 +173,8 @@ export function BranchFormDialog({
             className="flex flex-col gap-3"
           >
             {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-            <div data-slot="form-grid"
+            <div
+              data-slot="form-grid"
               className={
                 hasRecord
                   ? "grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
@@ -230,7 +231,10 @@ export function BranchFormDialog({
                 )}
               />
             </div>
-            <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              data-slot="form-grid"
+              className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+            >
               <FormField
                 control={form.control}
                 name="phone"

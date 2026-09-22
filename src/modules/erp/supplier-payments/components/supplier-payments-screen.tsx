@@ -65,7 +65,9 @@ function parseMethod(value: string | undefined): PaymentMethod | undefined {
 }
 
 export function SupplierPaymentsScreen() {
-  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(supplierPaymentPermissions);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(
+    supplierPaymentPermissions,
+  );
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
@@ -156,7 +158,16 @@ export function SupplierPaymentsScreen() {
             }
           : undefined,
       }),
-    [canDelete, canRead, canUpdate, currencyCodeById, setDeleting, showActions, supplierNameById, userNameById],
+    [
+      canDelete,
+      canRead,
+      canUpdate,
+      currencyCodeById,
+      setDeleting,
+      showActions,
+      supplierNameById,
+      userNameById,
+    ],
   );
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_payments", columnDefs);
@@ -287,11 +298,7 @@ export function SupplierPaymentsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search ||
-        filters.status ||
-        filters.supplier_id ||
-        extraCount > 0 ||
-        sort_by ? (
+        {search || filters.status || filters.supplier_id || extraCount > 0 || sort_by ? (
           <Button
             type="button"
             variant="ghost"

@@ -8,8 +8,7 @@ export const QUALITY_INSPECTION_WORKFLOW_ACTIONS = [
   "delete",
   "create_purchase_return",
 ] as const;
-export type QualityInspectionWorkflowAction =
-  (typeof QUALITY_INSPECTION_WORKFLOW_ACTIONS)[number];
+export type QualityInspectionWorkflowAction = (typeof QUALITY_INSPECTION_WORKFLOW_ACTIONS)[number];
 
 export const QUALITY_INSPECTION_ACTION_REGISTRY: DocumentActionSpec<QualityInspectionWorkflowAction>[] =
   [
@@ -25,8 +24,7 @@ export const QUALITY_INSPECTION_ACTION_REGISTRY: DocumentActionSpec<QualityInspe
       label: "Cancel",
       permission: qualityInspectionPermissions.update,
       variant: "destructive",
-      confirmCopy: (documentNumber) =>
-        `${documentNumber} will be cancelled. Stock will not move.`,
+      confirmCopy: (documentNumber) => `${documentNumber} will be cancelled. Stock will not move.`,
       reasonField: { placeholder: "Why this inspection is being cancelled" },
     },
     {

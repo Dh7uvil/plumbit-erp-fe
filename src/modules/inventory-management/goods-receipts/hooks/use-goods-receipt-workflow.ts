@@ -24,7 +24,10 @@ export function useGoodsReceiptWorkflow(receipt: GoodsReceipt) {
   const createInspection = useCreateQualityInspection();
   const write = { id: receipt.id, version: receipt.version };
 
-  return async function onAction(action: GoodsReceiptWorkflowAction, extras: DocumentWorkflowExtras) {
+  return async function onAction(
+    action: GoodsReceiptWorkflowAction,
+    extras: DocumentWorkflowExtras,
+  ) {
     if (action === "post") {
       await postReceipt.mutateAsync(write);
       toast.success("Goods receipt posted");

@@ -2,11 +2,7 @@ import { StockDetailScreen } from "@/modules/inventory-management/stock/componen
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-export default function StockProductPage({
-  params,
-}: {
-  params: Promise<{ productId: string }>;
-}) {
+export default function StockProductPage({ params }: { params: Promise<{ productId: string }> }) {
   return (
     <DetailPageRoute
       params={params}

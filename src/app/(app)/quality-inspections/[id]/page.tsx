@@ -2,7 +2,11 @@ import { QualityInspectionDetailScreen } from "@/modules/inventory-management/qu
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
 import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-export default function QualityInspectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function QualityInspectionDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   return (
     <DetailPageRoute
       params={params}

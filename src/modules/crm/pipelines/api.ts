@@ -71,7 +71,5 @@ export const pipelinesApi = {
       ),
     ),
   deleteStage: async (pipelineId: string, stageId: string): Promise<PipelineStage> =>
-    PipelineStageSchema.parse(
-      await apiClient.delete(`/pipelines/${pipelineId}/stages/${stageId}`),
-    ),
+    PipelineStageSchema.parse(await apiClient.delete(`/pipelines/${pipelineId}/stages/${stageId}`)),
 };

@@ -44,11 +44,7 @@ describe("resolveTableColumns", () => {
       column_order: ["customer", "document_number"],
       is_default: false,
     });
-    expect(resolved.map((column) => column.id)).toEqual([
-      "document_number",
-      "customer",
-      "actions",
-    ]);
+    expect(resolved.map((column) => column.id)).toEqual(["document_number", "customer", "actions"]);
   });
 
   it("keeps the first two default columns first and visible", () => {

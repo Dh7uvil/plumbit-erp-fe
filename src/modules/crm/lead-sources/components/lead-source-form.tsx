@@ -6,10 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import {
-  useCreateLeadSource,
-  useUpdateLeadSource,
-} from "@/modules/crm/lead-sources/mutations";
+import { useCreateLeadSource, useUpdateLeadSource } from "@/modules/crm/lead-sources/mutations";
 import {
   LeadSourceFormSchema,
   type LeadSource,

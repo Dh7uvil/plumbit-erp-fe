@@ -1,5 +1,8 @@
 export function normalizeDocumentType(value: string): string {
-  return value.trim().replace(/[\s-]+/g, "_").toUpperCase();
+  return value
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .toUpperCase();
 }
 
 export const DOCUMENT_TYPES = [

@@ -29,8 +29,7 @@ function formatChangedValue(value: unknown): string {
   return formatted.text;
 }
 
-const DETAIL_CARD_CLASS =
-  "bg-card border-border mt-2 rounded-md border px-3 py-2 shadow-sm";
+const DETAIL_CARD_CLASS = "bg-card border-border mt-2 rounded-md border px-3 py-2 shadow-sm";
 
 function actorInitials(row: ActivityEntry): string {
   const source = row.actor_name || row.actor_email || "S";

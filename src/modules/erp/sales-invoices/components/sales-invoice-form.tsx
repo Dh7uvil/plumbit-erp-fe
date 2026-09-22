@@ -158,7 +158,10 @@ function toFormLines(invoice: SalesInvoice | null): SalesInvoiceLineFormValues[]
   }));
 }
 
-function toFormValues(invoice: SalesInvoice | null, defaultCurrencyId?: string): SalesInvoiceFormValues {
+function toFormValues(
+  invoice: SalesInvoice | null,
+  defaultCurrencyId?: string,
+): SalesInvoiceFormValues {
   return {
     customer_id: invoice?.customer_id ?? OPTIONAL_SELECT_NONE,
     contact_id: invoice?.contact_id ?? OPTIONAL_SELECT_NONE,

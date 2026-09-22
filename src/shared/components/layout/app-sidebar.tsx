@@ -220,9 +220,7 @@ function SidebarNav({
                         size={15}
                         className={isActive ? "text-primary" : "text-muted-foreground"}
                       />
-                      {!collapsed ? (
-                        <span className="truncate text-sm">{item.label}</span>
-                      ) : null}
+                      {!collapsed ? <span className="truncate text-sm">{item.label}</span> : null}
                     </Link>
                   );
                 })

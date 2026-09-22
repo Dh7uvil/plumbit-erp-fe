@@ -95,8 +95,9 @@ export function useAllocateSupplierPayment() {
       id,
       version,
       allocations,
-    }: WriteVars & { allocations: Parameters<typeof supplierPaymentsApi.allocate>[1]["allocations"] }) =>
-      supplierPaymentsApi.allocate(id, { allocations }, { version }),
+    }: WriteVars & {
+      allocations: Parameters<typeof supplierPaymentsApi.allocate>[1]["allocations"];
+    }) => supplierPaymentsApi.allocate(id, { allocations }, { version }),
     onSuccess: async (_data, { id }) => {
       await invalidate(queryClient, id, true);
     },

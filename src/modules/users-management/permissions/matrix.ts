@@ -48,9 +48,9 @@ export function grantedPermissionIds(matrix: PermissionMatrixResponse): string[]
 export function isPermissionMatrix(value: unknown): value is PermissionMatrixResponse {
   return Boolean(
     value &&
-      typeof value === "object" &&
-      "modules" in value &&
-      Array.isArray((value as PermissionMatrixResponse).modules),
+    typeof value === "object" &&
+    "modules" in value &&
+    Array.isArray((value as PermissionMatrixResponse).modules),
   );
 }
 

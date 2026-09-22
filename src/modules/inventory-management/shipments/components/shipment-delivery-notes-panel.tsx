@@ -29,10 +29,7 @@ export function ShipmentDeliveryNotesPanel({
 }) {
   const can = useCan();
   const canReadNotes = can(deliveryNotePermissions.read);
-  const attachedQuery = useDeliveryNotes(
-    { shipment_id: shipmentId, page_size: 100 },
-    canReadNotes,
-  );
+  const attachedQuery = useDeliveryNotes({ shipment_id: shipmentId, page_size: 100 }, canReadNotes);
   const unshippedQuery = useDeliveryNotes(
     { unshipped: true, status: "POSTED", page_size: 100 },
     canReadNotes && canEdit,

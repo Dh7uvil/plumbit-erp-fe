@@ -44,9 +44,7 @@ export function supplierPaymentColumnDefs({
         className: "font-mono text-sm",
         cell: (payment) => {
           const number = supplierPaymentDisplayNumber(payment);
-          return (
-            <RecordLink href={`/supplier-payments/${payment.id}`}>{number ?? "—"}</RecordLink>
-          );
+          return <RecordLink href={`/supplier-payments/${payment.id}`}>{number ?? "—"}</RecordLink>;
         },
       },
       {

@@ -7,10 +7,7 @@ import { toast } from "sonner";
 
 import { useConvertQuotationToSalesInvoice } from "@/modules/erp/quotations/mutations";
 import { useQuotation, useQuotations } from "@/modules/erp/quotations/queries";
-import {
-  quotationDisplayNumber,
-  type Quotation,
-} from "@/modules/erp/quotations/schemas";
+import { quotationDisplayNumber, type Quotation } from "@/modules/erp/quotations/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import {
   ConversionLinePicker,
@@ -55,10 +52,7 @@ export function CreateSalesInvoiceFromQuotationDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {open ? (
-        <CreateSalesInvoiceFromQuotationBody
-          quotation={quotation}
-          onOpenChange={onOpenChange}
-        />
+        <CreateSalesInvoiceFromQuotationBody quotation={quotation} onOpenChange={onOpenChange} />
       ) : null}
     </Dialog>
   );

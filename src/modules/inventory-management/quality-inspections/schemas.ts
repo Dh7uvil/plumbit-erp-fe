@@ -120,7 +120,10 @@ export const QualityInspectionFormSchema = z
   .object({
     goods_receipt_id: z
       .string()
-      .refine((value) => value !== OPTIONAL_SELECT_NONE && Boolean(value), "Select a goods receipt"),
+      .refine(
+        (value) => value !== OPTIONAL_SELECT_NONE && Boolean(value),
+        "Select a goods receipt",
+      ),
     inspection_date: z.string().min(1, "Enter a date"),
     inspector_user_id: z.string(),
     notes: z.string(),
@@ -135,7 +138,12 @@ export const QualityInspectionFormSchema = z
       });
     }
     values.lines.forEach((line, index) => {
-      for (const field of ["qty_inspected", "qty_accepted", "qty_rejected", "qty_rework"] as const) {
+      for (const field of [
+        "qty_inspected",
+        "qty_accepted",
+        "qty_rejected",
+        "qty_rework",
+      ] as const) {
         if (!NON_NEGATIVE_DECIMAL.test(line[field].trim() || "0")) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,

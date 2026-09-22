@@ -7,7 +7,10 @@ import {
   ProformaInvoiceFormSchema,
 } from "@/modules/erp/proforma-invoices/schemas";
 import { isQtyUncovered } from "@/modules/erp/sales-orders/schemas";
-import { visibleActions, type DocumentActionSpec } from "@/shared/components/document/workflow-registry";
+import {
+  visibleActions,
+  type DocumentActionSpec,
+} from "@/shared/components/document/workflow-registry";
 
 describe("milestoneTotals", () => {
   it("sums percent mode and flags a mixed schedule", () => {

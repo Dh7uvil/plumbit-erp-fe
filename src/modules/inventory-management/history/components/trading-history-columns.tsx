@@ -12,10 +12,7 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { formatDate, formatQuantity, formatReportMoney } from "@/shared/lib/format";
 
 export type TradingHistoryKind =
-  | "product-sales"
-  | "product-purchases"
-  | "customer-sales"
-  | "supplier-purchases";
+  "product-sales" | "product-purchases" | "customer-sales" | "supplier-purchases";
 
 function hrefForDocument(documentNumber: string, documentId: string): string {
   const prefix = documentNumber.split("-")[0]?.toUpperCase() ?? "";
@@ -36,8 +33,10 @@ export function tradingHistoryColumnDefs({
   documentHref?: (row: TradingHistoryLine) => string;
   omit?: readonly string[];
 }): Array<DataTableColumn<TradingHistoryLine>> {
-  const partyLabel = kind === "product-purchases" || kind === "supplier-purchases" ? "Supplier" : "Customer";
-  const partyHref = kind === "product-purchases" || kind === "supplier-purchases" ? "/suppliers" : "/customers";
+  const partyLabel =
+    kind === "product-purchases" || kind === "supplier-purchases" ? "Supplier" : "Customer";
+  const partyHref =
+    kind === "product-purchases" || kind === "supplier-purchases" ? "/suppliers" : "/customers";
   return omitColumnIds(
     [
       {
@@ -46,9 +45,9 @@ export function tradingHistoryColumnDefs({
         sortableField: "document_number",
         cell: (row) => (
           <RecordLink
-            href={(documentHref ?? ((item) => hrefForDocument(item.document_number, item.document_id)))(
-              row,
-            )}
+            href={(
+              documentHref ?? ((item) => hrefForDocument(item.document_number, item.document_id))
+            )(row)}
           >
             {row.document_number}
           </RecordLink>
@@ -65,7 +64,10 @@ export function tradingHistoryColumnDefs({
         header: partyLabel,
         sortableField: "party_name",
         cell: (row) => (
-          <Link href={`${partyHref}/${row.party_id}`} className="underline-offset-4 hover:underline">
+          <Link
+            href={`${partyHref}/${row.party_id}`}
+            className="underline-offset-4 hover:underline"
+          >
             {row.party_name}
           </Link>
         ),
@@ -233,7 +235,9 @@ export function tradingPartyAggregateColumnDefs(): Array<DataTableColumn<Trading
   ];
 }
 
-export function tradingProductAggregateColumnDefs(): Array<DataTableColumn<TradingProductAggregate>> {
+export function tradingProductAggregateColumnDefs(): Array<
+  DataTableColumn<TradingProductAggregate>
+> {
   return [
     {
       id: "sku",

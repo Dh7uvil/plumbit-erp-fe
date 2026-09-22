@@ -10,7 +10,12 @@ import { documentStatusTone } from "@/shared/components/document/document-status
 import type { RelatedDocumentRef } from "@/shared/components/document/schemas";
 import { Badge, StatusBadge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatDate, formatFixedDecimal, formatQuantitySummary, humanizeEnum } from "@/shared/lib/format";
+import {
+  formatDate,
+  formatFixedDecimal,
+  formatQuantitySummary,
+  humanizeEnum,
+} from "@/shared/lib/format";
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   source: "Source",

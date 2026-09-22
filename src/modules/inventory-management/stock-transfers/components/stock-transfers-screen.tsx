@@ -34,10 +34,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -224,9 +221,7 @@ export function StockTransfersScreen() {
             entityName={number}
             viewHref={canRead ? `/stock-transfers/${row.id}` : undefined}
             editHref={
-              canUpdate && row.status === "DRAFT"
-                ? `/stock-transfers/${row.id}/edit`
-                : undefined
+              canUpdate && row.status === "DRAFT" ? `/stock-transfers/${row.id}/edit` : undefined
             }
             extra={
               row.available_actions.includes("clone") && canCreate ? (

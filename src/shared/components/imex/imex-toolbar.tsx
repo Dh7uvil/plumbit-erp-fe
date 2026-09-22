@@ -60,8 +60,18 @@ export function ImexToolbar({
   return (
     <>
       {canExport ? (
-        <Button type="button" size="sm" variant="outline" disabled={exporting} onClick={() => void onExport()}>
-          {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={exporting}
+          onClick={() => void onExport()}
+        >
+          {exporting ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Download className="size-3.5" />
+          )}
           Export
         </Button>
       ) : null}
@@ -74,7 +84,11 @@ export function ImexToolbar({
             disabled={templatePending}
             onClick={() => void onTemplate()}
           >
-            {templatePending ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+            {templatePending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Download className="size-3.5" />
+            )}
             Template
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => setImportOpen(true)}>

@@ -76,13 +76,8 @@ export function useAssignUserRoles() {
 export function useAdminResetUserPassword() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      newPassword,
-    }: {
-      id: string;
-      newPassword: string;
-    }) => usersApi.resetPassword(id, { new_password: newPassword }),
+    mutationFn: ({ id, newPassword }: { id: string; newPassword: string }) =>
+      usersApi.resetPassword(id, { new_password: newPassword }),
     onSuccess: async (_data, { id }) => {
       await queryClient.invalidateQueries({ queryKey: userKeys.all });
       await queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });

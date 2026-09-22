@@ -104,7 +104,9 @@ export function UnitForm({
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
         <div
           {...(!isEdit ? { "data-slot": "form-grid" as const } : {})}
-          className={isEdit ? "flex flex-col gap-3" : "grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"}
+          className={
+            isEdit ? "flex flex-col gap-3" : "grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+          }
         >
           {!isEdit ? (
             <FormField

@@ -144,7 +144,10 @@ function toFormLines(quotation: Quotation | null): QuotationLineFormValues[] {
   }));
 }
 
-function toFormValues(quotation: Quotation | null, defaultCurrencyId?: string): QuotationFormValues {
+function toFormValues(
+  quotation: Quotation | null,
+  defaultCurrencyId?: string,
+): QuotationFormValues {
   return {
     customer_id: quotation?.customer_id ?? OPTIONAL_SELECT_NONE,
     contact_id: quotation?.contact_id ?? OPTIONAL_SELECT_NONE,

@@ -19,9 +19,7 @@ export default async function NewPurchaseReturnPage({
 
   return (
     <PermissionGate permission={purchaseReturnPermissions.create}>
-      <PurchaseReturnNewScreen
-        goodsReceiptId={optionalUuid(params.goods_receipt_id)}
-      />
+      <PurchaseReturnNewScreen goodsReceiptId={optionalUuid(params.goods_receipt_id)} />
     </PermissionGate>
   );
 }

@@ -51,7 +51,8 @@ export function InvoiceCreditNotesCard({ salesInvoiceId }: { salesInvoiceId: str
                   variants={INVOICE_DOCUMENT_STATUS_VARIANTS}
                 />
                 <span className="text-muted-foreground">
-                  {CREDIT_NOTE_REASON_LABELS[note.reason_code]} · {formatDate(note.credit_note_date)}
+                  {CREDIT_NOTE_REASON_LABELS[note.reason_code]} ·{" "}
+                  {formatDate(note.credit_note_date)}
                 </span>
               </li>
             ))}

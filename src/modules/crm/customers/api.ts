@@ -18,7 +18,10 @@ import {
   type CustomerUpdateRequest,
   type OutstandingSummary,
 } from "@/modules/crm/customers/schemas";
-import { OpenItemRowListSchema, PartyPaymentHistoryListSchema } from "@/shared/components/document/schemas";
+import {
+  OpenItemRowListSchema,
+  PartyPaymentHistoryListSchema,
+} from "@/shared/components/document/schemas";
 import {
   TradingHistoryLineListSchema,
   TradingProductAggregateListSchema,

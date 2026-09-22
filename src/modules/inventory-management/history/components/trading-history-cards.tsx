@@ -44,7 +44,11 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
   const enabled = can(historyPermissions.product);
   const { page, page_size, search, sort_by, sort_order, setParams, setPage, setPageSize } =
     useNestedTableParams();
-  const query = useProductCustomers(productId, { page, page_size, search, sort_by, sort_order }, enabled);
+  const query = useProductCustomers(
+    productId,
+    { page, page_size, search, sort_by, sort_order },
+    enabled,
+  );
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const rows = query.data?.data ?? [];
   const columnDefs = useMemo(() => tradingPartyAggregateColumnDefs(), []);

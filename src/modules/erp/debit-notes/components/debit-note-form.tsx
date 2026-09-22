@@ -264,7 +264,10 @@ export function DebitNoteForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="purchase_invoice_id"
@@ -400,11 +403,7 @@ export function DebitNoteForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor
-            form={form}
-            disabled={disabled || sourced}
-            productSide="purchase"
-          />
+          <DocumentLinesEditor form={form} disabled={disabled || sourced} productSide="purchase" />
         </div>
         {note ? <DocumentTotalsPanel totals={note} currencies={currencies} /> : null}
         <FormField

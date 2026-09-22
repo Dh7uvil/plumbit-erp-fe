@@ -36,7 +36,9 @@ export const packagesApi = {
   get: async (id: string): Promise<Package> =>
     PackageSchema.parse(await apiClient.get(`/packages/${id}`)),
   create: async (values: PackageCreateRequest): Promise<Package> =>
-    PackageSchema.parse(await apiClient.post("/packages", PackageCreateRequestSchema.parse(values))),
+    PackageSchema.parse(
+      await apiClient.post("/packages", PackageCreateRequestSchema.parse(values)),
+    ),
   update: async (
     id: string,
     values: PackageUpdateRequest,

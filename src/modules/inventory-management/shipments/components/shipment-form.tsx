@@ -330,7 +330,7 @@ export function ShipmentForm({
               </div>
             </>
           ) : (
-            <p className="text-muted-foreground sm:col-span-2 text-sm">
+            <p className="text-muted-foreground text-sm sm:col-span-2">
               Totals appear after delivery notes and packages are attached.
             </p>
           )}

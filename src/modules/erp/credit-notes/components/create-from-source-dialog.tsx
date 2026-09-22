@@ -123,7 +123,11 @@ export function CreateCreditNoteDialog({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="cn-notes">Notes</Label>
-            <Textarea id="cn-notes" value={notes} onChange={(event) => setNotes(event.target.value)} />
+            <Textarea
+              id="cn-notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+            />
           </div>
         </div>
         <DialogFooter>

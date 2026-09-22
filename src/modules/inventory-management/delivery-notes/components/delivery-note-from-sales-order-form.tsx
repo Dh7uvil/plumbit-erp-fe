@@ -116,7 +116,9 @@ export function DeliveryNoteFromSalesOrderForm({ salesOrderId }: { salesOrderId:
                   placeholder="Use sales order warehouse"
                   searchPlaceholder="Search warehouse…"
                   createLabel="Create warehouse"
-                  onCreate={can(warehousePermissions.create) ? () => setCreatingWarehouse(true) : undefined}
+                  onCreate={
+                    can(warehousePermissions.create) ? () => setCreatingWarehouse(true) : undefined
+                  }
                   options={[
                     { value: OPTIONAL_SELECT_NONE, label: "Use sales order warehouse" },
                     ...warehouses.map((warehouse) => ({

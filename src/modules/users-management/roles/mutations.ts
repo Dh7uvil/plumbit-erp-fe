@@ -4,10 +4,7 @@ import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-q
 import { useRouter } from "next/navigation";
 
 import { refetchCurrentUser } from "@/modules/users-management/auth/queries";
-import {
-  applyGrantedIds,
-  isPermissionMatrix,
-} from "@/modules/users-management/permissions/matrix";
+import { applyGrantedIds, isPermissionMatrix } from "@/modules/users-management/permissions/matrix";
 import { permissionKeys } from "@/modules/users-management/permissions/queries";
 import { rolesApi } from "@/modules/users-management/roles/api";
 import { roleKeys } from "@/modules/users-management/roles/queries";

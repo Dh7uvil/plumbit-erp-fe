@@ -223,11 +223,7 @@ export function EntityAttachmentsPanel({
               value={uploadCategory}
               onValueChange={(value) => setUploadCategory(value as AttachmentCategory)}
             >
-              <SelectTrigger
-                id={uploadCategoryId}
-                className="h-9 w-44"
-                aria-label="Upload as"
-              >
+              <SelectTrigger id={uploadCategoryId} className="h-9 w-44" aria-label="Upload as">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -271,12 +267,12 @@ export function EntityAttachmentsPanel({
       <CardContent className="flex flex-col gap-3 pb-6">
         <DataTableToolbar className="grid grid-cols-[minmax(0,1fr)_11rem] flex-nowrap">
           <ListSearch
-            className="min-w-0 max-w-none w-full"
+            className="w-full max-w-none min-w-0"
             value={search}
             onChange={setSearch}
             placeholder="Search filename…"
           />
-          <div className="flex min-w-0 w-full flex-col gap-1">
+          <div className="flex w-full min-w-0 flex-col gap-1">
             <Label htmlFor={filterCategoryId} className={toolbarLabelClass}>
               Category
             </Label>

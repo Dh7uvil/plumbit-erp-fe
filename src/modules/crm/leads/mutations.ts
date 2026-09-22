@@ -65,15 +65,8 @@ export function useDeleteLead() {
 export function useAssignLead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      ownerId,
-      version,
-    }: {
-      id: string;
-      ownerId: string;
-      version: number;
-    }) => leadsApi.assign(id, ownerId, version),
+    mutationFn: ({ id, ownerId, version }: { id: string; ownerId: string; version: number }) =>
+      leadsApi.assign(id, ownerId, version),
     onSuccess: async (_data, variables) => {
       await invalidateLeads(queryClient, variables.id);
     },
@@ -112,15 +105,8 @@ export function useConvertLead() {
 export function useChangeLeadStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      status,
-      version,
-    }: {
-      id: string;
-      status: LeadStatus;
-      version: number;
-    }) => leadsApi.changeStatus(id, status, version),
+    mutationFn: ({ id, status, version }: { id: string; status: LeadStatus; version: number }) =>
+      leadsApi.changeStatus(id, status, version),
     onSuccess: async (_data, variables) => {
       await invalidateLeads(queryClient, variables.id);
     },

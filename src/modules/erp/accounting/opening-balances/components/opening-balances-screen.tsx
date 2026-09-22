@@ -121,7 +121,10 @@ function CommittedOpeningBalances() {
         <CardHeader>
           <CardTitle className="text-base">Committed state</CardTitle>
         </CardHeader>
-        <CardContent data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+        <CardContent
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+        >
           <p className="text-sm">
             Books start {state?.books_start_date ? formatDate(state.books_start_date) : "—"}
           </p>
@@ -308,7 +311,10 @@ function OpeningBalanceWizard({ state }: { state: OpeningBalanceState | null }) 
               <CardHeader>
                 <CardTitle className="text-base">Fiscal year and books start</CardTitle>
               </CardHeader>
-              <CardContent data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+              <CardContent
+                data-slot="form-grid"
+                className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+              >
                 <div>
                   <p className="text-muted-foreground text-xs font-medium">Fiscal year start</p>
                   <p className="text-sm">{fiscalLabel}</p>
@@ -647,8 +653,8 @@ function OpeningBalanceWizard({ state }: { state: OpeningBalanceState | null }) 
                       <AlertDescription>
                         Commit writes one opening-balance journal dated the day before books start,
                         open AR/AP lines on that journal, and opening stock layers through stock
-                        posting. Books start date and hard lock are set. This cannot be undone except
-                        by Reset while nothing else has posted.
+                        posting. Books start date and hard lock are set. This cannot be undone
+                        except by Reset while nothing else has posted.
                       </AlertDescription>
                     </Alert>
                     {(state?.posted_journal_count ?? 0) > 0 ? (

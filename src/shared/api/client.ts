@@ -404,7 +404,10 @@ function createClient(basePrefix: string, skipRefresh = false) {
         skipRefresh,
       );
     },
-    downloadFile(path: string, config: RequestConfig & { filename: string; accept?: string }): Promise<void> {
+    downloadFile(
+      path: string,
+      config: RequestConfig & { filename: string; accept?: string },
+    ): Promise<void> {
       return downloadFile(path, config, basePrefix, skipRefresh);
     },
     getList<T>(path: string, config: RequestConfig = {}): Promise<ListResponse<T>> {

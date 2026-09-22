@@ -59,8 +59,7 @@ export function CreateProformaInvoiceDialog({
         values: {
           proforma_date: proformaDate || null,
           valid_until: validUntil || null,
-          incoterm:
-            incoterm && incoterm !== OPTIONAL_SELECT_NONE ? (incoterm as Incoterm) : null,
+          incoterm: incoterm && incoterm !== OPTIONAL_SELECT_NONE ? (incoterm as Incoterm) : null,
         },
       });
       toast.success("Proforma invoice created");

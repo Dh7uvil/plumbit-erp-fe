@@ -29,10 +29,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -186,8 +183,7 @@ export function DebitNotesScreen() {
         sortableField: "grand_total",
         headerClassName: "text-right",
         className: "text-right tabular-nums",
-        cell: (note) =>
-          formatMoney(note.grand_total, currencyCodeById.get(note.currency_id) ?? ""),
+        cell: (note) => formatMoney(note.grand_total, currencyCodeById.get(note.currency_id) ?? ""),
       },
       {
         id: "is_posted",
@@ -205,8 +201,7 @@ export function DebitNotesScreen() {
         id: "branch",
         header: "Branch",
         defaultVisible: false,
-        cell: (note) =>
-          note.branch_id ? (branchNameById.get(note.branch_id) ?? "—") : "—",
+        cell: (note) => (note.branch_id ? (branchNameById.get(note.branch_id) ?? "—") : "—"),
       },
       {
         id: "exchange_rate",
@@ -228,8 +223,7 @@ export function DebitNotesScreen() {
         defaultVisible: false,
         headerClassName: "text-right",
         className: "text-right tabular-nums",
-        cell: (note) =>
-          formatMoney(note.subtotal, currencyCodeById.get(note.currency_id) ?? ""),
+        cell: (note) => formatMoney(note.subtotal, currencyCodeById.get(note.currency_id) ?? ""),
       },
       {
         id: "tax_amount",
@@ -237,8 +231,7 @@ export function DebitNotesScreen() {
         defaultVisible: false,
         headerClassName: "text-right",
         className: "text-right tabular-nums",
-        cell: (note) =>
-          formatMoney(note.tax_amount, currencyCodeById.get(note.currency_id) ?? ""),
+        cell: (note) => formatMoney(note.tax_amount, currencyCodeById.get(note.currency_id) ?? ""),
       },
       {
         id: "amount_applied",
@@ -353,9 +346,7 @@ export function DebitNotesScreen() {
               },
             })
           }
-          onClearDraft={() =>
-            setDraftExtra({ currencyId: ALL, dateFrom: "", dateTo: "" })
-          }
+          onClearDraft={() => setDraftExtra({ currencyId: ALL, dateFrom: "", dateTo: "" })}
         >
           <FilterField label="Currency" htmlFor="sdn-filter-currency">
             <FilterSelect

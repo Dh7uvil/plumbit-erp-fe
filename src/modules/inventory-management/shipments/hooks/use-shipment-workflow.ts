@@ -13,10 +13,7 @@ import {
 import type { Shipment } from "@/modules/inventory-management/shipments/schemas";
 import type { ShipmentWorkflowAction } from "@/modules/inventory-management/shipments/workflow";
 
-export function useShipmentWorkflow(
-  shipment: Shipment,
-  extras: { onTracking?: () => void } = {},
-) {
+export function useShipmentWorkflow(shipment: Shipment, extras: { onTracking?: () => void } = {}) {
   const router = useRouter();
   const dispatchShipment = useDispatchShipment();
   const arriveShipment = useArriveShipment();

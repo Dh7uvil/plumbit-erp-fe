@@ -144,7 +144,7 @@ function FormLabel({
       data-slot="form-label"
       data-error={!!error}
       className={cn(
-        "data-[error=true]:text-destructive in-data-[slot=form-grid]:self-end in-data-[slot=form-grid]:min-w-0",
+        "data-[error=true]:text-destructive in-data-[slot=form-grid]:min-w-0 in-data-[slot=form-grid]:self-end",
         className,
       )}
       htmlFor={formItemId}

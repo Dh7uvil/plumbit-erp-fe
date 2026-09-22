@@ -43,10 +43,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -56,7 +53,10 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -205,9 +205,7 @@ export function SalesOrdersScreen() {
         className: "font-mono text-sm",
         cell: (salesOrder) => {
           const number = salesOrderDisplayNumber(salesOrder);
-          return (
-            <RecordLink href={`/sales-orders/${salesOrder.id}`}>{number ?? "—"}</RecordLink>
-          );
+          return <RecordLink href={`/sales-orders/${salesOrder.id}`}>{number ?? "—"}</RecordLink>;
         },
       },
       {

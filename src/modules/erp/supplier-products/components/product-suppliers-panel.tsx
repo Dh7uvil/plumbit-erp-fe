@@ -130,7 +130,19 @@ export function ProductSuppliersPanel({ productId }: { productId: string }) {
             )
           : undefined,
       }),
-    [canDelete, canLink, canRead, canUpdate, setDeleting, setEditing, setForceReadOnly, setFormOpen, setUnlinking, showActions, userNameById],
+    [
+      canDelete,
+      canLink,
+      canRead,
+      canUpdate,
+      setDeleting,
+      setEditing,
+      setForceReadOnly,
+      setFormOpen,
+      setUnlinking,
+      showActions,
+      userNameById,
+    ],
   );
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_products", columnDefs);
   const hasQuery = Boolean(search || filters.is_active || filters.is_preferred || sort_by);

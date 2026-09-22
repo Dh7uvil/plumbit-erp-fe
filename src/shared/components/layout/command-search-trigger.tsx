@@ -42,9 +42,7 @@ export function CommandSearchTrigger({
     >
       <Search className="size-3 shrink-0" />
       Search…
-      <kbd className="bg-background border-border ml-auto rounded border px-1 text-xs">
-        ⌘K
-      </kbd>
+      <kbd className="bg-background border-border ml-auto rounded border px-1 text-xs">⌘K</kbd>
     </Button>
   );
 }

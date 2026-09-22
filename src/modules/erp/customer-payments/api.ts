@@ -108,18 +108,17 @@ export const customerPaymentsApi = {
   journal: async (id: string): Promise<JournalEntry> =>
     JournalEntrySchema.parse(await apiClient.get(`/customer-payments/${id}/journal`)),
   listAllocations: async (id: string): Promise<PaymentAllocationRecord[]> =>
-    z.array(PaymentAllocationRecordSchema).parse(
-      await apiClient.get(`/customer-payments/${id}/allocations`),
-    ),
+    z
+      .array(PaymentAllocationRecordSchema)
+      .parse(await apiClient.get(`/customer-payments/${id}/allocations`)),
   unallocate: async (
     paymentId: string,
     allocationId: string,
     options: CustomerPaymentWriteOptions,
   ): Promise<CustomerPayment> =>
     CustomerPaymentSchema.parse(
-      await apiClient.delete(
-        `/customer-payments/${paymentId}/allocations/${allocationId}`,
-        { headers: postDocumentHeaders(options.version, randomUuid()) },
-      ),
+      await apiClient.delete(`/customer-payments/${paymentId}/allocations/${allocationId}`, {
+        headers: postDocumentHeaders(options.version, randomUuid()),
+      }),
     ),
 };

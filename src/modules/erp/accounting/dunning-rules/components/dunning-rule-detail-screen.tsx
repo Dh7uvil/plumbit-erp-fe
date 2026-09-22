@@ -72,11 +72,7 @@ export function DunningRuleDetailScreen({
           <CardTitle className="text-base">{isEdit ? "Edit rule" : "Dunning rule"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <DunningRuleForm
-            rule={rule}
-            disabled={!isEdit}
-            onSuccess={() => router.push(viewHref)}
-          />
+          <DunningRuleForm rule={rule} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
         </CardContent>
       </Card>
     </div>

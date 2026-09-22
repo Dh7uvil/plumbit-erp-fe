@@ -19,7 +19,10 @@ export function useSalesReturnWorkflow(doc: SalesReturn) {
   const deleteReturn = useDeleteSalesReturn();
   const write = { id: doc.id, version: doc.version };
 
-  return async function onAction(action: SalesReturnWorkflowAction, extras: DocumentWorkflowExtras) {
+  return async function onAction(
+    action: SalesReturnWorkflowAction,
+    extras: DocumentWorkflowExtras,
+  ) {
     if (action === "post") {
       await postReturn.mutateAsync(write);
       toast.success("Sales return posted");

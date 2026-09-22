@@ -20,10 +20,7 @@ import { useAllUsers } from "@/modules/users-management/users/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -304,7 +301,9 @@ export function AuditLogsScreen() {
         header: "ID",
         className: "text-muted-foreground font-mono text-xs",
         cell: (log) => (
-          <span title={log.entity_id ?? undefined}>{log.entity_id ? shortId(log.entity_id) : "—"}</span>
+          <span title={log.entity_id ?? undefined}>
+            {log.entity_id ? shortId(log.entity_id) : "—"}
+          </span>
         ),
       },
       {
@@ -376,7 +375,13 @@ export function AuditLogsScreen() {
         subtitle="System activity and security trail — all user actions recorded"
         actions={
           canRead ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => void exportCsv()} disabled={csvPending}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void exportCsv()}
+              disabled={csvPending}
+            >
               {csvPending ? null : <Download className="size-3.5" />}
               Export CSV
             </Button>
@@ -478,9 +483,7 @@ export function AuditLogsScreen() {
             toId="audit-filter-to"
             from={draftExtra.dateFrom}
             to={draftExtra.dateTo}
-            onFromChange={(value) =>
-              setDraftExtra((current) => ({ ...current, dateFrom: value }))
-            }
+            onFromChange={(value) => setDraftExtra((current) => ({ ...current, dateFrom: value }))}
             onToChange={(value) => setDraftExtra((current) => ({ ...current, dateTo: value }))}
           />
         </MoreFiltersDialog>

@@ -65,13 +65,8 @@ export function useCreatePipelineStage() {
 export function useDeletePipelineStage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      pipelineId,
-      stageId,
-    }: {
-      pipelineId: string;
-      stageId: string;
-    }) => pipelinesApi.deleteStage(pipelineId, stageId),
+    mutationFn: ({ pipelineId, stageId }: { pipelineId: string; stageId: string }) =>
+      pipelinesApi.deleteStage(pipelineId, stageId),
     onSuccess: async (_data, { pipelineId }) => {
       await queryClient.invalidateQueries({ queryKey: pipelineKeys.detail(pipelineId) });
     },

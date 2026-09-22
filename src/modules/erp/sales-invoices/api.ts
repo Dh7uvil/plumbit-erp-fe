@@ -54,9 +54,7 @@ export const salesInvoicesApi = {
     SalesInvoiceSchema.parse(
       await apiClient.post("/sales-invoices", SalesInvoiceCreateRequestSchema.parse(values)),
     ),
-  createFromSalesOrder: async (
-    values: SalesInvoiceCreateFromSalesOrder,
-  ): Promise<SalesInvoice> =>
+  createFromSalesOrder: async (values: SalesInvoiceCreateFromSalesOrder): Promise<SalesInvoice> =>
     SalesInvoiceSchema.parse(
       await apiClient.post(
         "/sales-invoices/from-sales-order",

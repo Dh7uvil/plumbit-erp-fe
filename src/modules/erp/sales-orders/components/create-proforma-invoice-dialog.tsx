@@ -115,8 +115,8 @@ function CreateProformaInvoiceFromSalesOrderForm({
       <DialogHeader>
         <DialogTitle>Create proforma invoice</DialogTitle>
         <DialogDescription>
-          Raise a proforma invoice from this sales order. Remaining quantity is converted unless
-          you change the amounts below.
+          Raise a proforma invoice from this sales order. Remaining quantity is converted unless you
+          change the amounts below.
         </DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-3">

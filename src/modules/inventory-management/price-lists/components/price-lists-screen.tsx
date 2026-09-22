@@ -23,10 +23,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -132,8 +129,7 @@ export function PriceListsScreen() {
       {
         id: "percent",
         header: "Percent",
-        cell: (priceList) =>
-          priceList.percent != null ? formatPercent(priceList.percent) : "—",
+        cell: (priceList) => (priceList.percent != null ? formatPercent(priceList.percent) : "—"),
       },
       {
         id: "is_active",

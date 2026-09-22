@@ -15,10 +15,7 @@ import {
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -165,7 +162,12 @@ export function DunningRulesScreen() {
             { value: "false", label: "Inactive" },
           ]}
         />
-        <SortDialog fields={SORT_FIELDS} sortBy={sort_by} sortOrder={sort_order} onApply={setParams} />
+        <SortDialog
+          fields={SORT_FIELDS}
+          sortBy={sort_by}
+          sortOrder={sort_order}
+          onApply={setParams}
+        />
         {columnsDialog}
       </DataTableToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>

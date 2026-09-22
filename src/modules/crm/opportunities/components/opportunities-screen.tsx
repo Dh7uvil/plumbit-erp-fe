@@ -27,10 +27,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -92,8 +89,7 @@ export function OpportunitiesScreen() {
     search,
     sort_by,
     sort_order,
-    status:
-      statusFilter && statusFilter !== ALL ? (statusFilter as OpportunityStatus) : undefined,
+    status: statusFilter && statusFilter !== ALL ? (statusFilter as OpportunityStatus) : undefined,
     pipeline_id: activePipelineId,
   };
   const opportunitiesQuery = useOpportunities(listParams);
@@ -158,7 +154,9 @@ export function OpportunitiesScreen() {
         <DataTableRowActions
           entityName={row.name}
           viewHref={canRead ? `/opportunities/${row.id}` : undefined}
-          editHref={canUpdate && row.status === "OPEN" ? `/opportunities/${row.id}/edit` : undefined}
+          editHref={
+            canUpdate && row.status === "OPEN" ? `/opportunities/${row.id}/edit` : undefined
+          }
           onDelete={canDelete && row.status === "OPEN" ? () => setDeleting(row) : undefined}
         />
       )),
@@ -273,7 +271,9 @@ export function OpportunitiesScreen() {
           <OpportunityBoard stages={stages} opportunities={rows} />
         )
       ) : (
-        <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
+        <DataTable
+          footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}
+        >
           <TableHeader>
             <TableRow>
               <DataTableColumnHeads

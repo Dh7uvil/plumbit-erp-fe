@@ -27,10 +27,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -193,9 +190,7 @@ export function DeliveryNotesScreen() {
             entityName={number}
             viewHref={canRead ? `/delivery-notes/${row.id}` : undefined}
             editHref={
-              canUpdate && row.status === "DRAFT"
-                ? `/delivery-notes/${row.id}/edit`
-                : undefined
+              canUpdate && row.status === "DRAFT" ? `/delivery-notes/${row.id}/edit` : undefined
             }
             onDelete={
               row.available_actions.includes("delete") && canDelete
@@ -206,7 +201,15 @@ export function DeliveryNotesScreen() {
         );
       }),
     ];
-  }, [canDelete, canRead, canUpdate, customerLabelById, showActions, userNameById, warehousesQuery.data]);
+  }, [
+    canDelete,
+    canRead,
+    canUpdate,
+    customerLabelById,
+    showActions,
+    userNameById,
+    warehousesQuery.data,
+  ]);
 
   const { columns, columnsDialog, colSpan } = useTableColumns(
     "inventory.delivery_notes",
@@ -279,12 +282,14 @@ export function DeliveryNotesScreen() {
         />
         <MoreFiltersDialog
           extraCount={extraCount}
-          draftCount={[
-            draftExtra.warehouseId !== ALL,
-            draftExtra.unshipped !== ALL,
-            draftExtra.documentDateFrom !== "",
-            draftExtra.documentDateTo !== "",
-          ].filter(Boolean).length}
+          draftCount={
+            [
+              draftExtra.warehouseId !== ALL,
+              draftExtra.unshipped !== ALL,
+              draftExtra.documentDateFrom !== "",
+              draftExtra.documentDateTo !== "",
+            ].filter(Boolean).length
+          }
           description="Filter by warehouse, unshipped notes, and document date."
           onOpen={() => setDraftExtra(extraFilters)}
           onApply={() =>

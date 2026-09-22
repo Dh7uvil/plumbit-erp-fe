@@ -174,7 +174,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans overflow-hidden;
+    @apply bg-background text-foreground overflow-hidden font-sans;
   }
 
   h1 {

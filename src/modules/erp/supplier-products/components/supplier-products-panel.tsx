@@ -146,7 +146,20 @@ export function SupplierProductsPanel({ supplierId }: { supplierId: string }) {
             )
           : undefined,
       }),
-    [canDelete, canLink, canRead, canUpdate, setDeleting, setEditing, setForceReadOnly, setFormOpen, setLinking, setUnlinking, showActions, userNameById],
+    [
+      canDelete,
+      canLink,
+      canRead,
+      canUpdate,
+      setDeleting,
+      setEditing,
+      setForceReadOnly,
+      setFormOpen,
+      setLinking,
+      setUnlinking,
+      showActions,
+      userNameById,
+    ],
   );
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_products", columnDefs);
   const hasQuery = Boolean(

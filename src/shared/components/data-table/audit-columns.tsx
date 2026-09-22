@@ -20,9 +20,9 @@ export function useUserNameMap() {
   }, [query.data]);
 }
 
-export function auditTimestampColumns<T extends { created_at: string; updated_at?: string | null }>(
-  options?: { createdAt?: boolean },
-): Array<DataTableColumn<T>> {
+export function auditTimestampColumns<
+  T extends { created_at: string; updated_at?: string | null },
+>(options?: { createdAt?: boolean }): Array<DataTableColumn<T>> {
   const columns: Array<DataTableColumn<T>> = [];
   if (options?.createdAt !== false) {
     columns.push({

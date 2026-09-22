@@ -148,13 +148,17 @@ test.describe("sales orders", () => {
 
     await page.getByRole("button", { name: "Send" }).click();
     confirm = page.getByRole("alertdialog");
-    await expect(confirm.getByRole("heading", { name: "Send quotation QUOACM26000001" })).toBeVisible();
+    await expect(
+      confirm.getByRole("heading", { name: "Send quotation QUOACM26000001" }),
+    ).toBeVisible();
     await confirm.getByRole("button", { name: "Send" }).click();
     await expect(page.getByText("Sent", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Accept" }).click();
     confirm = page.getByRole("alertdialog");
-    await expect(confirm.getByRole("heading", { name: "Accept quotation QUOACM26000001" })).toBeVisible();
+    await expect(
+      confirm.getByRole("heading", { name: "Accept quotation QUOACM26000001" }),
+    ).toBeVisible();
     await confirm.getByRole("button", { name: "Accept" }).click();
     await expect(page.getByText("Accepted", { exact: true })).toBeVisible();
 

@@ -49,7 +49,8 @@ export const RETURN_DISPOSITION_LABELS: Record<ReturnDisposition, string> = {
 export const RETURN_DISPOSITION_HELP: Record<ReturnDisposition, string> = {
   RESTOCK: "Returns goods to sellable stock at original cost.",
   QC_HOLD: "Restores original cost but keeps goods out of sellable stock until inspected.",
-  SCRAP: "Restores original cost then writes it off as damage. Scrapped goods never become available.",
+  SCRAP:
+    "Restores original cost then writes it off as damage. Scrapped goods never become available.",
 };
 
 export const SalesReturnLineSchema = z.object({

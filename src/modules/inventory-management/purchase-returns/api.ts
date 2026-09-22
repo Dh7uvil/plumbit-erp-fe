@@ -72,6 +72,8 @@ export const purchaseReturnsApi = {
     ),
   delete: async (id: string, options: PurchaseReturnWriteOptions): Promise<PurchaseReturn> =>
     PurchaseReturnSchema.parse(
-      await apiClient.delete(`/purchase-returns/${id}`, { headers: ifMatchHeaders(options.version) }),
+      await apiClient.delete(`/purchase-returns/${id}`, {
+        headers: ifMatchHeaders(options.version),
+      }),
     ),
 };

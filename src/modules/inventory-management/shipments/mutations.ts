@@ -60,7 +60,10 @@ export function useUpdateShipment() {
 }
 
 function useShipmentAction(
-  mutationFn: (id: string, options: { version: number }) => ReturnType<typeof shipmentsApi.dispatch>,
+  mutationFn: (
+    id: string,
+    options: { version: number },
+  ) => ReturnType<typeof shipmentsApi.dispatch>,
 ) {
   const queryClient = useQueryClient();
   return useMutation({

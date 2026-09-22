@@ -60,12 +60,7 @@ import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useNestedTableParams } from "@/shared/hooks/use-table-params";
@@ -223,7 +218,10 @@ export function PriceListDetailScreen({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
               {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-              <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+              <div
+                data-slot="form-grid"
+                className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+              >
                 <FormField
                   control={form.control}
                   name="name"
@@ -368,7 +366,12 @@ const ITEM_SORT_FIELDS = [
   { value: "rate", label: "Rate" },
 ] as const;
 
-function compareItems(left: PriceListItemRow, right: PriceListItemRow, sortBy?: string, sortOrder?: "asc" | "desc") {
+function compareItems(
+  left: PriceListItemRow,
+  right: PriceListItemRow,
+  sortBy?: string,
+  sortOrder?: "asc" | "desc",
+) {
   if (!sortBy) {
     return 0;
   }
@@ -413,7 +416,8 @@ function PriceListItemsTable({
     const filtered = needle
       ? mapped.filter(
           (row) =>
-            row.sku.toLowerCase().includes(needle) || row.product_name.toLowerCase().includes(needle),
+            row.sku.toLowerCase().includes(needle) ||
+            row.product_name.toLowerCase().includes(needle),
         )
       : mapped;
     return [...filtered].sort((left, right) => compareItems(left, right, sort_by, sort_order));
@@ -457,7 +461,10 @@ function PriceListItemsTable({
       }),
     [currencyCode, decimalPlaces, isEdit, items, onDelete],
   );
-  const { columns, columnsDialog, colSpan } = useTableColumns("inventory.price_list_items", columnDefs);
+  const { columns, columnsDialog, colSpan } = useTableColumns(
+    "inventory.price_list_items",
+    columnDefs,
+  );
   const hasQuery = Boolean(search || sort_by);
 
   return (
@@ -490,7 +497,11 @@ function PriceListItemsTable({
         variant="embedded"
         footer={
           total > 0 ? (
-            <DataTablePagination meta={meta} onPageChange={setPage} onPageSizeChange={setPageSize} />
+            <DataTablePagination
+              meta={meta}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           ) : null
         }
       >

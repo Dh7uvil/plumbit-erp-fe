@@ -84,7 +84,10 @@ function toLineInput(line: DeliveryNoteFormValues["lines"][number]): DeliveryNot
   };
 }
 
-function toFormValues(note: DeliveryNote | null, defaultCurrencyId?: string): DeliveryNoteFormValues {
+function toFormValues(
+  note: DeliveryNote | null,
+  defaultCurrencyId?: string,
+): DeliveryNoteFormValues {
   const lines = note?.lines ?? [];
   return {
     sales_order_id: note?.sales_order_id ?? OPTIONAL_SELECT_NONE,

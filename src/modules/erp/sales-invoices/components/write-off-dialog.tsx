@@ -33,9 +33,7 @@ export function SalesInvoiceWriteOffDialog({
   useEffect(() => {
     if (open) {
       setAmount(invoice.balance_due);
-      setWriteOffDate(
-        invoice.invoice_date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
-      );
+      setWriteOffDate(invoice.invoice_date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
       setReason("");
     }
   }, [open, invoice.balance_due, invoice.invoice_date]);

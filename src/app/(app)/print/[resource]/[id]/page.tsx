@@ -19,11 +19,7 @@ export default function PrintPage({
   );
 }
 
-async function PrintPageContent({
-  params,
-}: {
-  params: Promise<{ resource: string; id: string }>;
-}) {
+async function PrintPageContent({ params }: { params: Promise<{ resource: string; id: string }> }) {
   const { resource, id } = await params;
   const parsed = IdSchema.safeParse(id);
 

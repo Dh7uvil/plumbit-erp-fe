@@ -315,7 +315,10 @@ function WarehouseStockTable({
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={colSpan}>
-                  <DataTableEmpty title="No warehouse balances" message="No warehouse balances yet." />
+                  <DataTableEmpty
+                    title="No warehouse balances"
+                    message="No warehouse balances yet."
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -369,11 +372,11 @@ function ProductMovementsTable({
   );
   const hasQuery = Boolean(
     search ||
-      filters.warehouse_id ||
-      filters.movement_type ||
-      filters.document_date_from ||
-      filters.document_date_to ||
-      sort_by,
+    filters.warehouse_id ||
+    filters.movement_type ||
+    filters.document_date_from ||
+    filters.document_date_to ||
+    sort_by,
   );
 
   return (

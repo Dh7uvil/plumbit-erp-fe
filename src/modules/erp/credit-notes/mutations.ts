@@ -10,7 +10,11 @@ import { isApiError } from "@/shared/api/errors";
 
 type WriteVars = { id: string; version: number };
 
-async function invalidate(queryClient: ReturnType<typeof useQueryClient>, id?: string, posted = false) {
+async function invalidate(
+  queryClient: ReturnType<typeof useQueryClient>,
+  id?: string,
+  posted = false,
+) {
   await queryClient.invalidateQueries({ queryKey: creditNoteKeys.all });
   if (id) {
     await queryClient.invalidateQueries({ queryKey: creditNoteKeys.detail(id) });

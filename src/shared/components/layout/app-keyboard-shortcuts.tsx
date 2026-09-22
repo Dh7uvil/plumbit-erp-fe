@@ -125,14 +125,7 @@ export function AppKeyboardShortcuts({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    helpOpen,
-    onHelpOpenChange,
-    onSearchOpenChange,
-    onToggleSidebar,
-    router,
-    searchOpen,
-  ]);
+  }, [helpOpen, onHelpOpenChange, onSearchOpenChange, onToggleSidebar, router, searchOpen]);
 
   return null;
 }

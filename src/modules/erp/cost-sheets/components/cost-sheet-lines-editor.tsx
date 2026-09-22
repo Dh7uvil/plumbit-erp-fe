@@ -104,8 +104,7 @@ export function CostSheetLinesEditor({
     [receiptQuery.data?.lines],
   );
 
-  const colSpan =
-    5 + (showTargetSellingPrice ? 1 : 0) + (showGrnLink ? 1 : 0);
+  const colSpan = 5 + (showTargetSellingPrice ? 1 : 0) + (showGrnLink ? 1 : 0);
 
   function applyProduct(index: number, product: Pick<Product, "unit_id">) {
     form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
@@ -340,9 +339,7 @@ export function CostSheetLinesEditor({
                               value={grnField.value || OPTIONAL_SELECT_NONE}
                               onValueChange={(value) => applyGrnLine(index, value)}
                               disabled={disabled || (!sourceReceiptId && !grnField.value)}
-                              placeholder={
-                                sourceReceiptId ? "Link GRN line" : "Load a GRN above"
-                              }
+                              placeholder={sourceReceiptId ? "Link GRN line" : "Load a GRN above"}
                               searchPlaceholder="Search GRN line…"
                               options={grnOptionsForLine(index)}
                             />

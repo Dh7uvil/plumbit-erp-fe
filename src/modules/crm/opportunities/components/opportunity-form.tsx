@@ -46,7 +46,10 @@ import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 
-function toFormValues(opportunity: Opportunity | null, defaultCurrencyId?: string): OpportunityFormValues {
+function toFormValues(
+  opportunity: Opportunity | null,
+  defaultCurrencyId?: string,
+): OpportunityFormValues {
   if (!opportunity) {
     return defaultOpportunityFormValues();
   }

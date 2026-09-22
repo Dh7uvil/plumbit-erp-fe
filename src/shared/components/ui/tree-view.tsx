@@ -274,7 +274,11 @@ function TreeNode<T>({
               onToggle(node.id);
             }}
           >
-            {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+            {isExpanded ? (
+              <ChevronDown className="size-3.5" />
+            ) : (
+              <ChevronRight className="size-3.5" />
+            )}
           </button>
         ) : (
           <span className="inline-flex size-5" />

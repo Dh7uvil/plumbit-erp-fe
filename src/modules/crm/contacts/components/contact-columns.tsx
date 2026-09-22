@@ -34,9 +34,7 @@ export function contactColumnDefs({
         header: "Name",
         sortableField: "name",
         className: "font-medium",
-        cell: (contact) => (
-          <RecordLink href={`/contacts/${contact.id}`}>{contact.name}</RecordLink>
-        ),
+        cell: (contact) => <RecordLink href={`/contacts/${contact.id}`}>{contact.name}</RecordLink>,
       },
       {
         id: "company",

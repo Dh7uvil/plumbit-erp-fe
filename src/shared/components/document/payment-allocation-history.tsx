@@ -90,7 +90,10 @@ export function PaymentAllocationHistoryTable({
               </TableCell>
               <TableCell>
                 {journalKind === "journal" && journalId ? (
-                  <Link href={`/journals/${journalId}`} className="underline-offset-4 hover:underline">
+                  <Link
+                    href={`/journals/${journalId}`}
+                    className="underline-offset-4 hover:underline"
+                  >
                     View journal
                   </Link>
                 ) : journalKind === "subledger" ? (
@@ -100,11 +103,7 @@ export function PaymentAllocationHistoryTable({
                 )}
               </TableCell>
               <TableCell>
-                {live
-                  ? journalKind === "subledger"
-                    ? "Netted"
-                    : "Applied"
-                  : "Reversed"}
+                {live ? (journalKind === "subledger" ? "Netted" : "Applied") : "Reversed"}
               </TableCell>
               {canUnapply && onUnapply ? (
                 <TableCell className="text-right">

@@ -107,7 +107,11 @@ export function BalanceSheetScreen() {
                 return [
                   <TableRow key={`type-${type}`}>
                     <TableCell colSpan={columnCount} className="bg-muted/40 font-medium">
-                      {type === "ASSET" ? "Assets" : type === "LIABILITY" ? "Liabilities" : "Equity"}
+                      {type === "ASSET"
+                        ? "Assets"
+                        : type === "LIABILITY"
+                          ? "Liabilities"
+                          : "Equity"}
                     </TableCell>
                   </TableRow>,
                   ...group.map((line, index) => (

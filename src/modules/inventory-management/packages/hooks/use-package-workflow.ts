@@ -11,10 +11,7 @@ import {
 import type { Package } from "@/modules/inventory-management/packages/schemas";
 import type { PackageWorkflowAction } from "@/modules/inventory-management/packages/workflow";
 
-export function usePackageWorkflow(
-  pkg: Package,
-  extras: { onPrint?: () => void } = {},
-) {
+export function usePackageWorkflow(pkg: Package, extras: { onPrint?: () => void } = {}) {
   const router = useRouter();
   const packPackage = usePackPackage();
   const cancelPackage = useCancelPackage();

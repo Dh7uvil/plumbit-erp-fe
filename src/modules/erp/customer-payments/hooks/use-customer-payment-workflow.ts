@@ -13,10 +13,7 @@ import type { CustomerPayment } from "@/modules/erp/customer-payments/schemas";
 import type { CustomerPaymentWorkflowAction } from "@/modules/erp/customer-payments/workflow";
 import type { DocumentWorkflowExtras } from "@/shared/components/document/document-workflow-buttons";
 
-export function useCustomerPaymentWorkflow(
-  payment: CustomerPayment,
-  onAllocate: () => void,
-) {
+export function useCustomerPaymentWorkflow(payment: CustomerPayment, onAllocate: () => void) {
   const router = useRouter();
   const postPayment = usePostCustomerPayment();
   const refundPayment = useRefundCustomerPayment();

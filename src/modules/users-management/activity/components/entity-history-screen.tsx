@@ -181,7 +181,10 @@ function EditHistoryFilterMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuRadioGroup value={value} onValueChange={(next) => onChange(next as EditHistoryFilter)}>
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(next) => onChange(next as EditHistoryFilter)}
+        >
           <DropdownMenuRadioItem value="all">All Activity</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="edit">Edits</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="attachment">Attachments</DropdownMenuRadioItem>

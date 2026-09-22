@@ -108,10 +108,10 @@ export function TradingHistoryLines({
   });
   const hasQuery = Boolean(
     search ||
-      filters.warehouse_id ||
-      filters.document_date_from ||
-      filters.document_date_to ||
-      sort_by,
+    filters.warehouse_id ||
+    filters.document_date_from ||
+    filters.document_date_to ||
+    sort_by,
   );
 
   return (
@@ -161,7 +161,12 @@ export function TradingHistoryLines({
             onFromChange={(value) => setParams({ filters: { document_date_from: value || null } })}
             onToChange={(value) => setParams({ filters: { document_date_to: value || null } })}
           />
-          <SortDialog fields={[...sortFields]} sortBy={sort_by} sortOrder={sort_order} onApply={setParams} />
+          <SortDialog
+            fields={[...sortFields]}
+            sortBy={sort_by}
+            sortOrder={sort_order}
+            onApply={setParams}
+          />
           {columnsDialog}
           {hasQuery ? (
             <Button

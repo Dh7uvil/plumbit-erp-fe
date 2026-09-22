@@ -168,7 +168,10 @@ function toFormLines(invoice: PurchaseInvoice | null): PurchaseInvoiceLineFormVa
   }));
 }
 
-function toFormValues(invoice: PurchaseInvoice | null, defaultCurrencyId?: string): PurchaseInvoiceFormValues {
+function toFormValues(
+  invoice: PurchaseInvoice | null,
+  defaultCurrencyId?: string,
+): PurchaseInvoiceFormValues {
   const billType = invoice?.bill_type ?? "GOODS";
   return {
     supplier_id: invoice?.supplier_id ?? OPTIONAL_SELECT_NONE,

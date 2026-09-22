@@ -19,7 +19,10 @@ export function useDeliveryNoteWorkflow(note: DeliveryNote) {
   const deleteNote = useDeleteDeliveryNote();
   const write = { id: note.id, version: note.version };
 
-  return async function onAction(action: DeliveryNoteWorkflowAction, extras: DocumentWorkflowExtras) {
+  return async function onAction(
+    action: DeliveryNoteWorkflowAction,
+    extras: DocumentWorkflowExtras,
+  ) {
     if (action === "post") {
       await postNote.mutateAsync(write);
       toast.success("Delivery note posted");

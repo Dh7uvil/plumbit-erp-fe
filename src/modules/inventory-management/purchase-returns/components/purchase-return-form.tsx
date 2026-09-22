@@ -338,7 +338,7 @@ export function PurchaseReturnForm({
                         <td className="px-3 py-2 text-right tabular-nums">
                           {receiptLine ? formatQuantity(receiptLine.quantity) : "—"}
                         </td>
-                        <td className="min-w-28 w-28 px-3 py-2 align-top">
+                        <td className="w-28 min-w-28 px-3 py-2 align-top">
                           <FormField
                             control={form.control}
                             name={`lines.${index}.quantity`}

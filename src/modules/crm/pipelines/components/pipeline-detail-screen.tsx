@@ -45,7 +45,9 @@ export function PipelineDetailScreen({
     return (
       <div className="flex flex-col gap-3">
         <DataTableError
-          message={pipelineQuery.error ? getErrorMessage(pipelineQuery.error) : "Pipeline not found"}
+          message={
+            pipelineQuery.error ? getErrorMessage(pipelineQuery.error) : "Pipeline not found"
+          }
           onRetry={() => pipelineQuery.refetch()}
         />
         <Button type="button" variant="outline" asChild>

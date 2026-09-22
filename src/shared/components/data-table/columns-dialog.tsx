@@ -100,7 +100,7 @@ export function ColumnsDialog<T>({
   }
 
   return (
-    <div className="ml-auto order-last shrink-0">
+    <div className="order-last ml-auto shrink-0">
       <Popover open={open} onOpenChange={handleOpenChange}>
         <Tooltip>
           <TooltipTrigger asChild>

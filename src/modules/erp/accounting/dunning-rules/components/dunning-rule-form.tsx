@@ -181,7 +181,11 @@ export function DunningRuleForm({
           render={({ field }) => (
             <FormItem className="flex flex-row items-start gap-3 space-y-0">
               <FormControl>
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={disabled} />
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={disabled}
+                />
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>Escalation tone</FormLabel>

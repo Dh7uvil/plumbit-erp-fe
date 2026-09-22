@@ -42,12 +42,7 @@ export function ReportShell({
         actions={
           onDownloadCsv || onDownloadExcel ? (
             <div className="flex flex-wrap gap-2 print:hidden">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => window.print()}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
                 <Printer className="size-4" />
                 Print
               </Button>

@@ -97,8 +97,9 @@ export function useAllocateCustomerPayment() {
       id,
       version,
       allocations,
-    }: WriteVars & { allocations: Parameters<typeof customerPaymentsApi.allocate>[1]["allocations"] }) =>
-      customerPaymentsApi.allocate(id, { allocations }, { version }),
+    }: WriteVars & {
+      allocations: Parameters<typeof customerPaymentsApi.allocate>[1]["allocations"];
+    }) => customerPaymentsApi.allocate(id, { allocations }, { version }),
     onSuccess: async (_data, { id }) => {
       await invalidate(queryClient, id, true);
     },

@@ -48,9 +48,7 @@ export const deliveryNotesApi = {
     DeliveryNoteSchema.parse(
       await apiClient.post("/delivery-notes", DeliveryNoteCreateRequestSchema.parse(values)),
     ),
-  createFromSalesOrder: async (
-    values: DeliveryNoteCreateFromSalesOrder,
-  ): Promise<DeliveryNote> =>
+  createFromSalesOrder: async (values: DeliveryNoteCreateFromSalesOrder): Promise<DeliveryNote> =>
     DeliveryNoteSchema.parse(
       await apiClient.post(
         "/delivery-notes/from-sales-order",

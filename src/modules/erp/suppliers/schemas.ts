@@ -171,7 +171,4 @@ export type SupplierListParams = {
   is_active?: boolean;
 };
 
-export {
-  OutstandingSummarySchema,
-  type OutstandingSummary,
-} from "@/modules/crm/customers/schemas";
+export { OutstandingSummarySchema, type OutstandingSummary } from "@/modules/crm/customers/schemas";

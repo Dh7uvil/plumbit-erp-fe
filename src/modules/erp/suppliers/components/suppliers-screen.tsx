@@ -28,10 +28,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -266,16 +263,16 @@ export function SuppliersScreen() {
               }}
             />
             {canCreate ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setFormOpen(true);
-              }}
-            >
-              <Plus className="size-3.5" />
-              New Supplier
-            </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setFormOpen(true);
+                }}
+              >
+                <Plus className="size-3.5" />
+                New Supplier
+              </Button>
             ) : null}
           </div>
         }

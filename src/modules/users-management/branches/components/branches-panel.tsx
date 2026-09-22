@@ -61,12 +61,7 @@ export function BranchesPanel() {
       return branches;
     }
     return branches.filter((branch) => {
-      const haystack = [
-        branch.code,
-        branch.name,
-        branch.phone,
-        locationLabel(branch),
-      ]
+      const haystack = [branch.code, branch.name, branch.phone, locationLabel(branch)]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();

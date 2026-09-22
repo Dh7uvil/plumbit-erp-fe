@@ -3,7 +3,10 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { attachmentsApi } from "@/modules/users-management/attachments/api";
-import type { AttachmentCategory, AttachmentListParams } from "@/modules/users-management/attachments/schemas";
+import type {
+  AttachmentCategory,
+  AttachmentListParams,
+} from "@/modules/users-management/attachments/schemas";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const attachmentKeys = {

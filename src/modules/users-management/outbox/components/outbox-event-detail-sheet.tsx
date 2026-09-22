@@ -4,12 +4,7 @@ import { useOutboxEvent } from "@/modules/users-management/outbox/queries";
 import { OUTBOX_STATUS_LABELS } from "@/modules/users-management/outbox/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { Badge } from "@/shared/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/shared/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/shared/components/ui/sheet";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { formatDateTime, humanizeEnum } from "@/shared/lib/format";
 

@@ -110,7 +110,10 @@ function toFormLines(receipt: GoodsReceipt | null): GoodsReceiptLineFormValues[]
   }));
 }
 
-function toFormValues(receipt: GoodsReceipt | null, defaultCurrencyId?: string): GoodsReceiptFormValues {
+function toFormValues(
+  receipt: GoodsReceipt | null,
+  defaultCurrencyId?: string,
+): GoodsReceiptFormValues {
   return {
     supplier_id: receipt?.supplier_id ?? OPTIONAL_SELECT_NONE,
     warehouse_id: receipt?.warehouse_id ?? OPTIONAL_SELECT_NONE,

@@ -199,7 +199,10 @@ function toFormLines(invoice: ProformaInvoice | null): ProformaInvoiceLineFormVa
   }));
 }
 
-function toFormValues(invoice: ProformaInvoice | null, defaultCurrencyId?: string): ProformaInvoiceFormValues {
+function toFormValues(
+  invoice: ProformaInvoice | null,
+  defaultCurrencyId?: string,
+): ProformaInvoiceFormValues {
   return {
     customer_id: invoice?.customer_id ?? OPTIONAL_SELECT_NONE,
     contact_id: invoice?.contact_id ?? OPTIONAL_SELECT_NONE,

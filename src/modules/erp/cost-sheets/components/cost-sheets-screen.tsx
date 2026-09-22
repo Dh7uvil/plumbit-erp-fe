@@ -89,9 +89,7 @@ export function CostSheetsScreen() {
         id: "status",
         header: "Status",
         sortableField: "status",
-        cell: (row) => (
-          <Badge variant="outline">{COST_SHEET_STATUS_LABELS[row.status]}</Badge>
-        ),
+        cell: (row) => <Badge variant="outline">{COST_SHEET_STATUS_LABELS[row.status]}</Badge>,
       },
       {
         id: "document_date",
@@ -163,7 +161,10 @@ export function CostSheetsScreen() {
           label="Status"
           value={filters.status ?? ALL}
           onValueChange={(value) =>
-            setParams({ filters: { ...filters, status: value === ALL ? undefined : value }, page: 1 })
+            setParams({
+              filters: { ...filters, status: value === ALL ? undefined : value },
+              page: 1,
+            })
           }
           options={[
             { value: ALL, label: "All statuses" },

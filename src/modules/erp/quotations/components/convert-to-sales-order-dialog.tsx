@@ -7,10 +7,7 @@ import { toast } from "sonner";
 
 import { useConvertQuotationToSalesOrder } from "@/modules/erp/quotations/mutations";
 import { useQuotation, useQuotations } from "@/modules/erp/quotations/queries";
-import {
-  quotationDisplayNumber,
-  type Quotation,
-} from "@/modules/erp/quotations/schemas";
+import { quotationDisplayNumber, type Quotation } from "@/modules/erp/quotations/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import {
   ConversionLinePicker,

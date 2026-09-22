@@ -26,10 +26,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -59,7 +56,8 @@ function parseStatus(value: string | undefined): StockDocumentStatus | undefined
 }
 
 export function PurchaseReturnsScreen() {
-  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(purchaseReturnPermissions);
+  const { canCreate, canRead, canUpdate, canDelete } =
+    useCrudPermissions(purchaseReturnPermissions);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const returnsQuery = usePurchaseReturns({
     page,
@@ -129,9 +127,7 @@ export function PurchaseReturnsScreen() {
             entityName={number}
             viewHref={canRead ? `/purchase-returns/${row.id}` : undefined}
             editHref={
-              canUpdate && row.status === "DRAFT"
-                ? `/purchase-returns/${row.id}/edit`
-                : undefined
+              canUpdate && row.status === "DRAFT" ? `/purchase-returns/${row.id}/edit` : undefined
             }
             onDelete={
               row.available_actions.includes("delete") && canDelete
@@ -227,7 +223,10 @@ export function PurchaseReturnsScreen() {
               <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No purchase returns"
-                  message={emptyListMessage(canCreate, "Create a purchase return from a posted goods receipt.")}
+                  message={emptyListMessage(
+                    canCreate,
+                    "Create a purchase return from a posted goods receipt.",
+                  )}
                 />
               </TableCell>
             </TableRow>

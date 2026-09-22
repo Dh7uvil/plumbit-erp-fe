@@ -75,7 +75,12 @@ export function SalesReturnDetailScreen({
   }
 
   return (
-    <SalesReturnDetailLoaded doc={doc} mode={mode} canEditDraft={canEditDraft} viewHref={viewHref} />
+    <SalesReturnDetailLoaded
+      doc={doc}
+      mode={mode}
+      canEditDraft={canEditDraft}
+      viewHref={viewHref}
+    />
   );
 }
 

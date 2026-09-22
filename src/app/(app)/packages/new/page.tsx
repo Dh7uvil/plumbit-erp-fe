@@ -19,7 +19,10 @@ export default async function NewPackagePage({
 
   return (
     <PermissionGate permission={packagePermissions.create}>
-      <PackageNewScreen salesOrderId={optionalUuid(params.sales_order_id)} deliveryNoteId={optionalUuid(params.delivery_note_id)} />
+      <PackageNewScreen
+        salesOrderId={optionalUuid(params.sales_order_id)}
+        deliveryNoteId={optionalUuid(params.delivery_note_id)}
+      />
     </PermissionGate>
   );
 }

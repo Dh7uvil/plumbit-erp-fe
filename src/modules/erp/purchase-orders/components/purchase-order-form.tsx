@@ -283,7 +283,9 @@ export function PurchaseOrderForm({
   const form = useForm<PurchaseOrderFormValues>({
     resolver: zodResolver(PurchaseOrderFormSchema),
     defaultValues: toFormValues(purchaseOrder, baseCurrencyId, suggestionCompose),
-    values: purchaseOrder ? toFormValues(purchaseOrder, baseCurrencyId, suggestionCompose) : undefined,
+    values: purchaseOrder
+      ? toFormValues(purchaseOrder, baseCurrencyId, suggestionCompose)
+      : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);

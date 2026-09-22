@@ -146,7 +146,10 @@ function toFormLines(salesOrder: SalesOrder | null): SalesOrderLineFormValues[] 
   }));
 }
 
-function toFormValues(salesOrder: SalesOrder | null, defaultCurrencyId?: string): SalesOrderFormValues {
+function toFormValues(
+  salesOrder: SalesOrder | null,
+  defaultCurrencyId?: string,
+): SalesOrderFormValues {
   return {
     customer_id: salesOrder?.customer_id ?? OPTIONAL_SELECT_NONE,
     contact_id: salesOrder?.contact_id ?? OPTIONAL_SELECT_NONE,

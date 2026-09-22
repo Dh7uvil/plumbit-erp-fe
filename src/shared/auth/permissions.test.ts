@@ -12,7 +12,9 @@ const keys = {
 
 describe("can", () => {
   it("returns true only when the permission is granted", () => {
-    expect(can("sales.quotation.read", ["sales.quotation.read", "sales.quotation.create"])).toBe(true);
+    expect(can("sales.quotation.read", ["sales.quotation.read", "sales.quotation.create"])).toBe(
+      true,
+    );
     expect(can("sales.quotation.delete", ["sales.quotation.read"])).toBe(false);
     expect(can("sales.quotation.read")).toBe(false);
   });

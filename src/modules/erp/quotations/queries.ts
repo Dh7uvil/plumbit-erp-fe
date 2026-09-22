@@ -50,10 +50,7 @@ export function useQuotationRevisions(id: string | null, enabled = true) {
   });
 }
 
-export function useQuotationRevision(
-  id: string | null,
-  revisionNumber: number | null,
-) {
+export function useQuotationRevision(id: string | null, revisionNumber: number | null) {
   return useQuery({
     queryKey: useTenantQueryKey(quotationKeys.revision(id ?? "", revisionNumber ?? 0)),
     queryFn: () => quotationsApi.getRevision(id!, revisionNumber!),

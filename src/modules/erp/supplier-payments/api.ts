@@ -107,18 +107,17 @@ export const supplierPaymentsApi = {
   journal: async (id: string): Promise<JournalEntry> =>
     JournalEntrySchema.parse(await apiClient.get(`/supplier-payments/${id}/journal`)),
   listAllocations: async (id: string): Promise<PaymentAllocationRecord[]> =>
-    z.array(PaymentAllocationRecordSchema).parse(
-      await apiClient.get(`/supplier-payments/${id}/allocations`),
-    ),
+    z
+      .array(PaymentAllocationRecordSchema)
+      .parse(await apiClient.get(`/supplier-payments/${id}/allocations`)),
   unallocate: async (
     paymentId: string,
     allocationId: string,
     options: SupplierPaymentWriteOptions,
   ): Promise<SupplierPayment> =>
     SupplierPaymentSchema.parse(
-      await apiClient.delete(
-        `/supplier-payments/${paymentId}/allocations/${allocationId}`,
-        { headers: postDocumentHeaders(options.version, randomUuid()) },
-      ),
+      await apiClient.delete(`/supplier-payments/${paymentId}/allocations/${allocationId}`, {
+        headers: postDocumentHeaders(options.version, randomUuid()),
+      }),
     ),
 };

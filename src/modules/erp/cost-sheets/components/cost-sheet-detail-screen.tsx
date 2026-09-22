@@ -136,7 +136,10 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
           {shipmentLabel && sheet.shipment_id ? (
             <div>
               Shipment:{" "}
-              <Link className="underline-offset-2 hover:underline" href={`/shipments/${sheet.shipment_id}`}>
+              <Link
+                className="underline-offset-2 hover:underline"
+                href={`/shipments/${sheet.shipment_id}`}
+              >
                 {shipmentLabel}
               </Link>
             </div>
@@ -163,14 +166,10 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
               </Link>
             </div>
           ) : null}
-          <div>
-            Allocation: {LANDED_COST_ALLOCATION_METHOD_LABELS[sheet.allocation_method]}
-          </div>
+          <div>Allocation: {LANDED_COST_ALLOCATION_METHOD_LABELS[sheet.allocation_method]}</div>
           {sheet.incoterm ? <div>Incoterm: {sheet.incoterm}</div> : null}
           {sheet.port_of_loading ? <div>Port of loading: {sheet.port_of_loading}</div> : null}
-          {sheet.port_of_discharge ? (
-            <div>Port of discharge: {sheet.port_of_discharge}</div>
-          ) : null}
+          {sheet.port_of_discharge ? <div>Port of discharge: {sheet.port_of_discharge}</div> : null}
           {sheet.notes ? <div className="md:col-span-3">Notes: {sheet.notes}</div> : null}
         </CardContent>
       </Card>

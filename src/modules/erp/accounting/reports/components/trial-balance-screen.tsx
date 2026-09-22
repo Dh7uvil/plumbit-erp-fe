@@ -84,14 +84,26 @@ export function TrialBalanceScreen() {
       onDownloadCsv={() => {
         void downloadCsv(
           "/reports/trial-balance",
-          { from, to, branch_id: branchId, cost_center_id: costCenterId, include_zero: includeZero },
+          {
+            from,
+            to,
+            branch_id: branchId,
+            cost_center_id: costCenterId,
+            include_zero: includeZero,
+          },
           "trial-balance",
         );
       }}
       onDownloadExcel={() => {
         void downloadExcel(
           "/reports/trial-balance",
-          { from, to, branch_id: branchId, cost_center_id: costCenterId, include_zero: includeZero },
+          {
+            from,
+            to,
+            branch_id: branchId,
+            cost_center_id: costCenterId,
+            include_zero: includeZero,
+          },
           "trial-balance",
         );
       }}

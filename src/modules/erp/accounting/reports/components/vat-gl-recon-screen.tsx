@@ -46,7 +46,11 @@ export function VatGlReconScreen() {
         void downloadExcel("/reports/vat-gl-recon", params, "vat-gl-recon");
       }}
       toolbar={
-        <StatementReportFilters from={from} to={to} onChange={(patch) => setParams({ filters: patch })} />
+        <StatementReportFilters
+          from={from}
+          to={to}
+          onChange={(patch) => setParams({ filters: patch })}
+        />
       }
     >
       <DataTable>
@@ -77,7 +81,10 @@ export function VatGlReconScreen() {
           ) : !report || report.lines.length === 0 ? (
             <TableRow>
               <TableCell colSpan={4}>
-                <DataTableEmpty title="No VAT movement" message="No VAT 201 or tax GL activity in this range." />
+                <DataTableEmpty
+                  title="No VAT movement"
+                  message="No VAT 201 or tax GL activity in this range."
+                />
               </TableCell>
             </TableRow>
           ) : (

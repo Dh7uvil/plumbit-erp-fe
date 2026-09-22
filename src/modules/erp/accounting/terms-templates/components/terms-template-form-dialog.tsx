@@ -32,7 +32,7 @@ export function TermsTemplateFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent nested={nested} className="sm:max-w-3xl">
+      <DialogContent nested={nested} className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{formDialogTitle("Terms Template", mode)}</DialogTitle>
         </DialogHeader>

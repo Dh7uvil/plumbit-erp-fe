@@ -22,6 +22,8 @@ export const employeesApi = {
     });
     return { data: EmployeePickerListSchema.parse(result.data), meta: result.meta };
   },
-  listAll: (params: Omit<EmployeeListParams, "page" | "page_size"> = {}): Promise<EmployeePicker[]> =>
+  listAll: (
+    params: Omit<EmployeeListParams, "page" | "page_size"> = {},
+  ): Promise<EmployeePicker[]> =>
     fetchAllPages((page, pageSize) => employeesApi.list({ ...params, page, page_size: pageSize })),
 };

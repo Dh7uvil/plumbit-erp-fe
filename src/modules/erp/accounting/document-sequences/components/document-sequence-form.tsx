@@ -93,13 +93,7 @@ export function DocumentSequenceForm({
     control: form.control,
     name: ["prefix", "fiscal_year", "next_number", "padding", "document_type"],
   });
-  const preview = formatSequencePreview(
-    prefix,
-    fiscalYear,
-    nextNumber,
-    padding,
-    documentType,
-  );
+  const preview = formatSequencePreview(prefix, fiscalYear, nextNumber, padding, documentType);
 
   async function onSubmit(values: DocumentSequenceFormValues) {
     setFormError(null);
@@ -138,7 +132,10 @@ export function DocumentSequenceForm({
         className="flex flex-col gap-3"
       >
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="document_type"
@@ -280,7 +277,8 @@ export function DocumentSequenceForm({
             />
           ) : null}
           <div className="bg-muted/50 text-muted-foreground col-span-full rounded-md border px-3 py-2 text-sm">
-            Next document number preview: <span className="text-foreground font-mono">{preview}</span>
+            Next document number preview:{" "}
+            <span className="text-foreground font-mono">{preview}</span>
           </div>
         </div>
         {showCancel || !disabled ? (

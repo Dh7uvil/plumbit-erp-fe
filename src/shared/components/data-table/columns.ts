@@ -113,10 +113,7 @@ export function columnPickerDraft<T>(
   const savedOrder = (preference?.column_order ?? []).filter((id) => known.has(id));
   const order = applyPinnedColumns(
     [],
-    [
-      ...savedOrder,
-      ...defaults.column_order.filter((id) => !savedOrder.includes(id)),
-    ],
+    [...savedOrder, ...defaults.column_order.filter((id) => !savedOrder.includes(id))],
     pinned,
   ).order;
   const visible = new Set(preference?.visible_columns ?? defaults.visible_columns);

@@ -42,10 +42,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -56,7 +53,10 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { CONVERT_FROM_MENU_CLASSNAME, CONVERT_FROM_TRIGGER_CLASSNAME } from "@/shared/components/document/convert-from-menu";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -143,10 +143,7 @@ export function SalesInvoicesScreen() {
     invoice_date_from: filters.invoice_date_from,
     invoice_date_to: filters.invoice_date_to,
   });
-  const exceptionsQuery = useExportEvidenceExceptions(
-    {},
-    can(reportPermissions.tax),
-  );
+  const exceptionsQuery = useExportEvidenceExceptions({}, can(reportPermissions.tax));
   const customersQuery = useAllCustomers();
   const currenciesQuery = useAllCurrencies();
   const branchesQuery = useAllBranches();
@@ -193,9 +190,7 @@ export function SalesInvoicesScreen() {
         className: "font-mono text-sm",
         cell: (invoice) => {
           const number = salesInvoiceDisplayNumber(invoice);
-          return (
-            <RecordLink href={`/sales-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>
-          );
+          return <RecordLink href={`/sales-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>;
         },
       },
       {
@@ -403,46 +398,46 @@ export function SalesInvoicesScreen() {
               }}
             />
             {canCreate ? (
-            <div className="flex flex-wrap gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={CONVERT_FROM_TRIGGER_CLASSNAME}
-                  >
-                    Convert from
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
-                  {can(quotationPermissions.read) ? (
-                    <DropdownMenuItem onSelect={() => setFromQuotation(true)}>
-                      Quotation
+              <div className="flex flex-wrap gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                    >
+                      Convert from
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                    {can(quotationPermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromQuotation(true)}>
+                        Quotation
+                      </DropdownMenuItem>
+                    ) : null}
+                    {can(salesOrderPermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromSalesOrder(true)}>
+                        Sales order
+                      </DropdownMenuItem>
+                    ) : null}
+                    {can(proformaInvoicePermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromProforma(true)}>
+                        Proforma invoice
+                      </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuItem onSelect={() => setFromDeliveryNotes(true)}>
+                      Delivery notes
                     </DropdownMenuItem>
-                  ) : null}
-                  {can(salesOrderPermissions.read) ? (
-                    <DropdownMenuItem onSelect={() => setFromSalesOrder(true)}>
-                      Sales order
-                    </DropdownMenuItem>
-                  ) : null}
-                  {can(proformaInvoicePermissions.read) ? (
-                    <DropdownMenuItem onSelect={() => setFromProforma(true)}>
-                      Proforma invoice
-                    </DropdownMenuItem>
-                  ) : null}
-                  <DropdownMenuItem onSelect={() => setFromDeliveryNotes(true)}>
-                    Delivery notes
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button type="button" size="sm" asChild>
-                <Link href="/sales-invoices/new">
-                  <Plus className="size-3.5" />
-                  New sales invoice
-                </Link>
-              </Button>
-            </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button type="button" size="sm" asChild>
+                  <Link href="/sales-invoices/new">
+                    <Plus className="size-3.5" />
+                    New sales invoice
+                  </Link>
+                </Button>
+              </div>
             ) : null}
           </div>
         }
@@ -513,8 +508,7 @@ export function SalesInvoicesScreen() {
           onApply={() =>
             setParams({
               filters: {
-                payment_status:
-                  draftExtra.paymentStatus === ALL ? null : draftExtra.paymentStatus,
+                payment_status: draftExtra.paymentStatus === ALL ? null : draftExtra.paymentStatus,
                 branch_id: draftExtra.branchId === ALL ? null : draftExtra.branchId,
                 currency_id: draftExtra.currencyId === ALL ? null : draftExtra.currencyId,
                 invoice_date_from: draftExtra.invoiceDateFrom || null,
@@ -694,18 +688,9 @@ export function SalesInvoicesScreen() {
         }}
         onConfirm={() => void onDelete()}
       />
-      <CreateSalesInvoiceFromQuotationDialog
-        open={fromQuotation}
-        onOpenChange={setFromQuotation}
-      />
-      <CreateInvoiceFromSalesOrderDialog
-        open={fromSalesOrder}
-        onOpenChange={setFromSalesOrder}
-      />
-      <CreateSalesInvoiceFromProformaDialog
-        open={fromProforma}
-        onOpenChange={setFromProforma}
-      />
+      <CreateSalesInvoiceFromQuotationDialog open={fromQuotation} onOpenChange={setFromQuotation} />
+      <CreateInvoiceFromSalesOrderDialog open={fromSalesOrder} onOpenChange={setFromSalesOrder} />
+      <CreateSalesInvoiceFromProformaDialog open={fromProforma} onOpenChange={setFromProforma} />
       <CreateInvoiceFromDeliveryNotesDialog
         open={fromDeliveryNotes}
         onOpenChange={setFromDeliveryNotes}

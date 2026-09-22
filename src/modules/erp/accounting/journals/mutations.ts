@@ -9,10 +9,7 @@ import { isApiError } from "@/shared/api/errors";
 
 type WriteVars = { id: string; version: number };
 
-async function invalidateJournals(
-  queryClient: ReturnType<typeof useQueryClient>,
-  id?: string,
-) {
+async function invalidateJournals(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
   await queryClient.invalidateQueries({ queryKey: journalKeys.all });
   await queryClient.invalidateQueries({ queryKey: accountKeys.all });
   if (id) {

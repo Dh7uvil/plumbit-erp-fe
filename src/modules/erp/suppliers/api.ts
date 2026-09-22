@@ -21,7 +21,10 @@ import {
   type SupplierListParams,
   type SupplierUpdateRequest,
 } from "@/modules/erp/suppliers/schemas";
-import { OpenItemRowListSchema, PartyPaymentHistoryListSchema } from "@/shared/components/document/schemas";
+import {
+  OpenItemRowListSchema,
+  PartyPaymentHistoryListSchema,
+} from "@/shared/components/document/schemas";
 import { emptyToNull, toAddressPayload } from "@/modules/users-management/tenants/schemas";
 import { apiClient } from "@/shared/api/client";
 import type { ListResponse } from "@/shared/api/envelope";

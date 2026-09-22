@@ -1,12 +1,6 @@
 import { z } from "zod";
 
-export const OUTBOX_STATUSES = [
-  "PENDING",
-  "PROCESSING",
-  "PUBLISHED",
-  "FAILED",
-  "DEAD",
-] as const;
+export const OUTBOX_STATUSES = ["PENDING", "PROCESSING", "PUBLISHED", "FAILED", "DEAD"] as const;
 export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];
 
 export const OUTBOX_STATUS_LABELS: Record<string, string> = {

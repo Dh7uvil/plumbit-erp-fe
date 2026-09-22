@@ -105,9 +105,7 @@ function DeliveryNoteDetailLoaded({
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const workflowActions = appendMissingActions(
     note.available_actions,
-    note.is_posted || note.status === "POSTED"
-      ? ["create_return", "create_sales_invoice"]
-      : [],
+    note.is_posted || note.status === "POSTED" ? ["create_return", "create_sales_invoice"] : [],
   );
 
   return (
@@ -202,11 +200,7 @@ function DeliveryNoteDetailLoaded({
         />
       }
     >
-      <DeliveryNoteForm
-        note={note}
-        disabled={!isEdit}
-        onSuccess={() => router.push(viewHref)}
-      />
+      <DeliveryNoteForm note={note} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
       <CreateInvoiceFromDeliveryNotesDialog
         open={invoiceOpen}
         onOpenChange={setInvoiceOpen}

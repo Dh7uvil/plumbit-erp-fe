@@ -11,7 +11,10 @@ import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { PROFORMA_INVOICE_ACTION_REGISTRY } from "@/modules/erp/proforma-invoices/workflow";
-import { useCloneProformaInvoice, useDeleteProformaInvoice } from "@/modules/erp/proforma-invoices/mutations";
+import {
+  useCloneProformaInvoice,
+  useDeleteProformaInvoice,
+} from "@/modules/erp/proforma-invoices/mutations";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { useProformaInvoices } from "@/modules/erp/proforma-invoices/queries";
 import {
@@ -31,10 +34,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -73,7 +73,9 @@ function parseStatus(value: string | undefined): ProformaInvoiceStatus | undefin
 
 export function ProformaInvoicesScreen() {
   const can = useCan();
-  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(proformaInvoicePermissions);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(
+    proformaInvoicePermissions,
+  );
   const router = useRouter();
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
@@ -151,9 +153,7 @@ export function ProformaInvoicesScreen() {
         className: "font-mono text-sm",
         cell: (invoice) => {
           const number = proformaInvoiceDisplayNumber(invoice);
-          return (
-            <RecordLink href={`/proforma-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>
-          );
+          return <RecordLink href={`/proforma-invoices/${invoice.id}`}>{number ?? "—"}</RecordLink>;
         },
       },
       {
@@ -303,10 +303,7 @@ export function ProformaInvoicesScreen() {
     userNameById,
   ]);
 
-  const { columns, columnsDialog, colSpan } = useTableColumns(
-    "erp.proforma_invoices",
-    columnDefs,
-  );
+  const { columns, columnsDialog, colSpan } = useTableColumns("erp.proforma_invoices", columnDefs);
 
   return (
     <ListPage>
@@ -326,12 +323,12 @@ export function ProformaInvoicesScreen() {
               }}
             />
             {canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/proforma-invoices/new">
-                <Plus className="size-3.5" />
-                New proforma invoice
-              </Link>
-            </Button>
+              <Button type="button" size="sm" asChild>
+                <Link href="/proforma-invoices/new">
+                  <Plus className="size-3.5" />
+                  New proforma invoice
+                </Link>
+              </Button>
             ) : null}
           </div>
         }

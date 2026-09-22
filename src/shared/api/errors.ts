@@ -41,20 +41,24 @@ const ERROR_MESSAGES: Record<string, string> = {
   EINVOICE_REJECTED: "The e-invoice was rejected. Review the message and issue a credit note.",
   EINVOICE_ASP_UNAVAILABLE: "The e-invoicing service is unavailable. Please try again later.",
   EINVOICE_ALREADY_EXCHANGED: "This e-invoice has already been exchanged and cannot be changed.",
-  LANDED_COST_WEIGHT_REQUIRED: "Net weight is required on goods receipt lines for weight allocation.",
+  LANDED_COST_WEIGHT_REQUIRED:
+    "Net weight is required on goods receipt lines for weight allocation.",
   ACCOUNT_ROLE_UNMAPPED: "A required system account is not mapped. Map it before posting.",
   ACCOUNT_NOT_POSTABLE: "This account cannot be posted to. Choose a postable account.",
   JOURNAL_LINE_INVALID: "Each journal line must have either a debit or a credit, not both.",
   JOURNAL_UNBALANCED: "Journal debit and credit totals must match.",
-  INVOICE_QTY_EXCEEDED: "Invoiced quantity is more than the remaining quantity on the source document.",
-  EXPORT_EVIDENCE_MISSING: "Export evidence is missing. Posting is allowed, but BL or customs documents should be attached.",
+  INVOICE_QTY_EXCEEDED:
+    "Invoiced quantity is more than the remaining quantity on the source document.",
+  EXPORT_EVIDENCE_MISSING:
+    "Export evidence is missing. Posting is allowed, but BL or customs documents should be attached.",
   CREDIT_QTY_EXCEEDED: "Credited quantity is more than the remaining quantity on the invoice.",
   DEBIT_QTY_EXCEEDED: "Debited quantity is more than the remaining quantity on the bill.",
   PAYMENT_OVER_ALLOCATED: "Allocated amounts are more than the payment can apply.",
   PAYMENT_ACCOUNT_INVALID: "Choose a postable cash or bank account for this payment.",
   PAYMENT_NOTHING_TO_APPLY: "There is nothing left to apply on this payment.",
   CREDIT_LIMIT_EXCEEDED: "This action exceeds the customer credit limit.",
-  PARTY_REQUIRED_FOR_CONTROL_ACCOUNT: "A party is required when posting to an AR or AP control account.",
+  PARTY_REQUIRED_FOR_CONTROL_ACCOUNT:
+    "A party is required when posting to an AR or AP control account.",
   FISCAL_YEAR_LOCKED:
     "The fiscal year start cannot change after document numbers have been issued.",
   OPENING_STOCK_VALUE_MISMATCH:
@@ -339,7 +343,12 @@ export function getValidationFieldErrors(error: unknown): Record<string, string>
         if (!item || typeof item !== "object") {
           continue;
         }
-        const errorItem = item as { loc?: unknown; path?: unknown; msg?: unknown; message?: unknown };
+        const errorItem = item as {
+          loc?: unknown;
+          path?: unknown;
+          msg?: unknown;
+          message?: unknown;
+        };
         const name = fieldNameFromLoc(errorItem.loc) ?? fieldNameFromLoc(errorItem.path);
         const message =
           typeof errorItem.msg === "string"

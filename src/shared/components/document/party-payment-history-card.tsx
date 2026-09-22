@@ -146,11 +146,11 @@ function CustomerPaymentHistoryTable({ partyId, title }: { partyId: string; titl
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.customer_payments", columnDefs);
   const hasQuery = Boolean(
     search ||
-      filters.status ||
-      filters.payment_method ||
-      filters.payment_date_from ||
-      filters.payment_date_to ||
-      sort_by,
+    filters.status ||
+    filters.payment_method ||
+    filters.payment_date_from ||
+    filters.payment_date_to ||
+    sort_by,
   );
 
   if (!canRead) {
@@ -304,11 +304,11 @@ function SupplierPaymentHistoryTable({ partyId, title }: { partyId: string; titl
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_payments", columnDefs);
   const hasQuery = Boolean(
     search ||
-      filters.status ||
-      filters.payment_method ||
-      filters.payment_date_from ||
-      filters.payment_date_to ||
-      sort_by,
+    filters.status ||
+    filters.payment_method ||
+    filters.payment_date_from ||
+    filters.payment_date_to ||
+    sort_by,
   );
 
   if (!canRead) {

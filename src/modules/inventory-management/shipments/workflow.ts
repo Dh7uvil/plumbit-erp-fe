@@ -25,7 +25,8 @@ export const SHIPMENT_ACTION_REGISTRY: DocumentActionSpec<ShipmentWorkflowAction
     action: "arrive",
     label: "Mark arrived",
     permission: shipmentPermissions.dispatch,
-    confirmCopy: (documentNumber) => `${documentNumber} will be marked arrived. Stock is unchanged.`,
+    confirmCopy: (documentNumber) =>
+      `${documentNumber} will be marked arrived. Stock is unchanged.`,
   },
   {
     action: "close",

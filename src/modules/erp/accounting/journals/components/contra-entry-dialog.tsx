@@ -31,11 +31,13 @@ function ContraEntryDialogContent({
     CASH_BANK_SUBTYPES.has(row.account_subtype),
   );
   const defaultSource =
-    cashBankAccounts.find((row) => row.account_subtype === (defaultBookKind === "cash" ? "CASH" : "BANK"))
-      ?.id ?? "";
+    cashBankAccounts.find(
+      (row) => row.account_subtype === (defaultBookKind === "cash" ? "CASH" : "BANK"),
+    )?.id ?? "";
   const defaultDestination =
-    cashBankAccounts.find((row) => row.account_subtype === (defaultBookKind === "cash" ? "BANK" : "CASH"))
-      ?.id ?? "";
+    cashBankAccounts.find(
+      (row) => row.account_subtype === (defaultBookKind === "cash" ? "BANK" : "CASH"),
+    )?.id ?? "";
   const [sourceAccountId, setSourceAccountId] = useState(defaultSource);
   const [destinationAccountId, setDestinationAccountId] = useState(defaultDestination);
   const [amount, setAmount] = useState("");
@@ -135,7 +137,5 @@ export function ContraEntryDialog(props: {
   onOpenChange: (open: boolean) => void;
   defaultBookKind?: "cash" | "bank";
 }) {
-  return (
-    <ContraEntryDialogContent key={props.open ? "open" : "closed"} {...props} />
-  );
+  return <ContraEntryDialogContent key={props.open ? "open" : "closed"} {...props} />;
 }

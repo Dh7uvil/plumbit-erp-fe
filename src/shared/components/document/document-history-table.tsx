@@ -13,7 +13,13 @@ import type { SortPatch } from "@/shared/components/data-table/sort";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import type { SortOrder } from "@/shared/hooks/use-table-params";
 

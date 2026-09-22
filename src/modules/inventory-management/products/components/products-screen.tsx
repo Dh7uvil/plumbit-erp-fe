@@ -27,10 +27,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
@@ -286,16 +283,16 @@ export function ProductsScreen() {
               }}
             />
             {canCreate ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setFormOpen(true);
-              }}
-            >
-              <Plus className="size-3.5" />
-              New Product
-            </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setFormOpen(true);
+                }}
+              >
+                <Plus className="size-3.5" />
+                New Product
+              </Button>
             ) : null}
           </div>
         }
@@ -414,7 +411,13 @@ export function ProductsScreen() {
                 search: null,
                 sort_by: null,
                 sort_order: null,
-                filters: { is_active: null, item_type: null, category_id: null, unit_id: null, tax_id: null },
+                filters: {
+                  is_active: null,
+                  item_type: null,
+                  category_id: null,
+                  unit_id: null,
+                  tax_id: null,
+                },
               })
             }
           >

@@ -12,7 +12,12 @@ import { documentStatusTone } from "@/shared/components/document/document-status
 import { StatusBadge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatDate, formatFixedDecimal, formatQuantitySummary, humanizeEnum } from "@/shared/lib/format";
+import {
+  formatDate,
+  formatFixedDecimal,
+  formatQuantitySummary,
+  humanizeEnum,
+} from "@/shared/lib/format";
 
 export type OrderTrackerRow = {
   stage: string;

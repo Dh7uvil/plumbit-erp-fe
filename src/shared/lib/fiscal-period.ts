@@ -20,7 +20,8 @@ export function currentFiscalPeriod(
   const currentMonth = today.getMonth() + 1;
   const currentDay = today.getDate();
   const started =
-    currentMonth > month || (currentMonth === month && currentDay >= Math.min(startDay, daysInMonth(year, month)));
+    currentMonth > month ||
+    (currentMonth === month && currentDay >= Math.min(startDay, daysInMonth(year, month)));
   const startYear = started ? year : year - 1;
   const fromDay = Math.min(Math.max(1, startDay), daysInMonth(startYear, month));
   return {

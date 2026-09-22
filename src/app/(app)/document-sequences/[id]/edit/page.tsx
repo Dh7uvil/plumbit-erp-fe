@@ -2,7 +2,11 @@ import { DocumentSequenceDetailScreen } from "@/modules/erp/accounting/document-
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
 import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-export default function DocumentSequenceDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
+export default function DocumentSequenceDetailEditPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   return (
     <DetailPageRoute
       params={params}

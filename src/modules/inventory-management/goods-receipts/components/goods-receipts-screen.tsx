@@ -7,9 +7,7 @@ import { toast } from "sonner";
 
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
-import {
-  useDeleteGoodsReceipt,
-} from "@/modules/inventory-management/goods-receipts/mutations";
+import { useDeleteGoodsReceipt } from "@/modules/inventory-management/goods-receipts/mutations";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { useGoodsReceipts } from "@/modules/inventory-management/goods-receipts/queries";
 import {
@@ -36,10 +34,7 @@ import {
   auditTimestampColumns,
   useUserNameMap,
 } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -250,9 +245,7 @@ export function GoodsReceiptsScreen() {
             entityName={number}
             viewHref={canRead ? `/goods-receipts/${row.id}` : undefined}
             editHref={
-              canUpdate && row.status === "DRAFT"
-                ? `/goods-receipts/${row.id}/edit`
-                : undefined
+              canUpdate && row.status === "DRAFT" ? `/goods-receipts/${row.id}/edit` : undefined
             }
             onDelete={
               row.available_actions.includes("delete") && canDelete

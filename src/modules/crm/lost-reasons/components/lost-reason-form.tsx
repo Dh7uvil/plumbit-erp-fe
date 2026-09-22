@@ -6,10 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import {
-  useCreateLostReason,
-  useUpdateLostReason,
-} from "@/modules/crm/lost-reasons/mutations";
+import { useCreateLostReason, useUpdateLostReason } from "@/modules/crm/lost-reasons/mutations";
 import {
   LostReasonFormSchema,
   type LostReason,
@@ -78,7 +75,7 @@ export function LostReasonForm({
     try {
       if (reason) {
         await updateLostReason.mutateAsync({
-          id:reason.id,
+          id: reason.id,
           values: {
             ...payload,
             is_active: values.is_active,

@@ -4,10 +4,7 @@ import { Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import {
-  useCreatePipelineStage,
-  useDeletePipelineStage,
-} from "@/modules/crm/pipelines/mutations";
+import { useCreatePipelineStage, useDeletePipelineStage } from "@/modules/crm/pipelines/mutations";
 import type { Pipeline, PipelineStageKind } from "@/modules/crm/pipelines/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { Button } from "@/shared/components/ui/button";
@@ -138,7 +135,10 @@ export function PipelineStagesPanel({
             value={probability}
             onChange={(event) => setProbability(event.target.value)}
           />
-          <Select value={stageKind} onValueChange={(value) => setStageKind(value as PipelineStageKind)}>
+          <Select
+            value={stageKind}
+            onValueChange={(value) => setStageKind(value as PipelineStageKind)}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -150,7 +150,11 @@ export function PipelineStagesPanel({
               ))}
             </SelectContent>
           </Select>
-          <Button type="button" disabled={createStage.isPending} onClick={() => void handleCreate()}>
+          <Button
+            type="button"
+            disabled={createStage.isPending}
+            onClick={() => void handleCreate()}
+          >
             {createStage.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
             Add stage
           </Button>

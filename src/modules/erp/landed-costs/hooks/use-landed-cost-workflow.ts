@@ -19,10 +19,7 @@ export function useLandedCostWorkflow(document: LandedCost) {
   const deleteDocument = useDeleteLandedCost();
   const write = { id: document.id, version: document.version };
 
-  return async function onAction(
-    action: LandedCostWorkflowAction,
-    extras: DocumentWorkflowExtras,
-  ) {
+  return async function onAction(action: LandedCostWorkflowAction, extras: DocumentWorkflowExtras) {
     if (action === "post") {
       await postDocument.mutateAsync(write);
       toast.success("Landed cost posted");

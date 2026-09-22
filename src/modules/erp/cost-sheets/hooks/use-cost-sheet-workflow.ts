@@ -25,10 +25,7 @@ export function useCostSheetWorkflow(document: CostSheet) {
   const deleteDocument = useDeleteCostSheet();
   const write = { version: document.version };
 
-  return async function onAction(
-    action: CostSheetWorkflowAction,
-    extras: DocumentWorkflowExtras,
-  ) {
+  return async function onAction(action: CostSheetWorkflowAction, extras: DocumentWorkflowExtras) {
     void extras;
     if (action === "confirm") {
       await confirm.mutateAsync(write);

@@ -28,13 +28,10 @@ export function DecimalInput({
 }) {
   const digits = precision ?? KIND_DIGITS[kind];
   const raw = value == null ? "" : String(value);
-  const fraction = raw.includes(".") ? raw.split(".")[1] ?? "" : "";
+  const fraction = raw.includes(".") ? (raw.split(".")[1] ?? "") : "";
   const shouldNormalizeDisplay =
-    raw !== "" &&
-    (Boolean(disabled || readOnly) || fraction.length > digits);
-  const displayValue = shouldNormalizeDisplay
-    ? normalizeDecimalInput(raw, digits) || value
-    : value;
+    raw !== "" && (Boolean(disabled || readOnly) || fraction.length > digits);
+  const displayValue = shouldNormalizeDisplay ? normalizeDecimalInput(raw, digits) || value : value;
 
   return (
     <Input

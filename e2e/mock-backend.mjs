@@ -223,12 +223,18 @@ function mockActivity() {
 }
 
 function filterBySearch(items, search, fields) {
-  const needle = String(search ?? "").trim().toLowerCase();
+  const needle = String(search ?? "")
+    .trim()
+    .toLowerCase();
   if (!needle) {
     return items;
   }
   return items.filter((item) =>
-    fields.some((field) => String(item[field] ?? "").toLowerCase().includes(needle)),
+    fields.some((field) =>
+      String(item[field] ?? "")
+        .toLowerCase()
+        .includes(needle),
+    ),
   );
 }
 
@@ -929,7 +935,8 @@ function buildSalesInvoiceFromSource(source, extras = {}) {
   siSeq += 1;
   const now = new Date().toISOString();
   const documentNumber = compactDocNumber("INV", siSeq, "ACM");
-  const invoiceDate = extras.invoice_date ?? source.quote_date ?? source.order_date ?? now.slice(0, 10);
+  const invoiceDate =
+    extras.invoice_date ?? source.quote_date ?? source.order_date ?? now.slice(0, 10);
   const lines = (source.lines ?? []).map((line, index) => ({
     id: crypto.randomUUID(),
     line_number: index + 1,
@@ -1544,7 +1551,8 @@ function buildDeliveryNote(body, existing = null) {
     document_date: body.document_date ?? existing?.document_date ?? NOW.slice(0, 10),
     sales_order_id: body.sales_order_id ?? existing?.sales_order_id,
     customer_id: existing?.customer_id ?? order?.customer_id ?? CUSTOMER_ID,
-    warehouse_id: body.warehouse_id ?? existing?.warehouse_id ?? order?.warehouse_id ?? WAREHOUSE_MAIN_ID,
+    warehouse_id:
+      body.warehouse_id ?? existing?.warehouse_id ?? order?.warehouse_id ?? WAREHOUSE_MAIN_ID,
     branch_id: body.branch_id ?? existing?.branch_id ?? null,
     shipment_id: existing?.shipment_id ?? null,
     tax_treatment: existing?.tax_treatment ?? order?.tax_treatment ?? "UNREGISTERED",
@@ -1888,7 +1896,10 @@ function buildGoodsReceipt(body, existing = null) {
     cancelled_at: existing?.cancelled_at ?? null,
     cancelled_by: existing?.cancelled_by ?? null,
     cancel_reason: existing?.cancel_reason ?? null,
-    available_actions: goodsReceiptActions({ status, qc_status: existing?.qc_status ?? "NOT_REQUIRED" }),
+    available_actions: goodsReceiptActions({
+      status,
+      qc_status: existing?.qc_status ?? "NOT_REQUIRED",
+    }),
     lines,
     created_at: existing?.created_at ?? now,
     updated_at: now,
@@ -1957,7 +1968,9 @@ function postGoodsReceipt(document) {
       });
       if (productRequiresQc(line.product_id)) {
         const balance = getBalance(document.warehouse_id, line.product_id);
-        balance.qty_quality_hold = qtyString(qtyNumber(balance.qty_quality_hold) + qtyNumber(line.quantity));
+        balance.qty_quality_hold = qtyString(
+          qtyNumber(balance.qty_quality_hold) + qtyNumber(line.quantity),
+        );
         getBalance(document.warehouse_id, line.product_id);
       }
     }
@@ -1972,7 +1985,9 @@ function postGoodsReceipt(document) {
         }
         const poLine = order.lines.find((item) => item.id === line.purchase_order_line_id);
         if (poLine) {
-          poLine.qty_received = qtyString(qtyNumber(poLine.qty_received) + qtyNumber(line.quantity));
+          poLine.qty_received = qtyString(
+            qtyNumber(poLine.qty_received) + qtyNumber(line.quantity),
+          );
         }
       }
       refreshPoReceipt(order);
@@ -2138,7 +2153,9 @@ function approveQualityInspection(inspection) {
     }
     const balance = getBalance(receipt.warehouse_id, receiptLine.product_id);
     const release = accepted + rejected;
-    balance.qty_quality_hold = qtyString(Math.max(0, qtyNumber(balance.qty_quality_hold) - release));
+    balance.qty_quality_hold = qtyString(
+      Math.max(0, qtyNumber(balance.qty_quality_hold) - release),
+    );
     receiptLine.qty_on_hold = qtyString(Math.max(0, qtyNumber(receiptLine.qty_on_hold) - release));
     receiptLine.qty_accepted = qtyString(qtyNumber(receiptLine.qty_accepted) + accepted);
     receiptLine.qty_rejected = qtyString(qtyNumber(receiptLine.qty_rejected) + rejected);
@@ -2729,8 +2746,7 @@ function buildJournal(body, existing = null, overrides = {}) {
     external_reference: line.external_reference ?? null,
     tax_id: line.tax_id ?? null,
     branch_id: line.branch_id ?? body.branch_id ?? existing?.branch_id ?? null,
-    cost_center_id:
-      line.cost_center_id ?? body.cost_center_id ?? existing?.cost_center_id ?? null,
+    cost_center_id: line.cost_center_id ?? body.cost_center_id ?? existing?.cost_center_id ?? null,
     description: line.description ?? null,
   }));
   const totalDebit = money4(lines.reduce((sum, line) => sum + Number(line.debit_base), 0));
@@ -2754,9 +2770,7 @@ function buildJournal(body, existing = null, overrides = {}) {
     exchange_rate: money4(body.exchange_rate ?? existing?.exchange_rate ?? "1"),
     branch_id: body.branch_id === undefined ? (existing?.branch_id ?? null) : body.branch_id,
     cost_center_id:
-      body.cost_center_id === undefined
-        ? (existing?.cost_center_id ?? null)
-        : body.cost_center_id,
+      body.cost_center_id === undefined ? (existing?.cost_center_id ?? null) : body.cost_center_id,
     narration: body.narration === undefined ? (existing?.narration ?? null) : body.narration,
     reference: body.reference === undefined ? (existing?.reference ?? null) : body.reference,
     posted_at: isPosted ? (existing?.posted_at ?? now) : null,
@@ -2993,9 +3007,7 @@ function dayBookReport(bookKind, accountId, from, to) {
   const subtype = bookKind === "cash" ? "CASH" : "BANK";
   const targets = [...accounts.values()].filter(
     (row) =>
-      !row.is_group &&
-      row.account_subtype === subtype &&
-      (!accountId || row.id === accountId),
+      !row.is_group && row.account_subtype === subtype && (!accountId || row.id === accountId),
   );
   const sections = [];
   const flat = [];
@@ -3084,9 +3096,7 @@ function accountStatementReport(partyType, partyId, from, to) {
       rows.push({ journal, line });
     }
   }
-  rows.sort((left, right) =>
-    left.journal.entry_date < right.journal.entry_date ? -1 : 1,
-  );
+  rows.sort((left, right) => (left.journal.entry_date < right.journal.entry_date ? -1 : 1));
   let running = 0;
   let opening = 0;
   const lines = [];
@@ -4554,9 +4564,7 @@ const server = http.createServer(async (req, res) => {
       });
       proformaInvoices.set(invoice.id, invoice);
       const related = order.related_documents ?? [];
-      related.push(
-        relatedDocumentRef("PROFORMA_INVOICE", invoice, "child", invoice.proforma_date),
-      );
+      related.push(relatedDocumentRef("PROFORMA_INVOICE", invoice, "child", invoice.proforma_date));
       order.related_documents = related;
       order.version = (order.version ?? 1) + 1;
       order.updated_at = new Date().toISOString();
@@ -4884,7 +4892,9 @@ const server = http.createServer(async (req, res) => {
       let rows = [...balances.values()].map((row) => {
         row.qty_quality_hold = row.qty_quality_hold ?? "0";
         row.qty_available = qtyString(
-          qtyNumber(row.qty_on_hand) - qtyNumber(row.qty_reserved) - qtyNumber(row.qty_quality_hold),
+          qtyNumber(row.qty_on_hand) -
+            qtyNumber(row.qty_reserved) -
+            qtyNumber(row.qty_quality_hold),
         );
         return row;
       });
@@ -5332,7 +5342,10 @@ const server = http.createServer(async (req, res) => {
         if (!inDocumentDateRange(row.document_date, dateFrom, dateTo)) {
           return false;
         }
-        return includesSearch([row.document_number, row.notes, row.supplier_invoice_number], search);
+        return includesSearch(
+          [row.document_number, row.notes, row.supplier_invoice_number],
+          search,
+        );
       });
       listOk(res, rows.map(stockDocumentResponse));
       return;
@@ -5881,7 +5894,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const packageAction = url.pathname.match(/^\/api\/v1\/packages\/([0-9a-f-]{36})\/(pack|cancel)$/i);
+    const packageAction = url.pathname.match(
+      /^\/api\/v1\/packages\/([0-9a-f-]{36})\/(pack|cancel)$/i,
+    );
     if (req.method === "POST" && packageAction) {
       if (unauthorized(req, res)) {
         return;
@@ -6034,7 +6049,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const shipmentTracking = url.pathname.match(/^\/api\/v1\/shipments\/([0-9a-f-]{36})\/tracking$/i);
+    const shipmentTracking = url.pathname.match(
+      /^\/api\/v1\/shipments\/([0-9a-f-]{36})\/tracking$/i,
+    );
     if (req.method === "PATCH" && shipmentTracking) {
       if (unauthorized(req, res)) {
         return;

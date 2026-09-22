@@ -21,8 +21,13 @@ export function useCreateAttachment() {
 export function useUpdateAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, category }: { id: string; category: Parameters<typeof attachmentsApi.update>[1]["category"] }) =>
-      attachmentsApi.update(id, { category }),
+    mutationFn: ({
+      id,
+      category,
+    }: {
+      id: string;
+      category: Parameters<typeof attachmentsApi.update>[1]["category"];
+    }) => attachmentsApi.update(id, { category }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: attachmentKeys.all });
     },

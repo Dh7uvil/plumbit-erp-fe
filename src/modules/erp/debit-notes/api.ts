@@ -56,9 +56,7 @@ export const debitNotesApi = {
         { headers: { "Idempotency-Key": randomUuid() } },
       ),
     ),
-  createFromPurchaseReturn: async (
-    values: DebitNoteCreateFromPurchaseReturn,
-  ): Promise<DebitNote> =>
+  createFromPurchaseReturn: async (values: DebitNoteCreateFromPurchaseReturn): Promise<DebitNote> =>
     DebitNoteSchema.parse(
       await apiClient.post(
         "/debit-notes/from-purchase-return",

@@ -137,7 +137,11 @@ export function CreateDebitNoteDialog({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="sdn-notes">Notes</Label>
-            <Textarea id="sdn-notes" value={notes} onChange={(event) => setNotes(event.target.value)} />
+            <Textarea
+              id="sdn-notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+            />
           </div>
         </div>
         <DialogFooter>

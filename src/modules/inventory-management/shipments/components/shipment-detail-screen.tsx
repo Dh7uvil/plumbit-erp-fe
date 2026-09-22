@@ -155,8 +155,8 @@ function ShipmentDetailLoaded({
         }
         banner={
           <p className="text-muted-foreground text-sm">
-            Logistics wrapper only. Dispatching, arriving, or closing a shipment does not move
-            stock or write a ledger entry.
+            Logistics wrapper only. Dispatching, arriving, or closing a shipment does not move stock
+            or write a ledger entry.
           </p>
         }
         formTitle={isEdit ? "Edit shipment" : "Shipment"}

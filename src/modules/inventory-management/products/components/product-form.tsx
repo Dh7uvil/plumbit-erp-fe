@@ -200,7 +200,10 @@ export function ProductForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="sku"
@@ -369,7 +372,10 @@ export function ProductForm({
               </FormItem>
             )}
           />
-          <div data-slot="form-grid" className="col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+          <div
+            data-slot="form-grid"
+            className="col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+          >
             <FormField
               control={form.control}
               name="tax_id"
@@ -424,7 +430,10 @@ export function ProductForm({
             />
           </div>
           {can(accountPermissions.read) ? (
-            <div data-slot="form-grid" className="col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+            <div
+              data-slot="form-grid"
+              className="col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+            >
               <FormField
                 control={form.control}
                 name="income_account_id"

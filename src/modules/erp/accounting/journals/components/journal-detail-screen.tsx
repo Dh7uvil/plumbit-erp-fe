@@ -159,33 +159,29 @@ function JournalDetailLoaded({
       }
     >
       <>
-      {journal.reversal_of_id || journal.reversed_by_id ? (
-        <p className="text-muted-foreground text-sm">
-          {journal.reversal_of_id ? (
-            <>
-              Reversal of{" "}
-              <RecordLink href={`/journals/${journal.reversal_of_id}`}>
-                the original journal
-              </RecordLink>
-              {journal.reversed_by_id ? ". " : "."}
-            </>
-          ) : null}
-          {journal.reversed_by_id ? (
-            <>
-              Reversed by{" "}
-              <RecordLink href={`/journals/${journal.reversed_by_id}`}>
-                the reversal journal
-              </RecordLink>
-              .
-            </>
-          ) : null}
-        </p>
-      ) : null}
-      <JournalForm
-        journal={journal}
-        disabled={!isEdit}
-        onSuccess={() => router.push(viewHref)}
-      />
+        {journal.reversal_of_id || journal.reversed_by_id ? (
+          <p className="text-muted-foreground text-sm">
+            {journal.reversal_of_id ? (
+              <>
+                Reversal of{" "}
+                <RecordLink href={`/journals/${journal.reversal_of_id}`}>
+                  the original journal
+                </RecordLink>
+                {journal.reversed_by_id ? ". " : "."}
+              </>
+            ) : null}
+            {journal.reversed_by_id ? (
+              <>
+                Reversed by{" "}
+                <RecordLink href={`/journals/${journal.reversed_by_id}`}>
+                  the reversal journal
+                </RecordLink>
+                .
+              </>
+            ) : null}
+          </p>
+        ) : null}
+        <JournalForm journal={journal} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
       </>
     </DocumentRecordShell>
   );

@@ -17,10 +17,7 @@ import {
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
 import { auditTimestampColumns } from "@/shared/components/data-table/audit-columns";
-import {
-  actionsColumn,
-  type DataTableColumn,
-} from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
@@ -212,7 +209,9 @@ export function OutboxEventsScreen() {
           className="w-44"
           placeholder="Status"
           value={statusFilter}
-          onValueChange={(value) => setParams({ filters: { status: value === ALL ? null : value } })}
+          onValueChange={(value) =>
+            setParams({ filters: { status: value === ALL ? null : value } })
+          }
           options={[
             { value: ALL, label: "All statuses" },
             ...OUTBOX_STATUSES.map((status) => ({
@@ -276,7 +275,10 @@ export function OutboxEventsScreen() {
           )}
         </TableBody>
       </DataTable>
-      <OutboxEventDetailSheet eventId={viewingId} onOpenChange={(open) => !open && setViewingId(null)} />
+      <OutboxEventDetailSheet
+        eventId={viewingId}
+        onOpenChange={(open) => !open && setViewingId(null)}
+      />
       <ConfirmActionDialog
         open={Boolean(retrying)}
         title="Retry outbox event"

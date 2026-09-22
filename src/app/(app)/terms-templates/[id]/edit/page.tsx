@@ -2,7 +2,11 @@ import { TermsTemplateDetailScreen } from "@/modules/erp/accounting/terms-templa
 import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
 import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-export default function TermsTemplateDetailEditPage({ params }: { params: Promise<{ id: string }> }) {
+export default function TermsTemplateDetailEditPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   return (
     <DetailPageRoute
       params={params}
