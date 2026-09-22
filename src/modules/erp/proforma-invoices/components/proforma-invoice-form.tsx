@@ -776,7 +776,11 @@ export function ProformaInvoiceForm({
           </FormItem>
           <div
             data-slot="form-grid"
-            className={"col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"}
+            className={
+              isEdit
+                ? "col-span-full"
+                : "col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
+            }
           >
             <FormItem>
               <FormLabel>Tax treatment</FormLabel>
@@ -825,7 +829,13 @@ export function ProformaInvoiceForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor form={form} disabled={disabled} productSide="sales" showPacking />
+          <DocumentLinesEditor
+            form={form}
+            disabled={disabled}
+            productSide="sales"
+            showPacking
+            showHsCode
+          />
         </div>
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
         <Card>

@@ -67,6 +67,7 @@ export const GoodsReceiptLineSchema = z.object({
   rate: MoneySchema,
   net_weight: NullableDecimalStringSchema,
   gross_weight: NullableDecimalStringSchema,
+  volume: NullableDecimalStringSchema,
   qty_accepted: DecimalStringSchema,
   qty_rejected: DecimalStringSchema,
   qty_on_hold: DecimalStringSchema,
@@ -132,6 +133,7 @@ export const GoodsReceiptLineInputSchema = z.object({
   rate: MoneySchema.optional(),
   net_weight: NullableDecimalStringSchema.optional(),
   gross_weight: NullableDecimalStringSchema.optional(),
+  volume: NullableDecimalStringSchema.optional(),
 });
 export type GoodsReceiptLineInput = z.infer<typeof GoodsReceiptLineInputSchema>;
 
@@ -193,6 +195,7 @@ export const GoodsReceiptLineFormSchema = z.object({
   tax_id: z.string(),
   net_weight: z.string(),
   gross_weight: z.string(),
+  volume: z.string(),
   purchase_order_line_id: z.string(),
 });
 export type GoodsReceiptLineFormValues = z.infer<typeof GoodsReceiptLineFormSchema>;

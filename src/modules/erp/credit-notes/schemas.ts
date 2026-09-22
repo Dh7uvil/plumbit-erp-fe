@@ -71,6 +71,7 @@ export const CreditNoteLineSchema = z.object({
   tax_amount: MoneySchema,
   amount: MoneySchema,
   income_account_id: z.string().uuid().nullable(),
+  hs_code: z.string().nullable().optional().default(null),
 });
 export type CreditNoteLine = z.infer<typeof CreditNoteLineSchema>;
 
@@ -108,6 +109,7 @@ export const CreditNoteSchema = z.object({
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   notes: z.string().nullable(),
+  country_of_origin: z.string().nullable().optional().default(null),
   amount_applied: MoneySchema,
   amount_unapplied: MoneySchema,
   journal_entry_id: z.string().uuid().nullable(),
@@ -140,6 +142,7 @@ export const CreditNoteLineInputSchema = z.object({
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
   income_account_id: z.string().uuid().nullable().optional(),
+  hs_code: z.string().max(20).nullable().optional(),
 });
 export type CreditNoteLineInput = z.infer<typeof CreditNoteLineInputSchema>;
 
@@ -158,6 +161,7 @@ export const CreditNoteCreateRequestSchema = z.object({
   adjustment_amount: MoneySchema.optional(),
   round_off_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  country_of_origin: z.string().max(2).nullable().optional(),
   lines: z.array(CreditNoteLineInputSchema),
 });
 export type CreditNoteCreateRequest = z.infer<typeof CreditNoteCreateRequestSchema>;
@@ -176,6 +180,7 @@ export const CreditNoteUpdateRequestSchema = z.object({
   adjustment_amount: MoneySchema.nullable().optional(),
   round_off_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  country_of_origin: z.string().max(2).nullable().optional(),
   lines: z.array(CreditNoteLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -210,6 +215,7 @@ export const CreditNoteLineFormSchema = z.object({
   tax_id: z.string(),
   sales_invoice_line_id: z.string().optional(),
   sales_return_line_id: z.string().optional(),
+  hs_code: z.string().optional(),
 });
 export type CreditNoteLineFormValues = z.infer<typeof CreditNoteLineFormSchema>;
 
@@ -241,6 +247,7 @@ export const CreditNoteFormSchema = z
     adjustment_amount: z.string(),
     round_off_amount: z.string(),
     place_of_supply: z.string(),
+    country_of_origin: z.string(),
     lines: z.array(CreditNoteLineFormSchema),
   })
   .superRefine((values, ctx) => {

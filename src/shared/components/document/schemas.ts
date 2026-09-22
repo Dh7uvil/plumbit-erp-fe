@@ -225,6 +225,7 @@ export const DocumentLineFormSchema = z.object({
   tax_id: z.string(),
   net_weight: z.string(),
   gross_weight: z.string(),
+  volume: z.string(),
   purchase_order_line_id: z.string(),
   carton_qty: z.string(),
   packing_unit: z.string(),
@@ -248,6 +249,7 @@ export function emptyDocumentLine(): DocumentLineFormValues {
     tax_id: OPTIONAL_SELECT_NONE,
     net_weight: "",
     gross_weight: "",
+    volume: "",
     purchase_order_line_id: "",
     ...emptyPackingLineForm(),
   };

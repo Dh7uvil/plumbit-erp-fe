@@ -78,6 +78,7 @@ function toFormValues(product: Product | null): ProductFormValues {
     income_account_id: product?.income_account_id ?? OPTIONAL_SELECT_NONE,
     purchase_account_id: product?.purchase_account_id ?? OPTIONAL_SELECT_NONE,
     hs_code: product?.hs_code ?? "",
+    volume: product?.volume ?? "",
     track_inventory: product?.track_inventory ?? false,
     requires_qc: product?.requires_qc ?? false,
     is_active: product?.is_active ?? true,
@@ -99,6 +100,7 @@ function toCreateRequest(values: ProductFormValues): ProductCreateRequest {
     income_account_id: optionalUuid(values.income_account_id) ?? undefined,
     purchase_account_id: optionalUuid(values.purchase_account_id) ?? undefined,
     hs_code: emptyToNull(values.hs_code),
+    volume: emptyToNull(values.volume),
     track_inventory: values.track_inventory,
     requires_qc: values.requires_qc,
   };
@@ -118,6 +120,7 @@ function toUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
     income_account_id: optionalUuid(values.income_account_id),
     purchase_account_id: optionalUuid(values.purchase_account_id),
     hs_code: emptyToNull(values.hs_code),
+    volume: emptyToNull(values.volume),
     track_inventory: values.track_inventory,
     requires_qc: values.requires_qc,
     is_active: values.is_active,
@@ -401,6 +404,19 @@ export function ProductForm({
                   <FormLabel>HS code</FormLabel>
                   <FormControl>
                     <Input maxLength={20} disabled={disabled} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="volume"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Volume (CBM)</FormLabel>
+                  <FormControl>
+                    <DecimalInput kind="quantity" disabled={disabled} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

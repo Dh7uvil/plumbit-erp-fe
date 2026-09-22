@@ -90,6 +90,7 @@ const RECEIVE_LINE_HEADERS = [
   "Rate",
   "Net wt",
   "Gross wt",
+  "Volume",
   "",
 ] as const;
 
@@ -145,6 +146,7 @@ function lineHeaders(
   showSupplierSku: boolean,
   mode: DocumentLinesMode,
   showPacking: boolean,
+  showHsCode: boolean,
 ): readonly string[] {
   let headers: readonly string[];
   if (mode === "mixed") {
@@ -170,9 +172,13 @@ function lineHeaders(
       "",
     ];
   }
-  if (showPacking && mode === "standard") {
+  if (mode === "standard" && (showPacking || showHsCode)) {
     const withoutActions = headers.slice(0, -1);
-    return [...withoutActions, "Item code", "PKG", "Ctns", "CBM", "Weight", ""];
+    const packing = showPacking
+      ? (["Item code", "PKG", "Ctns", "CBM", "Weight"] as const)
+      : ([] as const);
+    const hs = showHsCode ? (["HS code"] as const) : ([] as const);
+    return [...withoutActions, ...packing, ...hs, ""];
   }
   return headers;
 }
@@ -327,6 +333,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   supplierCatalog,
   lineMode = "standard",
   showPacking = false,
+  showHsCode = false,
 }: {
   form: UseFormReturn<TFieldValues>;
   disabled: boolean;
@@ -334,6 +341,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   supplierCatalog?: SupplierCatalogProps;
   lineMode?: DocumentLinesMode;
   showPacking?: boolean;
+  showHsCode?: boolean;
 }) {
   const can = useCan();
   const productsQuery = useAllProducts();
@@ -366,7 +374,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const isExpense = lineMode === "expense";
   const isMixed = lineMode === "mixed";
   const showSupplierSku = Boolean(supplierCatalog) || isReceive;
-  const headers = lineHeaders(showSupplierSku, lineMode, showPacking);
+  const headers = lineHeaders(showSupplierSku, lineMode, showPacking, showHsCode);
   const rawCurrencyId = useWatch({
     control: form.control,
     name: "currency_id" as Path<TFieldValues>,
@@ -882,6 +890,26 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                             )}
                           />
                         </TableCell>
+                        <TableCell className="w-24 min-w-24 align-top">
+                          <FormField
+                            control={form.control}
+                            name={linePath<TFieldValues>(index, "volume")}
+                            render={({ field: volumeField }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <DecimalInput
+                                    kind="quantity"
+                                    className="w-full min-w-0 text-right"
+                                    disabled={disabled}
+                                    aria-label={`Line ${index + 1} volume`}
+                                    {...volumeField}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TableCell>
                       </>
                     ) : (
                       <>
@@ -1015,6 +1043,28 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           </TableCell>
                         ))
                       : null}
+                    {showHsCode && !isReceive && !isExpense ? (
+                      <TableCell className="w-24 min-w-24 align-top">
+                        <FormField
+                          control={form.control}
+                          name={linePath<TFieldValues>(index, "hs_code")}
+                          render={({ field: hsField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  disabled={disabled}
+                                  className="w-full min-w-0"
+                                  maxLength={20}
+                                  aria-label={`Line ${index + 1} HS code`}
+                                  {...hsField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                    ) : null}
                     <TableCell className="align-top">
                       {disabled ? null : (
                         <TableActionTooltip label="Remove line">

@@ -85,6 +85,7 @@ function toLineInput(line: GoodsReceiptLineFormValues): GoodsReceiptLineInput {
     rate: emptyToNull(line.rate) ?? "0",
     net_weight: emptyToNull(line.net_weight),
     gross_weight: emptyToNull(line.gross_weight),
+    volume: emptyToNull(line.volume),
   };
 }
 
@@ -104,6 +105,7 @@ function toFormLines(receipt: GoodsReceipt | null): GoodsReceiptLineFormValues[]
     rate: line.rate,
     net_weight: line.net_weight ?? "",
     gross_weight: line.gross_weight ?? "",
+    volume: line.volume ?? "",
     purchase_order_line_id: line.purchase_order_line_id ?? "",
   }));
 }
@@ -241,7 +243,10 @@ export function GoodsReceiptForm({
             </AlertDescription>
           </Alert>
         ) : null}
-        <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          data-slot="form-grid"
+          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <FormField
             control={form.control}
             name="supplier_id"

@@ -60,6 +60,7 @@ import { accountPermissions } from "@/modules/erp/accounting/accounts/permission
 import { documentSequencePermissions } from "@/modules/erp/accounting/document-sequences/permissions";
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
+import { chargeTypePermissions } from "@/modules/erp/accounting/charge-types/permissions";
 import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { dunningPermissions } from "@/modules/erp/accounting/dunning-rules/permissions";
@@ -436,6 +437,12 @@ export const navigation: NavigationGroup[] = [
         label: "Cost centers",
         href: "/cost-centers",
         permission: costCenterPermissions.read,
+        icon: Layers,
+      },
+      {
+        label: "Charge types",
+        href: "/charge-types",
+        permission: chargeTypePermissions.read,
         icon: Layers,
       },
       {

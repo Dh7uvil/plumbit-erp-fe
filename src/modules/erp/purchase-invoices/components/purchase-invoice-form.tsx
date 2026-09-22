@@ -53,6 +53,7 @@ import { branchPermissions } from "@/modules/users-management/branches/permissio
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DocumentChargesPanel } from "@/shared/components/document/document-charges-panel";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import { emptyDocumentLine } from "@/shared/components/document/schemas";
@@ -133,6 +134,7 @@ function toLineInput(line: PurchaseInvoiceLineFormValues): PurchaseInvoiceLineIn
     supplier_sku: isExpense ? null : emptyToNull(line.supplier_sku ?? ""),
     expense_account_id: isExpense ? optionalUuid(line.expense_account_id ?? "") : null,
     expense_category: isExpense ? optionalExpenseCategory(line.expense_category ?? "") : null,
+    charge_type_id: isExpense ? emptyToNull(line.charge_type_id ?? "") : null,
     discount_type: optionalDiscountType(line.discount_type),
     discount_value: emptyToNull(line.discount_value),
     tax_id: optionalUuid(line.tax_id),
@@ -161,6 +163,7 @@ function toFormLines(invoice: PurchaseInvoice | null): PurchaseInvoiceLineFormVa
     goods_receipt_line_id: line.goods_receipt_line_id ?? "",
     expense_account_id: line.expense_account_id ?? OPTIONAL_SELECT_NONE,
     expense_category: line.expense_category ?? OPTIONAL_SELECT_NONE,
+    charge_type_id: line.charge_type_id ?? "",
     grn_unit_cost: line.grn_unit_cost ?? "",
   }));
 }
@@ -724,6 +727,13 @@ export function PurchaseInvoiceForm({
             supplierCatalog={selectedSupplierId ? { supplierId: selectedSupplierId } : undefined}
           />
         </div>
+        {billType === "IMPORT" || billType === "GOODS" ? (
+          <DocumentChargesPanel
+            form={form}
+            disabled={disabled || sourced}
+            appliesTo={billType === "IMPORT" ? "IMPORT" : "BOTH"}
+          />
+        ) : null}
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
         <FormField
           control={form.control}
