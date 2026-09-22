@@ -342,7 +342,7 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
               )}
             />
           </TableCell>
-          <TableCell className="min-w-32 align-top">
+          <TableCell className="min-w-40 align-top">
             <FormField
               control={form.control}
               name={linePath<TFieldValues>(index, "unit_id")}
@@ -447,7 +447,7 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
           </TableCell>
         </>
       )}
-      <TableCell className="min-w-44 align-top">
+      <TableCell className="min-w-48 align-top">
         <FormField
           control={form.control}
           name={linePath<TFieldValues>(index, "tax_id")}

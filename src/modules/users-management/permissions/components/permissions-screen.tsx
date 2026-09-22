@@ -6,9 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
+  applyPermissionToggle,
   grantedPermissionIds,
   matrixActionColumns,
   matrixActionLabel,
+  normalizePermissionIds,
   permissionMatrixTable,
   sameIdSet,
 } from "@/modules/users-management/permissions/matrix";
@@ -138,16 +140,11 @@ export function PermissionsScreen() {
   }, [selectedRoleId]);
 
   function toggle(id: string, checked: boolean) {
-    if (!selectedRoleId) {
+    if (!selectedRoleId || !matrixQuery.data) {
       return;
     }
-    const next = new Set(selectedIds);
-    if (checked) {
-      next.add(id);
-    } else {
-      next.delete(id);
-    }
-    setDraft({ roleId: selectedRoleId, ids: [...next] });
+    const ids = applyPermissionToggle(matrixQuery.data, selectedIds, id, checked);
+    setDraft({ roleId: selectedRoleId, ids });
   }
 
   function replaceFilters(patch: {
@@ -211,7 +208,9 @@ export function PermissionsScreen() {
     if (!selectedRoleId) {
       return;
     }
-    const permissionIds = [...selectedIds];
+    const permissionIds = matrixQuery.data
+      ? normalizePermissionIds(matrixQuery.data, selectedIds)
+      : [...selectedIds];
     try {
       const detail = await savePermissions.mutateAsync({
         id: selectedRoleId,

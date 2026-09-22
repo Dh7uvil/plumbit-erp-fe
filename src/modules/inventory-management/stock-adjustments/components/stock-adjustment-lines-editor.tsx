@@ -158,7 +158,7 @@ export function StockAdjustmentLinesEditor({
                         )}
                       />
                     </TableCell>
-                    <TableCell className="min-w-32 align-top">
+                    <TableCell className="min-w-40 align-top">
                       <FormField
                         control={form.control}
                         name={`lines.${index}.unit_id`}
@@ -260,7 +260,7 @@ export function StockAdjustmentLinesEditor({
                         {formatQuantity(form.watch(`lines.${index}.qty_delta`) || null)}
                       </TableCell>
                     ) : null}
-                    <TableCell className="min-w-40 align-top">
+                    <TableCell className="min-w-32 align-top">
                       <FormField
                         control={form.control}
                         name={`lines.${index}.notes`}
