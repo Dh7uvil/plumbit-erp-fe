@@ -25,7 +25,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-card sticky top-0 z-10 [&_tr]:border-b", className)}
+      className={cn("bg-card [&_tr]:border-b", className)}
       {...props}
     />
   );
@@ -69,7 +69,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "bg-card text-muted-foreground h-11 min-w-32 px-3 text-left align-middle text-sm font-semibold whitespace-nowrap",
+        "bg-card text-muted-foreground sticky top-0 z-20 h-11 min-w-32 px-3 text-left align-middle text-sm font-semibold whitespace-nowrap",
         className,
       )}
       {...props}

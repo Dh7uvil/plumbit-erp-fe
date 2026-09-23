@@ -367,6 +367,7 @@ export type PurchaseOrderListParams = {
   sort_order?: "asc" | "desc";
   status?: PurchaseOrderStatus;
   receipt_status?: ReceiptStatus;
+  receipt_status_not?: ReceiptStatus;
   billing_status?: BillingStatus;
   supplier_id?: string;
   branch_id?: string;

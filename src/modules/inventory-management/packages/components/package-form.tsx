@@ -30,6 +30,7 @@ import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { packingFromLine, packingLineInput } from "@/shared/components/document/schemas";
 import { sumMoneyStrings } from "@/shared/components/document/payment-allocation-editor";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -391,7 +392,7 @@ export function PackageForm({
             </FormItem>
           )}
         />
-        <div className="overflow-x-auto">
+        <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
           <table className="w-max min-w-full text-sm">
             <TableHeader>
               <TableRow>
@@ -458,7 +459,7 @@ export function PackageForm({
               ))}
             </TableBody>
           </table>
-        </div>
+        </DocumentViewTableContainer>
         <p className="text-muted-foreground text-sm">
           Line totals: weight {lineWeightTotal || "0"}, CBM {lineCbmTotal || "0"}
         </p>

@@ -1,3 +1,4 @@
+import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
@@ -13,6 +14,7 @@ export const SALES_ORDER_WORKFLOW_ACTIONS = [
   "acknowledge",
   "create_proforma",
   "create_sales_invoice",
+  "record_advance",
   "cancel",
   "clone",
   "delete",
@@ -72,6 +74,12 @@ export const SALES_ORDER_ACTION_REGISTRY: DocumentActionSpec<SalesOrderWorkflowA
     action: "create_sales_invoice",
     label: "Create invoice",
     permission: salesInvoicePermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "record_advance",
+    label: "Record advance",
+    permission: customerPaymentPermissions.create,
     variant: "outline",
   },
   {

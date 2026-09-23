@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "src/**/__tests__/**/*.test.ts"],
     env: {
       NEXT_PUBLIC_APP_NAME: "Plumbit ERP",
       NEXT_PUBLIC_ORGANIZATION_NAME: "Plumbit",

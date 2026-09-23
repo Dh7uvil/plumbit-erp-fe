@@ -27,6 +27,7 @@ import { stockTransferPermissions } from "@/modules/inventory-management/stock-t
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -98,7 +99,7 @@ function StockBalanceLayers({
       ) : layers.length === 0 ? (
         <p className="text-muted-foreground text-sm">No remaining layers.</p>
       ) : (
-        <div className="overflow-x-auto rounded-md border">
+        <DocumentViewTableContainer viewMode rowCount={layers.length}>
           <table className="w-full caption-bottom text-sm">
             <TableHeader>
               <TableRow>
@@ -143,7 +144,7 @@ function StockBalanceLayers({
               ))}
             </TableBody>
           </table>
-        </div>
+        </DocumentViewTableContainer>
       )}
     </div>
   );
@@ -214,7 +215,7 @@ function WarehouseStockTable({
       <CardHeader>
         <CardTitle className="text-base">Warehouse stock</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-5">
         <DataTableToolbar>
           <ListSearch
             value={search ?? ""}
@@ -384,7 +385,7 @@ function ProductMovementsTable({
       <CardHeader>
         <CardTitle className="text-base">Movements</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-5">
         <DataTableToolbar>
           <ListSearch
             value={search ?? ""}

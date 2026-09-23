@@ -1,11 +1,13 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import {
+  DeliveryNoteCreateFromSalesInvoiceSchema,
   DeliveryNoteCreateFromSalesOrderSchema,
   DeliveryNoteCreateRequestSchema,
   DeliveryNoteListSchema,
   DeliveryNoteSchema,
   DeliveryNoteUpdateRequestSchema,
   type DeliveryNote,
+  type DeliveryNoteCreateFromSalesInvoice,
   type DeliveryNoteCreateFromSalesOrder,
   type DeliveryNoteCreateRequest,
   type DeliveryNoteListParams,
@@ -53,6 +55,16 @@ export const deliveryNotesApi = {
       await apiClient.post(
         "/delivery-notes/from-sales-order",
         DeliveryNoteCreateFromSalesOrderSchema.parse(values),
+        { headers: { "Idempotency-Key": randomUuid() } },
+      ),
+    ),
+  createFromSalesInvoice: async (
+    values: DeliveryNoteCreateFromSalesInvoice,
+  ): Promise<DeliveryNote> =>
+    DeliveryNoteSchema.parse(
+      await apiClient.post(
+        "/delivery-notes/from-sales-invoice",
+        DeliveryNoteCreateFromSalesInvoiceSchema.parse(values),
         { headers: { "Idempotency-Key": randomUuid() } },
       ),
     ),

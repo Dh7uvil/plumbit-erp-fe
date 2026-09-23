@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 
 import { PurchaseOrderForm } from "@/modules/erp/purchase-orders/components/purchase-order-form";
+import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -28,12 +29,12 @@ export function PurchaseOrderNewScreen() {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPage>
       <PageHeader
         title="New purchase order"
         actions={
           <Button type="button" variant="outline" size="sm" asChild>
-            <Link href="/purchase-orders">Back</Link>
+            <Link href="/purchases?tab=orders">Back</Link>
           </Button>
         }
       />
@@ -54,6 +55,6 @@ export function PurchaseOrderNewScreen() {
           />
         </CardContent>
       </Card>
-    </div>
+    </ListPage>
   );
 }

@@ -2,29 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  CHEQUE_STATUS_LABELS,
+  CHEQUE_STATUS_VARIANTS,
+} from "@/modules/erp/accounting/cheques/components/cheque-columns";
 import { useChequeWorkflow, useDeleteCheque } from "@/modules/erp/accounting/cheques/mutations";
 import { chequePermissions } from "@/modules/erp/accounting/cheques/permissions";
 import { useCheque } from "@/modules/erp/accounting/cheques/queries";
+import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { DataTableError } from "@/shared/components/data-table/states";
+import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { ListPage } from "@/shared/components/layout/list-page";
-import { PageHeader } from "@/shared/components/layout/page-header";
+import { RecordPageHeader } from "@/shared/components/layout/record-page-header";
+import { MoneyWithBase } from "@/shared/components/money";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -33,7 +34,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDate } from "@/shared/lib/format";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { formatDate, formatMoney, humanizeEnum } from "@/shared/lib/format";
 
 const ACTION_LABELS: Record<string, string> = {
   issue: "Issue",
@@ -49,10 +51,20 @@ export function ChequeDetailScreen({ id }: { id: string }) {
   const query = useCheque(id);
   const workflow = useChequeWorkflow();
   const deleteCheque = useDeleteCheque();
+  const currenciesQuery = useAllCurrencies();
+  const { baseCurrencyCode } = useBaseCurrency();
   const cheque = query.data;
   const [pendingAction, setPendingAction] = useState<"bounce" | "cancel" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [reason, setReason] = useState("");
+  const currencyCode = useMemo(() => {
+    if (!cheque) {
+      return "";
+    }
+    return (
+      currenciesQuery.data?.find((currency) => currency.id === cheque.currency_id)?.code ?? ""
+    );
+  }, [cheque, currenciesQuery.data]);
 
   async function runAction(action: string) {
     if (!cheque) return;
@@ -97,32 +109,55 @@ export function ChequeDetailScreen({ id }: { id: string }) {
   }
 
   if (query.isLoading) {
-    return <Skeleton className="h-64 w-full" />;
+    return (
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
   }
 
-  if (!cheque) {
-    return null;
+  if (query.isError || !cheque) {
+    return (
+      <div className="flex flex-col gap-3">
+        <DataTableError
+          message={getErrorMessage(query.error)}
+          onRetry={() => query.refetch()}
+        />
+        <Button type="button" variant="outline" asChild>
+          <Link href="/cheques">Back to cheques</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <ListPage>
-      <PageHeader
-        title={`Cheque ${cheque.cheque_number}`}
-        subtitle={`${cheque.direction} · ${cheque.document_number}`}
-        actions={
+    <div className="flex flex-col gap-5">
+      <RecordPageHeader
+        title={cheque.cheque_number}
+        subtitle={`${humanizeEnum(cheque.direction)} · ${cheque.document_number}`}
+        code={cheque.document_number}
+        listHref="/cheques"
+        viewHref={`/cheques/${cheque.id}`}
+        editHref={cheque.status === "DRAFT" && canUpdate ? `/cheques/${cheque.id}/edit` : undefined}
+        canUpdate={cheque.status === "DRAFT" && canUpdate}
+        mode="view"
+        badges={
+          <DocumentStatusBadge
+            status={cheque.status}
+            labels={CHEQUE_STATUS_LABELS}
+            variants={CHEQUE_STATUS_VARIANTS}
+          />
+        }
+        extraActions={
           <div className="flex flex-wrap gap-2">
-            {cheque.status === "DRAFT" && canUpdate ? (
-              <Button variant="outline" asChild>
-                <Link href={`/cheques/${cheque.id}/edit`}>Edit</Link>
-              </Button>
-            ) : null}
             {cheque.status === "DRAFT" && canDelete ? (
               <Button variant="outline" onClick={() => setConfirmDelete(true)}>
                 Delete
               </Button>
             ) : null}
             {cheque.available_actions.map((action) => (
-              <Button key={action} variant="outline" onClick={() => runAction(action)}>
+              <Button key={action} variant="outline" onClick={() => void runAction(action)}>
                 {ACTION_LABELS[action] ?? action}
               </Button>
             ))}
@@ -131,26 +166,30 @@ export function ChequeDetailScreen({ id }: { id: string }) {
       />
       <div className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
         <div>
-          <div className="text-muted-foreground text-sm">Status</div>
-          <Badge variant="outline">{cheque.status}</Badge>
-        </div>
-        <div>
           <div className="text-muted-foreground text-sm">Amount</div>
-          <div className="text-lg font-semibold">{cheque.amount}</div>
-        </div>
-        <div>
-          <div className="text-muted-foreground text-sm">Cheque date</div>
-          <div>{cheque.cheque_date}</div>
-        </div>
-        <div>
-          <div className="text-muted-foreground text-sm">Due date</div>
-          <div>{cheque.due_date ?? "—"}</div>
+          <MoneyWithBase
+            amount={cheque.amount}
+            currencyCode={currencyCode}
+            baseAmount={cheque.base_amount}
+            baseCurrencyCode={baseCurrencyCode}
+            className="text-lg font-semibold"
+          />
         </div>
         <div>
           <div className="text-muted-foreground text-sm">Unapplied</div>
-          <div>{cheque.amount_unapplied}</div>
+          <div className="text-lg font-semibold tabular-nums">
+            {formatMoney(cheque.amount_unapplied, currencyCode)}
+          </div>
         </div>
         <div>
+          <div className="text-muted-foreground text-sm">Cheque date</div>
+          <div>{formatDate(cheque.cheque_date)}</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground text-sm">Due date</div>
+          <div>{formatDate(cheque.due_date ?? cheque.cheque_date)}</div>
+        </div>
+        <div className="md:col-span-2">
           <div className="text-muted-foreground text-sm">Narration</div>
           <div>{cheque.narration ?? "—"}</div>
         </div>
@@ -162,35 +201,43 @@ export function ChequeDetailScreen({ id }: { id: string }) {
         ) : null}
       </div>
       {cheque.allocations.length > 0 ? (
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-3 text-lg font-semibold">Allocations</h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Document</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {cheque.allocations.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.item_document_number ?? row.item_id}</TableCell>
-                  <TableCell>{row.item_type}</TableCell>
-                  <TableCell>{row.amount}</TableCell>
-                  <TableCell>
-                    {row.reversed_at ? (
-                      <Badge variant="secondary">Reversed {formatDate(row.reversed_at)}</Badge>
-                    ) : (
-                      <Badge variant="outline">Applied</Badge>
-                    )}
-                  </TableCell>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Allocations</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Document</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {cheque.allocations.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>{row.item_document_number ?? row.item_id}</TableCell>
+                    <TableCell>{humanizeEnum(row.item_type)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatMoney(row.amount, currencyCode)}
+                    </TableCell>
+                    <TableCell>
+                      {row.reversed_at ? (
+                        <Badge variant="secondary">
+                          Reversed {formatDate(row.reversed_at)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Applied</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       ) : null}
       <ConfirmActionDialog
         open={confirmDelete}
@@ -208,17 +255,14 @@ export function ChequeDetailScreen({ id }: { id: string }) {
           }
         }}
       />
-      <Dialog
+      <ConfirmActionDialog
         open={Boolean(pendingAction)}
         onOpenChange={(open) => !open && setPendingAction(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {pendingAction === "bounce" ? "Bounce cheque" : "Cancel cheque"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
+        title={pendingAction === "bounce" ? "Bounce cheque" : "Cancel cheque"}
+        description="Optionally record a reason for this action."
+        confirmLabel="Confirm"
+        extra={
+          <div className="space-y-2 py-2">
             <Label htmlFor="cheque-reason">Reason</Label>
             <Input
               id="cheque-reason"
@@ -227,14 +271,9 @@ export function ChequeDetailScreen({ id }: { id: string }) {
               placeholder="Optional reason"
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingAction(null)}>
-              Back
-            </Button>
-            <Button onClick={() => void confirmReasonAction()}>Confirm</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </ListPage>
+        }
+        onConfirm={() => void confirmReasonAction()}
+      />
+    </div>
   );
 }

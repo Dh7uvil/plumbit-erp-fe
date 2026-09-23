@@ -1,7 +1,15 @@
 "use client";
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useCallback, useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 
 import { cn } from "@/shared/lib/cn";
 
@@ -88,6 +96,18 @@ export function TreeView<T = unknown>({
   const [uncontrolledExpanded, setUncontrolledExpanded] = useState<Set<string>>(
     () => new Set(defaultExpanded ? allGroupIds : []),
   );
+  useEffect(() => {
+    if (!defaultExpanded || expandedIds != null || allGroupIds.length === 0) {
+      return;
+    }
+    setUncontrolledExpanded((current) => {
+      const next = new Set(current);
+      for (const id of allGroupIds) {
+        next.add(id);
+      }
+      return next;
+    });
+  }, [allGroupIds, defaultExpanded, expandedIds]);
   const expanded = useMemo(() => {
     if (expandedIds) {
       return expandedIds instanceof Set ? expandedIds : new Set(expandedIds);

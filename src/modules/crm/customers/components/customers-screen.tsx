@@ -52,6 +52,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { formatMoney } from "@/shared/lib/format";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -110,6 +111,7 @@ export function CustomersScreen() {
     is_active: parseBoolFilter(filters.is_active),
   });
   const currenciesQuery = useAllCurrencies();
+  const { baseCurrencyCode } = useBaseCurrency();
   const paymentTermsQuery = useAllPaymentTerms(can(paymentTermPermissions.read));
   const priceListsQuery = useAllPriceLists(can(priceListPermissions.read));
   const deleteCustomer = useDeleteCustomer();
@@ -183,9 +185,11 @@ export function CustomersScreen() {
           const currency = (currenciesQuery.data ?? []).find(
             (item) => item.id === customer.currency_id,
           );
-          return currency
-            ? formatMoney(customer.credit_limit, currency.code, currency.decimal_places)
-            : formatMoney(customer.credit_limit, "AED");
+          return formatMoney(
+            customer.credit_limit,
+            currency?.code ?? baseCurrencyCode ?? "",
+            currency?.decimal_places,
+          );
         },
       },
       {
@@ -228,6 +232,7 @@ export function CustomersScreen() {
       )),
     ];
   }, [
+    baseCurrencyCode,
     canDelete,
     canRead,
     canUpdate,

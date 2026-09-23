@@ -44,7 +44,6 @@ import {
 } from "@/shared/components/document/document-workflow-buttons";
 import { QuantityProgressStrip } from "@/shared/components/document/quantity-progress-strip";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function PurchaseOrderDetailScreen({
@@ -119,17 +118,7 @@ function PurchaseOrderDetailLoaded({
   const createFromPo = useCreateGoodsReceiptFromPurchaseOrder();
   const [writeError, setWriteError] = useState<unknown>(null);
   const [billOpen, setBillOpen] = useState(false);
-  const fallbackActions: string[] = [];
-  if (purchaseOrder.status === "ISSUED" && purchaseOrder.receipt_status !== "RECEIVED") {
-    fallbackActions.push("create_goods_receipt");
-  }
-  if (
-    (purchaseOrder.status === "ISSUED" || purchaseOrder.status === "CLOSED") &&
-    purchaseOrder.billing_status !== "INVOICED"
-  ) {
-    fallbackActions.push("create_bill");
-  }
-  const workflowActions = appendMissingActions(purchaseOrder.available_actions, fallbackActions);
+  const workflowActions = purchaseOrder.available_actions;
 
   async function handleAction(action: PurchaseOrderWorkflowAction, extras: DocumentWorkflowExtras) {
     if (action === "create_bill") {
@@ -151,6 +140,18 @@ function PurchaseOrderDetailLoaded({
         }
         toast.error(getErrorMessage(error));
       }
+      return;
+    }
+    if (action === "pay_advance") {
+      router.push(
+        `/supplier-payments/new?supplier_id=${purchaseOrder.supplier_id}&purchase_order_id=${purchaseOrder.id}&currency_id=${purchaseOrder.currency_id}`,
+      );
+      return;
+    }
+    if (action === "create_cost_sheet") {
+      router.push(
+        `/cost-sheets/new?sheet_type=IMPORT&purchase_order_id=${purchaseOrder.id}`,
+      );
       return;
     }
     await onAction(action, extras);

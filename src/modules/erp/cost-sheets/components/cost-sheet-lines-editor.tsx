@@ -22,6 +22,7 @@ import type { Product } from "@/modules/inventory-management/products/schemas";
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
@@ -175,7 +176,7 @@ export function CostSheetLinesEditor({
           ) : null}
         </div>
       ) : null}
-      <div className="overflow-x-auto rounded-md border">
+      <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
         <table className="w-max min-w-full caption-bottom text-sm">
           <TableHeader>
             <TableRow>
@@ -370,7 +371,7 @@ export function CostSheetLinesEditor({
             )}
           </TableBody>
         </table>
-      </div>
+      </DocumentViewTableContainer>
       {disabled ? null : (
         <Button
           type="button"

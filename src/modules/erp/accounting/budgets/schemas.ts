@@ -29,6 +29,8 @@ export const BudgetLineInputSchema = z.object({
   account_id: z.string().uuid(),
   period_start: z.string().min(1),
   amount: z.string().min(1),
+  cost_center_id: z.string().uuid().optional(),
+  branch_id: z.string().uuid().optional(),
 });
 
 export const BudgetCreateRequestSchema = z.object({
@@ -39,13 +41,19 @@ export const BudgetCreateRequestSchema = z.object({
 });
 export type BudgetCreateRequest = z.infer<typeof BudgetCreateRequestSchema>;
 
+export const BudgetLineFormSchema = z.object({
+  account_id: z.string().uuid("Choose an account"),
+  period_start: z.string().min(1, "Choose a period"),
+  amount: z.string().trim().min(1, "Amount is required"),
+  cost_center_id: z.string().optional(),
+  branch_id: z.string().optional(),
+});
+
 export const BudgetFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(150),
   fiscal_year: z.string().regex(/^\d{4}$/, "Enter a year"),
-  account_id: z.string().uuid("Choose an account"),
-  period_start: z.string().min(1, "Choose a month"),
-  amount: z.string().trim().min(1, "Amount is required"),
   notes: z.string().optional(),
+  lines: z.array(BudgetLineFormSchema).min(1, "Add at least one line"),
 });
 export type BudgetFormValues = z.infer<typeof BudgetFormSchema>;
 
@@ -69,6 +77,10 @@ export const BudgetVsActualSchema = z.object({
   total_budget: DecimalStringSchema,
   total_actual: DecimalStringSchema,
   total_variance: DecimalStringSchema,
+  total_budget_income: DecimalStringSchema.optional().default("0"),
+  total_budget_expense: DecimalStringSchema.optional().default("0"),
+  total_actual_income: DecimalStringSchema.optional().default("0"),
+  total_actual_expense: DecimalStringSchema.optional().default("0"),
   lines: z.array(BudgetVsActualLineSchema).optional().default([]),
 });
 export type BudgetVsActual = z.infer<typeof BudgetVsActualSchema>;
@@ -77,6 +89,8 @@ export type BudgetListParams = {
   page?: number;
   page_size?: number;
   search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
   status?: string;
   fiscal_year?: number;
 };

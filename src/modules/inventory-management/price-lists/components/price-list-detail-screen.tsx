@@ -293,7 +293,7 @@ export function PriceListDetailScreen({
         <CardHeader>
           <CardTitle className="text-base">Items</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-5">
           {isEdit ? (
             <div className="flex flex-col gap-2">
               {itemError ? <p className="text-destructive text-sm">{itemError}</p> : null}
@@ -468,7 +468,7 @@ function PriceListItemsTable({
   const hasQuery = Boolean(search || sort_by);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
       <DataTableToolbar>
         <ListSearch
           value={search ?? ""}

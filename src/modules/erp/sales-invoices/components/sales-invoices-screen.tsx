@@ -76,6 +76,8 @@ import {
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { MoneyWithBase } from "@/shared/components/money";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -164,6 +166,7 @@ export function SalesInvoicesScreen() {
     () => new Map(currencies.map((currency) => [currency.id, currency.code])),
     [currencies],
   );
+  const { baseCurrencyCode } = useBaseCurrency();
   const userNameById = useUserNameMap();
   const showActions = hasRowActions(canRead, canUpdate, canCreate, canDelete);
   const exceptionCount = exceptionsQuery.data?.lines.length ?? 0;
@@ -269,8 +272,15 @@ export function SalesInvoicesScreen() {
         sortableField: "grand_total",
         headerClassName: "text-right",
         className: "text-right tabular-nums",
-        cell: (invoice) =>
-          formatMoney(invoice.grand_total, currencyCodeById.get(invoice.currency_id) ?? ""),
+        cell: (invoice) => (
+          <MoneyWithBase
+            amount={invoice.grand_total}
+            currencyCode={currencyCodeById.get(invoice.currency_id) ?? ""}
+            baseAmount={invoice.base_amount}
+            baseCurrencyCode={baseCurrencyCode}
+            className="text-right"
+          />
+        ),
       },
       {
         id: "is_posted",
@@ -371,6 +381,7 @@ export function SalesInvoicesScreen() {
     canDelete,
     canRead,
     canUpdate,
+    baseCurrencyCode,
     currencyCodeById,
     customerNameById,
     showActions,

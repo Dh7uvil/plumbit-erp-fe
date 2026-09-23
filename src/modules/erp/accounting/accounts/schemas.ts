@@ -101,6 +101,9 @@ export const ACCOUNT_SYSTEM_ROLES = [
   "SHIPPING_INCOME",
   "OTHER_CHARGES",
   "LANDED_COST_VARIANCE",
+  "CHEQUES_RECEIVABLE",
+  "CHEQUES_PAYABLE",
+  "BAD_DEBT_EXPENSE",
   "SUSPENSE",
 ] as const;
 export const AccountSystemRoleSchema = z.enum(ACCOUNT_SYSTEM_ROLES);
@@ -136,6 +139,9 @@ export const ACCOUNT_SYSTEM_ROLE_LABELS: Record<AccountSystemRole, string> = {
   SHIPPING_INCOME: "Shipping income",
   OTHER_CHARGES: "Other charges",
   LANDED_COST_VARIANCE: "Landed cost variance",
+  CHEQUES_RECEIVABLE: "Cheques receivable (PDC)",
+  CHEQUES_PAYABLE: "Cheques payable (PDC)",
+  BAD_DEBT_EXPENSE: "Bad debt expense",
   SUSPENSE: "Suspense",
 };
 

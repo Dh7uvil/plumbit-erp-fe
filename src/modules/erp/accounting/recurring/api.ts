@@ -15,6 +15,8 @@ export const recurringApi = {
         page: params.page ?? 1,
         page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
         search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
         status: params.status,
       },
     });
@@ -26,7 +28,10 @@ export const recurringApi = {
     name: string;
     document_kind: "SALES_INVOICE" | "PURCHASE_INVOICE";
     frequency: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
+    interval?: number;
     next_run_date: string;
+    end_date?: string | null;
+    max_occurrences?: number | null;
     template_payload: Record<string, unknown>;
   }): Promise<RecurringTemplate> =>
     RecurringTemplateSchema.parse(await apiClient.post("/recurring-templates", values)),

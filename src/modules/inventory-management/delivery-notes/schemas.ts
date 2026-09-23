@@ -37,7 +37,8 @@ export const PlaceOfSupplySchema = z.enum(PLACES_OF_SUPPLY);
 export const DeliveryNoteLineSchema = z.object({
   id: z.string().uuid(),
   line_number: z.number().int(),
-  sales_order_line_id: z.string().uuid(),
+  sales_order_line_id: z.string().uuid().nullable(),
+  source_sales_invoice_line_id: z.string().uuid().nullable().optional().default(null),
   product_id: z.string().uuid().nullable(),
   description: z.string(),
   quantity: DecimalStringSchema,
@@ -55,7 +56,8 @@ export const DeliveryNoteSchema = z.object({
   version: z.number().int(),
   is_posted: z.boolean(),
   document_date: z.string(),
-  sales_order_id: z.string().uuid(),
+  sales_order_id: z.string().uuid().nullable(),
+  source_sales_invoice_id: z.string().uuid().nullable().optional().default(null),
   customer_id: z.string().uuid(),
   warehouse_id: z.string().uuid(),
   branch_id: z.string().uuid().nullable(),
@@ -89,14 +91,20 @@ export const DeliveryNoteSchema = z.object({
 export type DeliveryNote = z.infer<typeof DeliveryNoteSchema>;
 export const DeliveryNoteListSchema = z.array(DeliveryNoteSchema);
 
-export const DeliveryNoteLineInputSchema = z.object({
-  sales_order_line_id: z.string().uuid(),
-  product_id: z.string().uuid().nullable().optional(),
-  description: z.string().nullable().optional(),
-  quantity: DecimalStringSchema,
-  unit_id: z.string().uuid().nullable().optional(),
-  rate: MoneySchema.optional(),
-});
+export const DeliveryNoteLineInputSchema = z
+  .object({
+    sales_order_line_id: z.string().uuid().nullable().optional(),
+    source_sales_invoice_line_id: z.string().uuid().nullable().optional(),
+    product_id: z.string().uuid().nullable().optional(),
+    description: z.string().nullable().optional(),
+    quantity: DecimalStringSchema,
+    unit_id: z.string().uuid().nullable().optional(),
+    rate: MoneySchema.optional(),
+  })
+  .refine(
+    (line) => Boolean(line.sales_order_line_id ?? line.source_sales_invoice_line_id),
+    "Each line requires a source document line",
+  );
 export type DeliveryNoteLineInput = z.infer<typeof DeliveryNoteLineInputSchema>;
 
 export const DeliveryNoteCreateRequestSchema = z.object({
@@ -139,6 +147,7 @@ export type DeliveryNoteCreateFromSalesOrder = z.infer<
 
 export const DeliveryNoteLineFormSchema = z.object({
   sales_order_line_id: z.string(),
+  source_sales_invoice_line_id: z.string(),
   product_id: z.string(),
   description: z.string(),
   quantity: z.string(),
@@ -157,6 +166,7 @@ function hasId(value: string): boolean {
 export function emptyDeliveryNoteLine(): DeliveryNoteLineFormValues {
   return {
     sales_order_line_id: "",
+    source_sales_invoice_line_id: "",
     product_id: OPTIONAL_SELECT_NONE,
     description: "",
     quantity: "",
@@ -167,7 +177,11 @@ export function emptyDeliveryNoteLine(): DeliveryNoteLineFormValues {
 }
 
 export function isBlankDeliveryNoteLine(line: DeliveryNoteLineFormValues): boolean {
-  return !line.sales_order_line_id.trim() && !line.quantity.trim();
+  return (
+    !line.sales_order_line_id.trim() &&
+    !line.source_sales_invoice_line_id.trim() &&
+    !line.quantity.trim()
+  );
 }
 
 export const DeliveryNoteFormSchema = z
@@ -214,6 +228,50 @@ export const DeliveryNoteFormSchema = z
   });
 export type DeliveryNoteFormValues = z.infer<typeof DeliveryNoteFormSchema>;
 
+export const DeliveryNoteInvoiceEditFormSchema = z
+  .object({
+    sales_order_id: z.string(),
+    warehouse_id: z.string().refine((value) => hasId(value), "Select a warehouse"),
+    document_date: z.string().min(1, "Enter a date"),
+    branch_id: z.string(),
+    currency_id: z.string(),
+    vehicle_number: z.string().max(80),
+    driver_name: z.string().max(120),
+    driver_contact: z.string().max(40),
+    notes: z.string(),
+    lines: z.array(DeliveryNoteLineFormSchema),
+  })
+  .superRefine((values, ctx) => {
+    const filled = values.lines.filter((line) => !isBlankDeliveryNoteLine(line));
+    if (filled.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lines"],
+        message: "Add at least one delivery line",
+      });
+    }
+    values.lines.forEach((line, index) => {
+      if (isBlankDeliveryNoteLine(line)) {
+        return;
+      }
+      if (!line.source_sales_invoice_line_id.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["lines", index, "source_sales_invoice_line_id"],
+          message: "Line must come from the sales invoice",
+        });
+      }
+      if (!POSITIVE_DECIMAL.test(line.quantity.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["lines", index, "quantity"],
+          message: "Enter a quantity greater than 0",
+        });
+      }
+    });
+  });
+export type DeliveryNoteInvoiceEditFormValues = z.infer<typeof DeliveryNoteInvoiceEditFormSchema>;
+
 export const DeliveryNoteFromSalesOrderFormSchema = z.object({
   sales_order_id: z.string().uuid("Select a sales order"),
   warehouse_id: z.string(),
@@ -222,6 +280,16 @@ export const DeliveryNoteFromSalesOrderFormSchema = z.object({
 });
 export type DeliveryNoteFromSalesOrderFormValues = z.infer<
   typeof DeliveryNoteFromSalesOrderFormSchema
+>;
+
+export const DeliveryNoteCreateFromSalesInvoiceSchema = z.object({
+  sales_invoice_id: z.string().uuid(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  document_date: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+export type DeliveryNoteCreateFromSalesInvoice = z.infer<
+  typeof DeliveryNoteCreateFromSalesInvoiceSchema
 >;
 
 export type DeliveryNoteListParams = {

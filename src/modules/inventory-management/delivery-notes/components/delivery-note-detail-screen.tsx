@@ -8,6 +8,7 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
+import { AddDeliveryNoteToShipmentDialog } from "@/modules/inventory-management/delivery-notes/components/add-to-shipment-dialog";
 import { DeliveryNoteForm } from "@/modules/inventory-management/delivery-notes/components/delivery-note-form";
 import { DeliveryNotePackagesPanel } from "@/modules/inventory-management/delivery-notes/components/delivery-note-packages-panel";
 import { useDeliveryNoteWorkflow } from "@/modules/inventory-management/delivery-notes/hooks/use-delivery-note-workflow";
@@ -29,7 +30,6 @@ import { DocumentLedgerCard } from "@/shared/components/document/document-ledger
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function DeliveryNoteDetailScreen({
@@ -103,10 +103,8 @@ function DeliveryNoteDetailLoaded({
   const onAction = useDeliveryNoteWorkflow(note);
   const [writeError, setWriteError] = useState<unknown>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
-  const workflowActions = appendMissingActions(
-    note.available_actions,
-    note.is_posted || note.status === "POSTED" ? ["create_return", "create_sales_invoice"] : [],
-  );
+  const [shipmentOpen, setShipmentOpen] = useState(false);
+  const workflowActions = note.available_actions;
 
   return (
     <DocumentRecordShell
@@ -151,28 +149,47 @@ function DeliveryNoteDetailLoaded({
               setInvoiceOpen(true);
               return;
             }
+            if (action === "add_to_shipment") {
+              setShipmentOpen(true);
+              return;
+            }
             await onAction(action, extras);
           }}
         />
       }
       banner={
         <p className="text-muted-foreground text-sm">
-          Against{" "}
-          <Link
-            href={`/sales-orders/${note.sales_order_id}`}
-            className="text-foreground underline-offset-4 hover:underline"
-          >
-            sales order
-          </Link>
+          {note.sales_order_id ? (
+            <>
+              Against{" "}
+              <Link
+                href={`/sales-orders/${note.sales_order_id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                sales order
+              </Link>
+            </>
+          ) : note.source_sales_invoice_id ? (
+            <>
+              Against{" "}
+              <Link
+                href={`/sales-invoices/${note.source_sales_invoice_id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                sales invoice
+              </Link>
+            </>
+          ) : (
+            "No source document linked"
+          )}
           {note.shipment_id ? (
             <>
-              {" "}
-              · Shipment{" "}
+              {" · "}
               <Link
                 href={`/shipments/${note.shipment_id}`}
                 className="text-foreground underline-offset-4 hover:underline"
               >
-                tracking
+                Shipment
               </Link>
             </>
           ) : null}
@@ -184,11 +201,13 @@ function DeliveryNoteDetailLoaded({
         <>
           <RelatedDocumentsCard documents={note.related_documents} />
           <DocumentLedgerCard journalEntryId={note.journal_entry_id} />
-          <DeliveryNotePackagesPanel
-            noteId={note.id}
-            salesOrderId={note.sales_order_id}
-            canEdit={note.status !== "CANCELLED"}
-          />
+          {note.sales_order_id ? (
+            <DeliveryNotePackagesPanel
+              noteId={note.id}
+              salesOrderId={note.sales_order_id}
+              canEdit={note.status !== "CANCELLED"}
+            />
+          ) : null}
         </>
       }
       attachments={
@@ -206,6 +225,11 @@ function DeliveryNoteDetailLoaded({
         onOpenChange={setInvoiceOpen}
         customerId={note.customer_id}
         presetNoteIds={[note.id]}
+      />
+      <AddDeliveryNoteToShipmentDialog
+        deliveryNoteId={note.id}
+        open={shipmentOpen}
+        onOpenChange={setShipmentOpen}
       />
     </DocumentRecordShell>
   );

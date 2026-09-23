@@ -25,6 +25,7 @@ import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import {
   useCreatePurchaseOrder,
@@ -793,7 +794,7 @@ export function PurchaseOrderForm({
           />
         </div>
         {purchaseOrder && purchaseOrder.lines.length > 0 ? (
-          <div className="overflow-x-auto rounded-md border">
+          <DocumentViewTableContainer viewMode={disabled} rowCount={purchaseOrder.lines.length}>
             <table className="w-full caption-bottom text-sm">
               <thead>
                 <tr className="border-b">
@@ -816,7 +817,7 @@ export function PurchaseOrderForm({
                 ))}
               </tbody>
             </table>
-          </div>
+          </DocumentViewTableContainer>
         ) : null}
         {purchaseOrder ? (
           <DocumentTotalsPanel totals={purchaseOrder} currencies={currencies} />

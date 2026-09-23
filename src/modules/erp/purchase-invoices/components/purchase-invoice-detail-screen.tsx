@@ -12,7 +12,7 @@ import {
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
-import { isUsableExpenseChargeLine } from "@/modules/erp/landed-costs/schemas";
+import { CreateGoodsReceiptFromPurchaseInvoiceDialog } from "@/modules/inventory-management/goods-receipts/components/create-from-purchase-invoice-dialog";
 import { ApplyDebitsDialog } from "@/modules/erp/purchase-invoices/components/apply-debits-dialog";
 import { PurchaseInvoiceWriteOffDialog } from "@/modules/erp/purchase-invoices/components/write-off-dialog";
 import { PurchaseOrderCycleCard } from "@/modules/erp/purchase-orders/components/purchase-order-cycle-card";
@@ -43,7 +43,6 @@ import { DocumentSettlementCard } from "@/shared/components/document/document-se
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { formatDate } from "@/shared/lib/format";
 
@@ -121,20 +120,11 @@ function PurchaseInvoiceDetailLoaded({
   const [applyDebitsOpen, setApplyDebitsOpen] = useState(false);
   const [writeOffOpen, setWriteOffOpen] = useState(false);
   const [landedCostOpen, setLandedCostOpen] = useState(false);
+  const [grnOpen, setGrnOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
-  const hasUsableExpense = invoice.lines.some(isUsableExpenseChargeLine);
-  const fallbackActions: string[] = [];
-  if (invoice.status === "POSTED") {
-    fallbackActions.push("create_debit_note");
-    if (hasUsableExpense) {
-      fallbackActions.push("create_landed_cost");
-    }
-  }
-  const workflowActions = appendMissingActions(invoice.available_actions, fallbackActions).filter(
-    (action) => action !== "create_landed_cost" || hasUsableExpense,
-  );
+  const workflowActions = invoice.available_actions;
 
   return (
     <DocumentRecordShell
@@ -219,6 +209,10 @@ function PurchaseInvoiceDetailLoaded({
             }
             if (action === "create_debit_note") {
               setDebitOpen(true);
+              return;
+            }
+            if (action === "create_goods_receipt") {
+              setGrnOpen(true);
               return;
             }
             if (action === "create_landed_cost") {
@@ -311,6 +305,11 @@ function PurchaseInvoiceDetailLoaded({
       <CreateDebitNoteDialog
         open={debitOpen}
         onOpenChange={setDebitOpen}
+        purchaseInvoiceId={invoice.id}
+      />
+      <CreateGoodsReceiptFromPurchaseInvoiceDialog
+        open={grnOpen}
+        onOpenChange={setGrnOpen}
         purchaseInvoiceId={invoice.id}
       />
       <ApplyDebitsDialog

@@ -9,12 +9,17 @@ import { useCan } from "@/shared/providers/session-provider";
 export function DocumentLedgerCard({
   journalEntryId,
   reversalJournalEntryId,
+  refundJournalEntryId,
 }: {
   journalEntryId?: string | null;
   reversalJournalEntryId?: string | null;
+  refundJournalEntryId?: string | null;
 }) {
   const can = useCan();
-  if (!can(journalPermissions.read) || (!journalEntryId && !reversalJournalEntryId)) {
+  if (
+    !can(journalPermissions.read) ||
+    (!journalEntryId && !reversalJournalEntryId && !refundJournalEntryId)
+  ) {
     return null;
   }
 
@@ -38,6 +43,14 @@ export function DocumentLedgerCard({
             className="text-foreground underline-offset-4 hover:underline"
           >
             View reversal journal
+          </Link>
+        ) : null}
+        {refundJournalEntryId ? (
+          <Link
+            href={`/journals/${refundJournalEntryId}`}
+            className="text-foreground underline-offset-4 hover:underline"
+          >
+            View refund journal
           </Link>
         ) : null}
       </CardContent>

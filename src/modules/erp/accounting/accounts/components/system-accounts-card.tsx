@@ -16,6 +16,7 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
+import { ListPageTable } from "@/shared/components/layout/list-page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
@@ -43,11 +44,12 @@ export function SystemAccountsCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">System accounts</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+    <ListPageTable>
+      <Card className="gap-0 py-0">
+        <CardHeader className="border-b px-4 py-4">
+          <CardTitle className="text-base">System accounts</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 px-4 py-4">
         {unmapped.length > 0 ? (
           <Alert variant="destructive">
             <AlertCircle />
@@ -86,8 +88,9 @@ export function SystemAccountsCard() {
             </div>
           ))}
         </div>
-      </CardContent>
-      <AccountFormDialog open={creating} account={null} onOpenChange={setCreating} />
-    </Card>
+        </CardContent>
+        <AccountFormDialog open={creating} account={null} onOpenChange={setCreating} />
+      </Card>
+    </ListPageTable>
   );
 }

@@ -112,6 +112,11 @@ export const CreditNoteSchema = z.object({
   country_of_origin: z.string().nullable().optional().default(null),
   amount_applied: MoneySchema,
   amount_unapplied: MoneySchema,
+  amount_refunded: MoneySchema.optional().default("0"),
+  refund_journal_entry_id: z.string().uuid().nullable().optional().default(null),
+  refund_payment_account_id: z.string().uuid().nullable().optional().default(null),
+  refunded_at: z.string().nullable().optional().default(null),
+  refunded_by: z.string().uuid().nullable().optional().default(null),
   journal_entry_id: z.string().uuid().nullable(),
   reversal_journal_entry_id: z.string().uuid().nullable(),
   posted_at: z.string().nullable(),
@@ -265,6 +270,12 @@ export const CreditNoteFormSchema = z
     });
   });
 export type CreditNoteFormValues = z.infer<typeof CreditNoteFormSchema>;
+
+export const CreditNoteRefundRequestSchema = z.object({
+  payment_account_id: z.string().uuid(),
+  version: z.number().int().optional(),
+});
+export type CreditNoteRefundRequest = z.infer<typeof CreditNoteRefundRequestSchema>;
 
 export type CreditNoteListParams = {
   page?: number;

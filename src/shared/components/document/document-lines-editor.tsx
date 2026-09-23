@@ -58,6 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MixedDocumentLineRow } from "@/shared/components/document/mixed-document-line-row";
 import {
   formatFixedDecimal,
@@ -455,7 +456,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-md border">
+      <DocumentViewTableContainer
+        viewMode={disabled}
+        rowCount={fields.length}
+        className={isMixed ? "[--document-view-table-row-height:6.5rem]" : undefined}
+      >
         <table className="w-max min-w-full caption-bottom text-sm">
           <TableHeader>
             <TableRow>
@@ -1087,7 +1092,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
             )}
           </TableBody>
         </table>
-      </div>
+      </DocumentViewTableContainer>
       {disabled ? null : (
         <Button
           type="button"

@@ -126,6 +126,7 @@ export const SalesInvoiceLineSchema = z.object({
   cogs_amount: MoneySchema,
   cogs_status: CogsStatusSchema,
   qty_credited: DecimalStringSchema,
+  qty_delivered: DecimalStringSchema.optional().default("0"),
   hs_code: z.string().nullable().optional().default(null),
   ...PackingLineResponseFields,
 });

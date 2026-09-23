@@ -5,6 +5,7 @@ import {
   CreditNoteCreateFromSalesReturnSchema,
   CreditNoteCreateRequestSchema,
   CreditNoteListSchema,
+  CreditNoteRefundRequestSchema,
   CreditNoteSchema,
   CreditNoteUpdateRequestSchema,
   type CreditNote,
@@ -12,6 +13,7 @@ import {
   type CreditNoteCreateFromSalesReturn,
   type CreditNoteCreateRequest,
   type CreditNoteListParams,
+  type CreditNoteRefundRequest,
   type CreditNoteUpdateRequest,
 } from "@/modules/erp/credit-notes/schemas";
 import { apiClient } from "@/shared/api/client";
@@ -95,6 +97,18 @@ export const creditNotesApi = {
   delete: async (id: string, options: CreditNoteWriteOptions): Promise<CreditNote> =>
     CreditNoteSchema.parse(
       await apiClient.delete(`/credit-notes/${id}`, { headers: ifMatchHeaders(options.version) }),
+    ),
+  refund: async (
+    id: string,
+    values: CreditNoteRefundRequest,
+    options: CreditNoteWriteOptions,
+  ): Promise<CreditNote> =>
+    CreditNoteSchema.parse(
+      await apiClient.post(
+        `/credit-notes/${id}/refund`,
+        CreditNoteRefundRequestSchema.parse({ ...values, version: options.version }),
+        { headers: postDocumentHeaders(options.version) },
+      ),
     ),
   journal: async (id: string): Promise<JournalEntry> =>
     JournalEntrySchema.parse(await apiClient.get(`/credit-notes/${id}/journal`)),

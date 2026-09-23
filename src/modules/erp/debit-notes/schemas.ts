@@ -81,7 +81,8 @@ export const DebitNoteSchema = z.object({
   is_posted: z.boolean(),
   debit_note_date: z.string(),
   document_date: z.string(),
-  purchase_invoice_id: z.string().uuid(),
+  purchase_invoice_id: z.string().uuid().nullable(),
+  purchase_return_id: z.string().uuid().nullable().optional().default(null),
   supplier_id: z.string().uuid(),
   reason_code: DebitNoteReasonSchema,
   branch_id: z.string().uuid().nullable(),
@@ -105,6 +106,11 @@ export const DebitNoteSchema = z.object({
   notes: z.string().nullable(),
   amount_applied: MoneySchema,
   amount_unapplied: MoneySchema,
+  amount_refunded: MoneySchema.optional().default("0"),
+  refund_journal_entry_id: z.string().uuid().nullable().optional().default(null),
+  refund_payment_account_id: z.string().uuid().nullable().optional().default(null),
+  refunded_at: z.string().nullable().optional().default(null),
+  refunded_by: z.string().uuid().nullable().optional().default(null),
   journal_entry_id: z.string().uuid().nullable(),
   reversal_journal_entry_id: z.string().uuid().nullable(),
   posted_at: z.string().nullable(),
@@ -261,6 +267,12 @@ export const DebitNoteFormSchema = z
     });
   });
 export type DebitNoteFormValues = z.infer<typeof DebitNoteFormSchema>;
+
+export const DebitNoteRefundRequestSchema = z.object({
+  payment_account_id: z.string().uuid(),
+  version: z.number().int().optional(),
+});
+export type DebitNoteRefundRequest = z.infer<typeof DebitNoteRefundRequestSchema>;
 
 export type DebitNoteListParams = {
   page?: number;

@@ -75,7 +75,7 @@ export const SalesReturnSchema = z.object({
   is_posted: z.boolean(),
   document_date: z.string(),
   delivery_note_id: z.string().uuid(),
-  sales_order_id: z.string().uuid(),
+  sales_order_id: z.string().uuid().nullable(),
   customer_id: z.string().uuid(),
   warehouse_id: z.string().uuid(),
   reason_code: SalesReturnReasonSchema,

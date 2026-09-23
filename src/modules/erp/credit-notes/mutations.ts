@@ -126,3 +126,21 @@ export function useDeleteCreditNote() {
     },
   });
 }
+
+export function useRefundCreditNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      payment_account_id,
+    }: WriteVars & { payment_account_id: string }) =>
+      creditNotesApi.refund(id, { payment_account_id }, { version }),
+    onSuccess: async (_data, { id }) => {
+      await invalidate(queryClient, id, true);
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}

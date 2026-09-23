@@ -42,7 +42,7 @@ import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { ListPage } from "@/shared/components/layout/list-page";
+import { ListPage, ListPageContent } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -243,24 +243,8 @@ export function JournalsScreen({ embedded = false }: { embedded?: boolean } = {}
     }
   }
 
-  const content = (
-    <>
-      {!embedded ? (
-        <PageHeader
-          title="Journals"
-          subtitle="Manual and system journals posted through the ledger"
-          actions={
-            canCreate ? (
-              <Button type="button" size="sm" asChild>
-                <Link href="/journals/new">
-                  <Plus className="size-3.5" />
-                  New journal
-                </Link>
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : null}
+  const listBody = (
+    <ListPageContent>
       <DataTableToolbar>
         <ListSearch
           value={search ?? ""}
@@ -399,21 +383,48 @@ export function JournalsScreen({ embedded = false }: { embedded?: boolean } = {}
           )}
         </TableBody>
       </DataTable>
-      <ConfirmActionDialog
-        open={Boolean(deleting)}
-        title="Delete journal"
-        description={`${deleting?.document_number ?? "This journal"} will be removed. Only draft journals can be deleted.`}
-        confirmLabel="Delete"
-        pending={deleteJournal.isPending}
-        onOpenChange={(open) => !open && setDeleting(null)}
-        onConfirm={() => void confirmDelete()}
-      />
-    </>
+    </ListPageContent>
   );
 
-  return embedded ? (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">{content}</div>
-  ) : (
-    <ListPage>{content}</ListPage>
+  const dialogs = (
+    <ConfirmActionDialog
+      open={Boolean(deleting)}
+      title="Delete journal"
+      description={`${deleting?.document_number ?? "This journal"} will be removed. Only draft journals can be deleted.`}
+      confirmLabel="Delete"
+      pending={deleteJournal.isPending}
+      onOpenChange={(open) => !open && setDeleting(null)}
+      onConfirm={() => void confirmDelete()}
+    />
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {listBody}
+        {dialogs}
+      </>
+    );
+  }
+
+  return (
+    <ListPage>
+      <PageHeader
+        title="Journals"
+        subtitle="Manual and system journals posted through the ledger"
+        actions={
+          canCreate ? (
+            <Button type="button" size="sm" asChild>
+              <Link href="/journals/new">
+                <Plus className="size-3.5" />
+                New journal
+              </Link>
+            </Button>
+          ) : undefined
+        }
+      />
+      {listBody}
+      {dialogs}
+    </ListPage>
   );
 }

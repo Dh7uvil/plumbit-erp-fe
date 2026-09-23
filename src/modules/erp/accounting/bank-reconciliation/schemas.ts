@@ -20,6 +20,8 @@ export const BankStatementSchema = z.object({
   period_end: z.string(),
   opening_balance: z.string(),
   closing_balance: z.string(),
+  base_opening_balance: z.string().nullable().optional().default(null),
+  base_closing_balance: z.string().nullable().optional().default(null),
   status: z.enum(["DRAFT", "IMPORTED", "RECONCILED"]),
   import_reference: z.string().nullable(),
   notes: z.string().nullable(),

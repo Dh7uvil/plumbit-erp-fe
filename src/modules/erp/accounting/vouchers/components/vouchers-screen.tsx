@@ -40,6 +40,7 @@ import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { ListPageContent } from "@/shared/components/layout/list-page";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
@@ -202,7 +203,7 @@ export function VouchersScreen({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <ListPageContent>
       {!embedded ? (
         <DataTableToolbar>
           {canCreate ? (
@@ -427,6 +428,6 @@ export function VouchersScreen({
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => void onDelete()}
       />
-    </div>
+    </ListPageContent>
   );
 }

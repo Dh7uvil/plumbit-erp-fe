@@ -13,6 +13,7 @@ import {
 import { userPermissions } from "@/modules/users-management/users/permissions";
 import { useAllUsers } from "@/modules/users-management/users/queries";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import {
@@ -221,7 +222,7 @@ function RevisionSnapshotDialog({
               )}
             </dl>
             <p className="text-sm font-medium">Lines</p>
-            <div className="overflow-x-auto">
+            <DocumentViewTableContainer viewMode rowCount={lines.length}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left">
@@ -255,7 +256,7 @@ function RevisionSnapshotDialog({
                   })}
                 </tbody>
               </table>
-            </div>
+            </DocumentViewTableContainer>
             <p className="text-muted-foreground text-sm">{revision.revision_reason}</p>
           </div>
         )}

@@ -1,9 +1,20 @@
 import type { ReactNode } from "react";
 
+import { DataTablePanel } from "@/shared/components/data-table/data-table-panel";
 import { ListPageTable } from "@/shared/components/layout/list-page";
 import { Card } from "@/shared/components/ui/card";
 import { Table } from "@/shared/components/ui/table";
 import { cn } from "@/shared/lib/cn";
+
+/** Room for app header, list page header, tabs, toolbar, and pagination. */
+export const LIST_TABLE_SCROLL_CLASS = "list-table-scroll";
+export { LIST_TABLE_PANEL_CLASS } from "./data-table-panel";
+
+function DataTableFooter({ footer }: { footer: ReactNode }) {
+  return (
+    <div className="bg-card shrink-0 rounded-b-md border border-t empty:hidden">{footer}</div>
+  );
+}
 
 export function DataTable({
   children,
@@ -19,29 +30,39 @@ export function DataTable({
   variant?: "page" | "embedded";
 }) {
   const table = (
-    <>
-      <Table className={cn("min-w-full", tableClassName)} containerClassName="overflow-auto">
-        {children}
-      </Table>
-      {footer ? <div className="bg-card shrink-0 border-t empty:hidden">{footer}</div> : null}
-    </>
+    <Table
+      className={cn("min-w-full", tableClassName)}
+      containerClassName={LIST_TABLE_SCROLL_CLASS}
+    >
+      {children}
+    </Table>
   );
 
   if (variant === "embedded") {
     return (
-      <div
-        className={cn("flex min-h-0 w-full flex-col overflow-hidden rounded-md border", className)}
-      >
-        {table}
-      </div>
+      <DataTablePanel className={cn("w-full", className)}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border">
+          {table}
+        </div>
+        {footer ? <DataTableFooter footer={footer} /> : null}
+      </DataTablePanel>
     );
   }
 
   return (
     <ListPageTable>
-      <Card className={cn("flex h-fit max-h-full min-h-0 w-full flex-col gap-0 py-0", className)}>
-        {table}
-      </Card>
+      <DataTablePanel>
+        <Card
+          className={cn(
+            "flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0",
+            footer ? "rounded-b-none border-b-0" : undefined,
+            className,
+          )}
+        >
+          {table}
+        </Card>
+        {footer ? <DataTableFooter footer={footer} /> : null}
+      </DataTablePanel>
     </ListPageTable>
   );
 }
