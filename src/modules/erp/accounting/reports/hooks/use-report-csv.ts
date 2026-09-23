@@ -14,6 +14,8 @@ export function useReportCsv() {
   const canExport = can(reportPermissions.export);
   const [csvPending, setCsvPending] = useState(false);
   const [excelPending, setExcelPending] = useState(false);
+  const [pdfPending, setPdfPending] = useState(false);
+  const [queueMessage, setQueueMessage] = useState<string | null>(null);
 
   async function downloadCsv(path: string, params: RequestParams, filename: string) {
     if (!canExport) {
@@ -45,5 +47,67 @@ export function useReportCsv() {
     }
   }
 
-  return { csvPending, excelPending, downloadCsv, downloadExcel, canExport };
+  async function downloadPdf(path: string, params: RequestParams, filename: string) {
+    if (!canExport) {
+      toast.error("You do not have permission to export reports.");
+      return;
+    }
+    setPdfPending(true);
+    setQueueMessage("Preparing PDF");
+    try {
+      await reportsApi.downloadPdf(path, params, filename);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setPdfPending(false);
+      setQueueMessage(null);
+    }
+  }
+
+  async function queueExport(
+    report: string,
+    exportFormat: "csv" | "xlsx" | "pdf",
+    params: Record<string, string>,
+  ) {
+    if (!canExport) {
+      toast.error("You do not have permission to export reports.");
+      return;
+    }
+    setPdfPending(true);
+    setQueueMessage("Queued");
+    try {
+      let job = await reportsApi.queueExport({
+        report,
+        export_format: exportFormat,
+        params,
+      });
+      for (let attempt = 0; attempt < 20 && job.status === "PENDING"; attempt += 1) {
+        setQueueMessage("Preparing export");
+        await new Promise((resolve) => window.setTimeout(resolve, 400));
+        job = await reportsApi.getExport(job.id);
+      }
+      if (job.status !== "READY" || !job.filename) {
+        throw new Error(job.error ?? "Export failed");
+      }
+      setQueueMessage("Downloading");
+      await reportsApi.downloadQueued(job.id, job.filename);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setPdfPending(false);
+      setQueueMessage(null);
+    }
+  }
+
+  return {
+    csvPending,
+    excelPending,
+    pdfPending,
+    queueMessage,
+    downloadCsv,
+    downloadExcel,
+    downloadPdf,
+    queueExport,
+    canExport,
+  };
 }

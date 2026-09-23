@@ -61,7 +61,10 @@ import { documentSequencePermissions } from "@/modules/erp/accounting/document-s
 import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
 import { bankAccountPermissions } from "@/modules/erp/accounting/bank-accounts/permissions";
 import { bankReconciliationPermissions } from "@/modules/erp/accounting/bank-reconciliation/permissions";
+import { budgetPermissions } from "@/modules/erp/accounting/budgets/permissions";
 import { chequePermissions } from "@/modules/erp/accounting/cheques/permissions";
+import { fxRevaluationPermissions } from "@/modules/erp/accounting/fx-revaluation/permissions";
+import { recurringPermissions } from "@/modules/erp/accounting/recurring/permissions";
 import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { chargeTypePermissions } from "@/modules/erp/accounting/charge-types/permissions";
@@ -407,6 +410,24 @@ export const navigation: NavigationGroup[] = [
         href: "/cheques",
         permission: chequePermissions.read,
         icon: Wallet,
+      },
+      {
+        label: "Budgets",
+        href: "/budgets",
+        permission: budgetPermissions.read,
+        icon: CircleDollarSign,
+      },
+      {
+        label: "Recurring",
+        href: "/recurring",
+        permission: recurringPermissions.read,
+        icon: CalendarClock,
+      },
+      {
+        label: "FX revaluation",
+        href: "/fx-revaluation",
+        permission: fxRevaluationPermissions.read,
+        icon: Percent,
       },
       {
         label: "Day book",

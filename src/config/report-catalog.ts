@@ -23,6 +23,7 @@ import {
 
 import type { NavigationGroup, NavigationItem } from "@/config/navigation";
 import { crmReportPermissions } from "@/modules/crm/reports/permissions";
+import { fxRevaluationPermissions } from "@/modules/erp/accounting/fx-revaluation/permissions";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { can } from "@/shared/auth/permissions";
 
@@ -88,6 +89,18 @@ export const reportCatalog: ReportCatalogGroup[] = [
         href: "/reports/cash-flow",
         permission: reportPermissions.financial,
         icon: Banknote,
+      },
+      {
+        label: "Cost center profit and loss",
+        href: "/reports/cost-center-profit-and-loss",
+        permission: reportPermissions.financial,
+        icon: FileSpreadsheet,
+      },
+      {
+        label: "FX exposure",
+        href: "/fx-revaluation",
+        permission: fxRevaluationPermissions.read,
+        icon: Percent,
       },
       {
         label: "Sales analysis",
