@@ -48,6 +48,7 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
@@ -103,6 +104,7 @@ export function SuppliersScreen() {
     is_active: parseBoolFilter(filters.is_active),
   });
   const currenciesQuery = useAllCurrencies();
+  const { baseCurrencyCode } = useBaseCurrency();
   const paymentTermsQuery = useAllPaymentTerms(can(paymentTermPermissions.read));
   const priceListsQuery = useAllPriceLists(can(priceListPermissions.read));
   const deleteSupplier = useDeleteSupplier();
@@ -175,9 +177,11 @@ export function SuppliersScreen() {
           const currency = (currenciesQuery.data ?? []).find(
             (item) => item.id === supplier.currency_id,
           );
-          return currency
-            ? formatMoney(supplier.credit_limit, currency.code, currency.decimal_places)
-            : formatMoney(supplier.credit_limit, "AED");
+          return formatMoney(
+            supplier.credit_limit,
+            currency?.code ?? baseCurrencyCode ?? "",
+            currency?.decimal_places,
+          );
         },
       },
       {
@@ -220,6 +224,7 @@ export function SuppliersScreen() {
       )),
     ];
   }, [
+    baseCurrencyCode,
     canDelete,
     canRead,
     canUpdate,

@@ -241,14 +241,29 @@ export function compareDecimals(left: string, right: string): number | null {
   return scaledLeft < scaledRight ? -1 : 1;
 }
 
+export function proportionDecimal(part: string, whole: string, total: string): string | null {
+  const scaledPart = toScaledMoney(part);
+  const scaledWhole = toScaledMoney(whole);
+  const scaledTotal = toScaledMoney(total);
+  if (scaledPart === null || scaledWhole === null || scaledTotal === null || scaledWhole === BigInt(0)) {
+    return null;
+  }
+  const negative = scaledPart < BigInt(0) !== scaledTotal < BigInt(0);
+  const absPart = scaledPart < BigInt(0) ? -scaledPart : scaledPart;
+  const absWhole = scaledWhole < BigInt(0) ? -scaledWhole : scaledWhole;
+  const absTotal = scaledTotal < BigInt(0) ? -scaledTotal : scaledTotal;
+  const result = (absPart * absTotal) / absWhole;
+  return fromScaledMoney(negative ? -result : result);
+}
+
 export function formatReportMoney(
   value: string | null | undefined,
   currencyCode?: string | null,
 ): string {
   if (!currencyCode && process.env.NODE_ENV === "development") {
-    console.warn("formatReportMoney called without currency_code; falling back to AED");
+    console.warn("formatReportMoney called without currency_code");
   }
-  return formatMoney(value, currencyCode || "AED");
+  return formatMoney(value, currencyCode ?? "");
 }
 
 export function formatCompactReportMoney(
@@ -263,8 +278,12 @@ export function formatCompactReportMoney(
     if (whole.length < 6) {
       return formatReportMoney(value, currencyCode);
     }
-    const currency = currencyCode || "AED";
-    const numeric = Number(value);
+    const currency = currencyCode ?? "";
+    if (!currency) {
+      return formatDecimal(value);
+    }
+    const rounded = formatFixedDecimal(value, 2).replace(/,/g, "");
+    const numeric = Number(rounded);
     if (!Number.isFinite(numeric)) {
       return formatReportMoney(value, currencyCode);
     }
@@ -287,7 +306,7 @@ export function formatMoney(
   if (value == null || value === "") {
     return "—";
   }
-  const currency = currencyCode || "AED";
+  const currency = currencyCode || "";
   try {
     const { negative, whole, fraction } = parseDecimalParts(value);
     const formatter = new Intl.NumberFormat(undefined, {

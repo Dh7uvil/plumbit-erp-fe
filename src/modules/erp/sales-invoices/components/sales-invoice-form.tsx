@@ -51,6 +51,7 @@ import {
 } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { BaseEquivalentPreview } from "@/shared/components/money";
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
@@ -261,7 +262,7 @@ export function SalesInvoiceForm({
   >(null);
   const dirtyCompose = useRef(new Set<ComposeField>());
   const isEdit = Boolean(invoice);
-  const { baseCurrencyId } = useBaseCurrency();
+  const { baseCurrencyId, baseCurrencyCode } = useBaseCurrency();
   const sourcedLines = Boolean(invoice?.lines.some((line) => line.delivery_note_line_id));
 
   const form = useForm<SalesInvoiceFormValues>({
@@ -733,7 +734,18 @@ export function SalesInvoiceForm({
             showHsCode
           />
         </div>
-        {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
+        {invoice ? (
+          <div className="flex flex-col gap-2">
+            <DocumentTotalsPanel totals={invoice} currencies={currencies} />
+            <BaseEquivalentPreview
+              amount={invoice.grand_total}
+              currencyId={invoice.currency_id}
+              baseCurrencyId={baseCurrencyId}
+              baseCurrencyCode={baseCurrencyCode}
+              documentDate={invoice.invoice_date}
+            />
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 gap-3">
           <FormField
             control={form.control}

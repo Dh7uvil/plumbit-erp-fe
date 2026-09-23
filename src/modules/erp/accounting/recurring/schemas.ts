@@ -14,6 +14,7 @@ export const RecurringTemplateSchema = z.object({
   document_kind: z.string(),
   frequency: z.string(),
   interval: z.number(),
+  schedule_day: z.number().int().min(1).max(31).optional().default(1),
   next_run_date: z.string(),
   end_date: z.string().nullable().optional().default(null),
   max_occurrences: z.number().nullable().optional().default(null),
@@ -32,7 +33,10 @@ export const RecurringFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(150),
   document_kind: z.enum(["SALES_INVOICE", "PURCHASE_INVOICE"]),
   frequency: z.enum(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]),
+  interval: z.string().trim().regex(/^[1-9]\d*$/, "Interval must be at least 1"),
   next_run_date: z.string().min(1, "Choose a date"),
+  end_date: z.string().optional(),
+  max_runs: z.string().optional(),
   party_id: z.string().uuid("Choose a party"),
   product_id: z.string().uuid("Choose a product"),
   quantity: z.string().trim().min(1, "Quantity is required"),
@@ -43,5 +47,7 @@ export type RecurringListParams = {
   page?: number;
   page_size?: number;
   search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
   status?: string;
 };

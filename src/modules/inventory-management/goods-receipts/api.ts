@@ -2,12 +2,14 @@ import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { GoodsReceiptBillingQueueListSchema } from "@/modules/erp/purchases/schemas";
 import type { BillingQueueListParams } from "@/modules/erp/purchases/schemas";
 import {
+  GoodsReceiptCreateFromPurchaseInvoiceSchema,
   GoodsReceiptCreateFromPurchaseOrderSchema,
   GoodsReceiptCreateRequestSchema,
   GoodsReceiptListSchema,
   GoodsReceiptSchema,
   GoodsReceiptUpdateRequestSchema,
   type GoodsReceipt,
+  type GoodsReceiptCreateFromPurchaseInvoice,
   type GoodsReceiptCreateFromPurchaseOrder,
   type GoodsReceiptCreateRequest,
   type GoodsReceiptListParams,
@@ -65,6 +67,16 @@ export const goodsReceiptsApi = {
       await apiClient.post(
         "/goods-receipts/from-purchase-order",
         GoodsReceiptCreateFromPurchaseOrderSchema.parse(values),
+        { headers: { "Idempotency-Key": randomUuid() } },
+      ),
+    ),
+  createFromPurchaseInvoice: async (
+    values: GoodsReceiptCreateFromPurchaseInvoice,
+  ): Promise<GoodsReceipt> =>
+    GoodsReceiptSchema.parse(
+      await apiClient.post(
+        "/goods-receipts/from-purchase-invoice",
+        GoodsReceiptCreateFromPurchaseInvoiceSchema.parse(values),
         { headers: { "Idempotency-Key": randomUuid() } },
       ),
     ),

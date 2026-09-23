@@ -2,6 +2,7 @@
 
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { formatDecimal, formatMoney } from "@/shared/lib/format";
 
 export function AppliedCommercialTerms({
@@ -21,9 +22,9 @@ export function AppliedCommercialTerms({
 }) {
   const currenciesQuery = useAllCurrencies();
   const paymentTermsQuery = useAllPaymentTerms();
+  const { baseCurrencyCode } = useBaseCurrency();
   const currencyCode =
     currenciesQuery.data?.find((currency) => currency.id === currencyId)?.code ?? "";
-  const baseCurrencyCode = currenciesQuery.data?.find((currency) => currency.is_base)?.code ?? "";
   const paymentTermsName = paymentTermsId
     ? (paymentTermsQuery.data?.find((term) => term.id === paymentTermsId)?.name ?? null)
     : null;
@@ -38,7 +39,7 @@ export function AppliedCommercialTerms({
     },
     {
       label: "Base total",
-      value: baseAmount ? formatMoney(baseAmount, baseCurrencyCode || "AED") : null,
+      value: baseAmount ? formatMoney(baseAmount, baseCurrencyCode ?? "") : null,
     },
     { label: "Tax", value: taxTreatmentLabel },
     { label: "Payment terms", value: paymentTermsName },

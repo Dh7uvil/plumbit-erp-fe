@@ -1,3 +1,5 @@
+import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
+import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
@@ -11,6 +13,8 @@ export const PROFORMA_INVOICE_WORKFLOW_ACTIONS = [
   "reopen",
   "convert",
   "create_sales_invoice",
+  "record_advance",
+  "create_cost_sheet",
   "cancel",
   "clone",
   "delete",
@@ -58,6 +62,18 @@ export const PROFORMA_INVOICE_ACTION_REGISTRY: DocumentActionSpec<ProformaInvoic
       action: "create_sales_invoice",
       label: "Create sales invoice",
       permission: salesInvoicePermissions.create,
+    },
+    {
+      action: "record_advance",
+      label: "Record advance",
+      permission: customerPaymentPermissions.create,
+      variant: "outline",
+    },
+    {
+      action: "create_cost_sheet",
+      label: "Create cost sheet",
+      permission: costSheetPermissions.create,
+      variant: "outline",
     },
     {
       action: "cancel",

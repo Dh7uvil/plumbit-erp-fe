@@ -1,7 +1,8 @@
 import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
+import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
-export const DEBIT_NOTE_WORKFLOW_ACTIONS = ["post", "cancel", "delete"] as const;
+export const DEBIT_NOTE_WORKFLOW_ACTIONS = ["post", "refund", "cancel", "delete"] as const;
 export type DebitNoteWorkflowAction = (typeof DEBIT_NOTE_WORKFLOW_ACTIONS)[number];
 
 export const DEBIT_NOTE_ACTION_REGISTRY: DocumentActionSpec<DebitNoteWorkflowAction>[] = [
@@ -11,6 +12,12 @@ export const DEBIT_NOTE_ACTION_REGISTRY: DocumentActionSpec<DebitNoteWorkflowAct
     permission: debitNotePermissions.post,
     confirmCopy: (documentNumber) =>
       `Posting ${documentNumber}: AP, expense or GRNI, and VAT will reverse. Stock will not move.`,
+  },
+  {
+    action: "refund",
+    label: "Refund",
+    permission: supplierPaymentPermissions.create,
+    variant: "destructive",
   },
   {
     action: "cancel",

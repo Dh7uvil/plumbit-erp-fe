@@ -60,7 +60,7 @@ import { getDocumentAction } from "@/shared/components/document/workflow-registr
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
-import { ListPage } from "@/shared/components/layout/list-page";
+import { ListPage, ListPageContent } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -72,6 +72,8 @@ import {
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { MoneyWithBase } from "@/shared/components/money";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -156,6 +158,7 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
     () => new Map(currencies.map((currency) => [currency.id, currency.code])),
     [currencies],
   );
+  const { baseCurrencyCode } = useBaseCurrency();
   const branchNameById = useMemo(
     () => new Map((branchesQuery.data ?? []).map((branch) => [branch.id, branch.name])),
     [branchesQuery.data],
@@ -263,8 +266,15 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
         sortableField: "grand_total",
         headerClassName: "text-right",
         className: "text-right tabular-nums",
-        cell: (invoice) =>
-          formatMoney(invoice.grand_total, currencyCodeById.get(invoice.currency_id) ?? ""),
+        cell: (invoice) => (
+          <MoneyWithBase
+            amount={invoice.grand_total}
+            currencyCode={currencyCodeById.get(invoice.currency_id) ?? ""}
+            baseAmount={invoice.base_amount}
+            baseCurrencyCode={baseCurrencyCode}
+            className="text-right"
+          />
+        ),
       },
       {
         id: "is_posted",
@@ -374,6 +384,7 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
     canDelete,
     canRead,
     canUpdate,
+    baseCurrencyCode,
     currencyCodeById,
     showActions,
     supplierNameById,
@@ -415,8 +426,8 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
       </div>
     ) : undefined;
 
-  const table = (
-    <>
+  const listContent = (
+    <ListPageContent>
       <DataTableToolbar>
         <ListSearch
           value={search ?? ""}
@@ -610,6 +621,11 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
           )}
         </TableBody>
       </DataTable>
+    </ListPageContent>
+  );
+
+  const dialogs = (
+    <>
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`${getDocumentAction(PURCHASE_INVOICE_ACTION_REGISTRY, "delete").label} purchase invoice ${deleting ? (purchaseInvoiceDisplayNumber(deleting) ?? "bill") : "bill"}`}
@@ -635,7 +651,12 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
   );
 
   if (embedded) {
-    return table;
+    return (
+      <>
+        {listContent}
+        {dialogs}
+      </>
+    );
   }
 
   return (
@@ -645,7 +666,8 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
         subtitle="Supplier bills. Posting updates payables and goods received not invoiced; stock does not move."
         actions={headerActions}
       />
-      {table}
+      {listContent}
+      {dialogs}
     </ListPage>
   );
 }

@@ -19,6 +19,8 @@ import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { todayIsoDate } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { getErrorMessage } from "@/shared/api/errors";
+import { MasterSelect } from "@/shared/components/form/master-select";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -52,7 +54,10 @@ export function RecurringFormScreen() {
       name: "",
       document_kind: "SALES_INVOICE",
       frequency: "MONTHLY",
+      interval: "1",
       next_run_date: todayIsoDate(),
+      end_date: "",
+      max_runs: "",
       party_id: "",
       product_id: "",
       quantity: "1",
@@ -71,12 +76,16 @@ export function RecurringFormScreen() {
   async function onSubmit(values: RecurringFormValues) {
     setFormError(null);
     const partyKey = values.document_kind === "SALES_INVOICE" ? "customer_id" : "supplier_id";
+    const maxRuns = values.max_runs?.trim();
     try {
       const created = await createTemplate.mutateAsync({
         name: values.name,
         document_kind: values.document_kind,
         frequency: values.frequency,
+        interval: Number(values.interval),
         next_run_date: values.next_run_date,
+        end_date: values.end_date?.trim() || null,
+        max_occurrences: maxRuns ? Number(maxRuns) : null,
         template_payload: {
           [partyKey]: values.party_id,
           lines: [{ product_id: values.product_id, quantity: values.quantity }],
@@ -111,64 +120,107 @@ export function RecurringFormScreen() {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="document_kind"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Document</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    form.setValue("party_id", "");
-                  }}
-                >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="document_kind"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Document</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("party_id", "");
+                    }}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="SALES_INVOICE">Sales invoice</SelectItem>
+                      <SelectItem value="PURCHASE_INVOICE">Purchase bill</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="frequency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Frequency</FormLabel>
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                      <SelectItem value="QUARTERLY">Quarterly</SelectItem>
+                      <SelectItem value="YEARLY">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <FormField
+              control={form.control}
+              name="interval"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Interval</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <Input inputMode="numeric" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="SALES_INVOICE">Sales invoice</SelectItem>
-                    <SelectItem value="PURCHASE_INVOICE">Purchase bill</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="frequency"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Frequency</FormLabel>
-                <Select value={field.value || undefined} onValueChange={field.onChange}>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="next_run_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Next run</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <Input type="date" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="WEEKLY">Weekly</SelectItem>
-                    <SelectItem value="MONTHLY">Monthly</SelectItem>
-                    <SelectItem value="QUARTERLY">Quarterly</SelectItem>
-                    <SelectItem value="YEARLY">Yearly</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="end_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
-            name="next_run_date"
+            name="max_runs"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Next run</FormLabel>
+                <FormLabel>Max runs</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input inputMode="numeric" placeholder="Unlimited" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -180,20 +232,13 @@ export function RecurringFormScreen() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{kind === "SALES_INVOICE" ? "Customer" : "Supplier"}</FormLabel>
-                <Select value={field.value || undefined} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a party" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {parties.map((party) => (
-                      <SelectItem key={party.id} value={party.id}>
-                        {party.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MasterSelect
+                  value={field.value || ""}
+                  onValueChange={field.onChange}
+                  placeholder={`Choose a ${kind === "SALES_INVOICE" ? "customer" : "supplier"}`}
+                  searchPlaceholder="Search…"
+                  options={parties.map((party) => ({ value: party.id, label: party.name }))}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -204,20 +249,16 @@ export function RecurringFormScreen() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Product</FormLabel>
-                <Select value={field.value || undefined} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a product" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {(productsQuery.data ?? []).map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.sku} — {product.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MasterSelect
+                  value={field.value || ""}
+                  onValueChange={field.onChange}
+                  placeholder="Choose a product"
+                  searchPlaceholder="Search product…"
+                  options={(productsQuery.data ?? []).map((product) => ({
+                    value: product.id,
+                    label: `${product.sku} — ${product.name}`,
+                  }))}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -229,7 +270,7 @@ export function RecurringFormScreen() {
               <FormItem>
                 <FormLabel>Quantity</FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" {...field} />
+                  <DecimalInput kind="quantity" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

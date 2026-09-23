@@ -1,3 +1,4 @@
+import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
 import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
@@ -9,6 +10,7 @@ export const SHIPMENT_WORKFLOW_ACTIONS = [
   "cancel",
   "delete",
   "tracking",
+  "create_cost_sheet",
   "create_landed_cost",
 ] as const;
 export type ShipmentWorkflowAction = (typeof SHIPMENT_WORKFLOW_ACTIONS)[number];
@@ -53,6 +55,12 @@ export const SHIPMENT_ACTION_REGISTRY: DocumentActionSpec<ShipmentWorkflowAction
     action: "tracking",
     label: "Update tracking",
     permission: shipmentPermissions.update,
+    variant: "outline",
+  },
+  {
+    action: "create_cost_sheet",
+    label: "Create cost sheet",
+    permission: costSheetPermissions.create,
     variant: "outline",
   },
   {

@@ -196,7 +196,7 @@ export function ProductSuppliersPanel({ productId }: { productId: string }) {
           </Button>
         ) : null}
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-5">
         <DataTableToolbar>
           <ListSearch
             value={search ?? ""}

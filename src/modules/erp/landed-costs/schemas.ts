@@ -47,6 +47,7 @@ export const LandedCostChargeSchema = z.object({
   expense_category: ExpenseCategorySchema,
   bill_number: z.string(),
   amount: DecimalStringSchema,
+  base_amount: DecimalStringSchema.optional(),
 });
 export type LandedCostCharge = z.infer<typeof LandedCostChargeSchema>;
 

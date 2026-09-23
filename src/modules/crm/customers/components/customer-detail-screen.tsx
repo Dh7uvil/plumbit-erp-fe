@@ -233,7 +233,11 @@ export function CustomerDetailScreen({
         extraActions={
           <div className="flex flex-wrap items-center gap-2">
             {exposureQuery.data ? (
-              <CreditExposureChip exposure={exposureQuery.data} currencyCode={currencyCode} />
+              <CreditExposureChip
+                exposure={exposureQuery.data}
+                currencyCode={currencyCode}
+                baseCurrencyCode={baseCurrencyCode}
+              />
             ) : null}
             {customer.company_type === "BOTH" && can(supplierPermissions.read) ? (
               <Button type="button" variant="outline" size="sm" asChild>

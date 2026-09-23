@@ -1,5 +1,6 @@
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
+import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
@@ -9,6 +10,7 @@ export const DELIVERY_NOTE_WORKFLOW_ACTIONS = [
   "delete",
   "create_return",
   "create_sales_invoice",
+  "add_to_shipment",
 ] as const;
 export type DeliveryNoteWorkflowAction = (typeof DELIVERY_NOTE_WORKFLOW_ACTIONS)[number];
 
@@ -47,6 +49,12 @@ export const DELIVERY_NOTE_ACTION_REGISTRY: DocumentActionSpec<DeliveryNoteWorkf
     action: "create_sales_invoice",
     label: "Create invoice",
     permission: salesInvoicePermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "add_to_shipment",
+    label: "Add to shipment",
+    permission: shipmentPermissions.update,
     variant: "outline",
   },
 ];

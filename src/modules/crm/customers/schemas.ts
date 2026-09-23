@@ -198,8 +198,10 @@ export type OutstandingSummary = z.infer<typeof OutstandingSummarySchema>;
 export const CreditExposureSchema = z.object({
   customer_id: z.string(),
   currency_id: z.string(),
+  base_currency_id: z.string().uuid().nullable().optional().default(null),
   credit_limit: MoneySchema.nullable(),
   exposure: MoneySchema,
+  exposure_base: MoneySchema.nullable().optional().default(null),
   this_document: MoneySchema.optional().default("0"),
   available: MoneySchema.nullable().optional().default(null),
   posted_ar: MoneySchema.optional().default("0"),

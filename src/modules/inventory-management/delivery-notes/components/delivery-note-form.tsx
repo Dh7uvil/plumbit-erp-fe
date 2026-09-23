@@ -2,8 +2,9 @@
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
+import { useSalesInvoice } from "@/modules/erp/sales-invoices/queries";
 import { useSalesOrderDeliverableLines, useSalesOrders } from "@/modules/erp/sales-orders/queries";
 import { salesOrderDisplayNumber } from "@/modules/erp/sales-orders/schemas";
 import {
@@ -21,6 +23,7 @@ import {
 } from "@/modules/inventory-management/delivery-notes/mutations";
 import {
   DeliveryNoteFormSchema,
+  DeliveryNoteInvoiceEditFormSchema,
   emptyDeliveryNoteLine,
   isBlankDeliveryNoteLine,
   type DeliveryNote,
@@ -37,7 +40,9 @@ import { branchPermissions } from "@/modules/users-management/branches/permissio
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MasterSelect } from "@/shared/components/form/master-select";
+import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
 import {
   Form,
@@ -73,14 +78,28 @@ function optionalUuid(value: string): string | null {
   return !value || value === OPTIONAL_SELECT_NONE ? null : value;
 }
 
-function toLineInput(line: DeliveryNoteFormValues["lines"][number]): DeliveryNoteLineInput {
-  return {
-    sales_order_line_id: line.sales_order_line_id,
+function toLineInput(
+  line: DeliveryNoteFormValues["lines"][number],
+  invoiceOnly: boolean,
+): DeliveryNoteLineInput {
+  const base = {
     product_id: optionalUuid(line.product_id),
     description: emptyToNull(line.description),
     quantity: line.quantity,
     unit_id: optionalUuid(line.unit_id),
     rate: emptyToNull(line.rate) ?? "0",
+  };
+  if (invoiceOnly) {
+    return {
+      ...base,
+      sales_order_line_id: null,
+      source_sales_invoice_line_id: line.source_sales_invoice_line_id,
+    };
+  }
+  return {
+    ...base,
+    sales_order_line_id: line.sales_order_line_id,
+    source_sales_invoice_line_id: null,
   };
 }
 
@@ -103,7 +122,8 @@ function toFormValues(
       lines.length === 0
         ? [emptyDeliveryNoteLine()]
         : lines.map((line) => ({
-            sales_order_line_id: line.sales_order_line_id,
+            sales_order_line_id: line.sales_order_line_id ?? "",
+            source_sales_invoice_line_id: line.source_sales_invoice_line_id ?? "",
             product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
             description: line.description,
             quantity: line.quantity,
@@ -134,11 +154,20 @@ export function DeliveryNoteForm({
   const [creating, setCreating] = useState<"warehouse" | "branch" | null>(null);
   const [writeError, setWriteError] = useState<unknown>(null);
   const isEdit = Boolean(note);
+  const invoiceOnly = Boolean(note?.source_sales_invoice_id && !note?.sales_order_id);
   const { baseCurrencyId } = useBaseCurrency();
+  const formSchema = invoiceOnly ? DeliveryNoteInvoiceEditFormSchema : DeliveryNoteFormSchema;
   const form = useForm<DeliveryNoteFormValues>({
-    resolver: zodResolver(DeliveryNoteFormSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: toFormValues(note, baseCurrencyId),
   });
+  const invoiceQuery = useSalesInvoice(
+    invoiceOnly ? (note?.source_sales_invoice_id ?? null) : null,
+  );
+  const invoiceLineById = useMemo(
+    () => new Map((invoiceQuery.data?.lines ?? []).map((line) => [line.id, line])),
+    [invoiceQuery.data?.lines],
+  );
   const pending = createNote.isPending || updateNote.isPending;
   useDirtyFormGuard(!disabled && form.formState.isDirty);
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
@@ -155,7 +184,7 @@ export function DeliveryNoteForm({
   }, [form, note]);
 
   useEffect(() => {
-    if (note || !deliverableQuery.data) {
+    if (invoiceOnly || note || !deliverableQuery.data) {
       return;
     }
     const outstanding = deliverableQuery.data.filter((line) => Number(line.outstanding) > 0);
@@ -165,6 +194,7 @@ export function DeliveryNoteForm({
         ? [emptyDeliveryNoteLine()]
         : outstanding.map((line) => ({
             sales_order_line_id: line.sales_order_line_id,
+            source_sales_invoice_line_id: "",
             product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
             description: line.description,
             quantity: line.outstanding,
@@ -173,10 +203,38 @@ export function DeliveryNoteForm({
             rate: line.rate,
           })),
     );
-  }, [deliverableQuery.data, form, note]);
+  }, [deliverableQuery.data, form, invoiceOnly, note]);
+
+  useEffect(() => {
+    if (!invoiceOnly || !note || !invoiceQuery.data) {
+      return;
+    }
+    form.setValue(
+      "lines",
+      note.lines.map((line) => {
+        const sourceLineId = line.source_sales_invoice_line_id ?? "";
+        const invoiceLine = sourceLineId ? invoiceLineById.get(sourceLineId) : undefined;
+        const outstanding = invoiceLine
+          ? String(Math.max(Number(invoiceLine.quantity) - Number(invoiceLine.qty_delivered), 0))
+          : line.quantity;
+        return {
+          sales_order_line_id: "",
+          source_sales_invoice_line_id: sourceLineId,
+          product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
+          description: line.description,
+          quantity: line.quantity,
+          outstanding,
+          unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
+          rate: line.rate,
+        };
+      }),
+    );
+  }, [form, invoiceLineById, invoiceOnly, invoiceQuery.data, note]);
 
   async function onSubmit(values: DeliveryNoteFormValues) {
-    const lines = values.lines.filter((line) => !isBlankDeliveryNoteLine(line)).map(toLineInput);
+    const lines = values.lines
+      .filter((line) => !isBlankDeliveryNoteLine(line))
+      .map((line) => toLineInput(line, invoiceOnly));
     const payload = {
       warehouse_id: optionalUuid(values.warehouse_id),
       document_date: values.document_date,
@@ -225,28 +283,45 @@ export function DeliveryNoteForm({
     <Form {...form}>
       <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
         <StockWriteAlert error={writeError} />
+        {invoiceOnly && note?.source_sales_invoice_id ? (
+          <Alert>
+            <AlertDescription>
+              Created from{" "}
+              <Link
+                href={`/sales-invoices/${note.source_sales_invoice_id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                sales invoice
+              </Link>
+              . Line products and descriptions follow the invoice; adjust quantities and delivery
+              details below.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="sales_order_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Sales order</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={disabled || Boolean(note)}
-                  placeholder="Select sales order"
-                  searchPlaceholder="Search sales order…"
-                  options={salesOrders.map((order) => ({
-                    value: order.id,
-                    label: salesOrderDisplayNumber(order) ?? order.id,
-                  }))}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {invoiceOnly ? null : (
+            <FormField
+              control={form.control}
+              name="sales_order_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sales order</FormLabel>
+                  <MasterSelect
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={disabled || Boolean(note)}
+                    placeholder="Select sales order"
+                    searchPlaceholder="Search sales order…"
+                    options={salesOrders.map((order) => ({
+                      value: order.id,
+                      label: salesOrderDisplayNumber(order) ?? order.id,
+                    }))}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="warehouse_id"
@@ -257,14 +332,17 @@ export function DeliveryNoteForm({
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={disabled}
-                  placeholder="Use sales order warehouse"
+                  placeholder={invoiceOnly ? "Select warehouse" : "Use sales order warehouse"}
                   searchPlaceholder="Search warehouse…"
                   createLabel="Create warehouse"
                   onCreate={
                     can(warehousePermissions.create) ? () => setCreating("warehouse") : undefined
                   }
                   options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "Use sales order warehouse" },
+                    {
+                      value: OPTIONAL_SELECT_NONE,
+                      label: invoiceOnly ? "Select warehouse" : "Use sales order warehouse",
+                    },
                     ...warehouses.map((warehouse) => ({
                       value: warehouse.id,
                       label: `${warehouse.code} — ${warehouse.name}`,
@@ -324,10 +402,13 @@ export function DeliveryNoteForm({
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={disabled}
-                  placeholder="Use sales order currency"
+                  placeholder={invoiceOnly ? "Select currency" : "Use sales order currency"}
                   searchPlaceholder="Search currency…"
                   options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "Use sales order currency" },
+                    {
+                      value: OPTIONAL_SELECT_NONE,
+                      label: invoiceOnly ? "Select currency" : "Use sales order currency",
+                    },
                     ...currencies.map((currency) => ({
                       value: currency.id,
                       label: `${currency.code} — ${currency.name}`,
@@ -391,7 +472,7 @@ export function DeliveryNoteForm({
             </FormItem>
           )}
         />
-        <div className="overflow-x-auto">
+        <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
           <table className="w-max min-w-full text-sm">
             <TableHeader>
               <TableRow>
@@ -450,7 +531,7 @@ export function DeliveryNoteForm({
               ))}
             </TableBody>
           </table>
-        </div>
+        </DocumentViewTableContainer>
         {disabled ? null : (
           <div className="flex justify-end">
             <Button type="submit" disabled={pending}>

@@ -70,7 +70,7 @@ export function DocumentHistoryTable<T>({
   const colSpan = columns.length + (expandEnabled ? 1 : 0);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
       {toolbar}
       <DataTable
         variant="embedded"

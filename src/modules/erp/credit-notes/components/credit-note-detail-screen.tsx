@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { CreditNoteForm } from "@/modules/erp/credit-notes/components/credit-note-form";
+import { CreditNoteRefundDialog } from "@/modules/erp/credit-notes/components/credit-note-refund-dialog";
 import { useCreditNoteWorkflow } from "@/modules/erp/credit-notes/hooks/use-credit-note-workflow";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { useCreditNote } from "@/modules/erp/credit-notes/queries";
@@ -96,6 +97,7 @@ function CreditNoteDetailLoaded({
   const number = creditNoteDisplayNumber(note);
   const onAction = useCreditNoteWorkflow(note);
   const [writeError, setWriteError] = useState<unknown>(null);
+  const [refundOpen, setRefundOpen] = useState(false);
 
   return (
     <DocumentRecordShell
@@ -136,6 +138,10 @@ function CreditNoteDetailLoaded({
           }}
           onAction={async (action, extras) => {
             setWriteError(null);
+            if (action === "refund") {
+              setRefundOpen(true);
+              return;
+            }
             await onAction(action, extras);
           }}
         />
@@ -184,6 +190,7 @@ function CreditNoteDetailLoaded({
           <DocumentLedgerCard
             journalEntryId={note.journal_entry_id}
             reversalJournalEntryId={note.reversal_journal_entry_id}
+            refundJournalEntryId={note.refund_journal_entry_id}
           />
         </>
       }
@@ -196,6 +203,7 @@ function CreditNoteDetailLoaded({
       }
     >
       <CreditNoteForm note={note} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
+      <CreditNoteRefundDialog note={note} open={refundOpen} onOpenChange={setRefundOpen} />
     </DocumentRecordShell>
   );
 }

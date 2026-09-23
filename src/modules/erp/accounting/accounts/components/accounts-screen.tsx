@@ -44,7 +44,7 @@ import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
-import { ListPage } from "@/shared/components/layout/list-page";
+import { ListPage, ListPageContent } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { TreeView, type TreeViewNode } from "@/shared/components/ui/tree-view";
 import { Badge } from "@/shared/components/ui/badge";
@@ -248,25 +248,27 @@ export function AccountsScreen() {
           ) : undefined
         }
       />
-      <Tabs
-        value={view}
-        onValueChange={(value) =>
-          setParams({
-            filters: {
-              view: value === VIEW_LIST || value === VIEW_SYSTEM ? value : null,
-            },
-          })
-        }
-      >
-        <DataTableToolbar>
-          <TabsList>
-            <TabsTrigger value={VIEW_TREE}>Tree</TabsTrigger>
-            <TabsTrigger value={VIEW_LIST}>List</TabsTrigger>
-            <TabsTrigger value={VIEW_SYSTEM}>System accounts</TabsTrigger>
-          </TabsList>
-          {view === VIEW_LIST ? (
-            <>
-              <ListSearch
+      <ListPageContent>
+        <Tabs
+          value={view}
+          className="flex w-full flex-col gap-5"
+          onValueChange={(value) =>
+            setParams({
+              filters: {
+                view: value === VIEW_LIST || value === VIEW_SYSTEM ? value : null,
+              },
+            })
+          }
+        >
+          <DataTableToolbar className="shrink-0">
+            <TabsList>
+              <TabsTrigger value={VIEW_TREE}>Tree</TabsTrigger>
+              <TabsTrigger value={VIEW_LIST}>List</TabsTrigger>
+              <TabsTrigger value={VIEW_SYSTEM}>System accounts</TabsTrigger>
+            </TabsList>
+            {view === VIEW_LIST ? (
+              <>
+                <ListSearch
                 value={search ?? ""}
                 onChange={(value) => setParams({ search: value || null })}
                 placeholder="Search code, name, description…"
@@ -308,10 +310,10 @@ export function AccountsScreen() {
                 onApply={setParams}
               />
               {columnsDialog}
-            </>
-          ) : null}
-        </DataTableToolbar>
-        <TabsContent value={VIEW_TREE}>
+              </>
+            ) : null}
+          </DataTableToolbar>
+          <TabsContent value={VIEW_TREE} className="mt-0">
           {treeQuery.isLoading ? <Skeleton className="h-64 w-full" /> : null}
           {treeQuery.isError ? (
             <DataTableError
@@ -335,9 +337,9 @@ export function AccountsScreen() {
               </CardContent>
             </Card>
           ) : null}
-        </TabsContent>
-        <TabsContent value={VIEW_LIST}>
-          <DataTable
+          </TabsContent>
+          <TabsContent value={VIEW_LIST} className="mt-0">
+            <DataTable
             footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}
           >
             <TableHeader>
@@ -385,12 +387,13 @@ export function AccountsScreen() {
                 ))
               )}
             </TableBody>
-          </DataTable>
-        </TabsContent>
-        <TabsContent value={VIEW_SYSTEM}>
-          <SystemAccountsCard />
-        </TabsContent>
-      </Tabs>
+            </DataTable>
+          </TabsContent>
+          <TabsContent value={VIEW_SYSTEM} className="mt-0">
+            <SystemAccountsCard />
+          </TabsContent>
+        </Tabs>
+      </ListPageContent>
       <AccountFormDialog open={formOpen} account={null} onOpenChange={setFormOpen} />
       <ConfirmActionDialog
         open={Boolean(deleting)}

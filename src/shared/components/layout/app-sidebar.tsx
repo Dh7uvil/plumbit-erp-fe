@@ -19,6 +19,12 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
 import { FOCUS_SIDEBAR_SEARCH_EVENT } from "@/shared/lib/keyboard-shortcuts";
 import { cn } from "@/shared/lib/cn";
 import { useSession } from "@/shared/providers/session-provider";
@@ -69,19 +75,24 @@ function SidebarSearch({
   if (collapsed) {
     return (
       <div className="flex justify-center px-1 py-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="text-muted-foreground"
-          onClick={() => {
-            setShouldFocus(true);
-            onExpand?.();
-          }}
-          aria-label="Search pages"
-        >
-          <Search className="size-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground"
+              onClick={() => {
+                setShouldFocus(true);
+                onExpand?.();
+              }}
+              aria-label="Search pages"
+            >
+              <Search className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Search pages</TooltipContent>
+        </Tooltip>
       </div>
     );
   }
@@ -157,6 +168,41 @@ function SidebarNav({
     });
   }
 
+  function renderNavLink(item: NavigationGroup["items"][number], isActive: boolean) {
+    const Icon = item.icon;
+    const link = (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onNavigate}
+        className={cn(
+          "focus-visible:ring-sidebar-ring relative flex w-full items-center gap-2 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+          collapsed ? "justify-center px-0" : "px-3",
+          isActive
+            ? "bg-sidebar-accent text-sidebar-primary font-medium"
+            : "text-sidebar-foreground/75 hover:bg-muted/60 hover:text-sidebar-foreground",
+        )}
+      >
+        {isActive ? (
+          <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-full" />
+        ) : null}
+        <Icon size={15} className={isActive ? "text-primary" : "text-muted-foreground"} />
+        {!collapsed ? <span className="truncate text-sm">{item.label}</span> : null}
+      </Link>
+    );
+
+    if (!collapsed) {
+      return link;
+    }
+
+    return (
+      <Tooltip key={item.href}>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">{item.label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
   return (
     <nav
       className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain py-2"
@@ -196,34 +242,9 @@ function SidebarNav({
               <div className="border-sidebar-border mx-2 my-1 border-t" />
             )}
             {isOpen
-              ? group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = active?.item.href === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      title={collapsed ? item.label : undefined}
-                      onClick={onNavigate}
-                      className={cn(
-                        "focus-visible:ring-sidebar-ring relative flex w-full items-center gap-2 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                        collapsed ? "justify-center px-0" : "px-3",
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-primary font-medium"
-                          : "text-sidebar-foreground/75 hover:bg-muted/60 hover:text-sidebar-foreground",
-                      )}
-                    >
-                      {isActive ? (
-                        <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-full" />
-                      ) : null}
-                      <Icon
-                        size={15}
-                        className={isActive ? "text-primary" : "text-muted-foreground"}
-                      />
-                      {!collapsed ? <span className="truncate text-sm">{item.label}</span> : null}
-                    </Link>
-                  );
-                })
+              ? group.items.map((item) =>
+                  renderNavLink(item, active?.item.href === item.href),
+                )
               : null}
           </div>
         );
@@ -258,6 +279,7 @@ function SidebarChrome({
   }
 
   return (
+    <TooltipProvider delayDuration={0}>
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div
         className={cn(
@@ -283,19 +305,26 @@ function SidebarChrome({
           </>
         )}
         {onToggle ? (
-          <button
-            type="button"
-            onClick={onToggle}
-            className={cn(
-              "text-muted-foreground hover:bg-muted cursor-pointer rounded p-1 transition-colors",
-              collapsed
-                ? "bg-sidebar hover:text-foreground absolute top-1/2 right-0.5 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border shadow-xs"
-                : "ml-auto",
-            )}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={14} />}
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={onToggle}
+                className={cn(
+                  "text-muted-foreground hover:bg-muted cursor-pointer rounded p-1 transition-colors",
+                  collapsed
+                    ? "bg-sidebar hover:text-foreground absolute top-1/2 right-0.5 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border shadow-xs"
+                    : "ml-auto",
+                )}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={14} />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </TooltipContent>
+          </Tooltip>
         ) : null}
         {onClose && !onToggle ? (
           <button
@@ -331,6 +360,7 @@ function SidebarChrome({
         }}
       />
     </div>
+    </TooltipProvider>
   );
 }
 

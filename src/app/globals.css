@@ -9,7 +9,66 @@
   Radius: --radius 0.5rem; shadows: --shadow-xs / --shadow-sm / --shadow-md.
 */
 
+[data-document-view-table] th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--card);
+}
+
+.document-view-table-outer {
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid var(--border);
+}
+
+.document-view-table-outer--view {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.document-view-table-outer--view-fixed {
+  height: calc(
+    var(--document-view-table-header-height) + var(--document-view-table-row-height) * 10
+  );
+}
+
+.document-view-table-outer--view-max {
+  max-height: calc(
+    var(--document-view-table-header-height) + var(--document-view-table-row-height) * 10
+  );
+}
+
+.document-view-table-inner-x {
+  overflow-x: auto;
+}
+
+.document-view-table-outer--edit {
+  overflow-x: auto;
+}
+
+.list-table-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.list-table-scroll {
+  max-height: calc(100svh - 17rem);
+  min-height: 12rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.list-table-panel .list-table-scroll {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+}
+
+
 :root {
+  --document-view-table-header-height: 2.75rem;
+  --document-view-table-row-height: 6.5rem;
   --font-size: 16px;
   --font-weight-medium: 500;
   --font-weight-normal: 400;

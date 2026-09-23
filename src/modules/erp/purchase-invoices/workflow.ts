@@ -2,6 +2,7 @@ import { writeOffPermissions } from "@/modules/erp/accounting/write-offs/permiss
 import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
+import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
@@ -12,6 +13,7 @@ export const PURCHASE_INVOICE_WORKFLOW_ACTIONS = [
   "pay_bill",
   "apply_debits",
   "create_debit_note",
+  "create_goods_receipt",
   "create_landed_cost",
   "write_off",
 ] as const;
@@ -40,6 +42,12 @@ export const PURCHASE_INVOICE_ACTION_REGISTRY: DocumentActionSpec<PurchaseInvoic
       action: "create_debit_note",
       label: "Create debit note",
       permission: debitNotePermissions.create,
+      variant: "outline",
+    },
+    {
+      action: "create_goods_receipt",
+      label: "Create goods receipt",
+      permission: goodsReceiptPermissions.create,
       variant: "outline",
     },
     {

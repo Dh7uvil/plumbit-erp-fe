@@ -140,7 +140,7 @@ export function ImportWizardDialog({
             />
           </div>
           {preview ? (
-            <div className="overflow-x-auto rounded-md border">
+            <div className="list-table-scroll rounded-md border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">

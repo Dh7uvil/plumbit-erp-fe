@@ -11,7 +11,6 @@ import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sa
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
 import { SalesOrderTrackerCard } from "@/modules/erp/sales-orders/components/sales-order-tracker-card";
 import { useSalesOrderWorkflow } from "@/modules/erp/sales-orders/hooks/use-sales-order-workflow";
-import { salesOrderHasRemainingToInvoice } from "@/modules/erp/sales-orders/remaining";
 import { useConfirmSalesOrder } from "@/modules/erp/sales-orders/mutations";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useSalesOrder } from "@/modules/erp/sales-orders/queries";
@@ -41,7 +40,6 @@ import {
 } from "@/shared/components/document/document-workflow-buttons";
 import { QuantityProgressStrip } from "@/shared/components/document/quantity-progress-strip";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { isApiError } from "@/shared/api/errors";
 import { formatDate, formatDateTime } from "@/shared/lib/format";
@@ -120,15 +118,7 @@ function SalesOrderDetailLoaded({
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [proformaOpen, setProformaOpen] = useState(false);
   const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
-  const canCreateInvoice =
-    (salesOrder.status === "CONFIRMED" || salesOrder.status === "CLOSED") &&
-    salesOrderHasRemainingToInvoice(salesOrder);
-  const workflowActions = appendMissingActions(
-    salesOrder.available_actions.filter(
-      (action) => action !== "create_sales_invoice" || canCreateInvoice,
-    ),
-    canCreateInvoice ? ["create_sales_invoice"] : [],
-  );
+  const workflowActions = salesOrder.available_actions;
 
   async function handleAction(action: SalesOrderWorkflowAction, extras: DocumentWorkflowExtras) {
     if (action === "create_proforma") {
@@ -137,6 +127,12 @@ function SalesOrderDetailLoaded({
     }
     if (action === "create_sales_invoice") {
       setInvoiceOpen(true);
+      return;
+    }
+    if (action === "record_advance") {
+      router.push(
+        `/customer-payments/new?customer_id=${salesOrder.customer_id}&sales_order_id=${salesOrder.id}`,
+      );
       return;
     }
     await onAction(action, extras);

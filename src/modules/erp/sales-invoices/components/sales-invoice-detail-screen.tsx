@@ -11,6 +11,7 @@ import {
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
 import { CreateCreditNoteDialog } from "@/modules/erp/credit-notes/components/create-from-source-dialog";
+import { CreateDeliveryNoteFromSalesInvoiceDialog } from "@/modules/inventory-management/delivery-notes/components/create-from-sales-invoice-dialog";
 import { InvoiceCreditNotesCard } from "@/modules/erp/credit-notes/components/invoice-credit-notes-card";
 import { useSendPaymentReminder } from "@/modules/erp/accounting/dunning-rules/mutations";
 import { ApplyCreditsDialog } from "@/modules/erp/sales-invoices/components/apply-credits-dialog";
@@ -42,12 +43,11 @@ import { DocumentSettlementCard } from "@/shared/components/document/document-se
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { isApiError } from "@/shared/api/errors";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
-import { formatDate, multiplyDecimals } from "@/shared/lib/format";
+import { formatDate, proportionDecimal } from "@/shared/lib/format";
 import { toast } from "sonner";
 
 export function SalesInvoiceDetailScreen({
@@ -124,6 +124,7 @@ function SalesInvoiceDetailLoaded({
   const [writeError, setWriteError] = useState<unknown>(null);
   const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
   const [creditOpen, setCreditOpen] = useState(false);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
   const [applyCreditsOpen, setApplyCreditsOpen] = useState(false);
   const [writeOffOpen, setWriteOffOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
@@ -132,14 +133,11 @@ function SalesInvoiceDetailLoaded({
     currenciesQuery.data?.find((currency) => currency.id === invoice.currency_id)?.code ?? "";
   const baseBalanceDue =
     baseCurrencyId && invoice.currency_id !== baseCurrencyId
-      ? multiplyDecimals(invoice.balance_due, invoice.exchange_rate)
+      ? proportionDecimal(invoice.balance_due, invoice.grand_total, invoice.base_amount)
       : null;
   const missingExportEvidence =
     invoice.is_export && invoice.status === "POSTED" && !invoice.export_evidence_ok;
-  const workflowActions = appendMissingActions(
-    invoice.available_actions,
-    invoice.status === "POSTED" ? ["create_credit_note"] : [],
-  );
+  const workflowActions = invoice.available_actions;
 
   return (
     <DocumentRecordShell
@@ -229,6 +227,10 @@ function SalesInvoiceDetailLoaded({
             }
             if (action === "create_credit_note") {
               setCreditOpen(true);
+              return;
+            }
+            if (action === "create_delivery_note") {
+              setDeliveryOpen(true);
               return;
             }
             if (action === "write_off") {
@@ -355,6 +357,11 @@ function SalesInvoiceDetailLoaded({
       <CreateCreditNoteDialog
         open={creditOpen}
         onOpenChange={setCreditOpen}
+        salesInvoiceId={invoice.id}
+      />
+      <CreateDeliveryNoteFromSalesInvoiceDialog
+        open={deliveryOpen}
+        onOpenChange={setDeliveryOpen}
         salesInvoiceId={invoice.id}
       />
       <ApplyCreditsDialog

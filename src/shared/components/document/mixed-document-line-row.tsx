@@ -34,6 +34,11 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { TableCell, TableRow } from "@/shared/components/ui/table";
+import {
+  formatFixedDecimal,
+  multiplyDecimals,
+  subtractDecimals,
+} from "@/shared/lib/format";
 
 function linePath<TFieldValues extends FieldValues>(
   index: number,
@@ -65,24 +70,30 @@ function LineAmountPreview({ form, index }: { form: UseFormReturn<FieldValues>; 
     control: form.control,
     name: linePath(index, "discount_value"),
   });
-  const qty = Number(quantity ?? "");
-  const unitRate = Number(rate ?? "");
-  if (!Number.isFinite(qty) || !Number.isFinite(unitRate) || String(rate ?? "").trim() === "") {
+  const qty = String(quantity ?? "").trim();
+  const unitRate = String(rate ?? "").trim();
+  if (!qty || !unitRate) {
     return <span className="block min-h-9 py-2 text-right text-sm">—</span>;
   }
-  let net = qty * unitRate;
+  const lineTotal = multiplyDecimals(qty, unitRate);
+  if (!lineTotal) {
+    return <span className="block min-h-9 py-2 text-right text-sm">—</span>;
+  }
+  let net = lineTotal;
   const type = discountType && discountType !== OPTIONAL_SELECT_NONE ? String(discountType) : "";
-  const disc = Number(discountValue ?? "");
-  if (Number.isFinite(disc) && disc !== 0) {
+  const disc = String(discountValue ?? "").trim();
+  if (disc) {
     if (type === "PERCENTAGE") {
-      net -= net * (disc / 100);
+      const pct = multiplyDecimals(disc, "0.01");
+      const discountAmount = pct ? multiplyDecimals(lineTotal, pct) : null;
+      net = discountAmount ? (subtractDecimals(lineTotal, discountAmount) ?? lineTotal) : lineTotal;
     } else if (type === "AMOUNT") {
-      net -= disc;
+      net = subtractDecimals(lineTotal, disc) ?? lineTotal;
     }
   }
   return (
     <span className="block min-h-9 py-2 text-right text-sm tabular-nums">
-      {Number.isFinite(net) ? net.toFixed(2) : "—"}
+      {formatFixedDecimal(net, 2)}
     </span>
   );
 }

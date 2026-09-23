@@ -56,6 +56,7 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { DocumentChargesPanel } from "@/shared/components/document/document-charges-panel";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { BaseEquivalentPreview } from "@/shared/components/money";
 import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
@@ -273,7 +274,7 @@ export function PurchaseInvoiceForm({
   >(null);
   const dirtyCompose = useRef(new Set<"currency_id" | "payment_terms_id">());
   const isEdit = Boolean(invoice);
-  const { baseCurrencyId } = useBaseCurrency();
+  const { baseCurrencyId, baseCurrencyCode } = useBaseCurrency();
   const sourced = Boolean(
     invoice?.lines.some((line) => line.goods_receipt_line_id || line.purchase_order_line_id),
   );
@@ -738,7 +739,18 @@ export function PurchaseInvoiceForm({
             appliesTo={billType === "IMPORT" ? "IMPORT" : "BOTH"}
           />
         ) : null}
-        {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
+        {invoice ? (
+          <div className="flex flex-col gap-2">
+            <DocumentTotalsPanel totals={invoice} currencies={currencies} />
+            <BaseEquivalentPreview
+              amount={invoice.grand_total}
+              currencyId={invoice.currency_id}
+              baseCurrencyId={baseCurrencyId}
+              baseCurrencyCode={baseCurrencyCode}
+              documentDate={invoice.invoice_date}
+            />
+          </div>
+        ) : null}
         <FormField
           control={form.control}
           name="notes"
