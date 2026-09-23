@@ -18,6 +18,9 @@ export function ReportShell({
   csvDisabled = false,
   onDownloadExcel,
   excelPending = false,
+  onDownloadPdf,
+  pdfPending = false,
+  queueMessage,
   isBalanced,
   imbalanceMessage = "This report does not balance. Totals come from the server — do not post until the ledger is investigated.",
   children,
@@ -30,18 +33,25 @@ export function ReportShell({
   csvDisabled?: boolean;
   onDownloadExcel?: () => void;
   excelPending?: boolean;
+  onDownloadPdf?: () => void;
+  pdfPending?: boolean;
+  queueMessage?: string | null;
   isBalanced?: boolean;
   imbalanceMessage?: string;
   children: ReactNode;
 }) {
+  const showDownloads = Boolean(onDownloadCsv || onDownloadExcel || onDownloadPdf);
   return (
     <ListPage>
       <PageHeader
         title={title}
         subtitle={subtitle}
         actions={
-          onDownloadCsv || onDownloadExcel ? (
-            <div className="flex flex-wrap gap-2 print:hidden">
+          showDownloads ? (
+            <div className="flex flex-wrap items-center gap-2 print:hidden">
+              {queueMessage ? (
+                <span className="text-muted-foreground text-sm">{queueMessage}</span>
+              ) : null}
               <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
                 <Printer className="size-4" />
                 Print
@@ -68,6 +78,18 @@ export function ReportShell({
                 >
                   <Download className="size-4" />
                   Excel
+                </Button>
+              ) : null}
+              {onDownloadPdf ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onDownloadPdf}
+                  disabled={csvDisabled || pdfPending}
+                >
+                  <Download className="size-4" />
+                  PDF
                 </Button>
               ) : null}
             </div>

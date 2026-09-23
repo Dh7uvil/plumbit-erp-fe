@@ -341,6 +341,7 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   bank_payment_voucher: (id) => `/vouchers/${id}`,
   contra_voucher: (id) => `/vouchers/${id}`,
   voucher_allocation: (id) => `/vouchers/${id}`,
+  fx_revaluation: (id) => `/fx-revaluation/${id}`,
 };
 
 export function sourceDocumentHref(
@@ -490,6 +491,13 @@ export const PurchaseSuggestionSchema = z.object({
 });
 export type PurchaseSuggestion = z.infer<typeof PurchaseSuggestionSchema>;
 
+export const PeriodAmountSchema = z.object({
+  label: z.string(),
+  from_date: z.string(),
+  to_date: z.string(),
+  amount: DecimalStringSchema,
+});
+
 export const ProfitAndLossLineSchema = z.object({
   account_id: z.string().uuid(),
   account_code: z.string(),
@@ -499,6 +507,12 @@ export const ProfitAndLossLineSchema = z.object({
   amount: DecimalStringSchema,
   comparative_amount: z.string().nullable().optional().default(null),
   ytd_amount: z.string().nullable().optional().default(null),
+  budget_amount: z.string().nullable().optional().default(null),
+  variance_amount: z.string().nullable().optional().default(null),
+  group_label: z.string().nullable().optional().default(null),
+  source_type: z.string().nullable().optional().default(null),
+  source_id: z.string().uuid().nullable().optional().default(null),
+  periods: z.array(PeriodAmountSchema).optional().default([]),
 });
 export type ProfitAndLossLine = z.infer<typeof ProfitAndLossLineSchema>;
 
@@ -519,9 +533,39 @@ export const ProfitAndLossSchema = z.object({
   comparative_net_profit: z.string().nullable().optional().default(null),
   ytd_gross_profit: z.string().nullable().optional().default(null),
   ytd_net_profit: z.string().nullable().optional().default(null),
+  period_count: z.number().optional().default(1),
+  budget_id: z.string().uuid().nullable().optional().default(null),
   lines: z.array(ProfitAndLossLineSchema).optional().default([]),
 });
 export type ProfitAndLoss = z.infer<typeof ProfitAndLossSchema>;
+
+export const CostCenterProfitSectionSchema = z.object({
+  cost_center_id: z.string().uuid().nullable().optional().default(null),
+  cost_center_code: z.string(),
+  cost_center_name: z.string(),
+  total_income: DecimalStringSchema,
+  total_expense: DecimalStringSchema,
+  net_profit: DecimalStringSchema,
+  lines: z.array(ProfitAndLossLineSchema).optional().default([]),
+});
+
+export const CostCenterProfitAndLossSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
+  from_date: z.string(),
+  to_date: z.string(),
+  sections: z.array(CostCenterProfitSectionSchema).optional().default([]),
+});
+export type CostCenterProfitAndLoss = z.infer<typeof CostCenterProfitAndLossSchema>;
+
+export const ReportExportJobSchema = z.object({
+  id: z.string().uuid(),
+  report_key: z.string(),
+  export_format: z.string(),
+  status: z.string(),
+  filename: z.string().nullable().optional().default(null),
+  error: z.string().nullable().optional().default(null),
+});
+export type ReportExportJob = z.infer<typeof ReportExportJobSchema>;
 
 export const BalanceSheetLineSchema = z.object({
   account_id: z.string().uuid().nullable().optional().default(null),
@@ -531,6 +575,9 @@ export const BalanceSheetLineSchema = z.object({
   account_subtype: z.string(),
   amount: DecimalStringSchema,
   comparative_amount: z.string().nullable().optional().default(null),
+  group_label: z.string().nullable().optional().default(null),
+  source_type: z.string().nullable().optional().default(null),
+  source_id: z.string().uuid().nullable().optional().default(null),
 });
 export type BalanceSheetLine = z.infer<typeof BalanceSheetLineSchema>;
 
@@ -556,6 +603,8 @@ export const CashFlowLineSchema = z.object({
   amount: DecimalStringSchema,
   comparative_amount: z.string().nullable().optional().default(null),
   account_id: z.string().uuid().nullable().optional().default(null),
+  source_type: z.string().nullable().optional().default(null),
+  source_id: z.string().uuid().nullable().optional().default(null),
 });
 export type CashFlowLine = z.infer<typeof CashFlowLineSchema>;
 
@@ -651,6 +700,8 @@ export type ProfitAndLossParams = {
   branch_id?: string;
   cost_center_id?: string;
   include_ytd?: boolean;
+  period_count?: number;
+  budget_id?: string;
 };
 
 export type BalanceSheetParams = {

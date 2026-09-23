@@ -3,12 +3,14 @@ import {
   AgingSchema,
   BalanceSheetSchema,
   CashFlowSchema,
+  CostCenterProfitAndLossSchema,
   ExportEvidenceExceptionSchema,
   DayBookSchema,
   GeneralLedgerSchema,
   InvoicedNotDispatchedSchema,
   PartyStatementSchema,
   ProfitAndLossSchema,
+  ReportExportJobSchema,
   PurchaseSuggestionSchema,
   StockAgingSchema,
   StockMovementReportSchema,
@@ -31,6 +33,7 @@ import {
   type BalanceSheetParams,
   type CashFlow,
   type CashFlowParams,
+  type CostCenterProfitAndLoss,
   type CustomerStatementParams,
   type ExportEvidenceException,
   type ExportEvidenceExceptionParams,
@@ -44,6 +47,7 @@ import {
   type PartyStatement,
   type ProfitAndLoss,
   type ProfitAndLossParams,
+  type ReportExportJob,
   type PurchaseSuggestion,
   type PurchaseSuggestionParams,
   type StockAging,
@@ -223,6 +227,8 @@ export const reportsApi = {
           branch_id: params.branch_id,
           cost_center_id: params.cost_center_id,
           include_ytd: params.include_ytd,
+          period_count: params.period_count,
+          budget_id: params.budget_id,
         },
       }),
     ),
@@ -288,12 +294,34 @@ export const reportsApi = {
     ReceivedNotBilledSchema.parse(await apiClient.get("/reports/received-not-billed")),
   dashboard: async (): Promise<Dashboard> =>
     DashboardSchema.parse(await apiClient.get("/reports/dashboard")),
+  costCenterProfitAndLoss: async (params: ProfitAndLossParams): Promise<CostCenterProfitAndLoss> =>
+    CostCenterProfitAndLossSchema.parse(
+      await apiClient.get("/reports/cost-center-profit-and-loss", {
+        params: { from: params.from, to: params.to, branch_id: params.branch_id },
+      }),
+    ),
+  queueExport: async (payload: {
+    report: string;
+    export_format: "csv" | "xlsx" | "pdf";
+    params: Record<string, string>;
+  }): Promise<ReportExportJob> =>
+    ReportExportJobSchema.parse(await apiClient.post("/reports/exports", payload)),
+  getExport: async (id: string): Promise<ReportExportJob> =>
+    ReportExportJobSchema.parse(await apiClient.get(`/reports/exports/${id}`)),
+  downloadQueued: (id: string, filename: string): Promise<void> =>
+    apiClient.downloadFile(`/reports/exports/${id}/download`, { filename }),
   downloadCsv: (path: string, params: RequestParams, filename: string): Promise<void> =>
     apiClient.downloadCsv(path, { params, filename }),
   downloadExcel: (path: string, params: RequestParams, filename: string): Promise<void> =>
     apiClient.downloadFile(path, {
       params: { ...params, format: "xlsx" },
-      filename: filename.endsWith(".xls") ? filename : `${filename}.xls`,
-      accept: "application/vnd.ms-excel",
+      filename: filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`,
+      accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+  downloadPdf: (path: string, params: RequestParams, filename: string): Promise<void> =>
+    apiClient.downloadFile(path, {
+      params: { ...params, format: "pdf" },
+      filename: filename.endsWith(".pdf") ? filename : `${filename}.pdf`,
+      accept: "application/pdf",
     }),
 };

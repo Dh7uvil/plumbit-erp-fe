@@ -21,6 +21,9 @@ export function StatementReportFilters({
   costCenterId,
   showCostCenterFilter = false,
   includeYtd,
+  periodCount,
+  budgetId,
+  budgetOptions = [],
   onChange,
 }: {
   asOf?: string;
@@ -30,6 +33,9 @@ export function StatementReportFilters({
   costCenterId?: string;
   showCostCenterFilter?: boolean;
   includeYtd?: boolean;
+  periodCount?: string;
+  budgetId?: string;
+  budgetOptions?: Array<{ value: string; label: string }>;
   onChange: (patch: Record<string, string | null>) => void;
 }) {
   const can = useCan();
@@ -39,7 +45,15 @@ export function StatementReportFilters({
   );
   const branches = branchesQuery.data ?? [];
   const costCenters = costCentersQuery.data ?? [];
-  const hasFilters = Boolean(from || to || branchId || costCenterId || includeYtd);
+  const hasFilters = Boolean(
+    from ||
+    to ||
+    branchId ||
+    costCenterId ||
+    includeYtd ||
+    (periodCount && periodCount !== "1") ||
+    budgetId,
+  );
 
   return (
     <>
@@ -108,6 +122,33 @@ export function StatementReportFilters({
           </Label>
         </div>
       ) : null}
+      {periodCount !== undefined ? (
+        <FilterSelect
+          label="Periods"
+          className="w-36"
+          placeholder="Periods"
+          value={periodCount}
+          onValueChange={(value) => onChange({ period_count: value === "1" ? null : value })}
+          options={[
+            { value: "1", label: "Single period" },
+            { value: "2", label: "2 periods" },
+            { value: "3", label: "3 periods" },
+            { value: "4", label: "4 periods" },
+            { value: "6", label: "6 periods" },
+            { value: "12", label: "12 periods" },
+          ]}
+        />
+      ) : null}
+      {budgetOptions.length > 0 ? (
+        <FilterSelect
+          label="Budget"
+          className="w-48"
+          placeholder="Budget"
+          value={budgetId ?? ALL}
+          onValueChange={(value) => onChange({ budget_id: value === ALL ? null : value })}
+          options={[{ value: ALL, label: "No budget" }, ...budgetOptions]}
+        />
+      ) : null}
       {hasFilters ? (
         <Button
           type="button"
@@ -122,6 +163,8 @@ export function StatementReportFilters({
               branch_id: null,
               cost_center_id: null,
               include_ytd: null,
+              period_count: null,
+              budget_id: null,
             })
           }
         >

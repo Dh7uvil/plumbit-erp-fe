@@ -5,6 +5,8 @@ import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useProfitAndLoss } from "@/modules/erp/accounting/reports/queries";
 import { glHref, type ProfitAndLossLine } from "@/modules/erp/accounting/reports/schemas";
+import { useBudgets } from "@/modules/erp/accounting/budgets/queries";
+import { budgetPermissions } from "@/modules/erp/accounting/budgets/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -20,6 +22,7 @@ import {
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { formatReportMoney } from "@/shared/lib/format";
+import { useCan } from "@/shared/providers/session-provider";
 
 function SectionHeader({ label, columnCount }: { label: string; columnCount: number }) {
   return (
@@ -40,6 +43,7 @@ function LineRow({
   money,
   showComparative,
   showYtd,
+  showBudget,
 }: {
   line: ProfitAndLossLine;
   from: string;
@@ -49,6 +53,7 @@ function LineRow({
   money: (value: string | null | undefined) => string;
   showComparative: boolean;
   showYtd: boolean;
+  showBudget: boolean;
 }) {
   return (
     <TableRow>
@@ -64,15 +69,35 @@ function LineRow({
       </TableCell>
       <TableCell>{line.account_subtype || line.account_type}</TableCell>
       <TableCell>{money(line.amount)}</TableCell>
+      {line.periods.map((period) => (
+        <TableCell key={period.label}>{money(period.amount)}</TableCell>
+      ))}
       {showComparative ? (
         <TableCell>{line.comparative_amount ? money(line.comparative_amount) : "—"}</TableCell>
       ) : null}
       {showYtd ? <TableCell>{line.ytd_amount ? money(line.ytd_amount) : "—"}</TableCell> : null}
+      {showBudget ? (
+        <TableCell>{line.budget_amount ? money(line.budget_amount) : "—"}</TableCell>
+      ) : null}
+      {showBudget ? (
+        <TableCell>{line.variance_amount ? money(line.variance_amount) : "—"}</TableCell>
+      ) : null}
     </TableRow>
   );
 }
 
+function BlankCells({ count }: { count: number }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <TableCell key={index} />
+      ))}
+    </>
+  );
+}
+
 export function ProfitAndLossScreen() {
+  const can = useCan();
   const { filters, setParams } = useTableParams();
   const period = useReportPeriod();
   const from = filters.from ?? period.from;
@@ -80,21 +105,49 @@ export function ProfitAndLossScreen() {
   const includeYtd = filters.include_ytd === "true";
   const branchId = filters.branch_id;
   const costCenterId = filters.cost_center_id;
+  const periodCount = filters.period_count ?? "1";
+  const budgetId = filters.budget_id;
+  const budgetsQuery = useBudgets({ page: 1, page_size: 50 }, can(budgetPermissions.read));
+  const budgetOptions = (budgetsQuery.data?.data ?? [])
+    .filter((budget) => budget.status !== "DRAFT")
+    .map((budget) => ({ value: budget.id, label: budget.name }));
   const params = {
     from,
     to,
     branch_id: branchId,
     cost_center_id: costCenterId,
     include_ytd: includeYtd,
+    period_count: Number(periodCount) > 1 ? Number(periodCount) : undefined,
+    budget_id: budgetId,
   };
   const reportQuery = useProfitAndLoss(params);
   const report = reportQuery.data;
-  const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
+  const {
+    csvPending,
+    excelPending,
+    pdfPending,
+    queueMessage,
+    downloadCsv,
+    downloadExcel,
+    queueExport,
+  } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
   const showComparative = Boolean(report?.comparative_from);
   const showYtd = Boolean(report?.ytd_from);
-  const columnCount = 4 + Number(showComparative) + Number(showYtd);
+  const periodLabels = report?.lines.find((line) => line.periods.length > 0)?.periods ?? [];
+  const showBudget = Boolean(budgetId);
+  const columnCount =
+    4 + periodLabels.length + Number(showComparative) + Number(showYtd) + (showBudget ? 2 : 0);
+  const exportParams = {
+    from,
+    to,
+    ...(branchId ? { branch_id: branchId } : {}),
+    ...(costCenterId ? { cost_center_id: costCenterId } : {}),
+    ...(includeYtd ? { include_ytd: "true" } : {}),
+    ...(params.period_count ? { period_count: String(params.period_count) } : {}),
+    ...(budgetId ? { budget_id: budgetId } : {}),
+  };
   const incomeLines = (report?.lines ?? []).filter((line) => line.account_type === "INCOME");
   const cogsLines = (report?.lines ?? []).filter((line) => line.account_subtype === "COGS");
   const expenseLines = (report?.lines ?? []).filter(
@@ -107,11 +160,16 @@ export function ProfitAndLossScreen() {
       subtitle="Posted income and expense for the selected period. Totals come from the server."
       csvPending={csvPending}
       excelPending={excelPending}
+      pdfPending={pdfPending}
+      queueMessage={queueMessage}
       onDownloadCsv={() => {
         void downloadCsv("/reports/profit-and-loss", params, "profit-and-loss");
       }}
       onDownloadExcel={() => {
         void downloadExcel("/reports/profit-and-loss", params, "profit-and-loss");
+      }}
+      onDownloadPdf={() => {
+        void queueExport("profit-and-loss", "pdf", exportParams);
       }}
       toolbar={
         <StatementReportFilters
@@ -121,6 +179,9 @@ export function ProfitAndLossScreen() {
           costCenterId={costCenterId}
           showCostCenterFilter
           includeYtd={includeYtd}
+          periodCount={periodCount}
+          budgetId={budgetId}
+          budgetOptions={budgetOptions}
           onChange={(patch) => setParams({ filters: patch })}
         />
       }
@@ -132,6 +193,9 @@ export function ProfitAndLossScreen() {
             <TableHead>Account</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Amount</TableHead>
+            {periodLabels.map((periodColumn) => (
+              <TableHead key={periodColumn.label}>{periodColumn.label}</TableHead>
+            ))}
             {showComparative ? (
               <TableHead>
                 {report?.comparative_from && report?.comparative_to
@@ -140,6 +204,8 @@ export function ProfitAndLossScreen() {
               </TableHead>
             ) : null}
             {showYtd ? <TableHead>YTD</TableHead> : null}
+            {showBudget ? <TableHead>Budget</TableHead> : null}
+            {showBudget ? <TableHead>Variance</TableHead> : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -185,6 +251,7 @@ export function ProfitAndLossScreen() {
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}
+                  showBudget={showBudget}
                 />
               ))}
               <TableRow>
@@ -192,8 +259,11 @@ export function ProfitAndLossScreen() {
                   Total income
                 </TableCell>
                 <TableCell className="font-medium">{money(report.total_income)}</TableCell>
+                <BlankCells count={periodLabels.length} />
                 {showComparative ? <TableCell /> : null}
                 {showYtd ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
               </TableRow>
               {cogsLines.length > 0 ? (
                 <SectionHeader label="Cost of goods sold" columnCount={columnCount} />
@@ -209,6 +279,7 @@ export function ProfitAndLossScreen() {
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}
+                  showBudget={showBudget}
                 />
               ))}
               <TableRow>
@@ -216,14 +287,18 @@ export function ProfitAndLossScreen() {
                   Cost of goods sold
                 </TableCell>
                 <TableCell className="font-medium">{money(report.total_cogs)}</TableCell>
+                <BlankCells count={periodLabels.length} />
                 {showComparative ? <TableCell /> : null}
                 {showYtd ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
               </TableRow>
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Gross profit
                 </TableCell>
                 <TableCell className="font-medium">{money(report.gross_profit)}</TableCell>
+                <BlankCells count={periodLabels.length} />
                 {showComparative ? (
                   <TableCell className="font-medium">
                     {report.comparative_gross_profit ? money(report.comparative_gross_profit) : "—"}
@@ -234,6 +309,8 @@ export function ProfitAndLossScreen() {
                     {report.ytd_gross_profit ? money(report.ytd_gross_profit) : "—"}
                   </TableCell>
                 ) : null}
+                {showBudget ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
               </TableRow>
               {expenseLines.length > 0 ? (
                 <SectionHeader label="Operating expenses" columnCount={columnCount} />
@@ -249,6 +326,7 @@ export function ProfitAndLossScreen() {
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}
+                  showBudget={showBudget}
                 />
               ))}
               <TableRow>
@@ -258,22 +336,29 @@ export function ProfitAndLossScreen() {
                 <TableCell className="font-medium">
                   {money(report.total_operating_expense)}
                 </TableCell>
+                <BlankCells count={periodLabels.length} />
                 {showComparative ? <TableCell /> : null}
                 {showYtd ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
               </TableRow>
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Total expense
                 </TableCell>
                 <TableCell className="font-medium">{money(report.total_expense)}</TableCell>
+                <BlankCells count={periodLabels.length} />
                 {showComparative ? <TableCell /> : null}
                 {showYtd ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
               </TableRow>
               <TableRow>
                 <TableCell colSpan={3} className="font-medium">
                   Net profit
                 </TableCell>
                 <TableCell className="font-medium">{money(report.net_profit)}</TableCell>
+                <BlankCells count={periodLabels.length} />
                 {showComparative ? (
                   <TableCell className="font-medium">
                     {report.comparative_net_profit ? money(report.comparative_net_profit) : "—"}
@@ -284,6 +369,8 @@ export function ProfitAndLossScreen() {
                     {report.ytd_net_profit ? money(report.ytd_net_profit) : "—"}
                   </TableCell>
                 ) : null}
+                {showBudget ? <TableCell /> : null}
+                {showBudget ? <TableCell /> : null}
               </TableRow>
             </>
           )}

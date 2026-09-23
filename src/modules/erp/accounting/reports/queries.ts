@@ -54,6 +54,8 @@ export const reportKeys = {
     [...reportKeys.all, "purchase-suggestions", params] as const,
   profitAndLoss: (params: ProfitAndLossParams) =>
     [...reportKeys.all, "profit-and-loss", params] as const,
+  costCenterProfitAndLoss: (params: ProfitAndLossParams) =>
+    [...reportKeys.all, "cost-center-profit-and-loss", params] as const,
   balanceSheet: (params: BalanceSheetParams) =>
     [...reportKeys.all, "balance-sheet", params] as const,
   cashFlow: (params: CashFlowParams) => [...reportKeys.all, "cash-flow", params] as const,
@@ -225,6 +227,14 @@ export function useProfitAndLoss(params: ProfitAndLossParams | null) {
   return useQuery({
     queryKey: useTenantQueryKey(reportKeys.profitAndLoss(params ?? { from: "", to: "" })),
     queryFn: () => reportsApi.profitAndLoss(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useCostCenterProfitAndLoss(params: ProfitAndLossParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.costCenterProfitAndLoss(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.costCenterProfitAndLoss(params!),
     enabled: Boolean(params?.from && params.to),
   });
 }
