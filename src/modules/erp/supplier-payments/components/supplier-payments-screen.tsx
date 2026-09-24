@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { supplierPaymentColumnDefs } from "@/modules/erp/supplier-payments/components/supplier-payment-columns";
 import { useDeleteSupplierPayment } from "@/modules/erp/supplier-payments/mutations";
 import { supplierPaymentPermissions } from "@/modules/erp/supplier-payments/permissions";
@@ -98,6 +99,7 @@ export function SupplierPaymentsScreen() {
   });
   const suppliersQuery = useAllSuppliers();
   const currenciesQuery = useAllCurrencies();
+  const { baseCurrencyCode } = useBaseCurrency();
   const deletePayment = useDeleteSupplierPayment();
   const [deleting, setDeleting] = useState<SupplierPayment | null>(null);
   const deleteSpec = getDocumentAction(SUPPLIER_PAYMENT_ACTION_REGISTRY, "delete");
@@ -135,6 +137,7 @@ export function SupplierPaymentsScreen() {
       supplierPaymentColumnDefs({
         supplierNameById,
         currencyCodeById,
+        baseCurrencyCode,
         userNameById,
         actions: showActions
           ? (payment) => {

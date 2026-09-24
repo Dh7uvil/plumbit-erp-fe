@@ -20,17 +20,20 @@ import {
 } from "@/shared/components/data-table/columns";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { MoneyWithBase } from "@/shared/components/money";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
 export function supplierPaymentColumnDefs({
   supplierNameById,
   currencyCodeById,
+  baseCurrencyCode,
   userNameById,
   actions,
   omit = [],
 }: {
   supplierNameById?: Map<string, string>;
   currencyCodeById: Map<string, string>;
+  baseCurrencyCode?: string | null;
   userNameById: Map<string, string>;
   actions?: (payment: SupplierPayment) => ReactNode;
   omit?: readonly string[];
@@ -86,8 +89,26 @@ export function supplierPaymentColumnDefs({
         sortableField: "amount_paid",
         headerClassName: "text-right",
         className: "text-right tabular-nums",
-        cell: (payment) =>
-          formatMoney(payment.amount_paid, currencyCodeById.get(payment.currency_id) ?? "AED"),
+        cell: (payment) => {
+          const currencyCode = currencyCodeById.get(payment.currency_id) ?? "";
+          return (
+            <MoneyWithBase
+              amount={payment.amount_paid}
+              currencyCode={currencyCode}
+              baseAmount={payment.base_amount}
+              baseCurrencyCode={baseCurrencyCode}
+              className="text-right"
+            />
+          );
+        },
+      },
+      {
+        id: "base_amount",
+        header: "Base amount",
+        defaultVisible: false,
+        headerClassName: "text-right",
+        className: "text-right tabular-nums",
+        cell: (payment) => formatMoney(payment.base_amount, baseCurrencyCode ?? ""),
       },
       {
         id: "is_posted",

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { DebitNoteForm } from "@/modules/erp/debit-notes/components/debit-note-form";
+import { DebitNoteRefundDialog } from "@/modules/erp/debit-notes/components/debit-note-refund-dialog";
 import { useDebitNoteWorkflow } from "@/modules/erp/debit-notes/hooks/use-debit-note-workflow";
 import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { useDebitNote } from "@/modules/erp/debit-notes/queries";
@@ -96,6 +97,7 @@ function DebitNoteDetailLoaded({
   const number = debitNoteDisplayNumber(note);
   const onAction = useDebitNoteWorkflow(note);
   const [writeError, setWriteError] = useState<unknown>(null);
+  const [refundOpen, setRefundOpen] = useState(false);
 
   return (
     <DocumentRecordShell
@@ -136,6 +138,10 @@ function DebitNoteDetailLoaded({
           }}
           onAction={async (action, extras) => {
             setWriteError(null);
+            if (action === "refund") {
+              setRefundOpen(true);
+              return;
+            }
             await onAction(action, extras);
           }}
         />
@@ -149,13 +155,30 @@ function DebitNoteDetailLoaded({
             baseAmount={note.base_amount}
           />
           <p className="text-muted-foreground text-sm">
-            {DEBIT_NOTE_REASON_LABELS[note.reason_code]} · Against{" "}
-            <Link
-              href={`/purchase-invoices/${note.purchase_invoice_id}`}
-              className="text-foreground underline-offset-4 hover:underline"
-            >
-              purchase invoice
-            </Link>
+            {DEBIT_NOTE_REASON_LABELS[note.reason_code]}
+            {note.purchase_invoice_id || note.purchase_return_id ? (
+              <>
+                {" · "}
+                Against{" "}
+                {note.purchase_invoice_id ? (
+                  <Link
+                    href={`/purchase-invoices/${note.purchase_invoice_id}`}
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    purchase invoice
+                  </Link>
+                ) : null}
+                {note.purchase_invoice_id && note.purchase_return_id ? " · " : null}
+                {note.purchase_return_id ? (
+                  <Link
+                    href={`/purchase-returns/${note.purchase_return_id}`}
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    purchase return
+                  </Link>
+                ) : null}
+              </>
+            ) : null}
             . Stock will not move.
           </p>
         </div>
@@ -167,6 +190,7 @@ function DebitNoteDetailLoaded({
           <DocumentLedgerCard
             journalEntryId={note.journal_entry_id}
             reversalJournalEntryId={note.reversal_journal_entry_id}
+            refundJournalEntryId={note.refund_journal_entry_id}
           />
         </>
       }
@@ -179,6 +203,7 @@ function DebitNoteDetailLoaded({
       }
     >
       <DebitNoteForm note={note} disabled={!isEdit} onSuccess={() => router.push(viewHref)} />
+      <DebitNoteRefundDialog note={note} open={refundOpen} onOpenChange={setRefundOpen} />
     </DocumentRecordShell>
   );
 }

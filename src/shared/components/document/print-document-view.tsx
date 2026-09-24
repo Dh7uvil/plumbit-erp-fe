@@ -12,7 +12,7 @@ function showChina(doc: PrintDocument): boolean {
 export function PrintDocumentView({ document }: { document: PrintDocument }) {
   const china = showChina(document);
   const letterhead = document.letterhead;
-  const currency = document.currency_code || "AED";
+  const currency = document.currency_code ?? "";
 
   useEffect(() => {
     const timer = window.setTimeout(() => window.print(), 400);

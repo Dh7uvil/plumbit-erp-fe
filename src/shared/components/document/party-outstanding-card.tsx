@@ -38,7 +38,7 @@ export function PartyOutstandingCard({
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-5">
         {isLoading ? (
           <Skeleton className="h-16 w-full" />
         ) : summary ? (

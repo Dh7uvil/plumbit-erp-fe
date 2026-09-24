@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { toast } from "sonner";
 
-import { useAccounts } from "@/modules/erp/accounting/accounts/queries";
+import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
 import { useUpdateChargeType } from "@/modules/erp/accounting/charge-types/mutations";
 import { chargeTypePermissions } from "@/modules/erp/accounting/charge-types/permissions";
 import { useChargeTypes } from "@/modules/erp/accounting/charge-types/queries";
@@ -20,7 +20,7 @@ import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
-import { ListPage } from "@/shared/components/layout/list-page";
+import { ListPage, ListPageContent } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -28,7 +28,7 @@ import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
 export function ChargeTypesScreen() {
-  const { canRead, canUpdate } = useCrudPermissions(chargeTypePermissions);
+  const { canUpdate } = useCrudPermissions(chargeTypePermissions);
   const { page, page_size, search, sort_by, sort_order, setParams, setPage } = useTableParams();
   const chargeTypesQuery = useChargeTypes({
     page,
@@ -37,16 +37,16 @@ export function ChargeTypesScreen() {
     sort_by: sort_by ?? "sort_order",
     sort_order: sort_order ?? "asc",
   });
-  const accountsQuery = useAccounts({ page_size: 200, is_active: true });
+  const accountsQuery = useAllAccounts({ is_active: true });
   const updateChargeType = useUpdateChargeType();
 
   const accountNameById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const account of accountsQuery.data?.data ?? []) {
+    for (const account of accountsQuery.data ?? []) {
       map.set(account.id, `${account.code} — ${account.name}`);
     }
     return map;
-  }, [accountsQuery.data?.data]);
+  }, [accountsQuery.data]);
 
   const rows = chargeTypesQuery.data?.data ?? [];
   const meta = chargeTypesQuery.data?.meta;
@@ -81,11 +81,11 @@ export function ChargeTypesScreen() {
 
   const accountOptions = useMemo(
     () =>
-      (accountsQuery.data?.data ?? []).map((account) => ({
+      (accountsQuery.data ?? []).map((account) => ({
         value: account.id,
         label: `${account.code} — ${account.name}`,
       })),
-    [accountsQuery.data?.data],
+    [accountsQuery.data],
   );
 
   const columnDefs = useMemo((): Array<DataTableColumn<ChargeType>> => {
@@ -120,6 +120,7 @@ export function ChargeTypesScreen() {
           canUpdate ? (
             <MasterSelect
               compact
+              asFormControl={false}
               value={row.default_account_id}
               onValueChange={(value) => void updateDefaultAccount(row, value)}
               disabled={accountsQuery.isLoading || updateChargeType.isPending}
@@ -153,24 +154,21 @@ export function ChargeTypesScreen() {
 
   const { columns, colSpan } = useTableColumns("erp.charge_types", columnDefs);
 
-  if (!canRead) {
-    return null;
-  }
-
   return (
     <ListPage>
       <PageHeader
         title="Charge types"
         subtitle="Import and export charge taxonomy, GL defaults, and inventoriable treatment."
       />
-      <DataTableToolbar>
-        <ListSearch
-          value={search ?? ""}
-          onChange={(value) => setParams({ search: value || null })}
-          placeholder="Search charges…"
-        />
-      </DataTableToolbar>
-      <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
+      <ListPageContent>
+        <DataTableToolbar className="shrink-0">
+          <ListSearch
+            value={search ?? ""}
+            onChange={(value) => setParams({ search: value || null })}
+            placeholder="Search charges…"
+          />
+        </DataTableToolbar>
+        <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
             <DataTableColumnHeads
@@ -216,7 +214,8 @@ export function ChargeTypesScreen() {
             ))
           )}
         </TableBody>
-      </DataTable>
+        </DataTable>
+      </ListPageContent>
     </ListPage>
   );
 }

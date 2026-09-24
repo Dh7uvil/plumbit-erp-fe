@@ -58,6 +58,7 @@ export const GoodsReceiptLineSchema = z.object({
   id: z.string().uuid(),
   line_number: z.number().int(),
   purchase_order_line_id: z.string().uuid().nullable(),
+  source_purchase_invoice_line_id: z.string().uuid().nullable().optional().default(null),
   product_id: z.string().uuid().nullable(),
   supplier_product_id: z.string().uuid().nullable(),
   supplier_sku: z.string().nullable(),
@@ -87,6 +88,7 @@ export const GoodsReceiptSchema = z.object({
   supplier_id: z.string().uuid(),
   warehouse_id: z.string().uuid(),
   purchase_order_id: z.string().uuid().nullable(),
+  source_purchase_invoice_id: z.string().uuid().nullable().optional().default(null),
   branch_id: z.string().uuid().nullable(),
   tax_treatment: TaxTreatmentSchema,
   place_of_supply: PlaceOfSupplySchema,
@@ -124,6 +126,7 @@ export const GoodsReceiptListSchema = z.array(GoodsReceiptSchema);
 
 export const GoodsReceiptLineInputSchema = z.object({
   purchase_order_line_id: z.string().uuid().nullable().optional(),
+  source_purchase_invoice_line_id: z.string().uuid().nullable().optional(),
   product_id: z.string().uuid().nullable().optional(),
   supplier_product_id: z.string().uuid().nullable().optional(),
   supplier_sku: z.string().max(80).nullable().optional(),
@@ -182,6 +185,16 @@ export type GoodsReceiptCreateFromPurchaseOrder = z.infer<
   typeof GoodsReceiptCreateFromPurchaseOrderSchema
 >;
 
+export const GoodsReceiptCreateFromPurchaseInvoiceSchema = z.object({
+  purchase_invoice_id: z.string().uuid(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  document_date: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+export type GoodsReceiptCreateFromPurchaseInvoice = z.infer<
+  typeof GoodsReceiptCreateFromPurchaseInvoiceSchema
+>;
+
 export const GoodsReceiptLineFormSchema = z.object({
   product_id: z.string(),
   supplier_product_id: z.string(),
@@ -197,6 +210,7 @@ export const GoodsReceiptLineFormSchema = z.object({
   gross_weight: z.string(),
   volume: z.string(),
   purchase_order_line_id: z.string(),
+  source_purchase_invoice_line_id: z.string(),
 });
 export type GoodsReceiptLineFormValues = z.infer<typeof GoodsReceiptLineFormSchema>;
 
@@ -210,6 +224,7 @@ export function emptyGoodsReceiptLine(): GoodsReceiptLineFormValues {
   return {
     ...emptyDocumentLine(),
     quantity: "",
+    source_purchase_invoice_line_id: "",
   };
 }
 

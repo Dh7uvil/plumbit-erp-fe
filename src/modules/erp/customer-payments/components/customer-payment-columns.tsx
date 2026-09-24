@@ -20,6 +20,7 @@ import {
 } from "@/shared/components/data-table/columns";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { MoneyWithBase } from "@/shared/components/money";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
 export function customerPaymentColumnDefs({
@@ -89,14 +90,15 @@ export function customerPaymentColumnDefs({
         headerClassName: "text-right",
         className: "text-right tabular-nums",
         cell: (payment) => {
-          const currencyCode = currencyCodeById.get(payment.currency_id);
+          const currencyCode = currencyCodeById.get(payment.currency_id) ?? "";
           return (
-            <>
-              {formatMoney(payment.amount_received, currencyCode ?? "AED")}
-              {currencyCode ? (
-                <span className="text-muted-foreground ml-1 text-xs">{currencyCode}</span>
-              ) : null}
-            </>
+            <MoneyWithBase
+              amount={payment.amount_received}
+              currencyCode={currencyCode}
+              baseAmount={payment.base_amount}
+              baseCurrencyCode={baseCurrencyCode}
+              className="text-right"
+            />
           );
         },
       },

@@ -1,4 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+
+import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 import { chargeTypesApi } from "./api";
 import type { ChargeTypeListParams } from "./schemas";
@@ -11,14 +13,15 @@ export const chargeTypeKeys = {
 
 export function useChargeTypes(params: ChargeTypeListParams) {
   return useQuery({
-    queryKey: chargeTypeKeys.list(params),
+    queryKey: useTenantQueryKey(chargeTypeKeys.list(params)),
     queryFn: () => chargeTypesApi.list(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useActiveChargeTypes() {
   return useQuery({
-    queryKey: chargeTypeKeys.active(),
+    queryKey: useTenantQueryKey(chargeTypeKeys.active()),
     queryFn: () => chargeTypesApi.listAllActive(),
   });
 }

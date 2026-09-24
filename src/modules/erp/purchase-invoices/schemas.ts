@@ -94,6 +94,7 @@ export const PurchaseInvoiceLineSchema = z.object({
   purchase_account_id: z.string().uuid().nullable(),
   grn_unit_cost: MoneySchema,
   qty_debited: DecimalStringSchema,
+  qty_received: DecimalStringSchema.optional().default("0"),
   landed_cost_allocated: DecimalStringSchema.optional().default("0"),
   landed_cost_remaining: z.string().nullable().optional().default(null),
 });

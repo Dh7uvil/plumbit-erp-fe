@@ -2,6 +2,7 @@ import { dunningPermissions } from "@/modules/erp/accounting/dunning-rules/permi
 import { writeOffPermissions } from "@/modules/erp/accounting/write-offs/permissions";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
+import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
@@ -12,6 +13,7 @@ export const SALES_INVOICE_WORKFLOW_ACTIONS = [
   "record_payment",
   "apply_credits",
   "create_credit_note",
+  "create_delivery_note",
   "write_off",
   "send_reminder",
 ] as const;
@@ -39,6 +41,12 @@ export const SALES_INVOICE_ACTION_REGISTRY: DocumentActionSpec<SalesInvoiceWorkf
     action: "create_credit_note",
     label: "Create credit note",
     permission: creditNotePermissions.create,
+    variant: "outline",
+  },
+  {
+    action: "create_delivery_note",
+    label: "Create delivery note",
+    permission: deliveryNotePermissions.create,
     variant: "outline",
   },
   {

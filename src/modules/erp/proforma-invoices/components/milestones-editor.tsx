@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { formatPercent, formatReportMoney } from "@/shared/lib/format";
 
 export function MilestonesEditor({
@@ -111,7 +112,7 @@ export function MilestonesEditor({
           {grandTotal ? ` of ${formatReportMoney(grandTotal)}` : ""}.
         </p>
       ) : null}
-      <div className="overflow-x-auto">
+      <DocumentViewTableContainer viewMode={Boolean(disabled)} rowCount={fields.length}>
         <table className="w-full text-sm">
           <TableHeader>
             <TableRow>
@@ -299,7 +300,7 @@ export function MilestonesEditor({
             })}
           </TableBody>
         </table>
-      </div>
+      </DocumentViewTableContainer>
     </div>
   );
 }

@@ -39,7 +39,6 @@ import { DocumentLedgerCard } from "@/shared/components/document/document-ledger
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { useCan } from "@/shared/providers/session-provider";
@@ -118,12 +117,7 @@ function GoodsReceiptDetailLoaded({
   const [writeError, setWriteError] = useState<unknown>(null);
   const [billOpen, setBillOpen] = useState(false);
   const [landedCostOpen, setLandedCostOpen] = useState(false);
-  const workflowActions = appendMissingActions(
-    receipt.available_actions,
-    receipt.is_posted || receipt.status === "POSTED"
-      ? ["create_purchase_return", "create_bill", "create_landed_cost"]
-      : [],
-  );
+  const workflowActions = receipt.available_actions;
   const canReadInspections = can(qualityInspectionPermissions.read);
   const inspectionsQuery = useQualityInspections(
     {
@@ -197,20 +191,32 @@ function GoodsReceiptDetailLoaded({
       }
       banner={
         <div className="flex flex-col gap-2">
-          {receipt.purchase_order_id ? (
-            <p className="text-muted-foreground text-sm">
-              Received against{" "}
-              <Link
-                href={`/purchase-orders/${receipt.purchase_order_id}`}
-                className="text-foreground underline-offset-4 hover:underline"
-              >
-                purchase order
-              </Link>
-              .
-            </p>
-          ) : (
-            <p className="text-muted-foreground text-sm">Direct receive — no purchase order.</p>
-          )}
+          <p className="text-muted-foreground text-sm">
+            {receipt.purchase_order_id ? (
+              <>
+                Received against{" "}
+                <Link
+                  href={`/purchase-orders/${receipt.purchase_order_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  purchase order
+                </Link>
+              </>
+            ) : receipt.source_purchase_invoice_id ? (
+              <>
+                Received against{" "}
+                <Link
+                  href={`/purchase-invoices/${receipt.source_purchase_invoice_id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  purchase invoice
+                </Link>
+              </>
+            ) : (
+              "Direct receive — no purchase order or bill"
+            )}
+            .
+          </p>
           {canReadInspections && (inspections.length > 0 || holdRemaining) ? (
             <div className="flex flex-col gap-1 text-sm">
               <p className="font-medium">Quality inspections</p>

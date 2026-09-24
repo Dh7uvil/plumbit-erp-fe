@@ -8,7 +8,6 @@ import { ShipmentForm } from "@/modules/inventory-management/shipments/component
 import { ShipmentTrackingDialog } from "@/modules/inventory-management/shipments/components/shipment-tracking-dialog";
 import { ShipmentTrackingStrip } from "@/modules/inventory-management/shipments/components/shipment-tracking-strip";
 import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
-import { isUsableLandedCostShipmentStatus } from "@/modules/erp/landed-costs/schemas";
 import { useShipmentWorkflow } from "@/modules/inventory-management/shipments/hooks/use-shipment-workflow";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { useShipment } from "@/modules/inventory-management/shipments/queries";
@@ -18,20 +17,18 @@ import {
   shipmentDisplayNumber,
   type Shipment,
 } from "@/modules/inventory-management/shipments/schemas";
-import { SHIPMENT_ACTION_REGISTRY } from "@/modules/inventory-management/shipments/workflow";
+import {
+  SHIPMENT_ACTION_REGISTRY,
+  type ShipmentWorkflowAction,
+} from "@/modules/inventory-management/shipments/workflow";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DocumentRecordShell } from "@/shared/components/document/document-record-shell";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-
-function canUpdateTracking(status: Shipment["status"]): boolean {
-  return status === "DISPATCHED" || status === "IN_TRANSIT" || status === "ARRIVED";
-}
 
 export function ShipmentDetailScreen({
   shipmentId,
@@ -104,17 +101,18 @@ function ShipmentDetailLoaded({
   const [trackingOpen, setTrackingOpen] = useState(false);
   const [landedCostOpen, setLandedCostOpen] = useState(false);
   const onAction = useShipmentWorkflow(shipment, { onTracking: () => setTrackingOpen(true) });
-  const fallbackActions: string[] = [];
-  if (canUpdateTracking(shipment.status)) {
-    fallbackActions.push("tracking");
+
+  async function handleAction(action: ShipmentWorkflowAction) {
+    if (action === "create_landed_cost") {
+      setLandedCostOpen(true);
+      return;
+    }
+    if (action === "create_cost_sheet") {
+      router.push(`/cost-sheets/new?sheet_type=IMPORT&shipment_id=${shipment.id}`);
+      return;
+    }
+    await onAction(action);
   }
-  const canComposeLandedCost = isUsableLandedCostShipmentStatus(shipment.status);
-  if (canComposeLandedCost) {
-    fallbackActions.push("create_landed_cost");
-  }
-  const workflowActions = appendMissingActions(shipment.available_actions, fallbackActions).filter(
-    (action) => action !== "create_landed_cost" || canComposeLandedCost,
-  );
 
   return (
     <>
@@ -140,17 +138,11 @@ function ShipmentDetailLoaded({
         }
         workflow={
           <DocumentWorkflowButtons
-            availableActions={workflowActions}
+            availableActions={shipment.available_actions}
             registry={SHIPMENT_ACTION_REGISTRY}
             documentKind="shipment"
             documentLabel={number ?? "shipment"}
-            onAction={async (action) => {
-              if (action === "create_landed_cost") {
-                setLandedCostOpen(true);
-                return;
-              }
-              await onAction(action);
-            }}
+            onAction={handleAction}
           />
         }
         banner={

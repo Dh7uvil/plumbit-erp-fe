@@ -5,6 +5,7 @@ import {
   DebitNoteCreateFromPurchaseReturnSchema,
   DebitNoteCreateRequestSchema,
   DebitNoteListSchema,
+  DebitNoteRefundRequestSchema,
   DebitNoteSchema,
   DebitNoteUpdateRequestSchema,
   type DebitNote,
@@ -12,6 +13,7 @@ import {
   type DebitNoteCreateFromPurchaseReturn,
   type DebitNoteCreateRequest,
   type DebitNoteListParams,
+  type DebitNoteRefundRequest,
   type DebitNoteUpdateRequest,
 } from "@/modules/erp/debit-notes/schemas";
 import { apiClient } from "@/shared/api/client";
@@ -96,6 +98,18 @@ export const debitNotesApi = {
   delete: async (id: string, options: DebitNoteWriteOptions): Promise<DebitNote> =>
     DebitNoteSchema.parse(
       await apiClient.delete(`/debit-notes/${id}`, { headers: ifMatchHeaders(options.version) }),
+    ),
+  refund: async (
+    id: string,
+    values: DebitNoteRefundRequest,
+    options: DebitNoteWriteOptions,
+  ): Promise<DebitNote> =>
+    DebitNoteSchema.parse(
+      await apiClient.post(
+        `/debit-notes/${id}/refund`,
+        DebitNoteRefundRequestSchema.parse({ ...values, version: options.version }),
+        { headers: postDocumentHeaders(options.version) },
+      ),
     ),
   journal: async (id: string): Promise<JournalEntry> =>
     JournalEntrySchema.parse(await apiClient.get(`/debit-notes/${id}/journal`)),

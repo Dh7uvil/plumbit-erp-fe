@@ -22,6 +22,7 @@ import { CostCenterFormDialog } from "@/modules/erp/accounting/cost-centers/comp
 import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
 import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { Button } from "@/shared/components/ui/button";
@@ -95,7 +96,7 @@ export function JournalLinesEditor({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-md border">
+      <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
         <table className="w-full caption-bottom text-sm">
           <TableHeader>
             <TableRow>
@@ -393,7 +394,7 @@ export function JournalLinesEditor({
             </TableRow>
           </TableBody>
         </table>
-      </div>
+      </DocumentViewTableContainer>
       {disabled ? null : (
         <Button
           type="button"

@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
@@ -14,6 +14,7 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
+import { usePurchaseInvoice } from "@/modules/erp/purchase-invoices/queries";
 import { usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
@@ -41,7 +42,9 @@ import { branchPermissions } from "@/modules/users-management/branches/permissio
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage, isApiError } from "@/shared/api/errors";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
@@ -54,6 +57,13 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { formatQuantity } from "@/shared/lib/format";
@@ -76,6 +86,9 @@ function optionalUuid(value: string): string | null {
 function toLineInput(line: GoodsReceiptLineFormValues): GoodsReceiptLineInput {
   return {
     purchase_order_line_id: optionalUuid(line.purchase_order_line_id),
+    source_purchase_invoice_line_id: line.source_purchase_invoice_line_id.trim()
+      ? line.source_purchase_invoice_line_id
+      : null,
     product_id: optionalUuid(line.product_id),
     supplier_product_id: optionalUuid(line.supplier_product_id),
     supplier_sku: emptyToNull(line.supplier_sku),
@@ -107,6 +120,7 @@ function toFormLines(receipt: GoodsReceipt | null): GoodsReceiptLineFormValues[]
     gross_weight: line.gross_weight ?? "",
     volume: line.volume ?? "",
     purchase_order_line_id: line.purchase_order_line_id ?? "",
+    source_purchase_invoice_line_id: line.source_purchase_invoice_line_id ?? "",
   }));
 }
 
@@ -144,6 +158,7 @@ export function GoodsReceiptForm({
   const can = useCan();
   const router = useRouter();
   const isEdit = Boolean(receipt);
+  const invoiceOnly = Boolean(receipt?.source_purchase_invoice_id && !receipt?.purchase_order_id);
   const { baseCurrencyId } = useBaseCurrency();
   const createReceipt = useCreateGoodsReceipt();
   const updateReceipt = useUpdateGoodsReceipt();
@@ -162,11 +177,59 @@ export function GoodsReceiptForm({
   useDirtyFormGuard(!disabled && form.formState.isDirty);
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
+  const { fields } = useFieldArray({ control: form.control, name: "lines" });
+  const watchedLines = useWatch({ control: form.control, name: "lines" });
+  const invoiceQuery = usePurchaseInvoice(
+    invoiceOnly ? (receipt?.source_purchase_invoice_id ?? null) : null,
+  );
+  const invoiceLineById = useMemo(
+    () => new Map((invoiceQuery.data?.lines ?? []).map((line) => [line.id, line])),
+    [invoiceQuery.data?.lines],
+  );
   const skuUnmapped = isApiError(writeError) && writeError.code === "SUPPLIER_SKU_NOT_MAPPED";
 
   useEffect(() => {
     form.reset(toFormValues(receipt, baseCurrencyId));
-  }, [form, receipt]);
+  }, [baseCurrencyId, form, receipt]);
+
+  useEffect(() => {
+    if (!invoiceOnly || !receipt || !invoiceQuery.data) {
+      return;
+    }
+    form.setValue(
+      "lines",
+      receipt.lines.map((line) => ({
+        ...emptyGoodsReceiptLine(),
+        product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
+        supplier_product_id: line.supplier_product_id ?? OPTIONAL_SELECT_NONE,
+        supplier_sku: line.supplier_sku ?? "",
+        description: line.description,
+        quantity: line.quantity,
+        unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
+        rate: line.rate,
+        net_weight: line.net_weight ?? "",
+        gross_weight: line.gross_weight ?? "",
+        volume: line.volume ?? "",
+        purchase_order_line_id: "",
+        source_purchase_invoice_line_id: line.source_purchase_invoice_line_id ?? "",
+      })),
+    );
+  }, [form, invoiceOnly, invoiceQuery.data, receipt]);
+
+  function invoiceOutstanding(index: number): string {
+    const line = watchedLines?.[index];
+    const sourceLineId = line?.source_purchase_invoice_line_id?.trim();
+    if (!sourceLineId) {
+      return line?.quantity ?? "0";
+    }
+    const invoiceLine = invoiceLineById.get(sourceLineId);
+    if (!invoiceLine) {
+      return line?.quantity ?? "0";
+    }
+    return String(
+      Math.max(Number(invoiceLine.quantity) - Number(invoiceLine.qty_received), 0),
+    );
+  }
 
   const issuedOrders = useMemo(
     () =>
@@ -243,6 +306,20 @@ export function GoodsReceiptForm({
                 supplier catalog
               </Link>
               . A price will not be invented.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {invoiceOnly && receipt?.source_purchase_invoice_id ? (
+          <Alert>
+            <AlertDescription>
+              Created from{" "}
+              <Link
+                href={`/purchase-invoices/${receipt.source_purchase_invoice_id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                purchase invoice
+              </Link>
+              . Line products follow the invoice; adjust quantities and receipt details below.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -478,16 +555,79 @@ export function GoodsReceiptForm({
         />
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor
-            form={form}
-            disabled={disabled}
-            productSide="purchase"
-            lineMode="receive"
-            supplierCatalog={{ supplierId: optionalUuid(supplierId) }}
-          />
+          {invoiceOnly ? (
+            <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
+              <table className="w-max min-w-full text-sm">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Outstanding</TableHead>
+                    <TableHead className="min-w-32">Qty</TableHead>
+                    <TableHead className="min-w-32">Rate</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fields.map((field, index) => (
+                    <TableRow key={field.id}>
+                      <TableCell>{watchedLines?.[index]?.description || "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatQuantity(invoiceOutstanding(index))}
+                      </TableCell>
+                      <TableCell className="min-w-32">
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.quantity`}
+                          render={({ field: qtyField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <DecimalInput
+                                  kind="quantity"
+                                  className="min-w-32 text-right"
+                                  disabled={disabled}
+                                  {...qtyField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell className="min-w-32">
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.rate`}
+                          render={({ field: rateField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <DecimalInput
+                                  kind="money"
+                                  className="min-w-32 text-right"
+                                  disabled={disabled}
+                                  {...rateField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </table>
+            </DocumentViewTableContainer>
+          ) : (
+            <DocumentLinesEditor
+              form={form}
+              disabled={disabled}
+              productSide="purchase"
+              lineMode="receive"
+              supplierCatalog={{ supplierId: optionalUuid(supplierId) }}
+            />
+          )}
         </div>
         {receipt?.is_posted && receipt.lines.length > 0 ? (
-          <div className="overflow-x-auto rounded-md border">
+          <DocumentViewTableContainer viewMode={disabled} rowCount={receipt.lines.length}>
             <table className="w-full caption-bottom text-sm">
               <thead>
                 <tr className="border-b">
@@ -518,7 +658,7 @@ export function GoodsReceiptForm({
                 ))}
               </tbody>
             </table>
-          </div>
+          </DocumentViewTableContainer>
         ) : null}
         {!disabled ? (
           <div className="flex justify-end">

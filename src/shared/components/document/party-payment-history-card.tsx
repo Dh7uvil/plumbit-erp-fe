@@ -162,7 +162,7 @@ function CustomerPaymentHistoryTable({ partyId, title }: { partyId: string; titl
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-5">
         <PaymentHistoryToolbar
           search={search ?? ""}
           filters={filters}
@@ -320,7 +320,7 @@ function SupplierPaymentHistoryTable({ partyId, title }: { partyId: string; titl
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-5">
         <PaymentHistoryToolbar
           search={search ?? ""}
           filters={filters}

@@ -39,6 +39,7 @@ import {
 } from "@/modules/inventory-management/sales-returns/schemas";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -310,7 +311,7 @@ export function SalesReturnForm({
               </li>
             ))}
           </ul>
-          <div className="overflow-x-auto rounded-md border">
+          <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
             <table className="w-full caption-bottom text-sm">
               <thead>
                 <tr className="border-b">
@@ -427,7 +428,7 @@ export function SalesReturnForm({
                 )}
               </tbody>
             </table>
-          </div>
+          </DocumentViewTableContainer>
         </div>
         {!disabled ? (
           <div className="flex justify-end">

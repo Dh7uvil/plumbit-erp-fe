@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { purchaseInvoiceKeys } from "@/modules/erp/purchase-invoices/queries";
 import { purchaseOrderKeys } from "@/modules/erp/purchase-orders/queries";
 import { goodsReceiptsApi } from "@/modules/inventory-management/goods-receipts/api";
 import { goodsReceiptKeys } from "@/modules/inventory-management/goods-receipts/queries";
@@ -21,6 +22,7 @@ async function invalidateReceipts(
     await queryClient.invalidateQueries({ queryKey: goodsReceiptKeys.detail(id) });
   }
   await queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.all });
+  await queryClient.invalidateQueries({ queryKey: purchaseInvoiceKeys.all });
   await queryClient.invalidateQueries({ queryKey: qualityInspectionKeys.all });
   if (stockMoved) {
     await queryClient.invalidateQueries({ queryKey: stockKeys.all });
@@ -52,6 +54,16 @@ export function useCreateGoodsReceiptFromPurchaseOrder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: goodsReceiptsApi.createFromPurchaseOrder,
+    onSuccess: async () => {
+      await invalidateReceipts(queryClient);
+    },
+  });
+}
+
+export function useCreateGoodsReceiptFromPurchaseInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: goodsReceiptsApi.createFromPurchaseInvoice,
     onSuccess: async () => {
       await invalidateReceipts(queryClient);
     },

@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { salesInvoiceKeys } from "@/modules/erp/sales-invoices/queries";
 import { salesOrderKeys } from "@/modules/erp/sales-orders/queries";
 import { deliveryNotesApi } from "@/modules/inventory-management/delivery-notes/api";
 import { deliveryNoteKeys } from "@/modules/inventory-management/delivery-notes/queries";
@@ -22,6 +23,7 @@ async function invalidateNotes(
     await queryClient.invalidateQueries({ queryKey: deliveryNoteKeys.detail(id) });
   }
   await queryClient.invalidateQueries({ queryKey: salesOrderKeys.all });
+  await queryClient.invalidateQueries({ queryKey: salesInvoiceKeys.all });
   await queryClient.invalidateQueries({ queryKey: packageKeys.all });
   await queryClient.invalidateQueries({ queryKey: shipmentKeys.all });
   if (stockMoved) {
@@ -54,6 +56,16 @@ export function useCreateDeliveryNoteFromSalesOrder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deliveryNotesApi.createFromSalesOrder,
+    onSuccess: async () => {
+      await invalidateNotes(queryClient);
+    },
+  });
+}
+
+export function useCreateDeliveryNoteFromSalesInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deliveryNotesApi.createFromSalesInvoice,
     onSuccess: async () => {
       await invalidateNotes(queryClient);
     },

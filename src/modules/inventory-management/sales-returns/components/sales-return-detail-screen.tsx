@@ -27,7 +27,6 @@ import { DocumentLedgerCard } from "@/shared/components/document/document-ledger
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function SalesReturnDetailScreen({
@@ -101,10 +100,7 @@ function SalesReturnDetailLoaded({
   const onAction = useSalesReturnWorkflow(doc);
   const [writeError, setWriteError] = useState<unknown>(null);
   const [creditOpen, setCreditOpen] = useState(false);
-  const workflowActions = appendMissingActions(
-    doc.available_actions,
-    doc.status === "POSTED" ? ["create_credit_note"] : [],
-  );
+  const workflowActions = doc.available_actions;
 
   return (
     <DocumentRecordShell
@@ -160,13 +156,17 @@ function SalesReturnDetailLoaded({
           >
             delivery note
           </Link>
-          {" · "}
-          <Link
-            href={`/sales-orders/${doc.sales_order_id}`}
-            className="text-foreground underline-offset-4 hover:underline"
-          >
-            sales order
-          </Link>
+          {doc.sales_order_id ? (
+            <>
+              {" · "}
+              <Link
+                href={`/sales-orders/${doc.sales_order_id}`}
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                sales order
+              </Link>
+            </>
+          ) : null}
           . Posting restores original cost; scrap writes that cost off.
         </p>
       }

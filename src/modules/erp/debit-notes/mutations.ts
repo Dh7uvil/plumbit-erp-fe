@@ -128,3 +128,21 @@ export function useDeleteDebitNote() {
     },
   });
 }
+
+export function useRefundDebitNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      version,
+      payment_account_id,
+    }: WriteVars & { payment_account_id: string }) =>
+      debitNotesApi.refund(id, { payment_account_id }, { version }),
+    onSuccess: async (_data, { id }) => {
+      await invalidate(queryClient, id, true);
+    },
+    onError: async (error, { id }) => {
+      await refetchIfStale(queryClient, error, id);
+    },
+  });
+}

@@ -32,10 +32,12 @@ export type ColumnPickerItem = {
   pinned: boolean;
 };
 
+/** Pin actions header on horizontal scroll; `top-0` comes from TableHead. */
 export const stickyActionsHeadClass =
-  "sticky right-0 z-20 bg-card shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.18)]";
+  "sticky right-0 z-30 bg-card shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.18)]";
+/** Pin row actions on horizontal scroll only — no vertical stickiness. */
 export const stickyActionsCellClass =
-  "sticky right-0 z-10 bg-card group-hover:bg-muted/50 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.18)]";
+  "sticky right-0 z-[1] bg-card group-hover:bg-muted/50 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.18)]";
 
 export function actionsColumn<T>(
   show: boolean,

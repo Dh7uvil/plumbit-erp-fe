@@ -264,7 +264,7 @@ export function EntityAttachmentsPanel({
           </div>
         ) : null}
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 pb-6">
+      <CardContent className="flex flex-col gap-5 pb-6">
         <DataTableToolbar className="grid grid-cols-[minmax(0,1fr)_11rem] flex-nowrap">
           <ListSearch
             className="w-full max-w-none min-w-0"

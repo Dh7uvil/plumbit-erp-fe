@@ -14,7 +14,7 @@ export function ListPageTable({
   className?: string;
 }) {
   return (
-    <div data-slot="list-page-table" className={cn("flex min-h-0 flex-col", className)}>
+    <div data-slot="list-page-table" className={cn("flex shrink-0 flex-col", className)}>
       {children}
     </div>
   );

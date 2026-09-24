@@ -61,7 +61,7 @@ import {
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
-import { ListPage } from "@/shared/components/layout/list-page";
+import { ListPage, ListPageContent } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -73,6 +73,8 @@ import {
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { MoneyWithBase } from "@/shared/components/money";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 
 const ALL = "all";
@@ -129,14 +131,16 @@ export function PurchaseOrdersScreen({
     warehouseId: ALL,
     currencyId: ALL,
   });
+  const { baseCurrencyCode } = useBaseCurrency();
   const purchaseOrdersQuery = usePurchaseOrders({
     page,
     page_size,
     search,
     sort_by,
     sort_order,
-    status: parseStatus(filters.status),
-    receipt_status: parseFulfillment(filters.receipt_status),
+    status: toReceiveOnly ? "ISSUED" : parseStatus(filters.status),
+    receipt_status: toReceiveOnly ? undefined : parseFulfillment(filters.receipt_status),
+    receipt_status_not: toReceiveOnly ? "RECEIVED" : undefined,
     billing_status: parseBilling(filters.billing_status),
     supplier_id: filters.supplier_id,
     branch_id: filters.branch_id,
@@ -153,13 +157,7 @@ export function PurchaseOrdersScreen({
   const [deleting, setDeleting] = useState<PurchaseOrder | null>(null);
   const [fromClone, setFromClone] = useState(false);
 
-  const rows = useMemo(() => {
-    const data = purchaseOrdersQuery.data?.data ?? [];
-    if (!toReceiveOnly) {
-      return data;
-    }
-    return data.filter((purchaseOrder) => purchaseOrder.receipt_status !== "RECEIVED");
-  }, [purchaseOrdersQuery.data?.data, toReceiveOnly]);
+  const rows = purchaseOrdersQuery.data?.data ?? [];
   const meta = purchaseOrdersQuery.data?.meta;
   const suppliers = suppliersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
@@ -179,7 +177,7 @@ export function PurchaseOrdersScreen({
   async function onClone(id: string) {
     try {
       const cloned = await clonePurchaseOrder.mutateAsync(id);
-      toast.success("PurchaseOrder cloned");
+      toast.success("Purchase order cloned");
       router.push(`/purchase-orders/${cloned.id}`);
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -192,7 +190,7 @@ export function PurchaseOrdersScreen({
     }
     try {
       await deletePurchaseOrder.mutateAsync({ id: deleting.id, version: deleting.version });
-      toast.success("PurchaseOrder deleted");
+      toast.success("Purchase order deleted");
       setDeleting(null);
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -262,11 +260,15 @@ export function PurchaseOrdersScreen({
         sortableField: "grand_total",
         headerClassName: "text-right",
         className: "text-right tabular-nums",
-        cell: (purchaseOrder) =>
-          formatMoney(
-            purchaseOrder.grand_total,
-            currencyCodeById.get(purchaseOrder.currency_id) ?? "",
-          ),
+        cell: (purchaseOrder) => (
+          <MoneyWithBase
+            amount={purchaseOrder.grand_total}
+            currencyCode={currencyCodeById.get(purchaseOrder.currency_id) ?? ""}
+            baseAmount={purchaseOrder.base_amount}
+            baseCurrencyCode={baseCurrencyCode}
+            className="text-right"
+          />
+        ),
       },
       {
         id: "is_posted",
@@ -419,6 +421,7 @@ export function PurchaseOrdersScreen({
     canRead,
     canUpdate,
     clonePurchaseOrder.isPending,
+    baseCurrencyCode,
     currencyCodeById,
     showActions,
     supplierNameById,
@@ -458,8 +461,8 @@ export function PurchaseOrdersScreen({
       </div>
     ) : undefined;
 
-  const table = (
-    <>
+  const listContent = (
+    <ListPageContent>
       <DataTableToolbar>
         <ListSearch
           value={search ?? ""}
@@ -714,6 +717,11 @@ export function PurchaseOrdersScreen({
           )}
         </TableBody>
       </DataTable>
+    </ListPageContent>
+  );
+
+  const dialogs = (
+    <>
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`${getDocumentAction(PURCHASE_ORDER_ACTION_REGISTRY, "delete").label} purchase order ${deleting ? (purchaseOrderDisplayNumber(deleting) ?? "purchase order") : "purchase order"}`}
@@ -738,13 +746,19 @@ export function PurchaseOrdersScreen({
   );
 
   if (embedded) {
-    return table;
+    return (
+      <>
+        {listContent}
+        {dialogs}
+      </>
+    );
   }
 
   return (
     <ListPage>
       <PageHeader title="Purchase orders" subtitle="Supplier orders" actions={headerActions} />
-      {table}
+      {listContent}
+      {dialogs}
     </ListPage>
   );
 }

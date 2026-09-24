@@ -177,9 +177,14 @@ export function CostSheetForm({ sheet }: Props) {
       currency_id: sheet?.currency_id ?? baseCurrencyId ?? OPTIONAL_SELECT_NONE,
       supplier_id: sheet?.supplier_id ?? OPTIONAL_SELECT_NONE,
       customer_id: sheet?.customer_id ?? OPTIONAL_SELECT_NONE,
-      shipment_id: sheet?.shipment_id ?? OPTIONAL_SELECT_NONE,
-      purchase_order_id: sheet?.purchase_order_id ?? OPTIONAL_SELECT_NONE,
-      proforma_invoice_id: sheet?.proforma_invoice_id ?? OPTIONAL_SELECT_NONE,
+      shipment_id:
+        sheet?.shipment_id ?? searchParams.get("shipment_id") ?? OPTIONAL_SELECT_NONE,
+      purchase_order_id:
+        sheet?.purchase_order_id ?? searchParams.get("purchase_order_id") ?? OPTIONAL_SELECT_NONE,
+      proforma_invoice_id:
+        sheet?.proforma_invoice_id ??
+        searchParams.get("proforma_invoice_id") ??
+        OPTIONAL_SELECT_NONE,
       allocation_method: sheet?.allocation_method ?? "VALUE",
       incoterm: sheet?.incoterm ?? "",
       port_of_loading: sheet?.port_of_loading ?? "",

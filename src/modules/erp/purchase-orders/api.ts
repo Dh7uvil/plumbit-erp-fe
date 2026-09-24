@@ -53,6 +53,7 @@ export const purchaseOrdersApi = {
         sort_order: params.sort_order,
         status: params.status,
         receipt_status: params.receipt_status,
+        receipt_status_not: params.receipt_status_not,
         billing_status: params.billing_status,
         supplier_id: params.supplier_id,
         branch_id: params.branch_id,

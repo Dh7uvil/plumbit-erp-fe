@@ -18,6 +18,7 @@ import {
 } from "@/modules/erp/accounting/vouchers/schemas";
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -96,7 +97,7 @@ export function VoucherLinesEditor({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-md border">
+      <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
         <table className="w-full caption-bottom text-sm">
           <TableHeader>
             <TableRow>
@@ -263,7 +264,7 @@ export function VoucherLinesEditor({
             })}
           </TableBody>
         </table>
-      </div>
+      </DocumentViewTableContainer>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button
           type="button"

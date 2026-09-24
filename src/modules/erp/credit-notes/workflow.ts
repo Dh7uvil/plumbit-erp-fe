@@ -1,7 +1,8 @@
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
+import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
-export const CREDIT_NOTE_WORKFLOW_ACTIONS = ["post", "cancel", "delete"] as const;
+export const CREDIT_NOTE_WORKFLOW_ACTIONS = ["post", "refund", "cancel", "delete"] as const;
 export type CreditNoteWorkflowAction = (typeof CREDIT_NOTE_WORKFLOW_ACTIONS)[number];
 
 export const CREDIT_NOTE_ACTION_REGISTRY: DocumentActionSpec<CreditNoteWorkflowAction>[] = [
@@ -11,6 +12,12 @@ export const CREDIT_NOTE_ACTION_REGISTRY: DocumentActionSpec<CreditNoteWorkflowA
     permission: creditNotePermissions.post,
     confirmCopy: (documentNumber) =>
       `Posting ${documentNumber}: AR, revenue, and VAT will reverse. Stock will not move.`,
+  },
+  {
+    action: "refund",
+    label: "Refund",
+    permission: customerPaymentPermissions.create,
+    variant: "destructive",
   },
   {
     action: "cancel",
