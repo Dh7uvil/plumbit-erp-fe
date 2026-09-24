@@ -1,0 +1,47 @@
+Opportunities are deals tracked through pipeline stages until won or lost. Pipelines define the stage sequence and probabilities.
+
+<AppLink href="/opportunities">Open opportunities</AppLink> · <AppLink href="/pipelines">Pipelines</AppLink>
+
+## Views
+
+| View | URL | Use |
+|---|---|---|
+| **Table** | `/opportunities` | Sortable list with pipeline filter |
+| **Board** | `/opportunities?view=board` | Kanban by pipeline stage (up to 200 deals) |
+
+Filter by `pipeline_id` and status. Default pipeline applies when none selected.
+
+## Opportunity fields
+
+| Field | Purpose |
+|---|---|
+| **Name** | Deal title |
+| **Customer / contact** | Linked party |
+| **Pipeline + stage** | Current position in sales process |
+| **Expected value + currency** | Deal size for pipeline reporting |
+| **Expected close date** | Drives "closing this month" dashboard KPI |
+| **Probability** | Stage default or override |
+| **Owner** | Assigned salesperson |
+| **Source campaign** | Optional campaign link |
+
+Status progresses through open stages to **WON** or **LOST** (with lost reason).
+
+## Pipelines
+
+Configure at <AppLink href="/pipelines">Pipelines</AppLink>:
+
+- Pipeline name and default flag
+- Ordered stages with win probability
+- One default pipeline for new opportunities
+
+Editing pipelines affects board column layout immediately.
+
+## Link to sales documents
+
+Quotations and sales orders can reference an opportunity ID. There is **no auto-conversion** — create the quotation manually from the customer and link the opportunity. See <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+
+## Related
+
+- <DocLink href="/docs/crm/leads">Leads</DocLink> (convert creates opportunity)
+- <DocLink href="/docs/crm/activities">Activities</DocLink>
+- <DocLink href="/docs/reports/crm-reports">CRM reports</DocLink> (pipeline, funnel, win/loss)

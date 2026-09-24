@@ -1,0 +1,43 @@
+Activities are tasks, calls, and meetings linked to CRM records. They drive follow-up discipline and appear on the dashboard when overdue.
+
+<AppLink href="/activities">Open activities</AppLink>
+
+## Types and status
+
+| Type | Use |
+|---|---|
+| **Task** | To-do with due date |
+| **Call** | Phone follow-up |
+| **Meeting** | Scheduled meeting |
+
+<StatusTable
+  rows={[
+    { status: "OPEN", meaning: "Pending", actions: "Complete, edit, delete", effect: "Counts in overdue if past due" },
+    { status: "COMPLETED", meaning: "Done", actions: "Re-open", effect: "Removed from overdue" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Excluded from open counts" },
+  ]}
+/>
+
+## Related entities
+
+An activity can link to a **lead**, **opportunity**, **customer**, or **contact**. Subject, due date, priority, owner, and notes are editable from list dialogs.
+
+## List views
+
+| View (`view`) | Shows |
+|---|---|
+| **All** | Every activity you can read |
+| **My open** (`mine`) | Your open activities |
+| **Overdue** (`overdue`) | Past due and still open — linked from <DocLink href="/docs/getting-started/dashboard">Dashboard</DocLink> |
+| **This week** (`week`) | Due within the current week |
+
+Additional filters: status, activity type. Sort by due date, subject, status, priority, created.
+
+## Permissions
+
+Requires `crm.activity.read` to view, `crm.activity.manage` to create/edit. Complete and delete actions check write permission on the activity.
+
+## Related
+
+- Collaboration context: <DocLink href="/docs/collaboration/activities-and-follow-ups">Activities and follow-ups</DocLink>
+- <DocLink href="/docs/reports/crm-reports">CRM reports</DocLink> (sales activity)

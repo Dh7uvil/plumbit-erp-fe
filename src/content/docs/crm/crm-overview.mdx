@@ -1,0 +1,39 @@
+CRM manages the pipeline **before and alongside** sales documents — leads, opportunities, contacts, activities, and campaigns. CRM does not replace AR or inventory; it feeds into quotations and sales orders manually.
+
+See <DocLink href="/docs/getting-started/system-overview">System overview</DocLink> for module relationships.
+
+## CRM in the sales flow
+
+<FlowDiagram
+  steps={[
+    { label: "Lead", note: "Qualify", href: "/docs/crm/leads" },
+    { label: "Customer + opportunity", note: "Convert", href: "/docs/crm/opportunities-and-pipelines" },
+    { label: "Quotation", note: "Manual link to opportunity", href: "/docs/sales/quotations" },
+    { label: "Sales order", note: "Confirm → reserve", href: "/docs/sales/sales-orders" },
+  ]}
+/>
+
+There is **no automatic quotation-from-opportunity conversion** — create quotations manually and link the opportunity field.
+
+## Module map
+
+| Topic | Route | Page |
+|---|---|---|
+| Leads | <AppLink href="/leads">/leads</AppLink> | <DocLink href="/docs/crm/leads">Leads</DocLink> |
+| Opportunities | <AppLink href="/opportunities">/opportunities</AppLink> | <DocLink href="/docs/crm/opportunities-and-pipelines">Opportunities and pipelines</DocLink> |
+| Activities | <AppLink href="/activities">/activities</AppLink> | <DocLink href="/docs/crm/activities">Activities</DocLink> |
+| Campaigns | <AppLink href="/campaigns">/campaigns</AppLink> | <DocLink href="/docs/crm/campaigns">Campaigns</DocLink> |
+| Lead sources / lost reasons | <AppLink href="/lead-sources">/lead-sources</AppLink> | <DocLink href="/docs/crm/lead-sources-and-lost-reasons">Lead sources and lost reasons</DocLink> |
+| Customers / contacts | <AppLink href="/customers">/customers</AppLink> | <DocLink href="/docs/master-data/customers">Customers</DocLink>, <DocLink href="/docs/master-data/contacts">Contacts</DocLink> |
+
+## Dashboard integration
+
+Open pipeline, closing-this-month opportunities, and overdue activities appear on the <DocLink href="/docs/getting-started/dashboard">Dashboard</DocLink> when you have CRM report and read permissions.
+
+## Reports
+
+CRM analytics: <DocLink href="/docs/reports/crm-reports">CRM reports</DocLink>.
+
+## Collaboration
+
+Notes on CRM records, activity follow-ups, and document history are covered in <DocLink href="/docs/collaboration/activities-and-follow-ups">Activities and follow-ups</DocLink> and <DocLink href="/docs/collaboration/notes-attachments-and-history">Notes, attachments, and history</DocLink>.

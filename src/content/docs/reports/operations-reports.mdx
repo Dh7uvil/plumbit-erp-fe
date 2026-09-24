@@ -1,0 +1,38 @@
+Operations reports reconcile the **purchase cycle** — ordered vs received vs billed — without blocking posting.
+
+<AppLink href="/reports">Reports hub</AppLink>
+
+## Reports
+
+| Report | Route | What it shows |
+|---|---|---|
+| Three-way match | <AppLink href="/reports/three-way-match">/reports/three-way-match</AppLink> | PO line ordered, received, and billed qty/value comparison |
+| Received not billed | <AppLink href="/reports/received-not-billed">/reports/received-not-billed</AppLink> | Posted GRN lines with remaining unbilled quantity |
+
+Permission: `reports.report.inventory`.
+
+## Three-way match
+
+Informational only — variances do **not** block GRN or PI posting. Full detail: <DocLink href="/docs/purchases/three-way-match">Three-way match</DocLink>.
+
+Match statuses per PO line:
+
+| Status | Meaning |
+|---|---|
+| UNRECEIVED | Nothing received yet |
+| UNBILLED | Received but not billed |
+| QTY_VARIANCE | Quantity mismatch across order/receipt/bill |
+| PRICE_VARIANCE | Quantities align but unit price differs |
+| MATCHED | Fully reconciled |
+
+Only **posted** purchase invoices count toward billed figures.
+
+## Received not billed
+
+Shows GRNI exposure at the line level — goods in stock but not yet on a supplier bill. Use alongside trial balance GRNI control account for month-end AP review.
+
+## Related
+
+- <DocLink href="/docs/purchases/purchase-lifecycle">Purchase lifecycle</DocLink>
+- <DocLink href="/docs/workflows/review-customer-and-supplier-balances">Review customer and supplier balances</DocLink>
+- <DocLink href="/docs/reports/inventory-reports">Inventory reports</DocLink>

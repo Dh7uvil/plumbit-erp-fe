@@ -1,0 +1,39 @@
+CRM reports analyze pipeline health, conversion, and sales team activity. They complement operational sales reports which focus on posted invoices.
+
+<AppLink href="/reports">Reports hub</AppLink>
+
+## Reports
+
+| Report | Route | What it shows |
+|---|---|---|
+| Sales pipeline | <AppLink href="/reports/sales-pipeline">/reports/sales-pipeline</AppLink> | Open opportunities by stage with value |
+| Sales funnel | <AppLink href="/reports/sales-funnel">/reports/sales-funnel</AppLink> | Stage-to-stage conversion counts |
+| Win / loss | <AppLink href="/reports/win-loss">/reports/win-loss</AppLink> | Won vs lost deals with lost reasons |
+| Lead conversion | <AppLink href="/reports/lead-conversion">/reports/lead-conversion</AppLink> | Lead volume and conversion rate by source |
+| Sales activity | <AppLink href="/reports/sales-activity">/reports/sales-activity</AppLink> | Completed activities by owner and type |
+
+Permission: `reports.report.crm`. CSV export requires `reports.report.export`.
+
+## Dashboard links
+
+| Dashboard KPI | Report |
+|---|---|
+| Open pipeline | Sales pipeline |
+| Closing this month | Opportunities list (not a report) |
+| Overdue activities | Activities list with `view=overdue` |
+
+## Data scope
+
+| Includes | Excludes |
+|---|---|
+| Open and closed opportunities | Draft quotations |
+| Lead status history | Posted invoice revenue (use sales analysis) |
+| Completed and open activities | Stock or AR balances |
+
+Pipeline value uses opportunity **expected value** in opportunity currency.
+
+## Related
+
+- <DocLink href="/docs/crm/crm-overview">CRM overview</DocLink>
+- <DocLink href="/docs/reports/sales-and-purchase-analysis">Sales and purchase analysis</DocLink>
+- <DocLink href="/docs/getting-started/dashboard">Dashboard</DocLink>

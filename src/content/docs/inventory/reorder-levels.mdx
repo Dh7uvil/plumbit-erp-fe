@@ -1,0 +1,41 @@
+Reorder settings control when the system suggests replenishment. They are stored on each **stock balance** (product × warehouse) — not on the product master.
+
+<AppLink href="/stock">Open stock</AppLink>
+
+## Fields
+
+| Field | Meaning |
+|---|---|
+| **Reorder level** | Minimum **available** qty before replenishment is suggested |
+| **Reorder qty** | Default quantity to suggest ordering |
+
+**Available** is defined in <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink> — on hand minus reserved minus QC hold.
+
+Edit reorder level and quantity from the stock list (row action) or stock detail screen. Leave reorder level blank to exclude a balance from suggestions.
+
+## Purchase suggestions report
+
+<AppLink href="/reports/purchase-suggestions">Open purchase suggestions</AppLink>
+
+The report lists balances where:
+
+```
+available ≤ reorder_level
+```
+
+Suggested order quantity = `reorder_level − available` when that shortfall is positive; otherwise it defaults to **reorder qty**. The report also shows preferred supplier from supplier-product links when configured.
+
+<Callout type="tip">
+The stock list highlights rows where available is below reorder level — use it for day-to-day monitoring; run the report for bulk PO planning.
+</Callout>
+
+## What reorder does **not** do
+
+- Does not auto-create purchase orders.
+- Does not block sales or deliveries.
+- Does not account for **incoming** PO quantity (suggestions use available only).
+
+## Related
+
+- Incoming from issued POs: <DocLink href="/docs/purchases/purchase-orders">Purchase orders</DocLink>
+- Warehouse balances: <DocLink href="/docs/inventory/warehouse-wise-stock">Warehouse-wise stock</DocLink>

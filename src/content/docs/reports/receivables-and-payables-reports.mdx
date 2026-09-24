@@ -1,0 +1,43 @@
+Receivables and payables reports show **open balances** and **aging** from posted sales invoices, purchase invoices, opening balances, and unapplied payments.
+
+<AppLink href="/reports">Reports hub</AppLink>
+
+## Reports
+
+| Report | Route | What it shows |
+|---|---|---|
+| AR aging | <AppLink href="/reports/ar-aging">/reports/ar-aging</AppLink> | Customer balances by age bucket (current, 30, 60, 90+) |
+| AP aging | <AppLink href="/reports/ap-aging">/reports/ap-aging</AppLink> | Supplier balances by age bucket |
+| Outstanding invoices | <AppLink href="/reports/outstanding-invoices">/reports/outstanding-invoices</AppLink> | Open sales invoices with balance due |
+| Outstanding bills | <AppLink href="/reports/outstanding-bills">/reports/outstanding-bills</AppLink> | Open purchase invoices with balance due |
+| Customer statement | <AppLink href="/reports/customer-statement">/reports/customer-statement</AppLink> | Running AR statement for one customer |
+| Supplier statement | <AppLink href="/reports/supplier-statement">/reports/supplier-statement</AppLink> | Running AP statement for one supplier |
+
+Permission: `reports.report.ar_ap`.
+
+## What is included
+
+| Component | Source |
+|---|---|
+| Open invoice balances | Posted sales/purchase invoices minus allocations |
+| Opening AR/AP | Opening balance items |
+| Unapplied receipts/payments | Reduce exposure where not yet allocated |
+
+Amounts respect invoice currency with base-currency totals where shown. See <DocLink href="/docs/accounting/accounts-receivable">Accounts receivable</DocLink> and <DocLink href="/docs/accounting/accounts-payable">Accounts payable</DocLink>.
+
+## Typical use
+
+| Scenario | Report |
+|---|---|
+| Collections priority | AR aging — filter overdue bucket |
+| Supplier payment run | AP aging or outstanding bills |
+| Customer query | Customer statement for date range |
+| Month-end reconciliation | AR/AP aging vs trial balance control accounts |
+
+Dashboard **Open AR** and **Open AP** KPIs link directly to aging reports. Only **posted** documents count.
+
+## Related
+
+- <DocLink href="/docs/workflows/review-customer-and-supplier-balances">Review customer and supplier balances</DocLink>
+- <DocLink href="/docs/sales/credit-control">Credit control</DocLink>
+- <DocLink href="/docs/reports/using-reports">Using reports</DocLink>

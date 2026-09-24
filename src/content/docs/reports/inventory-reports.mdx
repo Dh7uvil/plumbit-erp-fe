@@ -1,0 +1,40 @@
+Inventory reports show stock quantities, FIFO valuation, movement history, and reorder-driven purchase suggestions.
+
+<AppLink href="/reports">Reports hub</AppLink>
+
+## Reports
+
+| Report | Route | What it shows |
+|---|---|---|
+| Stock valuation | <AppLink href="/reports/stock-valuation">/reports/stock-valuation</AppLink> | On-hand qty and value at FIFO landed cost by product/warehouse |
+| Stock valuation vs GL | <AppLink href="/reports/stock-valuation-gl">/reports/stock-valuation-gl</AppLink> | Inventory sub-ledger total vs GL inventory control account |
+| Stock movement | <AppLink href="/reports/stock-movement">/reports/stock-movement</AppLink> | Receipts, issues, adjustments, transfers for a period |
+| Stock aging | <AppLink href="/reports/stock-aging">/reports/stock-aging</AppLink> | Age of FIFO layers by receipt date |
+| Purchase suggestions | <AppLink href="/reports/purchase-suggestions">/reports/purchase-suggestions</AppLink> | Products at or below reorder level with suggested qty |
+
+Permission: `reports.report.inventory`.
+
+## Data rules
+
+| Rule | Detail |
+|---|---|
+| Valuation method | FIFO landed unit cost from posted receipts and landed costs |
+| Draft exclusion | Draft GRNs, DNs, adjustments do not appear |
+| Available qty | On hand − reserved − QC hold — see <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink> |
+
+Dashboard **Stock valuation** KPI links to the valuation report.
+
+## Typical use
+
+| Scenario | Report |
+|---|---|
+| Balance sheet inventory | Stock valuation → compare to stock valuation vs GL |
+| Slow-moving stock | Stock aging |
+| Audit trail | Stock movement for date range |
+| Replenishment review | Purchase suggestions — see <DocLink href="/docs/planning-and-ai/stock-recommendations">Stock recommendations</DocLink> |
+
+## Related
+
+- <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>
+- <DocLink href="/docs/reports/operations-reports">Operations reports</DocLink>
+- <DocLink href="/docs/workflows/check-inventory">Check inventory</DocLink>

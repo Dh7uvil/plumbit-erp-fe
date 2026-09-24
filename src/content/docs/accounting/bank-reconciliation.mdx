@@ -1,0 +1,69 @@
+Bank reconciliation matches **imported bank statement lines** to **posted book entries** on the linked bank GL account. Unmatched items explain the gap between the bank closing balance and your ledger.
+
+<AppLink href="/bank-reconciliation">Open bank reconciliation</AppLink>
+
+## Workflow
+
+<FlowDiagram
+  steps={[
+    { label: "Bank account", note: "Linked BANK GL", href: "/docs/accounting/bank-accounts" },
+    { label: "Import statement", note: "CSV / manual lines", href: "/docs/accounting/bank-reconciliation" },
+    { label: "Match lines", note: "Suggested or manual", href: "/docs/accounting/bank-reconciliation" },
+    { label: "Reconcile", note: "All lines resolved", href: "/docs/accounting/bank-reconciliation" },
+  ]}
+/>
+
+## Import statement
+
+Create a statement for a bank account and period, then import lines (date, reference, debit/credit). Each line starts as **UNMATCHED**.
+
+Book entries are drawn from posted journal lines hitting the bank account's GL account within the statement date range.
+
+## Suggested match scoring
+
+The system scores unmatched statement lines against unmatched book entries:
+
+| Signal | Points |
+|---|---|
+| Amount equal | +50 |
+| Date equal | +30 |
+| Reference equal (case-insensitive) | +20 |
+
+Only pairs scoring **≥ 50** appear as suggestions. Results sort by score descending. A perfect amount+date+ref match scores **100**.
+
+## Manual match
+
+Accept a suggestion or manually link a statement line to a journal line. Lines can also be **excluded** when they should not affect reconciliation (e.g. bank-only fees not yet booked).
+
+<Callout type="note">
+Matching is one-to-one. Already-matched book entries are excluded from further suggestions.
+</Callout>
+
+## Reconcile
+
+Reconciliation completes only when every statement line is **matched or excluded**. The reconciliation statement shows:
+
+- Bank closing balance (from import)
+- Unmatched statement total
+- Unmatched book total
+- **Reconciled balance** = closing − unmatched statement + unmatched book
+
+<Steps>
+<Step title="Import">
+Upload or enter statement lines for the bank account and period.
+</Step>
+<Step title="Review suggestions">
+Apply high-score matches (amount, date, reference).
+</Step>
+<Step title="Manual match">
+Link remaining items or exclude non-bookable bank lines.
+</Step>
+<Step title="Reconcile">
+Confirm when all lines are resolved.
+</Step>
+</Steps>
+
+## Related
+
+- Bank setup: <DocLink href="/docs/accounting/bank-accounts">Bank accounts</DocLink>
+- GL patterns: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

@@ -1,0 +1,146 @@
+End-to-end sales workflow from quotation (optional) through delivery, invoicing, collection, and adjustments. Stock **reserves** on sales order confirm and **issues** on delivery note post; revenue and AR post on sales invoice.
+
+<FlowDiagram
+  direction="horizontal"
+  steps={[
+    { label: "Quotation", note: "Optional", href: "/docs/sales/quotations" },
+    { label: "Sales order", note: "Confirm → reserve", href: "/docs/sales/sales-orders" },
+    { label: "Delivery note", note: "Post → issue + COGS", href: "/docs/sales/delivery-notes" },
+    { label: "Sales invoice", note: "Post → AR + revenue", href: "/docs/sales/sales-invoices" },
+    { label: "Customer payment", note: "Post → allocate", href: "/docs/sales/customer-payments" },
+  ]}
+  branches={[
+    {
+      label: "Adjustments",
+      steps: [
+        { label: "Sales return", note: "After posted DN", href: "/docs/sales/sales-returns" },
+        { label: "Credit note", note: "Reduce AR", href: "/docs/sales/credit-notes" },
+        { label: "Write-off", note: "Uncollectible balance", href: "/docs/accounting/write-offs" },
+      ],
+    },
+  ]}
+/>
+
+<Prerequisites>
+- Customer, products, and warehouse exist
+- Permissions for quotations, sales orders, delivery notes, invoices, and payments
+</Prerequisites>
+
+## Standard path
+
+<Steps>
+<Step title="Create and confirm sales order">
+Convert a quotation or create a sales order directly. **Confirm** the order — stock **reserves** for tracked lines.
+
+<StateChangeTable
+  rows={[
+    { action: "Confirm SO", stock: "Reserved + (up to available)", reserved: "Yes", gl: "None", tax: "None", documents: "SO status CONFIRMED; shortfalls returned if insufficient stock" },
+  ]}
+/>
+
+Review **reservation shortfalls** on the order detail if confirm could not reserve the full quantity — see <DocLink href="/docs/inventory/negative-stock-and-shortfalls">Negative stock and shortfalls</DocLink>.
+</Step>
+
+<Step title="Deliver goods">
+Create a <DocLink href="/docs/sales/delivery-notes">delivery note</DocLink> from the confirmed SO. **Post** the DN.
+
+<StateChangeTable
+  rows={[
+    { action: "Post DN", stock: "On hand − (FIFO issue)", reserved: "Release then issue", gl: "Dr COGS, Cr Inventory", tax: "None", documents: "SO qty_delivered +; SALE or EXPORT movement" },
+  ]}
+/>
+
+**Partial delivery** — post multiple DNs until each SO line is fully delivered. Each DN updates `qty_delivered` independently.
+
+**Shortfall at post** — if `allow_negative_stock` is off and available qty is insufficient, DN post is **blocked** (unlike SO confirm, which never blocks).
+</Step>
+
+<Step title="Invoice customer">
+Create a <DocLink href="/docs/sales/sales-invoices">sales invoice</DocLink> from posted DN(s) or the SO. **Post** the invoice.
+
+<StateChangeTable
+  rows={[
+    { action: "Post SI", stock: "No movement", reserved: "No change", gl: "Dr AR, Cr Revenue + VAT output", tax: "Output VAT per line", documents: "Open AR item; SO/DN qty_invoiced +" },
+  ]}
+/>
+</Step>
+
+<Step title="Collect payment">
+Create a <DocLink href="/docs/sales/customer-payments">customer payment</DocLink>, **post**, and **allocate** to the open invoice — see <DocLink href="/docs/workflows/record-customer-and-supplier-payments">Record payments</DocLink>.
+</Step>
+</Steps>
+
+## Variant: direct invoice (invoice before delivery)
+
+Skip DN at invoice time when billing precedes shipment.
+
+<Steps>
+<Step title="Post sales invoice without DN">
+Post SI from quotation or SO. Revenue and AR post immediately; `cogs_status = PENDING` on tracked lines.
+
+<StateChangeTable
+  rows={[
+    { action: "Post SI (no DN)", stock: "No movement", reserved: "Per SO if linked", gl: "Dr AR, Cr Revenue + VAT", tax: "Output VAT", documents: "COGS PENDING until DN posts" },
+  ]}
+/>
+</Step>
+<Step title="Deliver later (optional)">
+Create DN from posted SI or SO. Post DN — COGS hits the ledger here, not on the SI.
+
+See <DocLink href="/docs/sales/sales-invoices">Sales invoices</DocLink> for COGS status values.
+</Step>
+</Steps>
+
+## Credit block on confirm or post
+
+Credit control evaluates customer exposure against their limit on **SO confirm** and **SI post** (depending on linkage and org settings).
+
+| Policy | Behavior |
+|---|---|
+| **OFF** | No enforcement |
+| **WARN** | Banner; action proceeds |
+| **BLOCK** | Blocked unless user has override permission + reason |
+
+See <DocLink href="/docs/sales/credit-control">Credit control</DocLink>. Override requires `CREDIT_CONTROL_OVERRIDE`.
+
+## Exception: return → credit note
+
+When goods come back after delivery:
+
+<Steps>
+<Step title="Post sales return from DN">
+Must reference a **posted** delivery note. Choose line disposition (RESTOCK, QC_HOLD, SCRAP).
+
+Follow <DocLink href="/docs/workflows/handle-a-customer-return">Handle a customer return</DocLink>.
+</Step>
+<Step title="Post credit note">
+Create CN from the posted return or source invoice. Post — AR reduced; no stock movement on CN.
+
+<StateChangeTable
+  rows={[
+    { action: "Post CN", stock: "No movement", reserved: "No change", gl: "Dr Sales returns + VAT; Cr AR", tax: "Output VAT reversed", documents: "Open credit item" },
+  ]}
+/>
+</Step>
+</Steps>
+
+## Exception: write-off
+
+When an invoice balance is uncollectible, use **Write off** on a posted sales invoice (requires write-off permission). This clears remaining AR to bad debt expense — see <DocLink href="/docs/accounting/write-offs">Write-offs</DocLink>.
+
+A posted SI with write-offs applied **cannot be cancelled**; use credit notes for commercial adjustments instead.
+
+## Cancel guards
+
+| Document | Cannot cancel when |
+|---|---|
+| **Posted DN** | Period locked; dependent SI or sales return exists |
+| **Posted SI** | `amount_paid > 0`; `amount_credited > 0`; `amount_written_off > 0`; dependent posted DN |
+| **Posted sales return** | Period locked; allocated credit note |
+| **Posted CN** | Allocated to invoices |
+
+## Module reference
+
+- Sales lifecycle map: <DocLink href="/docs/sales/sales-lifecycle">Sales lifecycle</DocLink>
+- Export trade path: <DocLink href="/docs/workflows/export-shipment">Export shipment</DocLink>
+- Combined stock/GL impact: <DocLink href="/docs/sales/sales-stock-and-accounting-impact">Sales stock and accounting impact</DocLink>

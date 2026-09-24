@@ -1,0 +1,78 @@
+Export sales workflow: confirm order, deliver with **EXPORT** movement, pack for shipping, track BL/AWB on shipment, attach export evidence, then invoice with zero-rated VAT.
+
+<FlowDiagram
+  steps={[
+    { label: "Sales order", note: "Confirm → reserve", href: "/docs/sales/sales-orders" },
+    { label: "Delivery note", note: "Post → EXPORT movement", href: "/docs/sales/delivery-notes" },
+    { label: "Package", note: "Cartons — no stock change", href: "/docs/import-export/packages" },
+    { label: "Shipment", note: "BL / AWB tracking", href: "/docs/import-export/shipments" },
+    { label: "Export evidence", note: "UAE VAT zero-rating", href: "/docs/import-export/export-evidence" },
+    { label: "Sales invoice", note: "Post → AR", href: "/docs/sales/sales-invoices" },
+  ]}
+/>
+
+<Prerequisites>
+- Export customer with appropriate tax treatment
+- Products with HS codes where required
+- Permissions for SO, DN, packages, shipments, sales invoices
+</Prerequisites>
+
+<Steps>
+<Step title="Confirm sales order">
+Create and **confirm** export SO — reserves stock. See <DocLink href="/docs/sales/sales-orders">Sales orders</DocLink>.
+
+<StateChangeTable
+  rows={[
+    { action: "Confirm SO", stock: "Reserved +", reserved: "Yes", gl: "None", tax: "None", documents: "SO CONFIRMED" },
+  ]}
+/>
+</Step>
+
+<Step title="Post export delivery note">
+Create DN from SO. Set export tax treatment. **Post** — issues stock with **EXPORT** movement type; COGS posts.
+
+<StateChangeTable
+  rows={[
+    { action: "Post export DN", stock: "On hand −", reserved: "Release + issue", gl: "Dr COGS, Cr Inventory", tax: "None on DN", documents: "EXPORT movement; SO qty_delivered +" },
+  ]}
+/>
+</Step>
+
+<Step title="Pack items">
+Create <AppLink href="/packages">packages</AppLink> from the sales order — group line qty into cartons with weights/CBM.
+
+**Packing does not change stock** — stock already issued on DN post. See <DocLink href="/docs/import-export/packages">Packages</DocLink>.
+</Step>
+
+<Step title="Create export shipment">
+<AppLink href="/shipments">Open shipments</AppLink> — create **EXPORT** shipment. Link **delivery notes** (not GRNs). Enter BL/AWB, container, carrier, ports, vessel/flight.
+
+Shipments attach to **delivery notes only** — never goods receipts.
+
+<StateChangeTable
+  rows={[
+    { action: "Save / close shipment", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Logistics tracking; DN linked" },
+  ]}
+/>
+</Step>
+
+<Step title="Attach export evidence">
+On the sales invoice (or before post), attach BL/AWB, customs exit proof, and other evidence required for UAE VAT zero-rating. Review exceptions in <AppLink href="/reports/export-evidence-exceptions">export evidence report</AppLink> — see <DocLink href="/docs/import-export/export-evidence">Export evidence</DocLink>.
+</Step>
+
+<Step title="Post sales invoice">
+Create SI from posted DN with export tax treatment. **Post** — AR and zero-rated revenue.
+
+<StateChangeTable
+  rows={[
+    { action: "Post export SI", stock: "No movement", reserved: "No change", gl: "Dr AR, Cr Revenue (zero-rated)", tax: "Export VAT treatment", documents: "export_evidence_ok flag checked" },
+  ]}
+/>
+</Step>
+</Steps>
+
+## Module reference
+
+- Standard O2C path: <DocLink href="/docs/workflows/order-to-cash">Order to cash</DocLink>
+- Trade overview: <DocLink href="/docs/import-export/trade-overview">Trade overview</DocLink>
+- VAT export rules: <DocLink href="/docs/accounting/vat">VAT</DocLink>

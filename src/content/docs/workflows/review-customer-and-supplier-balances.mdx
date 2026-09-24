@@ -1,0 +1,38 @@
+Review open receivables and payables, identify overdue items, and follow up before month-end close.
+
+<FlowDiagram
+  steps={[
+    { label: "AR aging", note: "Customer buckets", href: "/docs/accounting/accounts-receivable" },
+    { label: "AP aging", note: "Supplier buckets", href: "/docs/accounting/accounts-payable" },
+    { label: "Statements", note: "Party detail", href: "/docs/reports/receivables-and-payables-reports" },
+  ]}
+/>
+
+<Steps>
+<Step title="Run AR aging">
+<AppLink href="/reports/ar-aging">Open AR aging</AppLink> — bucket open sales invoices and opening AR by age (current, 30, 60, 90+ days). Filter by customer, branch, or salesperson.
+
+See <DocLink href="/docs/accounting/accounts-receivable">Accounts receivable</DocLink>.
+</Step>
+
+<Step title="Run AP aging">
+<AppLink href="/reports/ap-aging">Open AP aging</AppLink> — same buckets for purchase invoices and opening AP by supplier.
+
+See <DocLink href="/docs/accounting/accounts-payable">Accounts payable</DocLink>.
+</Step>
+
+<Step title="Drill to statements">
+Run <AppLink href="/reports/customer-statement">customer statement</AppLink> or <AppLink href="/reports/supplier-statement">supplier statement</AppLink> for a single party — shows invoices, payments, credits/debits, and running balance.
+</Step>
+
+<Step title="Follow up">
+- Overdue AR → <DocLink href="/docs/sales/payment-reminders">Payment reminders</DocLink> or collect via <DocLink href="/docs/workflows/record-customer-and-supplier-payments">Record payments</DocLink>
+- Disputed AP → <DocLink href="/docs/purchases/debit-notes">Debit notes</DocLink> or supplier return workflow
+- Uncollectible AR → <DocLink href="/docs/accounting/write-offs">Write-offs</DocLink>
+</Step>
+</Steps>
+
+## Module reference
+
+- Month-end context: <DocLink href="/docs/workflows/month-end-close">Month-end close</DocLink>
+- Receivables and payables reports: <DocLink href="/docs/reports/receivables-and-payables-reports">Receivables and payables reports</DocLink>

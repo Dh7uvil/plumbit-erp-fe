@@ -8,6 +8,7 @@ import { AppKeyboardShortcuts } from "@/shared/components/layout/app-keyboard-sh
 import { BreadcrumbRecordProvider } from "@/shared/components/layout/breadcrumb-record";
 import { CommandPalette } from "@/shared/components/layout/command-palette";
 import { HelpDialog } from "@/shared/components/layout/help-dialog";
+import { MainScrollManager } from "@/shared/components/layout/main-scroll-manager";
 import { AppSidebar } from "@/shared/components/layout/app-sidebar";
 import { useIsClient } from "@/shared/hooks/use-is-client";
 
@@ -58,9 +59,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           />
           <main
             id="main-content"
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain p-4 md:p-6"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 md:p-6 [scroll-padding-top:6rem] [scroll-padding-bottom:2rem]"
           >
-            {children}
+            <div className="w-full min-h-min">{children}</div>
+            <MainScrollManager />
           </main>
         </div>
       </div>

@@ -1,0 +1,87 @@
+A purchase order (PO) is a **commitment to a supplier** for specific products and quantities. It authorizes purchasing but does not receive stock or create a payable.
+
+<AppLink href="/purchase-orders">Open purchase orders</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Supplier", note: "Party master" },
+    { label: "Purchase order", note: "Issue → incoming qty", href: "/docs/purchases/purchase-orders" },
+    { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
+    { label: "Purchase invoice", note: "Post → AP, clear GRNI", href: "/docs/purchases/purchase-invoices" },
+    { label: "Supplier payment", note: "Post → allocate to AP", href: "/docs/purchases/supplier-payments" },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "ISSUED", "CLOSED"]}
+  branches={[
+    { from: "DRAFT", action: "submit", to: "PENDING_APPROVAL", optional: true },
+    { from: "PENDING_APPROVAL", action: "approve", to: "APPROVED", optional: true },
+    { from: "PENDING_APPROVAL", action: "reject", to: "REJECTED", optional: true },
+    { from: "REJECTED", action: "reopen", to: "DRAFT", optional: true },
+    { from: "APPROVED", action: "issue", to: "ISSUED", optional: true },
+    { from: "DRAFT", action: "issue", to: "ISSUED" },
+    { from: "ISSUED", action: "close", to: "CLOSED" },
+    { from: "CLOSED", action: "reopen", to: "ISSUED" },
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "ISSUED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable commitment not yet sent to supplier", actions: "Edit, submit, issue (if no approval), cancel", effect: "None" },
+    { status: "PENDING_APPROVAL", meaning: "Awaiting approver", actions: "Approve, reject, cancel", effect: "None" },
+    { status: "APPROVED", meaning: "Approved, ready to issue", actions: "Issue, cancel", effect: "None" },
+    { status: "ISSUED", meaning: "Active order to supplier", actions: "Create GRN/PI, close, cancel (if no receipt/billing)", effect: "Incoming qty increased for tracked lines" },
+    { status: "CLOSED", meaning: "Manually closed", actions: "Reopen to ISSUED", effect: "None" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Reverses incoming if was ISSUED" },
+  ]}
+/>
+
+Approval applies only when `purchase_order_requires_approval` is enabled on the organization — there are no amount thresholds.
+
+## What changes when you act
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft PO only" },
+    { action: "Issue PO", stock: "No on-hand change", reserved: "Incoming + at header warehouse", gl: "None", tax: "None", documents: "GRN, PI, PO advance payment enabled" },
+    { action: "Cancel issued PO (no receipt/billing)", stock: "No on-hand change", reserved: "Incoming reversed", gl: "None", tax: "None", documents: "PO cancelled" },
+  ]}
+/>
+
+## Line quantity tracking
+
+Each line tracks:
+
+- **Ordered** — `quantity`
+- **Received** — `qty_received` (from posted GRNs)
+- **Billed** — `qty_billed` (from posted PIs)
+- **Returned** — `qty_returned`
+
+Remaining to receive = `quantity − qty_received + qty_returned`. Header **receipt_status** and **billing_status** roll up separately.
+
+<Callout type="implementation">
+POs are **never auto-closed** when fully received or billed. Close manually when done.
+</Callout>
+
+## Partial receipt and billing
+
+Multiple goods receipts and purchase invoices can reference the same PO while outstanding quantity remains. Over-receipt on GRN is controlled by org inbound settings — see <DocLink href="/docs/purchases/goods-receipts">Goods receipts</DocLink>.
+
+## Cancellation rules
+
+An **issued** PO cannot cancel if `receipt_status ≠ NOT_RECEIVED` or `billing_status ≠ NOT_INVOICED`.
+
+## Downstream documents
+
+From an **issued** PO you can create: goods receipt, purchase invoice, supplier payment (with PO link for advances). POs can also be generated from a sales order.
+
+## Reports
+
+<AppLink href="/reports/three-way-match">Three-way match</AppLink> compares ordered, received, and billed quantities per PO line — informational only; posting is not blocked.

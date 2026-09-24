@@ -1,0 +1,61 @@
+Send received stock back to a supplier: post a purchase return to issue stock and clear GRNI, then post a debit note to reduce AP.
+
+<FlowDiagram
+  steps={[
+    { label: "Goods receipt", note: "POSTED — stock in", href: "/docs/purchases/goods-receipts" },
+    { label: "Purchase return", note: "Post → RETURN_OUT", href: "/docs/purchases/purchase-returns" },
+    { label: "Debit note", note: "Post → reduce AP", href: "/docs/purchases/debit-notes" },
+  ]}
+/>
+
+<Prerequisites>
+- A **posted** goods receipt
+- Return qty within returnable limit per GRN line (accepted + on hold minus prior returns)
+- Permissions for purchase returns and debit notes
+</Prerequisites>
+
+<Steps>
+<Step title="Create purchase return from GRN">
+<AppLink href="/purchase-returns">Open purchase returns</AppLink> — create from posted GRN. Select lines, qty, and reason (DAMAGED, QUALITY_REJECTION, WRONG_ITEM, OVER_SHIPMENT, OTHER).
+
+If goods were QC-rejected with **RETURN_TO_SUPPLIER**, they remain on QC hold until this return posts — see <DocLink href="/docs/inventory/quality-inspections-and-qc-hold">Quality inspections</DocLink>.
+</Step>
+
+<Step title="Post purchase return">
+**Post** — issues stock from original GRN FIFO layers; GRNI reduced.
+
+<StateChangeTable
+  rows={[
+    { action: "Post purchase return", stock: "On hand −", reserved: "No change", gl: "Dr GRNI; Cr Inventory", tax: "None", documents: "RETURN_OUT; GRN/PO qty_returned +" },
+  ]}
+/>
+</Step>
+
+<Step title="Create and post debit note">
+Create <DocLink href="/docs/purchases/debit-notes">debit note</DocLink> from the posted return (or linked PI). **Post** — AP reduced; no stock movement.
+
+<StateChangeTable
+  rows={[
+    { action: "Post debit note", stock: "No change", reserved: "No change", gl: "Dr AP; Cr GRNI or expense", tax: "VAT reversed", documents: "PI qty_debited updated if linked" },
+  ]}
+/>
+</Step>
+
+<Step title="Refund or net (optional)">
+Record supplier refund via <DocLink href="/docs/purchases/supplier-payments">supplier payment</DocLink>, or net debit against open bills.
+</Step>
+</Steps>
+
+## QC reject path
+
+GRN post → QC inspection reject (RETURN_TO_SUPPLIER) → purchase return post → debit note post. Full P2P exception branch in <DocLink href="/docs/workflows/procure-to-pay">Procure to pay</DocLink>.
+
+## Cancel guards
+
+- Posted purchase return cannot cancel if period locked or live debit note references it
+- Posted GRN cannot cancel while a live purchase return exists
+
+## Module reference
+
+- Purchase return details: <DocLink href="/docs/purchases/purchase-returns">Purchase returns</DocLink>
+- Debit note reasons: <DocLink href="/docs/purchases/debit-notes">Debit notes</DocLink>

@@ -1,0 +1,38 @@
+Price lists define customer-specific pricing — either a percentage markup on selling rate or fixed rates per product.
+
+<AppLink href="/price-lists">Open price lists</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `name` | List label |
+| `currency_id` | Must match document currency |
+| `list_type` | `PERCENT` or `CUSTOM_RATES` |
+| `percent` | Markup/discount percentage (required for `PERCENT`) |
+| Items | `(product_id, rate)` pairs for `CUSTOM_RATES` |
+
+## Price resolve order
+
+When a sales line rate is calculated:
+
+1. **Line override** — explicit `rate` on the line (highest priority)
+2. **Customer price list** — document `price_list_id` or customer `default_price_list_id`
+3. **Product `selling_rate`** — fallback
+
+Within a price list:
+
+| Type | Calculation |
+|---|---|
+| `CUSTOM_RATES` | Item rate if defined, else product `selling_rate` |
+| `PERCENT` | `selling_rate × (1 + percent / 100)` |
+
+Price list currency must match document currency or validation fails.
+
+## Where used
+
+Quotations, proforma invoices, sales orders, and sales invoices.
+
+## Example
+
+Customer ABC has default price list "Gold Tier" (`PERCENT`, +10%). Product X selling rate is 100 → resolved rate 110. A line with manual rate 95 keeps 95 (line override wins).

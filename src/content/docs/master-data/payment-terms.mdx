@@ -1,0 +1,29 @@
+Payment terms define how many days after invoice date payment is due.
+
+<AppLink href="/payment-terms">Open payment terms</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `name` | Label (e.g. Net 30) |
+| `days` | Due date offset (0–3650) |
+| `description` | Optional notes |
+| `is_active` | Inactive terms cannot be selected |
+
+Seeded default: **Net 30** (30 days).
+
+## Downstream fields
+
+| Record | Behavior |
+|---|---|
+| Customer | `payment_terms_id` — default on sales docs |
+| Quotation, proforma, SO, SI | Header payment terms; due date = document date + days |
+
+## Where used
+
+Sales documents and AR aging. Purchase documents can also reference payment terms for supplier due dates.
+
+## Example
+
+Customer with Net 30 terms receives an invoice dated 1 March — due date 31 March. Changing customer terms does not retroactively update posted invoices.

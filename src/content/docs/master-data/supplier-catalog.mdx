@@ -1,0 +1,40 @@
+The supplier catalog maps **supplier SKUs** to your internal products — required for goods receipt posting when lines carry a supplier item code.
+
+<AppLink href="/supplier-products">Open supplier catalog</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `supplier_id` | Supplier party |
+| `supplier_sku` | Supplier's item code (normalized to uppercase) |
+| `product_id` | Internal product link — optional until mapped |
+| `supplier_item_name` / `supplier_description` | Supplier-side labels |
+| `price` / `currency_id` | Last known supplier price |
+| `is_preferred` | Preferred SKU when multiple map to same product |
+| `is_preferred_supplier` | Preferred supplier for PO planning from sales orders |
+
+## Resolve status
+
+| Status | Meaning |
+|---|---|
+| `MAPPED` | `product_id` linked — GRN can post |
+| `UNMAPPED` | Catalog row exists, no product yet |
+| `UNKNOWN_SKU` | Line SKU not in catalog |
+
+## GRN enforcement
+
+On post, if a line has `supplier_sku`:
+
+1. Must resolve to `MAPPED`.
+2. Line product must match the mapped product.
+
+Lines store `supplier_product_id` and `supplier_sku` for audit.
+
+## PO planning
+
+When creating POs from sales orders, `is_preferred_supplier = true` auto-assigns supplier for uncovered product lines.
+
+## Example
+
+Supplier sends SKU `STL-10MM` for your product "Steel Rod 10mm". Catalog row maps `STL-10MM` → product SKU `ROD-10`. GRN lines with supplier SKU `stl-10mm` post successfully; unmapped SKUs are rejected.

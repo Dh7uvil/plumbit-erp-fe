@@ -1,0 +1,30 @@
+Terms templates store reusable legal and commercial text copied onto quotations.
+
+<AppLink href="/terms-templates">Open terms templates</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `name` | Template label |
+| `body` | Full terms text (multi-line) |
+| `is_default` | One default per tenant — pre-selected on new quotations |
+| `is_active` | Inactive templates cannot be selected |
+
+Seeded default: "Standard terms" with boilerplate about prices, currency, and validity.
+
+## Downstream fields
+
+| Document | Behavior |
+|---|---|
+| Quotation | Selecting `terms_template_id` copies `body` to document `terms_body` |
+
+The copied text is editable on the quotation after selection — later template changes do not update existing documents.
+
+## Where used
+
+Quotations primarily. Other document types may carry free-text terms fields independently.
+
+## Example
+
+"Export terms" template includes incoterms and bank details. User selects it on a quotation; body copies to the document and can be tweaked for that deal without changing the master template.

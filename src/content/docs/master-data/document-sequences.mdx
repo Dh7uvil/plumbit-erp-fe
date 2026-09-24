@@ -1,0 +1,44 @@
+Document sequences control auto-numbering for every document type — prefix, fiscal year, padding, and next number.
+
+<AppLink href="/document-sequences">Open document sequences</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `document_type` | e.g. `SALES_ORDER`, `GOODS_RECEIPT`, `JOURNAL_ENTRY` |
+| `series` | Series identifier (default series per type) |
+| `fiscal_year` | Year segment in the number |
+| `prefix` | Leading letters (e.g. `SO`, `GRN`, `INV`) |
+| `next_number` | Next value to allocate — incremented atomically on save |
+| `padding` | Zero-pad width (default 6) |
+| `is_active` | Inactive sequences cannot allocate |
+
+Unique per `(tenant, document_type, series, fiscal_year)` — **not per branch**. See <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>.
+
+## Number format
+
+```
+{prefix}{party_code}{YY}{padded_sequence}
+```
+
+| Component | Example |
+|---|---|
+| Prefix | `SO` |
+| Party code | `ACM` (customer/supplier 3-char code) — omitted for types without party (e.g. JV) |
+| Fiscal year | `26` |
+| Sequence | `000006` |
+
+Result: `SOACM26000006`
+
+Party-embedded types: quotation, SO, PFI, SI, CN, customer payment, DN, sales return, package, PO, GRN, PI, debit note, supplier payment, purchase return, QC, landed cost, cost sheet.
+
+## Downstream behavior
+
+- Row locked during allocation — `next_number` increments in one transaction.
+- New fiscal year requires new sequence rows (seeded automatically for canonical types).
+- Customer/supplier `code` must exist before first document — see <DocLink href="/docs/master-data/customers">Customers</DocLink>.
+
+## Example
+
+Sequence for `SALES_ORDER` / default series / FY2026: prefix `SO`, next_number 7. Next sales order for customer code `ACM` receives number `SOACM26000007`.

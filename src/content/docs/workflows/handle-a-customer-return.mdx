@@ -1,0 +1,64 @@
+Process returned goods after delivery: receive stock back via sales return, then issue a commercial credit through a credit note.
+
+<FlowDiagram
+  steps={[
+    { label: "Delivery note", note: "POSTED — goods out", href: "/docs/sales/delivery-notes" },
+    { label: "Sales return", note: "Post → restock / scrap", href: "/docs/sales/sales-returns" },
+    { label: "Credit note", note: "Post → reduce AR", href: "/docs/sales/credit-notes" },
+  ]}
+/>
+
+<Prerequisites>
+- A **posted** delivery note for the returned lines
+- Return qty ≤ delivered qty per DN line
+- Permissions for sales returns and credit notes
+</Prerequisites>
+
+<Steps>
+<Step title="Create sales return from DN">
+<AppLink href="/sales-returns">Open sales returns</AppLink> — create from the posted delivery note. Set return qty and **disposition** per line:
+
+| Disposition | Stock effect |
+|---|---|
+| **RESTOCK** | On hand + at original cost |
+| **QC_HOLD** | On hand + with QC hold |
+| **SCRAP** | Return in then damage out |
+
+See <DocLink href="/docs/sales/sales-returns">Sales returns</DocLink> for GL per disposition.
+</Step>
+
+<Step title="Post sales return">
+**Post** — stock and COGS/inventory GL update per disposition; SO `qty_returned` increases.
+
+<StateChangeTable
+  rows={[
+    { action: "Post return (RESTOCK)", stock: "On hand +", reserved: "No SO re-reserve", gl: "Dr Inventory, Cr COGS", tax: "None", documents: "RETURN_IN movement" },
+    { action: "Post return (SCRAP)", stock: "Net −", reserved: "No change", gl: "Dr Stock scrap, Cr Inventory", tax: "None", documents: "RETURN_IN then DAMAGE" },
+  ]}
+/>
+</Step>
+
+<Step title="Create and post credit note">
+Create <DocLink href="/docs/sales/credit-notes">credit note</DocLink> from the posted return or original sales invoice. **Post** — reduces customer AR; no stock movement.
+
+<StateChangeTable
+  rows={[
+    { action: "Post credit note", stock: "No movement", reserved: "No change", gl: "Dr Sales returns + VAT; Cr AR", tax: "Output VAT reversed", documents: "Open credit item" },
+  ]}
+/>
+</Step>
+
+<Step title="Apply credit (optional)">
+Allocate unapplied credit note balance to open invoices — same advance-style netting as payments.
+</Step>
+</Steps>
+
+## Cancel guards
+
+- Posted sales return cannot cancel if period locked or live credit note references it
+- Posted credit note cannot cancel if allocated
+
+## Module reference
+
+- Full O2C context: <DocLink href="/docs/workflows/order-to-cash">Order to cash</DocLink>
+- Return GL summary: <DocLink href="/docs/sales/sales-stock-and-accounting-impact">Sales stock and accounting impact</DocLink>

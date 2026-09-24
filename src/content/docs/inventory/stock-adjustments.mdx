@@ -1,0 +1,55 @@
+Stock adjustments correct on-hand quantity for a single warehouse — cycle counts, damage, found stock, opening entries, or other corrections.
+
+<AppLink href="/stock-adjustments">Open stock adjustments</AppLink>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "post", to: "POSTED" },
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+Posted adjustments **cannot be cancelled**. Clone the document or post a reversing adjustment instead.
+
+## Reasons and movement types
+
+| Reason | Line input | Movement type | GL on post |
+|---|---|---|---|
+| **OPENING_STOCK** | `qty_delta` (+) and unit cost | `OPENING_STOCK` | Dr Inventory, Cr Inventory adjustment |
+| **COUNT** | `qty_counted` (delta = counted − booked) | `ADJUSTMENT` | Per net delta |
+| **DAMAGE** | `qty_delta` (−) | `DAMAGE` | Dr Inventory adjustment, Cr Inventory |
+| **FOUND** | `qty_delta` (+) and unit cost | `ADJUSTMENT` | Dr Inventory, Cr Inventory adjustment |
+| **OTHER** | `qty_delta` (±) and unit cost if + | `ADJUSTMENT` | Per net delta |
+
+<Callout type="note">
+For increases, provide **unit cost** so FIFO layers are created. Decreases consume existing layers oldest-first.
+</Callout>
+
+## GL posting
+
+Net inventory value change on post drives a single journal:
+
+- **Increase** → Dr Inventory, Cr Inventory adjustment
+- **Decrease** → Dr Inventory adjustment, Cr Inventory
+
+Zero net value (e.g. count with no variance) posts no journal.
+
+## What post changes
+
+<StateChangeTable
+  rows={[
+    { action: "Save draft", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Draft adjustment" },
+    { action: "Post COUNT", stock: "On hand set to counted qty", reserved: "No change", gl: "Per variance value", tax: "None", documents: "ADJUSTMENT movement" },
+    { action: "Post DAMAGE", stock: "On hand −", reserved: "No change", gl: "Dr Inv adj, Cr Inv", tax: "None", documents: "DAMAGE movement" },
+  ]}
+/>
+
+Outbound lines validate against **available** unless `allow_negative_stock` is on.
+
+## Related
+
+- Opening stock via wizard: <DocLink href="/docs/inventory/opening-stock">Opening stock</DocLink>
+- Movement mapping: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>

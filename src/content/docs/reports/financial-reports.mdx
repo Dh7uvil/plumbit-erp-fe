@@ -1,0 +1,39 @@
+Financial reports summarize the general ledger, books of account, and statutory financial statements. All require posted journal data.
+
+<AppLink href="/reports">Reports hub</AppLink>
+
+## Reports
+
+| Report | Route | Permission | What it shows |
+|---|---|---|---|
+| Trial balance | <AppLink href="/reports/trial-balance">/reports/trial-balance</AppLink> | Ledger | Account balances for a period |
+| General ledger | <AppLink href="/reports/general-ledger">/reports/general-ledger</AppLink> | Ledger | Line-level journal entries by account |
+| Day book | <AppLink href="/reports/day-book">/reports/day-book</AppLink> | Day book | Chronological journal listing |
+| Cash book | <AppLink href="/reports/cash-book">/reports/cash-book</AppLink> | Ledger | Cash account movements |
+| Bank book | <AppLink href="/reports/bank-book">/reports/bank-book</AppLink> | Ledger | Bank account movements |
+| Account statement | <AppLink href="/reports/account-statement">/reports/account-statement</AppLink> | Ledger | Running balance for one GL account |
+| Profit and loss | <AppLink href="/reports/profit-and-loss">/reports/profit-and-loss</AppLink> | Financial | Income and expense for a period |
+| Balance sheet | <AppLink href="/reports/balance-sheet">/reports/balance-sheet</AppLink> | Financial | Assets, liabilities, equity at a date |
+| Cash flow | <AppLink href="/reports/cash-flow">/reports/cash-flow</AppLink> | Financial | Operating, investing, financing flows |
+| Cost center P&L | <AppLink href="/reports/cost-center-profit-and-loss">/reports/cost-center-profit-and-loss</AppLink> | Financial | P&L by cost center |
+| FX exposure | <AppLink href="/fx-revaluation">/fx-revaluation</AppLink> | FX revaluation read | Unrealized FX by currency |
+| Sales analysis | <AppLink href="/reports/sales-analysis">/reports/sales-analysis</AppLink> | Financial | Revenue breakdown — see dedicated page |
+| Purchase analysis | <AppLink href="/reports/purchase-analysis">/reports/purchase-analysis</AppLink> | Financial | Purchase breakdown — see dedicated page |
+
+Sales and purchase analysis are documented in <DocLink href="/docs/reports/sales-and-purchase-analysis">Sales and purchase analysis</DocLink>.
+
+## Typical filters
+
+Date range (from/to) or as-of date, branch, cost center where applicable. Trial balance and financial statements respect **period lock** — see <DocLink href="/docs/accounting/period-lock">Period lock</DocLink>.
+
+## Using trial balance
+
+Start here for month-end: verify debits equal credits, drill to general ledger for any account, reconcile control accounts (AR, AP, inventory, VAT) to sub-ledger reports.
+
+GRNI balance appears on the `GOODS_RECEIVED_NOT_INVOICED` system account — there is no separate GRNI aging report. See <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+
+## Related
+
+- <DocLink href="/docs/reports/using-reports">Using reports</DocLink>
+- <DocLink href="/docs/accounting/chart-of-accounts">Chart of accounts</DocLink>
+- <DocLink href="/docs/workflows/month-end-close">Month-end close</DocLink>

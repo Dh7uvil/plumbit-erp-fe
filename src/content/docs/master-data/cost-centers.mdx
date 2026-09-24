@@ -1,0 +1,30 @@
+Cost centers are accounting dimensions for tracking P&L and expenses by department, project, or business unit.
+
+<AppLink href="/cost-centers">Open cost centers</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `code` | Unique identifier |
+| `name` | Display label |
+| `description` | Optional notes |
+| `is_active` | Inactive cost centers cannot be selected |
+
+## Downstream fields
+
+| Record | Field |
+|---|---|
+| Journal entry | Header or line `cost_center_id` |
+| Voucher lines | `cost_center_id` |
+| Budget lines | `cost_center_id` |
+
+## Where used
+
+Manual journals, vouchers, budgets, and cost-center P&L reports. Commercial documents (SO, PO, invoices) do **not** carry cost center — allocation happens in accounting entries.
+
+See <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink> for the distinction between cost center (accounting) and branch (operational).
+
+## Example
+
+Journal entry debits travel expense and credits bank, both tagged to cost center "Marketing". P&L by cost center report shows the expense under Marketing only.

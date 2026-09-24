@@ -1,0 +1,50 @@
+The three-way match report compares **ordered**, **received**, and **billed** quantities and values per purchase order line. It is **informational only** — variances do not block posting of GRNs or purchase invoices.
+
+<AppLink href="/reports/three-way-match">Open three-way match</AppLink>
+
+## What it compares
+
+Each row is a **PO line** (POs in `DRAFT`, `CANCELLED`, or `REJECTED` are excluded):
+
+| Measure | Source |
+|---|---|
+| **Ordered qty / value** | PO line quantity and rate × exchange rate |
+| **Received qty / value** | PO `qty_received − qty_returned` (floor 0) × PO rate |
+| **Billed qty / value** | Sum of **posted** PI line quantities and amounts linked to the PO line |
+
+Only **posted** purchase invoices contribute to billed figures.
+
+## Match statuses
+
+Evaluated in order — first match wins:
+
+<StatusTable
+  rows={[
+    { status: "UNRECEIVED", meaning: "Nothing received yet", actions: "—", effect: "received_qty ≤ 0" },
+    { status: "UNBILLED", meaning: "Received but not yet billed", actions: "—", effect: "billed_qty ≤ 0" },
+    { status: "QTY_VARIANCE", meaning: "Quantity mismatch across the three legs", actions: "—", effect: "ordered ≠ received, or received ≠ billed" },
+    { status: "PRICE_VARIANCE", meaning: "Quantities align but unit price differs", actions: "—", effect: "|billed_rate − ordered_rate| > 0.01" },
+    { status: "MATCHED", meaning: "Order, receipt, and bill aligned", actions: "—", effect: "All qtys and rates within tolerance" },
+  ]}
+/>
+
+`PRICE_VARIANCE` uses `billed_rate = billed_value ÷ billed_qty` compared to the PO ordered rate.
+
+## Using the report
+
+Typical review scenarios:
+
+- **UNRECEIVED / UNBILLED** — pipeline gaps; GRN or PI still needed
+- **QTY_VARIANCE** — partial receipt/billing, over-receipt, or returns not reflected
+- **PRICE_VARIANCE** — supplier bill rate differs from PO; PPV will post on GRN-linked PI
+- **MATCHED** — line is fully reconciled
+
+<Callout type="note">
+Posting is never blocked by this report. Use it for AP review and month-end reconciliation — see <DocLink href="/docs/workflows/review-customer-and-supplier-balances">Review customer and supplier balances</DocLink>.
+</Callout>
+
+## Related
+
+- PO quantity tracking: <DocLink href="/docs/purchases/purchase-orders">Purchase orders</DocLink>
+- PI price variance (PPV): <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>
+- GRN receipt: <DocLink href="/docs/purchases/goods-receipts">Goods receipts</DocLink>

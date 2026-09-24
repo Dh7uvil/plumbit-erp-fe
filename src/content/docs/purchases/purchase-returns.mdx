@@ -1,0 +1,84 @@
+A purchase return sends received stock back to a supplier. **Posting** issues stock from the original GRN FIFO layers and clears **GRNI** — it does not adjust AP directly (use a **debit note** for that).
+
+<AppLink href="/purchase-returns">Open purchase returns</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
+    { label: "Quality inspection", note: "Optional rejection", href: "/docs/inventory/quality-inspections-and-qc-hold" },
+    { label: "Purchase return", note: "Post → RETURN_OUT", href: "/docs/purchases/purchase-returns" },
+    { label: "Debit note", note: "Post → reduce AP", href: "/docs/purchases/debit-notes" },
+  ]}
+/>
+
+## Creating a return
+
+Only from a **posted** goods receipt. Each line references a GRN line.
+
+**Returnable qty** per GRN line:
+
+- `qty_on_hold + qty_accepted`, or full GRN line qty if both are zero
+- Minus qty already returned on prior posted returns
+
+## Reasons and disposition
+
+| Reason | Examples |
+|---|---|
+| **DAMAGED** | Physical damage in transit or storage |
+| **QUALITY_REJECTION** | Failed inspection |
+| **WRONG_ITEM** | Supplier shipped incorrect product |
+| **OVER_SHIPMENT** | Excess qty not ordered |
+| **OTHER** | Any other return scenario |
+
+Disposition is **RETURN_TO_SUPPLIER** only.
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "post", to: "POSTED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Return quantities editable", actions: "Edit, post", effect: "None" },
+    { status: "POSTED", meaning: "Stock returned to supplier", actions: "Create debit note, cancel (if allowed)", effect: "On hand −; GRNI reduced; GRN/PO return counters updated" },
+    { status: "CANCELLED", meaning: "Voided return", actions: "—", effect: "Reverses stock (RETURN_IN), restores GRN/PO qty_returned" },
+  ]}
+/>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Post purchase return", stock: "On hand − (RETURN_OUT)", reserved: "No change", gl: "Dr GRNI; Cr Inventory", tax: "None", documents: "Consumes original GRN FIFO layers; GRN qty_returned +; PO qty_returned + (if linked)" },
+    { action: "Cancel posted return", stock: "On hand + (RETURN_IN)", reserved: "No change", gl: "Reversed", tax: "None", documents: "GRN/PO return counters restored" },
+  ]}
+/>
+
+Stock consumption uses the original GRN as `original_source` on FIFO — see <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>.
+
+<Callout type="note">
+Rejected goods with disposition **RETURN_TO_SUPPLIER** stay on QC hold until the purchase return posts — see <DocLink href="/docs/inventory/quality-inspections-and-qc-hold">Quality inspections and QC hold</DocLink>.
+</Callout>
+
+## Cancellation rules (posted)
+
+A posted purchase return **cannot be cancelled** when:
+
+- Accounting period is locked
+- A live (non-cancelled) **debit note** references the return
+
+## Downstream documents
+
+From a **posted** purchase return: **debit note** (to credit AP for the returned value).
+
+## Related
+
+- Handle return workflow: <DocLink href="/docs/workflows/handle-a-supplier-return">Handle a supplier return</DocLink>
+- GRN cancel blocked by live return: <DocLink href="/docs/purchases/goods-receipts">Goods receipts</DocLink>

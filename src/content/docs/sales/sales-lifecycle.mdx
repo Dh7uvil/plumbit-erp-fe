@@ -1,0 +1,72 @@
+The sales module spans **quote-to-cash** documents from first offer through collected payment and returns.
+
+## Module map
+
+<FlowDiagram
+  direction="horizontal"
+  steps={[
+    { label: "Quotation", note: "Optional", href: "/docs/sales/quotations" },
+    { label: "Proforma", note: "Optional", href: "/docs/sales/proforma-invoices" },
+    { label: "Sales order", note: "Typical", href: "/docs/sales/sales-orders" },
+    { label: "Delivery note", note: "When shipping stock", href: "/docs/sales/delivery-notes" },
+    { label: "Sales invoice", note: "Required for AR", href: "/docs/sales/sales-invoices" },
+    { label: "Payment", note: "Collect AR", href: "/docs/sales/customer-payments" },
+  ]}
+  branches={[
+    {
+      label: "Adjustments",
+      steps: [
+        { label: "Sales return", note: "After DN", href: "/docs/sales/sales-returns" },
+        { label: "Credit note", note: "Reduce AR", href: "/docs/sales/credit-notes" },
+      ],
+    },
+    {
+      label: "Collections",
+      steps: [
+        { label: "Payment reminder", note: "Email only", href: "/docs/sales/payment-reminders" },
+      ],
+    },
+  ]}
+/>
+
+## Optional vs mandatory
+
+| Document | Stock | GL | Typical use |
+|---|---|---|---|
+| <DocLink href="/docs/sales/quotations">Quotation</DocLink> | None | None | **Optional** — commercial offer |
+| <DocLink href="/docs/sales/proforma-invoices">Proforma invoice</DocLink> | None | None | **Optional** — advance billing |
+| <DocLink href="/docs/sales/sales-orders">Sales order</DocLink> | Reserve on confirm | None | **Typical** — skip only for direct invoice |
+| <DocLink href="/docs/sales/delivery-notes">Delivery note</DocLink> | Issue on post | COGS on post | **Mandatory for tracked stock-out** — can invoice first (COGS pending) |
+| <DocLink href="/docs/sales/sales-invoices">Sales invoice</DocLink> | None | AR + revenue on post | **Mandatory** for receivables |
+| <DocLink href="/docs/sales/customer-payments">Customer payment</DocLink> | None | Bank + advance on post | **When collecting** — advances optional |
+| <DocLink href="/docs/sales/sales-returns">Sales return</DocLink> | Restock / scrap on post | Inventory + COGS | **When goods come back** |
+| <DocLink href="/docs/sales/credit-notes">Credit note</DocLink> | None | Sales returns + AR | **When reducing AR** |
+| <DocLink href="/docs/sales/credit-control">Credit control</DocLink> | — | — | **Policy** — WARN/BLOCK on SO confirm + SI post |
+| <DocLink href="/docs/sales/payment-reminders">Payment reminders</DocLink> | None | None | **Optional** — dunning emails |
+
+## Common paths
+
+<Steps>
+<Step title="Standard product sale">
+Quotation → sales order (confirm) → delivery note (post) → sales invoice (post) → customer payment (allocate).
+</Step>
+<Step title="Advance before delivery">
+Quotation → proforma (confirm) → customer payment → sales order → delivery note → sales invoice (auto-apply advance).
+</Step>
+<Step title="Direct invoice">
+Quotation → sales invoice (post) → delivery note later or never (COGS PENDING until DN).
+</Step>
+<Step title="Return and credit">
+Posted delivery note → sales return (post) → credit note (post).
+</Step>
+</Steps>
+
+For step-by-step procedures see <DocLink href="/docs/workflows/order-to-cash">Order to cash</DocLink>.
+
+## Canonical references
+
+- Stock fields and reservation: <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>, <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>
+- GL by document: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Create-from matrix: <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>
+- Known quirks: <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>
+- Combined impact table: <DocLink href="/docs/sales/sales-stock-and-accounting-impact">Sales stock and accounting impact</DocLink>

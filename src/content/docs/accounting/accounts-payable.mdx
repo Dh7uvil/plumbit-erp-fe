@@ -1,0 +1,55 @@
+Accounts payable (AP) is the **open balance owed to suppliers** after posted purchase invoices, opening AP items, debit notes, and supplier payments. Like AR, AP is tracked as **open items** in document currency.
+
+<AppLink href="/reports/ap-aging">Open AP aging</AppLink> · <AppLink href="/reports/supplier-statement">Supplier statement</AppLink>
+
+## Where balances come from
+
+<FlowDiagram
+  steps={[
+    { label: "Purchase invoice", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Supplier payment", note: "Allocate → reduce AP", href: "/docs/purchases/supplier-payments" },
+    { label: "Debit note", note: "Reduce AP", href: "/docs/purchases/debit-notes" },
+    { label: "Write-off", note: "Reduce AP balance", href: "/docs/accounting/write-offs" },
+  ]}
+/>
+
+## Open items
+
+| Item type | Source |
+|---|---|
+| `PURCHASE_INVOICE` | Posted purchase invoice |
+| `OPENING_AP` | Opening balances wizard |
+| `DEBIT_NOTE` | Unapplied debit balance |
+| `SUPPLIER_PAYMENT` | Unapplied payment balance |
+
+Party-specific AP accounts on suppliers override the system **ACCOUNTS_PAYABLE** role when set.
+
+## Aging buckets
+
+<AppLink href="/reports/ap-aging">AP aging</AppLink> uses the same bucket logic as AR:
+
+| Bucket | Days past due |
+|---|---|
+| Current | 0 or not yet due |
+| 1–30 | 1–30 |
+| 31–60 | 31–60 |
+| 61–90 | 61–90 |
+| 91+ | Over 90 |
+| Unapplied credits | Debit notes and unallocated payments |
+
+## Supplier statement
+
+<AppLink href="/reports/supplier-statement">Supplier statement</AppLink> shows bills, payments, debits, and running balance for one supplier over a date range.
+
+## GL linkage
+
+Posting patterns (Dr GRNI/purchases, Cr AP) are in <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>.
+
+<Example title="GRN then bill">
+Post GRN → GRNI only. Post PI linked to GRN → clears GRNI and creates AP open item. Supplier payment allocation reduces AP.
+</Example>
+
+## Related
+
+- Three-way match: <DocLink href="/docs/purchases/three-way-match">Three-way match</DocLink>
+- FX exposure: <DocLink href="/docs/accounting/fx-revaluation">FX revaluation</DocLink>

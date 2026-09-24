@@ -1,0 +1,44 @@
+Reports read **posted** operational and accounting data. Open the hub at <AppLink href="/reports">Reports</AppLink> or jump directly via **Cmd+K**.
+
+Reports you lack permission for are hidden from the hub and command palette.
+
+## Hub layout
+
+Reports are grouped by category:
+
+| Category | Page |
+|---|---|
+| Financial | <DocLink href="/docs/reports/financial-reports">Financial reports</DocLink> |
+| Receivables and payables | <DocLink href="/docs/reports/receivables-and-payables-reports">Receivables and payables reports</DocLink> |
+| Tax | <DocLink href="/docs/reports/tax-reports">Tax reports</DocLink> |
+| Inventory | <DocLink href="/docs/reports/inventory-reports">Inventory reports</DocLink> |
+| Operations | <DocLink href="/docs/reports/operations-reports">Operations reports</DocLink> |
+| Sales and purchase analysis | <DocLink href="/docs/reports/sales-and-purchase-analysis">Sales and purchase analysis</DocLink> |
+| CRM | <DocLink href="/docs/reports/crm-reports">CRM reports</DocLink> |
+
+Day book, cash book, and bank book also appear under **Accounting** in the sidebar.
+
+## Common report controls
+
+| Control | Use |
+|---|---|
+| **Date range / as of** | Period or snapshot date — stored in URL as `filters.*` |
+| **Branch / warehouse / party** | Scope filters where supported |
+| **Print** | Browser print from report toolbar |
+| **Download CSV** | Export visible data (`reports.report.export` permission) |
+
+List-style report preferences (columns, page size) follow the same URL persistence as <DocLink href="/docs/getting-started/working-with-lists">Working with lists</DocLink>.
+
+## Data source rules
+
+- Financial and AR/AP reports use **posted** journals and open balances
+- Inventory valuation uses **FIFO landed cost** from posted receipts
+- Tax registers include **posted** invoices with VAT detail
+- CRM reports include open pipeline and historical won/lost — not draft quotations
+
+Draft documents never appear in report totals. This matches the <DocLink href="/docs/getting-started/dashboard">Dashboard</DocLink> rule.
+
+## Related
+
+- <DocLink href="/docs/getting-started/system-overview">System overview</DocLink>
+- <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

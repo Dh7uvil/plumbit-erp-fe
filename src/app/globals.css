@@ -9,6 +9,30 @@
   Radius: --radius 0.5rem; shadows: --shadow-xs / --shadow-sm / --shadow-md.
 */
 
+.list-table-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.list-table-scroll {
+  max-height: calc(100svh - 17rem);
+  min-height: 12rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.list-table-panel .list-table-scroll {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+}
+
+#main-content {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
 :root {
   --font-size: 16px;
   --font-weight-medium: 500;

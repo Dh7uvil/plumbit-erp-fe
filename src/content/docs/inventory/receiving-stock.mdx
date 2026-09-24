@@ -1,0 +1,28 @@
+Inbound stock enters through **goods receipts** (GRNs). Posting a GRN is the only standard way to receive purchase stock into a warehouse.
+
+<FlowDiagram
+  steps={[
+    { label: "Purchase order", note: "Issue → incoming qty", href: "/docs/purchases/purchase-orders" },
+    { label: "Goods receipt", note: "Post → on hand +", href: "/docs/purchases/goods-receipts" },
+    { label: "Quality inspection", note: "Optional QC release", href: "/docs/inventory/quality-inspections-and-qc-hold" },
+    { label: "Purchase invoice", note: "Post → clear GRNI", href: "/docs/purchases/purchase-invoices" },
+  ]}
+/>
+
+## What happens on GRN post
+
+- **On hand** increases at the GRN header warehouse (default warehouse if unset).
+- A **FIFO cost layer** is created at the line unit cost.
+- GL: **Dr Inventory, Cr GRNI**.
+- If the product requires QC, quantity also goes on **QC hold** — available stays unchanged until inspection.
+
+PO **issue** only raises **incoming**; it does not receive stock. See <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>.
+
+## Where to learn more
+
+GRN lifecycle, partial receipt, over-receipt rules, import vs domestic movement types, and cancellation are documented in <DocLink href="/docs/purchases/goods-receipts">Goods receipts</DocLink> — not duplicated here.
+
+## Related
+
+- QC hold after receipt: <DocLink href="/docs/inventory/quality-inspections-and-qc-hold">Quality inspections and QC hold</DocLink>
+- Landed costs that revalue layers: <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>

@@ -1,0 +1,52 @@
+UAE VAT zero-rated exports require **export evidence** — typically BL/AWB and customs exit documentation — linked to the export sale. Plumbit tracks compliance via attachments and an exceptions report.
+
+<AppLink href="/reports/export-evidence-exceptions">Export evidence exceptions</AppLink>
+
+## What counts as evidence
+
+Attach documents on the **sales invoice**, **delivery note**, or **export shipment**:
+
+| Category | Examples |
+|---|---|
+| **BL_DOCUMENT** | Bill of lading, air waybill |
+| **CUSTOMS_DOC** | Customs exit proof, export declarations |
+
+BL/AWB number and date can also be captured on the <DocLink href="/docs/import-export/shipments">shipment</DocLink> header (`bl_awb_number`, `bl_awb_date`).
+
+## 90-day window
+
+Posted zero-rated export invoices must have evidence within **90 days** (UAE VAT rule — enforced server-side as `window_days`).
+
+The system sets `export_evidence_ok` on the sales invoice when evidence is satisfied. Posted export invoices missing proof appear on:
+
+- <AppLink href="/reports/export-evidence-exceptions">Export evidence exceptions</AppLink> report
+- Sales invoice list banner (exception count)
+- Sales invoice detail warning when `is_export` and evidence is missing
+
+Report columns: invoice, date, customer, grand total, **days elapsed**, **window** (90). Rows highlight **overdue** when days elapsed exceeds the window.
+
+Filter by **as of** date. CSV export supported.
+
+## Workflow placement
+
+Evidence is collected after delivery and before or at invoice post:
+
+<FlowDiagram
+  steps={[
+    { label: "Delivery note", note: "Post → EXPORT movement", href: "/docs/sales/delivery-notes" },
+    { label: "Shipment", note: "BL / AWB", href: "/docs/import-export/shipments" },
+    { label: "Attachments", note: "BL + customs docs" },
+    { label: "Sales invoice", note: "Post → zero-rated AR", href: "/docs/sales/sales-invoices" },
+  ]}
+/>
+
+See <DocLink href="/docs/workflows/export-shipment">Export shipment</DocLink>.
+
+## VAT 201
+
+The <AppLink href="/reports/vat-201">VAT 201</AppLink> report includes an `export_evidence_exceptions` count linking to the exceptions report.
+
+## Related
+
+- VAT rules: <DocLink href="/docs/accounting/vat">VAT</DocLink>
+- <DocLink href="/docs/reports/tax-reports">Tax reports</DocLink>

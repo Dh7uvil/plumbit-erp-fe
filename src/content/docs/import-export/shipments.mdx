@@ -1,0 +1,55 @@
+Shipments track carrier logistics — BL/AWB, container, ports, ETD/ETA. **No stock movement and no GL posting** at any shipment status.
+
+<AppLink href="/shipments">Open shipments</AppLink>
+
+<Callout type="warning">
+Shipments link to **delivery notes** (export/domestic outbound) for tracking. They **never** link to goods receipts. Import stock receipt always happens on a separate GRN — see <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+## Types and modes
+
+| Shipment type | Typical use |
+|---|---|
+| **IMPORT** | Overseas inbound — track container/BL while goods in transit |
+| **EXPORT** | Outbound export — link posted delivery notes |
+| **DOMESTIC** | Local carrier movement |
+
+Transport modes: Sea, Air, Road, Rail, Courier. Incoterms (EXW through DDP) optional on the header.
+
+## Lifecycle
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Planning", actions: "Edit carrier, BL, ports", effect: "None" },
+    { status: "DISPATCHED", meaning: "Handed to carrier", actions: "Update in-transit dates", effect: "None" },
+    { status: "IN_TRANSIT", meaning: "En route", actions: "Update ETA", effect: "None" },
+    { status: "ARRIVED", meaning: "At destination port/warehouse", actions: "Close", effect: "None" },
+    { status: "CLOSED", meaning: "Complete", actions: "—", effect: "None" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "None" },
+  ]}
+/>
+
+Status changes are **logistics only** — they do not receive goods, issue stock, or create journals.
+
+## Key fields
+
+| Field | Purpose |
+|---|---|
+| `bl_awb_number`, `bl_awb_date` | Bill of lading or air waybill |
+| `container_number`, `seal_number` | Container identification |
+| `carrier_name`, `vessel_or_flight_no` | Carrier and conveyance |
+| `port_of_loading`, `port_of_discharge` | Origin and destination |
+| `etd`, `eta`, actual departure/arrival | Schedule vs actuals |
+| Weights, CBM, package count | Cargo summary |
+
+Attachments (BL scans, customs docs) can be uploaded on the shipment detail screen.
+
+## Import workflow note
+
+For imports, create the shipment for tracking while goods are in transit, then receive stock separately on a <DocLink href="/docs/purchases/goods-receipts">goods receipt</DocLink> with **IMPORT** movement type. See <DocLink href="/docs/workflows/import-shipment">Import shipment</DocLink>.
+
+## Related
+
+- <DocLink href="/docs/import-export/packages">Packages</DocLink>
+- <DocLink href="/docs/import-export/export-evidence">Export evidence</DocLink>
+- <DocLink href="/docs/import-export/trade-stock-and-accounting-impact">Trade stock and accounting impact</DocLink>

@@ -1,0 +1,33 @@
+Stock is tracked **per product per warehouse** in a `StockBalance` record. This page is the canonical explanation of quantity fields and the available formula.
+
+## Quantity fields
+
+| Field | Meaning |
+|---|---|
+| **On hand** (`qty_on_hand`) | Physical quantity in the warehouse |
+| **Reserved** (`qty_reserved`) | Soft hold for confirmed sales orders — not a movement |
+| **QC hold** (`qty_quality_hold`) | Received but not yet released by quality inspection — still in on hand |
+| **Incoming** (`qty_incoming`) | Expected from issued purchase orders — not yet received |
+| **Available** | `on hand − reserved − QC hold` — what you can sell or deliver |
+
+<Callout type="note">
+QC hold reduces **available** but not **on hand**. Goods on QC hold are physically in the warehouse but not sellable.
+</Callout>
+
+## What does not use these fields
+
+- **Outgoing** and **in transit** columns exist on the balance model but are **not updated** by any current transaction. Stock transfers move quantity immediately in one step.
+
+## Reorder settings
+
+**Reorder level** and **reorder quantity** are set per product **per warehouse** on the stock balance — not on the product master. The purchase suggestions report uses available qty vs reorder level.
+
+## Service and non-tracked products
+
+Products with `item_type = SERVICE` or `track_inventory = false` skip stock operations. They can appear on orders and invoices but never create movements or reservations.
+
+## Related
+
+- When each field changes: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>
+- FIFO valuation: <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>
+- Warehouse setup: <DocLink href="/docs/organization-and-access/warehouses-setup">Warehouses</DocLink>

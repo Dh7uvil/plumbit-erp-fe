@@ -1,0 +1,46 @@
+Move stock from one warehouse to another in a **single post**. There is no in-transit warehouse, separate receive step, or GL entry — only warehouse balances change.
+
+<FlowDiagram
+  steps={[
+    { label: "Stock transfer", note: "Draft → edit lines", href: "/docs/inventory/stock-transfers" },
+    { label: "Post", note: "TRANSFER_OUT + IN", href: "/docs/inventory/stock-transfers" },
+  ]}
+/>
+
+<Prerequisites>
+- Source and destination warehouses exist and differ — see <DocLink href="/docs/workflows/set-up-a-warehouse">Set up a warehouse</DocLink>
+- Sufficient **available** qty at source (on hand − reserved − QC hold) unless `allow_negative_stock` is on
+</Prerequisites>
+
+<Steps>
+<Step title="Create transfer">
+<AppLink href="/stock-transfers">Open stock transfers</AppLink> and create a draft. Set source warehouse, destination warehouse, and line quantities (SKU + qty).
+
+No stock or GL effect while draft.
+</Step>
+
+<Step title="Post transfer">
+**Post** executes paired movements for each line:
+
+1. **TRANSFER_OUT** at source — on hand decreases; FIFO layers consumed oldest-first.
+2. **TRANSFER_IN** at destination — on hand increases; same cost consumptions re-applied as new layers.
+
+<StateChangeTable
+  rows={[
+    { action: "Post transfer", stock: "Source − / dest +", reserved: "No change", gl: "None", tax: "None", documents: "Paired movements; FIFO cost carried" },
+  ]}
+/>
+
+Transfers are **GL-neutral** — inventory stays on one inventory account.
+</Step>
+</Steps>
+
+## Undo a mistake
+
+Posted transfers **cannot be cancelled**. Create a **reverse transfer** (swap source and destination) to move qty back.
+
+## Module reference
+
+- Full transfer rules: <DocLink href="/docs/inventory/stock-transfers">Stock transfers</DocLink>
+- Available qty formula: <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>
+- FIFO cost carry: <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>

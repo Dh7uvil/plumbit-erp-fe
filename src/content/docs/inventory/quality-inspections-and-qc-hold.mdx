@@ -1,0 +1,60 @@
+Products flagged **QC required** put received quantity on **QC hold** at goods receipt post. Goods stay in on-hand but are not **available** until a quality inspection is approved.
+
+<AppLink href="/quality-inspections">Open quality inspections</AppLink>
+
+## Flow
+
+<FlowDiagram
+  steps={[
+    { label: "Goods receipt", note: "Post → on hand + QC hold +", href: "/docs/purchases/goods-receipts" },
+    { label: "QC inspection", note: "Draft auto-created", href: "/docs/inventory/quality-inspections-and-qc-hold" },
+    { label: "Approve", note: "Release / scrap / hold for return" },
+    { label: "Purchase return", note: "If RETURN_TO_SUPPLIER", href: "/docs/purchases/purchase-returns" },
+  ]}
+/>
+
+See <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink> for how QC hold affects available.
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "APPROVED"]}
+  branches={[
+    { from: "DRAFT", action: "approve", to: "APPROVED" },
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+| Status | Meaning |
+|---|---|
+| **DRAFT** | Quantities and dispositions editable; linked GRN must be posted |
+| **APPROVED** | Hold released or stock written off per line disposition |
+| **CANCELLED** | Voided draft — no stock effect |
+
+Approved inspections **cannot be reversed**.
+
+## Line quantities
+
+Each line must satisfy: `qty_accepted + qty_rejected + qty_rework = qty_inspected`, and inspected qty cannot exceed remaining hold on the GRN line.
+
+## Dispositions on approve
+
+| Outcome | Stock effect | GL |
+|---|---|---|
+| **Accepted** | QC hold − (`QC_RELEASE` audit) | None |
+| **Rejected → RETURN_TO_SUPPLIER** | Stays on QC hold | None — purchase return posts the stock-out |
+| **Rejected → SCRAP** | On hand −, hold − (`DAMAGE` movement) | Dr Stock scrap, Cr Inventory |
+| **Rework → REWORK_RELEASE** | QC hold − for rework qty (`QC_RELEASE`) | None |
+
+<Callout type="note">
+`QC_HOLD` / `QC_RELEASE` rows are audit-only — on-hand and FIFO layers are unchanged. Only scrap and purchase return remove rejected quantity from stock.
+</Callout>
+
+## Auto-creation
+
+Posting a GRN with QC-required lines creates a draft inspection pre-filled with hold quantities (accepted = full hold, rejected = zero). Edit before approving.
+
+## Related
+
+- Receiving overview: <DocLink href="/docs/inventory/receiving-stock">Receiving stock</DocLink>
+- Movement types: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>

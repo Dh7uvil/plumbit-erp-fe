@@ -1,0 +1,71 @@
+Credit control evaluates a customer's **credit exposure** against their credit limit before high-risk sales actions. A NULL limit means unlimited.
+
+## When it runs
+
+| Trigger | What is checked |
+|---|---|
+| **Sales order confirm** | Full order `grand_total` added to exposure |
+| **Sales invoice post** | Invoice total when not linked to SO, or when open orders are excluded from exposure |
+
+Policy is set by `credit_limit_policy` on the organization: **OFF**, **WARN**, or **BLOCK**.
+
+## Exposure formula
+
+```
+exposure = posted_ar
+         + opening_ar
+         + open_orders        (when credit_limit_include_open_orders)
+         − unapplied_receipts
+         − unapplied_credits
+```
+
+| Component | Source |
+|---|---|
+| **posted_ar** | Open sales invoice balances |
+| **opening_ar** | Opening balance AR items |
+| **open_orders** | Confirmed SO value not yet invoiced (proportional by line) |
+| **unapplied_receipts** | Customer payments with unapplied balance |
+| **unapplied_credits** | Posted credit notes with unapplied balance |
+
+All amounts convert to the **customer currency** using the exchange rate on the evaluation date.
+
+<Example title="Exposure with open order">
+Customer limit AED 100,000. Open AR AED 60,000. Confirmed SO AED 50,000 (include open orders = on). Exposure = 110,000 → exceeds limit.
+</Example>
+
+## Policy behavior
+
+<StatusTable
+  rows={[
+    { status: "OFF", meaning: "Credit limits not enforced", actions: "Confirm / post proceed normally", effect: "No warnings" },
+    { status: "WARN", meaning: "Soft limit", actions: "Confirm / post with warning banner", effect: "CREDIT_LIMIT_EXCEEDED warning returned; action proceeds" },
+    { status: "BLOCK", meaning: "Hard limit", actions: "Confirm / post blocked unless overridden", effect: "CreditLimitExceededError unless override" },
+  ]}
+/>
+
+## Override
+
+Users with **`CREDIT_CONTROL_OVERRIDE`** permission can proceed on **BLOCK** by supplying an override reason. The system writes an audit log entry with limit, exposure, document amount, and reason.
+
+<Callout type="note">
+Override requires both the permission **and** a non-empty reason. WARN policy never blocks — it only surfaces the warning.
+</Callout>
+
+## Settings
+
+| Setting | Effect |
+|---|---|
+| `credit_limit_policy` | OFF / WARN / BLOCK |
+| `credit_limit_include_open_orders` | Include confirmed SO uninvoiced value in exposure |
+| Customer `credit_limit` | Per-customer ceiling; NULL = unlimited |
+
+Configured in <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink> and on the customer master.
+
+## Sales invoice nuance
+
+When an invoice is linked to a sales order and **open orders are included**, the SO value was already counted at confirm — the invoice post does not double-count the full order. When open orders are **excluded**, the invoice post adds its `grand_total` to exposure.
+
+## Related
+
+- Enforced on: <DocLink href="/docs/sales/sales-orders">Sales orders</DocLink>, <DocLink href="/docs/sales/sales-invoices">Sales invoices</DocLink>
+- AR open items: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

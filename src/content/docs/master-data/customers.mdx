@@ -1,0 +1,39 @@
+Customers are parties you sell to. They hold defaults for currency, pricing, payment terms, credit limits, and AR accounts.
+
+<AppLink href="/customers">Open customers</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `name` | Party name |
+| `code` | 3-character code — auto-generated from name if omitted; embedded in document numbers |
+| `company_type` | `CUSTOMER`, `SUPPLIER`, `BOTH`, or `OTHER` — customer screens show CUSTOMER/BOTH/OTHER |
+| `trn` | Tax registration — required and unique when `tax_treatment = REGISTERED` |
+| `tax_treatment` | `REGISTERED`, `UNREGISTERED`, `EXPORT`, `GCC`, `EXEMPT` |
+| `currency_id` | Default transaction currency |
+| `default_price_list_id` | Default pricing — see <DocLink href="/docs/master-data/price-lists">Price lists</DocLink> |
+| `payment_terms_id` | Due date rules |
+| `credit_limit` | Credit control on SO confirm and SI post |
+| `salesperson_id` | Default employee on sales docs |
+| `receivable_account_id` | AR GL override |
+| Billing / shipping address | Document defaults |
+
+## Downstream fields
+
+| Document | Inherited defaults |
+|---|---|
+| Quotation, proforma, SO, SI | Currency, payment terms, price list, salesperson, contact |
+| Credit notes | Customer link, AR account |
+| Customer payments | Allocation target |
+
+Document numbering embeds party `code` — see <DocLink href="/docs/master-data/document-sequences">Document sequences</DocLink>.
+
+## Related
+
+- Contacts: <DocLink href="/docs/master-data/contacts">Contacts</DocLink>
+- Suppliers share the same party table: <DocLink href="/docs/master-data/suppliers">Suppliers</DocLink>
+
+## Example
+
+Customer "Acme Trading" (code `ACM`) has Net 30 terms, AED currency, and salesperson Sarah. A new quotation pre-fills these; document number might be `QUOACM26000001`.

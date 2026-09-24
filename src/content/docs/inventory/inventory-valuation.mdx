@@ -1,0 +1,64 @@
+Plumbit ERP values inventory using **FIFO** (first-in, first-out). This page is the canonical reference for costing — other docs link here rather than repeating layer logic.
+
+<AppLink href="/reports/stock-valuation">Open stock valuation report</AppLink>
+
+## Cost layers
+
+Each inbound movement that affects costing creates a **StockCostLayer** per product × warehouse:
+
+| Field | Meaning |
+|---|---|
+| `qty_received` | Original inbound quantity |
+| `qty_remaining` | Unconsumed quantity |
+| `landed_unit_cost` | Unit cost including allocated landed costs |
+| `document_date` | Layer receipt date (FIFO ordering) |
+
+View layers from the stock detail screen for any balance.
+
+## Inbound — creating layers
+
+Layers are created on post for: goods receipt, opening stock, found/adjustment increases, sales return restock, transfer in (carried from transfer out consumptions), and similar inbound movement types listed in <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>.
+
+Initial unit cost comes from the document line (GRN rate, adjustment unit cost, etc.).
+
+## Outbound — consuming layers
+
+On outbound post (delivery note, transfer out, damage, etc.) the costing service consumes **oldest layers first** by `document_date`, then layer id.
+
+The movement stores:
+
+- **`landed_unit_cost`** on the movement row = weighted average of consumed layers (`total value / qty`)
+- **`value`** = total FIFO cost of the issue (negative for outbound)
+
+If layers are insufficient and `allow_negative_stock` is enabled, a synthetic layer at fallback cost (product purchase rate) may be created.
+
+## Revaluation
+
+`landed_unit_cost` on remaining layers can increase when:
+
+- **Landed cost vouchers** allocate freight/duty/charges to GRN layers
+- **Purchase invoice** posts a different unit cost than the GRN (PPV revalue)
+
+Revaluation updates layer cost and posts GL (Dr Inventory, Cr charge clearing or GRNI variance) — it does not change on-hand quantity.
+
+## Valuation report vs GL
+
+<AppLink href="/reports/stock-valuation">Stock valuation</AppLink> sums `qty_remaining × landed_unit_cost` across all layers as of a date.
+
+The **GL reconciliation** view on the same report compares:
+
+| Measure | Source |
+|---|---|
+| **Valuation total** | Sum of FIFO layers |
+| **GL balance** | Inventory system-role account balance as of date |
+| **Difference** | Should be zero when all stock-affecting documents are posted |
+
+<Callout type="note">
+Stock transfers are GL-neutral — they move cost between warehouse layers but do not change total inventory GL. GRNI timing (receipt before invoice) can temporarily skew GL vs layers until the purchase invoice clears GRNI.
+</Callout>
+
+## Related
+
+- GRN creates layers: <DocLink href="/docs/inventory/receiving-stock">Receiving stock</DocLink>
+- Transfer cost carry: <DocLink href="/docs/inventory/stock-transfers">Stock transfers</DocLink>
+- GL mapping: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

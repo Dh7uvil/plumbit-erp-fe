@@ -1,0 +1,45 @@
+Payment reminders send **email notices** for overdue or upcoming sales invoice balances. No GL entries are created.
+
+<AppLink href="/dunning-rules">Payment reminders</AppLink>
+
+Full dunning reference: <DocLink href="/docs/sales/payment-reminders">Payment reminders</DocLink>.
+
+## How it works
+
+<FlowDiagram
+  steps={[
+    { label: "Dunning rule", note: "Days offset + template", href: "/docs/sales/payment-reminders" },
+    { label: "Posted sales invoice", note: "Balance due > 0", href: "/docs/sales/sales-invoices" },
+    { label: "Reminder email", note: "Logged per invoice + rule" },
+  ]}
+/>
+
+## Dunning rules
+
+Each rule at <AppLink href="/dunning-rules">/dunning-rules</AppLink> defines:
+
+| Field | Purpose |
+|---|---|
+| **days_offset** | Days from due date (negative = before due, positive = overdue) |
+| **template_key** | Email template (due soon, overdue, etc.) |
+| **is_active** | Include in automated scan |
+
+Permissions: `accounting.dunning.read`, `accounting.dunning.manage`, `accounting.dunning.send`.
+
+## Sending reminders
+
+| Method | Behavior |
+|---|---|
+| **Scheduled scan** | Job evaluates active rules; one email per invoice + rule pair; skips if already sent |
+| **Manual from invoice** | User triggers from posted sales invoice detail; picks rule or system matches by offset |
+
+Reminder history appears on the invoice **Payment reminders** card.
+
+## Email delivery
+
+Requires tenant email configuration and customer contact email. Notification channel toggles at <DocLink href="/docs/getting-started/notifications">Notifications</DocLink> affect delivery preferences — there is no in-app reminder inbox.
+
+## Related
+
+- <DocLink href="/docs/accounting/accounts-receivable">Accounts receivable</DocLink>
+- <DocLink href="/docs/collaboration/whats-available">What's available</DocLink>

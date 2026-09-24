@@ -1,0 +1,28 @@
+Personal settings are under the **Settings** sidebar group. All authenticated users can access these screens regardless of module permissions.
+
+## Routes
+
+| Screen | Route | What you can change |
+|---|---|---|
+| My profile | <AppLink href="/settings/profile">/settings/profile</AppLink> | Name, phone |
+| Change password | <AppLink href="/settings/password">/settings/password</AppLink> | Password (signs out other sessions) |
+| Notification settings | <AppLink href="/settings/notifications">/settings/notifications</AppLink> | Email, in-app, WhatsApp toggles |
+
+`/settings` redirects to profile.
+
+## Profile fields
+
+**Editable:** display name, phone number.
+
+**Read-only:** email, account status, assigned roles, last login, employee code, designation.
+
+Organization-wide settings (branches, warehouses, credit policy, VAT) live in <AppLink href="/organization-settings">Organization settings</AppLink> — see <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>.
+
+## Password change
+
+After a successful password change, all other active sessions are invalidated. You remain signed in on the current device.
+
+## Related
+
+- <DocLink href="/docs/getting-started/notifications">Notifications</DocLink>
+- <DocLink href="/docs/organization-and-access/how-access-works">How access works</DocLink>

@@ -1,0 +1,61 @@
+Journal entries are the **general ledger**. System journals are created automatically when operational documents post. Manual journals adjust balances directly.
+
+<AppLink href="/journals">Open journals</AppLink>
+
+## Journal types
+
+| Type | Source |
+|---|---|
+| **MANUAL** | User-created adjusting entries |
+| **SYSTEM** | Posted documents (invoices, payments, stock, cheques, etc.) |
+| **OPENING_BALANCE** | Opening balances wizard |
+| **REVERSAL** | Mirror entry cancelling a posted journal |
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+  ]}
+  compact
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable entry", actions: "Edit, post, cancel", effect: "None" },
+    { status: "POSTED", meaning: "Live on ledger", actions: "Reverse", effect: "Debits = credits; updates account balances" },
+    { status: "CANCELLED", meaning: "Voided draft", actions: "—", effect: "None — never touched GL" },
+  ]}
+/>
+
+<Callout type="important">
+**Posted journals cannot be cancelled.** Use **reverse** to create a `REVERSAL` journal. The original stays `POSTED` with `reversed_by_id` set.
+</Callout>
+
+## Manual journal rules
+
+- Debits must equal credits before post.
+- All lines must use **postable** accounts (not groups).
+- `books_start_date` must be set unless the user has period override.
+- Period lock applies to entry date — see <DocLink href="/docs/accounting/period-lock">Period lock</DocLink>.
+
+## Reversal model
+
+Reversing swaps debits and credits on every line. Used for:
+
+- Manual journal corrections
+- Document cancellations (via `LedgerPostingService`)
+- FX revaluation unwind
+- Cheque bounce
+
+System document reversals are described in <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>.
+
+<Example title="Accrual adjustment">
+Create manual DRAFT → Dr expense, Cr accrual liability → post. Next period: reverse the posted entry and post the corrected amount.
+</Example>
+
+## Related
+
+- Vouchers (cash/bank documents): <DocLink href="/docs/accounting/vouchers">Vouchers</DocLink>
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

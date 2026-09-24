@@ -1,0 +1,41 @@
+Import and export use a shared **imex** flow: upload CSV or XLSX → map columns → preview → import (creates drafts or master rows) or export.
+
+## Supported catalogs
+
+| Catalog | Screen | Required fields | Creates |
+|---|---|---|---|
+| Quotation | <AppLink href="/quotations">Quotations</AppLink> | `customer_name`, line `sku`, `quantity` | Draft quotations |
+| Proforma invoice | <AppLink href="/proforma-invoices">Proforma invoices</AppLink> | Same as quotation | Draft proformas |
+| Sales invoice | <AppLink href="/sales-invoices">Sales invoices</AppLink> | `customer_name`, line `sku`, `quantity` | Draft SIs (+ BL, container, HS code, freight columns) |
+| Package | <AppLink href="/packages">Packages</AppLink> | `sales_order_number`, line `sku`, `quantity` | Draft packages |
+| Customer | <AppLink href="/customers">Customers</AppLink> | `name` | Customer master |
+| Supplier | <AppLink href="/suppliers">Suppliers</AppLink> | `name` | Supplier master |
+| Product | <AppLink href="/products">Products</AppLink> | `sku`, `name` | Product master |
+| Bank statement | <AppLink href="/bank-reconciliation">Bank reconciliation</AppLink> | `line_date` | Reconciliation lines |
+| PI charges | — | `line.charge_code`, `line.charge_amount` | Catalog defined; import route not yet wired |
+
+## Column aliases
+
+Commercial imports recognize common header variants:
+
+| Canonical | Aliases |
+|---|---|
+| `sku` | item no, item code, product code |
+| `quantity` | qty |
+| `unit_price` | price, rate |
+
+Carton, CBM, and weight columns are supported on commercial line imports.
+
+## Import behavior
+
+- **Masters** (customer, supplier, product) — upsert or create; optional `code`, `trn`, `email`, `phone`.
+- **Documents** — create **draft** records; user completes and posts through normal workflow — see <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
+- **Bank statement** — requires bank account and reconciliation period context.
+
+## Export
+
+Most list screens support export of current filter results to CSV/XLSX using the same column definitions.
+
+## Example
+
+Upload a spreadsheet with columns "Customer", "Item No", "Qty", "Price". Map to `customer_name`, `sku`, `quantity`, `unit_price`. Preview shows 20 draft quotations; import creates them for review before send.

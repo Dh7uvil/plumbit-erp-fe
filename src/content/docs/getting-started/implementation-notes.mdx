@@ -1,0 +1,21 @@
+These are known behaviors that differ from common ERP expectations or may need product follow-up. They are flagged on individual pages with an **Implementation note** callout.
+
+| Topic | Actual behavior |
+|---|---|
+| PO auto-close | POs are **never** auto-closed when fully received/billed. Use **Close** manually; track progress via `receipt_status` and `billing_status`. |
+| GRN cancel vs PO billing | A posted GRN **cannot be cancelled** if the linked PO has **any** billing, even if this GRN was not billed. |
+| GRNI report | No dedicated GRNI aging report. GRNI balance is visible via trial balance / GL on the `GOODS_RECEIVED_NOT_INVOICED` system account. |
+| Approval thresholds | Quotation/PO/SO approval is an org **on/off flag** only — no amount-based thresholds. |
+| Inactive customers | Sales documents use `CustomerService.get`, which does **not** block inactive customers (only `require_party` does). |
+| SO outstanding vs reservation | Outstanding delivery qty **ignores returns**; reservation target **subtracts returns** — formulas differ. |
+| Credit note GL account | Credit notes always post to **Sales Returns**, not the product income account. |
+| COGS without delivery | Sales invoices without a delivery note stamp COGS as **PENDING** forever; GL COGS is only on delivery note post. |
+| qty_in_transit / qty_outgoing | Columns exist on stock balance but are **never updated**. Transfers are one-step with no in-transit bucket. |
+| Non-reversible stock docs | Posted stock **adjustments**, **transfers**, and **approved QC** cannot be reversed. |
+| Warehouse ↔ branch | Warehouses belong to the **organization**, not a branch. Branch is on documents only. |
+| Department on transactions | Departments link to employees; **no transaction header** carries department. |
+| Opportunity → quotation | No automatic conversion; create quotation manually with opportunity link. |
+| Shipment ↔ GRN | Shipments link to **delivery notes** only, never goods receipts. |
+| Organization TRN | Stored in tenant settings JSON, not a dedicated column. |
+
+If you find documentation that contradicts this list, treat the **running application** as authoritative and report the discrepancy.

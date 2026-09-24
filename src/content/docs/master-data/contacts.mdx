@@ -1,0 +1,33 @@
+Contacts are people at customer organizations — used on sales documents for addressing and communication.
+
+<AppLink href="/contacts">Open contacts</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `customer_id` | **Required** — parent customer |
+| `name` | Contact person |
+| `email` / `phone` | Communication details |
+| `is_primary` | One primary contact per customer |
+| `is_active` | Inactive contacts cannot be selected |
+
+## Downstream fields
+
+| Document | Field |
+|---|---|
+| Quotation, proforma, SO, SI | `contact_id` — must belong to document customer |
+
+Primary contact auto-fills on some document conversions when not specified.
+
+## Where used
+
+Sales module only. Contacts are **customer-scoped** — there are no supplier contacts in the current model.
+
+## Constraints
+
+Unique index ensures at most one `is_primary = true` contact per customer.
+
+## Example
+
+Customer ABC has primary contact "John Smith". New quotations for ABC default to John; selecting another ABC contact is allowed but must match the header customer.

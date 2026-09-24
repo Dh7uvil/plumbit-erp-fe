@@ -1,0 +1,56 @@
+The chart of accounts is the tenant **GL hierarchy**. Group accounts organize reporting; only **postable** leaf accounts receive journal lines. Document posting resolves accounts via **system roles** — not org-setting default IDs.
+
+<AppLink href="/accounts">Open chart of accounts</AppLink>
+
+## Account types
+
+| Type | Normal balance | Examples |
+|---|---|---|
+| **ASSET** | Debit | Bank, AR, inventory |
+| **LIABILITY** | Credit | AP, VAT output, GRNI |
+| **EQUITY** | Credit | Retained earnings, opening equity |
+| **INCOME** | Credit | Sales revenue, shipping income |
+| **EXPENSE** | Debit | COGS, purchases, bad debt |
+
+Each account also has an **account_subtype** (e.g. `BANK`, `ACCOUNTS_RECEIVABLE`, `COGS`) used for validation and reports.
+
+## Groups vs postable accounts
+
+| Flag | Postable | Use |
+|---|---|---|
+| `is_group = true` | **No** | Parent headers (e.g. "Current Assets", "Income") |
+| `is_group = false` | **Yes** (if active) | All journal postings |
+
+<Callout type="note">
+`LedgerPostingService` rejects lines to group or inactive accounts. A group with children cannot be converted to postable until children are moved.
+</Callout>
+
+## System role mapping
+
+Each `AccountSystemRole` maps one default account for automated posting. Examples:
+
+| System role | Used by |
+|---|---|
+| `ACCOUNTS_RECEIVABLE` | Sales invoices, opening AR |
+| `ACCOUNTS_PAYABLE` | Purchase invoices, opening AP |
+| `SALES_REVENUE` | Sales invoice lines |
+| `VAT_OUTPUT` / `VAT_INPUT` | Tax on sales / purchases |
+| `INVENTORY` / `COGS` | Stock documents |
+| `GOODS_RECEIVED_NOT_INVOICED` | GRN / PI matching |
+| `ADVANCE_FROM_CUSTOMER` | Customer payments, cheques |
+| `BANK` / `CASH_ON_HAND` | Bank and cash vouchers |
+| `CHEQUES_RECEIVABLE` / `CHEQUES_PAYABLE` | Cheque clearing |
+| `BAD_DEBT_EXPENSE` | Write-offs |
+| `FX_GAIN_LOSS` | FX revaluation |
+| `OPENING_BALANCE_EQUITY` | Opening balances plug |
+
+Party-level AR/AP overrides on customers and suppliers take precedence over system AR/AP roles.
+
+## Seeded structure
+
+New tenants receive a standard UAE-oriented chart (1000 Assets → 5000 Expenses) with roles pre-assigned on leaf accounts. Customize names and add accounts; keep roles mapped for posting to succeed.
+
+## Related
+
+- Document → journal table: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Bank link: <DocLink href="/docs/accounting/bank-accounts">Bank accounts</DocLink>

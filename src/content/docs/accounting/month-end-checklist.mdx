@@ -1,0 +1,42 @@
+Use this checklist to close each accounting period. Steps link to the screens and docs that perform the work.
+
+## 1. Post operational documents
+
+Clear draft queues — sales and purchase invoices, payments, stock documents, credit/debit notes. Unposted items appear in <DocLink href="/docs/accounting/period-lock">Period lock</DocLink> preview.
+
+## 2. Reconcile banks
+
+<AppLink href="/bank-reconciliation">Bank reconciliation</AppLink> — import statements, match lines (suggested scoring: amount +50, date +30, ref +20), reconcile. See <DocLink href="/docs/accounting/bank-reconciliation">Bank reconciliation</DocLink>.
+
+## 3. Revalue foreign currency
+
+<AppLink href="/fx-revaluation">FX revaluation</AppLink> — preview exposure, post unrealized gain/loss, or reverse prior run before re-posting. See <DocLink href="/docs/accounting/fx-revaluation">FX revaluation</DocLink>.
+
+## 4. Review AR and AP
+
+- <AppLink href="/reports/ar-aging">AR aging</AppLink> and <AppLink href="/reports/ap-aging">AP aging</AppLink>
+- <AppLink href="/reports/customer-statement">Customer</AppLink> / <AppLink href="/reports/supplier-statement">supplier statements</AppLink> for key parties
+- Write-offs for uncollectible balances — <DocLink href="/docs/accounting/write-offs">Write-offs</DocLink>
+
+## 5. Run financial and VAT reports
+
+| Report | Purpose |
+|---|---|
+| Trial balance / P&amp;L / balance sheet | GL integrity |
+| <AppLink href="/reports/vat-201">VAT 201</AppLink> | Return boxes from document registers |
+| VAT GL recon | Box totals vs VAT_OUTPUT / VAT_INPUT accounts |
+
+See <DocLink href="/docs/accounting/vat">Taxes and VAT</DocLink> and <DocLink href="/docs/reports/financial-reports">Financial reports</DocLink>.
+
+## 6. Update period lock
+
+<AppLink href="/period-lock">Period lock</AppLink> — preview soft lock date, acknowledge unposted docs or negative balances, then apply. Hard lock (from opening balances) is unchanged.
+
+<Callout type="tip">
+Order matters: post and reconcile **before** FX revaluation and **before** locking the period.
+</Callout>
+
+## Related
+
+- Workflow guide: <DocLink href="/docs/workflows/month-end-close">Month-end close</DocLink>
+- GL reference: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

@@ -20,7 +20,8 @@ export function filterCommandItems(
     ({ group, item }) =>
       item.label.toLowerCase().includes(needle) ||
       group.toLowerCase().includes(needle) ||
-      item.href.toLowerCase().includes(needle),
+      item.href.toLowerCase().includes(needle) ||
+      (item.keywords?.some((keyword) => keyword.toLowerCase().includes(needle)) ?? false),
   );
 }
 

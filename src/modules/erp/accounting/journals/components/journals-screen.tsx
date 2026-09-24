@@ -412,7 +412,7 @@ export function JournalsScreen({ embedded = false }: { embedded?: boolean } = {}
   );
 
   return embedded ? (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">{content}</div>
+    <div className="flex flex-col gap-5">{content}</div>
   ) : (
     <ListPage>{content}</ListPage>
   );

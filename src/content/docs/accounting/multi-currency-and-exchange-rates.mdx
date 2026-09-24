@@ -1,0 +1,44 @@
+Multi-currency documents carry amounts in **document currency** with an **exchange rate** to base currency for GL and reporting. Base currency is set per tenant; foreign amounts convert at transaction time.
+
+## Document currency
+
+Every monetary document stores:
+
+| Field | Purpose |
+|---|---|
+| `currency_id` | Document currency (invoice, payment, journal) |
+| `exchange_rate` | Base units per 1 foreign unit at transaction date |
+| Base amounts | Derived as `amount × exchange_rate` on lines and open items |
+
+Party default currency pre-fills new documents. Bank accounts may be foreign-currency while reports run in base.
+
+## Exchange rate resolve
+
+Rates are resolved via `/exchange-rates/resolve`:
+
+| Case | Result |
+|---|---|
+| Same currency | Rate `1` |
+| Direct pair | Latest rate **on or before** document date |
+| Inverse pair only | Reciprocal (`is_derived_reciprocal = true`) |
+| No rate | Posting blocked — `ExchangeRateMissingError` |
+
+Maintain rates in <DocLink href="/docs/master-data/exchange-rates">Exchange rates</DocLink> before posting foreign documents.
+
+## Where rates apply
+
+- Sales and purchase invoices, credit/debit notes
+- Customer and supplier payments
+- Vouchers and cheques
+- Manual journals (per line)
+- FX revaluation (closing rate at period end)
+- AR/AP aging and statements (base amounts)
+
+<Callout type="note">
+Open items stay in **document currency**. FX revaluation adjusts GL base balances without changing open item foreign amounts — see <DocLink href="/docs/accounting/fx-revaluation">FX revaluation</DocLink>.
+</Callout>
+
+## Related
+
+- Rate maintenance: <DocLink href="/docs/master-data/exchange-rates">Exchange rates</DocLink>
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

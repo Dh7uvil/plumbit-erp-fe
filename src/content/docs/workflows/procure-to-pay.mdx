@@ -1,0 +1,137 @@
+End-to-end purchase workflow: order goods, receive into stock, match the supplier bill, and pay. Stock moves on **goods receipt** post; AP moves on **purchase invoice** post.
+
+<FlowDiagram
+  steps={[
+    { label: "Purchase order", note: "Issue → incoming", href: "/docs/purchases/purchase-orders" },
+    { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
+    { label: "Purchase invoice", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Supplier payment", note: "Post → allocate", href: "/docs/purchases/supplier-payments" },
+  ]}
+  branches={[
+    {
+      label: "QC reject",
+      steps: [
+        { label: "Quality inspection", note: "Reject → return", href: "/docs/inventory/quality-inspections-and-qc-hold" },
+        { label: "Purchase return", note: "Post → stock out", href: "/docs/purchases/purchase-returns" },
+        { label: "Debit note", note: "Post → reduce AP", href: "/docs/purchases/debit-notes" },
+      ],
+    },
+  ]}
+/>
+
+<Prerequisites>
+- Supplier and products exist — see <DocLink href="/docs/master-data/suppliers">Suppliers</DocLink> and <DocLink href="/docs/master-data/products">Products</DocLink>
+- Permissions for PO, GRN, PI, and supplier payments
+</Prerequisites>
+
+## Standard path
+
+<Steps>
+<Step title="Issue purchase order">
+Create a PO from an issued supplier and **issue** it. Incoming qty increases on the PO; no stock or GL yet.
+
+<StateChangeTable
+  rows={[
+    { action: "Issue PO", stock: "Incoming + on PO lines", reserved: "No change", gl: "None", tax: "None", documents: "PO status ISSUED" },
+  ]}
+/>
+</Step>
+
+<Step title="Receive goods (GRN)">
+Create a <DocLink href="/docs/purchases/goods-receipts">goods receipt</DocLink> from the issued PO. **Post** the GRN.
+
+<StateChangeTable
+  rows={[
+    { action: "Post GRN", stock: "On hand +; PO incoming −", reserved: "No change", gl: "Dr Inventory, Cr GRNI", tax: "None", documents: "FIFO layer; PO qty_received +" },
+  ]}
+/>
+
+**Partial receipt** — post multiple GRNs against the same PO until each line is fully received. Each GRN increments `qty_received` independently.
+
+**Over-receipt** — when PO-linked, received qty is capped by outstanding unless org `allow_over_receipt` (and optional tolerance) is enabled — see <DocLink href="/docs/purchases/goods-receipts">Goods receipts</DocLink>.
+</Step>
+
+<Step title="Record supplier bill (PI)">
+Create a <DocLink href="/docs/purchases/purchase-invoices">purchase invoice</DocLink> from the posted GRN (or PO). **Post** the bill.
+
+<StateChangeTable
+  rows={[
+    { action: "Post PI (GRN-linked)", stock: "No change", reserved: "No change", gl: "Dr GRNI (+ PPV); Cr AP", tax: "VAT input or RCM", documents: "GRN qty_billed +; open AP item" },
+  ]}
+/>
+</Step>
+
+<Step title="Pay supplier">
+Create a <DocLink href="/docs/purchases/supplier-payments">supplier payment</DocLink>, **post**, then **allocate** to open bills — see <DocLink href="/docs/workflows/record-customer-and-supplier-payments">Record payments</DocLink>.
+
+<StateChangeTable
+  rows={[
+    { action: "Post payment", stock: "No change", reserved: "No change", gl: "Cr bank; Dr advance to supplier", tax: "Optional VAT on advance", documents: "Unapplied advance balance" },
+    { action: "Allocate to PI", stock: "No change", reserved: "No change", gl: "Dr AP; Cr advance to supplier", tax: "None", documents: "PI balance_due −" },
+  ]}
+/>
+</Step>
+</Steps>
+
+## Variant: bill before receipt (PI-first)
+
+Use when the supplier invoice arrives before physical goods.
+
+<Steps>
+<Step title="Issue PO">
+Same as standard — PO must be **ISSUED**.
+</Step>
+<Step title="Post purchase invoice from PO">
+Post PI with product lines **without** a GRN. GL hits **Purchases** (not GRNI); no stock movement.
+
+<StateChangeTable
+  rows={[
+    { action: "Post PI (no GRN)", stock: "No change", reserved: "No change", gl: "Dr Purchases; Cr AP", tax: "VAT input or RCM", documents: "PO qty_billed +" },
+  ]}
+/>
+</Step>
+<Step title="Receive against posted PI">
+Create GRN **from the posted PI**. Post GRN — stock increases and GRNI clears against the already-posted bill logic on subsequent PI-GRN linkage.
+
+See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink> for the PI-first create matrix.
+</Step>
+</Steps>
+
+## Exception: QC reject → return → debit note
+
+When products require QC, GRN post puts qty on **QC hold** until inspection approves.
+
+<Steps>
+<Step title="Post GRN with QC required">
+Draft quality inspection auto-created — see <DocLink href="/docs/inventory/quality-inspections-and-qc-hold">Quality inspections</DocLink>.
+</Step>
+<Step title="Approve inspection — reject to supplier">
+Set rejected qty with disposition **RETURN_TO_SUPPLIER**. Stock stays on QC hold until return posts.
+</Step>
+<Step title="Post purchase return">
+Create return from the posted GRN. Post — on hand −, GRNI reduced.
+
+Follow <DocLink href="/docs/workflows/handle-a-supplier-return">Handle a supplier return</DocLink>.
+</Step>
+<Step title="Post debit note">
+Create debit note from the posted return (or PI). Post — AP reduced; no further stock movement.
+</Step>
+</Steps>
+
+## Cancel guards
+
+| Document | Cannot cancel when |
+|---|---|
+| **Posted GRN** | Period locked; any line `qty_billed > 0`; linked PO has **any** billing; approved QC inspection; live purchase return; FIFO layers partially consumed; inspection qty recorded |
+| **Posted PI** | Period locked; payments, debit notes, or write-offs applied |
+| **Posted purchase return** | Period locked; live debit note references return |
+
+<Callout type="implementation">
+A posted GRN **cannot be cancelled** if the linked PO has **any** billing, even when this GRN was never billed — see <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+## Module reference
+
+- Purchase lifecycle map: <DocLink href="/docs/purchases/purchase-lifecycle">Purchase lifecycle</DocLink>
+- Three-way match report: <AppLink href="/reports/three-way-match">Three-way match</AppLink>
+- Combined stock/GL impact: <DocLink href="/docs/purchases/purchases-stock-and-accounting-impact">Purchases stock and accounting impact</DocLink>

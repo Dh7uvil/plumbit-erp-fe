@@ -1,0 +1,50 @@
+Products and services are the items you sell, purchase, and (optionally) stock.
+
+<AppLink href="/products">Open products</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `item_type` | `PRODUCT` (goods) or `SERVICE` (non-stockable) |
+| `sku` | Unique code — uppercased on save |
+| `name` | Display name |
+| `unit_id` | Default unit of measure |
+| `category_id` | Category and GL fallback |
+| `selling_rate` / `purchase_rate` | Default prices |
+| `tax_id` | Default tax on lines |
+| `track_inventory` | When true, product participates in stock operations |
+| `requires_qc` | When true, GRN post puts qty on QC hold |
+| `income_account_id` / `purchase_account_id` | GL overrides |
+| `hs_code`, `volume` | Trade and landed-cost metadata |
+
+## Key flags
+
+**`track_inventory`**
+- Default `false`. Required for stock movements, reservations, and GRN receipt.
+- Cannot disable after stock balances or movements exist.
+- `requires_qc` only applies when `item_type = PRODUCT` and `track_inventory = true`.
+
+**`item_type = SERVICE`**
+- Never stocked — blocked by `require_stockable`.
+- Can appear on sales and purchase documents; no inventory impact.
+
+**`requires_qc`**
+- Defaults from org `qc_required_default` on create.
+- On GRN post: increases `qty_quality_hold`, creates QC hold movement — see <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>.
+
+## GL account resolve order
+
+1. Product `income_account_id` / `purchase_account_id`
+2. Category accounts
+3. System roles (`SALES_REVENUE` / `PURCHASES`)
+
+Used on sales invoice, purchase invoice, credit note, and debit note posting.
+
+## Where used
+
+All commercial and inventory documents. Price resolution falls back to `selling_rate` — see <DocLink href="/docs/master-data/price-lists">Price lists</DocLink>.
+
+## Example
+
+"Consulting Hour" is `SERVICE` with no inventory tracking — appears on invoices only. "Steel Rod" is `PRODUCT` with `track_inventory` and `requires_qc`; GRN receipt triggers a quality inspection before stock becomes available.

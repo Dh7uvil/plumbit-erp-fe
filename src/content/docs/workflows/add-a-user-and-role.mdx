@@ -1,0 +1,26 @@
+Grant system access by assigning roles with the right permissions.
+
+<FlowDiagram
+  steps={[
+    { label: "Role", note: "Define permissions", href: "/docs/organization-and-access/roles-and-permissions" },
+    { label: "User", note: "Assign roles", href: "/docs/organization-and-access/users" },
+  ]}
+/>
+
+<Steps>
+<Step title="Create or verify role">
+<AppLink href="/roles">Open roles</AppLink> — create a role or confirm an existing one has the needed `module.resource.action` permissions. Users inherit the **union** of all assigned roles.
+
+See <DocLink href="/docs/organization-and-access/roles-and-permissions">Roles and permissions</DocLink> and <DocLink href="/docs/organization-and-access/how-access-works">How access works</DocLink>.
+</Step>
+
+<Step title="Add user">
+<AppLink href="/users">Open users</AppLink> — enter name, email, phone. Assign one or more roles. Status starts as `INVITED` until first sign-in.
+</Step>
+
+<Step title="Optional employee link">
+Set branch, department, designation, and joining date when the user is also a salesperson or needs employee-scoped filters — see <DocLink href="/docs/organization-and-access/employees-and-salespersons">Employees and salespersons</DocLink>.
+</Step>
+</Steps>
+
+Disable users by setting status to `DISABLED` — they cannot sign in; audit history is preserved.

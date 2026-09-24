@@ -1,0 +1,108 @@
+A sales order is a **customer commitment** for products and quantities. Confirming reserves available stock; it does not issue stock or create receivables until downstream documents post.
+
+<AppLink href="/sales-orders">Open sales orders</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Quotation / proforma", note: "Optional sources", href: "/docs/sales/quotations" },
+    { label: "Sales order", note: "Confirm → reserve", href: "/docs/sales/sales-orders" },
+    { label: "Delivery note", note: "Post → issue + COGS", href: "/docs/sales/delivery-notes" },
+    { label: "Sales invoice", note: "Post → AR + revenue", href: "/docs/sales/sales-invoices" },
+  ]}
+  branches={[
+    {
+      label: "Optional branch",
+      steps: [
+        { label: "Purchase order", note: "Plan / create POs from SO", href: "/docs/purchases/purchase-orders" },
+      ],
+    },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "CONFIRMED", "CLOSED"]}
+  branches={[
+    { from: "DRAFT", action: "submit", to: "PENDING_APPROVAL", optional: true },
+    { from: "PENDING_APPROVAL", action: "approve", to: "APPROVED", optional: true },
+    { from: "PENDING_APPROVAL", action: "reject", to: "REJECTED", optional: true },
+    { from: "APPROVED", action: "confirm", to: "CONFIRMED", optional: true },
+    { from: "DRAFT", action: "confirm", to: "CONFIRMED" },
+    { from: "CONFIRMED", action: "close", to: "CLOSED" },
+    { from: "CLOSED", action: "reopen", to: "CONFIRMED" },
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "CONFIRMED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable order not yet confirmed", actions: "Edit, submit, confirm (if no approval), cancel", effect: "None" },
+    { status: "PENDING_APPROVAL", meaning: "Awaiting approver", actions: "Approve, reject, cancel", effect: "None" },
+    { status: "APPROVED", meaning: "Approved, ready to confirm", actions: "Confirm, cancel", effect: "None" },
+    { status: "CONFIRMED", meaning: "Active customer order", actions: "Create DN / SI / PO, close, cancel (if not delivered/invoiced)", effect: "Reserves stock for tracked lines" },
+    { status: "CLOSED", meaning: "Manually closed when complete", actions: "Reopen to CONFIRMED", effect: "Reservation released on close" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Releases reservation if was CONFIRMED" },
+  ]}
+/>
+
+## Fulfillment and billing roll-ups
+
+**fulfillment_status** and **billing_status** are independent header fields:
+
+| Field | Values | Driven by |
+|---|---|---|
+| **fulfillment_status** | NOT_DELIVERED → PARTIALLY_DELIVERED → DELIVERED | Posted delivery note quantities |
+| **billing_status** | NOT_INVOICED → PARTIALLY_INVOICED → INVOICED | Posted sales invoice quantities |
+
+Each line tracks ordered, delivered, returned, invoiced, and reserved quantities separately.
+
+## What changes when you act
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft SO only" },
+    { action: "Confirm SO", stock: "No on-hand change", reserved: "Soft hold at header warehouse", gl: "None", tax: "None", documents: "DN, SI, PO, customer payment enabled" },
+    { action: "Cancel confirmed SO (no delivery/billing)", stock: "No on-hand change", reserved: "Released", gl: "None", tax: "None", documents: "SO cancelled" },
+  ]}
+/>
+
+## Stock reservation
+
+On **confirm**, tracked lines call `reserve_locked`. Reservation target = `quantity − qty_delivered − qty_returned`.
+
+<Callout type="note">
+Shortfalls **never block confirm**. If available qty is insufficient, the system reserves what exists and reports the shortfall. See <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink> and <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>.
+</Callout>
+
+<Callout type="implementation">
+Outstanding delivery qty on the SO **ignores returns**; the reservation formula **subtracts returns**. See <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+## Credit check
+
+Credit control runs on **confirm** when `credit_limit_policy` is WARN or BLOCK. Users with `CREDIT_CONTROL_OVERRIDE` can override BLOCK with a reason — see <DocLink href="/docs/sales/credit-control">Credit control</DocLink>.
+
+## Cancellation rules
+
+A **confirmed** order cannot cancel once `fulfillment_status ≠ NOT_DELIVERED` or `billing_status ≠ NOT_INVOICED`.
+
+## Downstream documents
+
+From a **confirmed** sales order you can create:
+
+- **Delivery note** — issues stock on post
+- **Sales invoice** — bills without delivery when needed
+- **Purchase order** — plan or create POs for buy-to-order lines
+
+<Example title="Partial fulfillment">
+SO for 100 units → DN posted for 40 → fulfillment_status PARTIALLY_DELIVERED, reservation target drops to 60 undelivered.
+</Example>
+
+## Related
+
+- Reservation mechanics: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>
+- Document links: <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>

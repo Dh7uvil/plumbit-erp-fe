@@ -1,0 +1,53 @@
+Packages group sales order lines into physical cartons for shipping. **Packing does not change stock** — stock is issued when the delivery note is posted.
+
+<AppLink href="/packages">Open packages</AppLink>
+
+## Where it fits
+
+<FlowDiagram
+  steps={[
+    { label: "Sales order", note: "Confirmed", href: "/docs/sales/sales-orders" },
+    { label: "Delivery note", note: "Post → stock out", href: "/docs/sales/delivery-notes" },
+    { label: "Package", note: "Cartons — no stock change", href: "/docs/import-export/packages" },
+    { label: "Shipment", note: "BL / AWB tracking", href: "/docs/import-export/shipments" },
+  ]}
+/>
+
+## Lifecycle
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Packing in progress", actions: "Edit lines, mark packed", effect: "None" },
+    { status: "PACKED", meaning: "Carton finalized", actions: "Link to shipment", effect: "None" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "None" },
+  ]}
+/>
+
+## Creating a package
+
+| Field | Purpose |
+|---|---|
+| **Sales order** | Required source — lines come from SO lines |
+| **Delivery note** | Optional link to a posted DN |
+| **Dimensions / weight** | Length, width, height, gross/net weight, CBM |
+| **Package number** | Carton or pallet identifier |
+| **Shipping marks** | Marks on outer cartons |
+
+Lines reference `sales_order_line_id`, product, quantity, and packing attributes (batch, serial where applicable).
+
+## What does not happen
+
+- No stock reservation or issue on pack
+- No GL entries
+- No VAT impact
+
+Stock already moved on delivery note post. See <DocLink href="/docs/import-export/trade-stock-and-accounting-impact">Trade stock and accounting impact</DocLink>.
+
+## Import / export
+
+Packages can be created from export sales orders in the <DocLink href="/docs/workflows/export-shipment">Export shipment</DocLink> workflow. CSV import is supported for draft packages from sales order numbers — see <DocLink href="/docs/master-data/importing-and-exporting-data">Importing and exporting data</DocLink>.
+
+## Related
+
+- <DocLink href="/docs/import-export/shipments">Shipments</DocLink>
+- <DocLink href="/docs/import-export/trade-overview">Trade overview</DocLink>

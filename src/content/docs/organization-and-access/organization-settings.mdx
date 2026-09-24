@@ -1,0 +1,53 @@
+Organization settings define company identity, fiscal calendar, and behavioral policies that affect every module.
+
+## Organizational structure
+
+<FlowDiagram
+  steps={[
+    { label: "Organization (tenant)", note: "Single company instance" },
+    { label: "Branches", note: "Operating locations on documents", href: "/docs/organization-and-access/branches" },
+    { label: "Departments", note: "Belong to a branch; assigned to employees", href: "/docs/organization-and-access/departments" },
+    { label: "Employees / Users", note: "Salesperson on sales docs", href: "/docs/organization-and-access/users" },
+    { label: "Warehouses", note: "Org-level stock locations — not under branches", href: "/docs/organization-and-access/warehouses-setup" },
+  ]}
+/>
+
+<Callout type="implementation">
+Warehouses have **no branch_id**. Branch appears on transaction headers; warehouse is chosen per document.
+</Callout>
+
+## Dimensions on documents
+
+| Dimension | Carried on |
+|---|---|
+| Branch | SO, PO, quotation, proforma, SI, PI, CN, DN, GRN, stock adj/transfer, landed cost, vouchers, journals, budgets |
+| Warehouse | SO, PO, GRN, DN, returns, stock documents |
+| Cost center | Journals, voucher lines, budgets |
+| Salesperson | Customer default; quotation, SO, proforma, SI |
+| Department | **Employees only** — not on transactions |
+
+## Settings that change behavior
+
+| Setting | Effect |
+|---|---|
+| `quotation_requires_approval` | Blocks send-from-draft; must submit → approve |
+| `sales_order_requires_approval` | Blocks confirm-from-draft |
+| `purchase_order_requires_approval` | Blocks issue-from-draft |
+| `allow_negative_stock` | Allows issuing below available on delivery/adjustment |
+| `allow_over_receipt` + tolerance | Controls GRN qty above PO outstanding |
+| `qc_required_default` | Default for new products requiring QC |
+| `credit_limit_policy` (OFF/WARN/BLOCK) | Enforced on SO confirm and SI post |
+| `credit_limit_include_open_orders` | Includes confirmed SO value in exposure |
+| `vat_on_advances` | VAT on customer payment post |
+| `auto_apply_advances_on_invoice` | Auto-allocate PFI/PO advances on invoice post |
+| `lock_date` / `hard_lock_date` | Period lock — see Period lock doc |
+| `books_start_date` | Earliest system journal date |
+| `fiscal_year_start_month/day` | Document sequence fiscal year |
+
+## Access model
+
+Permissions use `module.resource.action`. Roles bundle permissions. **No branch or warehouse row-level security** — users with read access see all tenant data. See <DocLink href="/docs/organization-and-access/how-access-works">How access control works</DocLink>.
+
+## Document numbering
+
+Sequences are unique per `(tenant, document_type, series, fiscal_year)` — **not per branch**. Format: prefix + optional party code + fiscal year + padded sequence.

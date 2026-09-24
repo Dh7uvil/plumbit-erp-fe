@@ -1,0 +1,41 @@
+Branches are operating locations — offices, showrooms, or regional units. They appear on transaction headers and list filters but **do not restrict what users can see**.
+
+<AppLink href="/organization-settings">Open organization settings</AppLink> (Branches tab)
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `code` | Short identifier; shown in lists and reports |
+| `name` | Display name |
+| `status` | `ACTIVE` or `INACTIVE` — inactive branches cannot be selected on new documents |
+| `default_currency_id` | Default currency for the branch (optional) |
+| `timezone` | Branch timezone |
+| Address fields | Location on branch profile and printouts |
+
+## Where branch appears
+
+Branch is an optional header dimension on:
+
+| Module | Documents |
+|---|---|
+| Sales | Quotation, proforma invoice, sales order, sales invoice, credit note |
+| Purchase | Purchase order, goods receipt, purchase invoice, debit note, landed cost |
+| Inventory | Delivery note, stock transfer, stock adjustment |
+| Accounting | Journal entry, voucher, budget |
+
+Branch does **not** appear on employees-only records like departments, and is **not** linked to warehouses — see <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>.
+
+## Downstream behavior
+
+- **List filters** — Most document lists can filter by branch.
+- **Reports** — P&L, trial balance, and GL reports accept an optional branch filter.
+- **No data scoping** — Users with read permission see all branches' documents. Branch is metadata, not row-level security — see <DocLink href="/docs/organization-and-access/how-access-works">How access control works</DocLink>.
+
+## Delete rules
+
+Branches are soft-deleted. Deletion is blocked while departments or employees are assigned. Existing document `branch_id` values are set to null (budgets restrict deletion).
+
+## Example
+
+A company with Dubai HQ and Abu Dhabi showroom creates two branches. Sales invoices for the showroom select the Abu Dhabi branch; warehouse and stock remain org-wide. All users with sales invoice read access see both branches' invoices.

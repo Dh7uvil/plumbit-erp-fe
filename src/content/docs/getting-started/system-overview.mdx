@@ -1,0 +1,33 @@
+Plumbit ERP connects sales, purchases, inventory, accounting, and CRM in one tenant. Operational documents carry business data; posting finalizes them and updates stock and/or the general ledger.
+
+## How the modules connect
+
+<FlowDiagram
+  direction="horizontal"
+  steps={[
+    { label: "Organization & master data", note: "Branches, warehouses, products, parties, taxes", href: "/docs/organization-and-access/organization-settings" },
+    { label: "Sales", note: "Quote → order → delivery → invoice → payment", href: "/docs/sales/sales-lifecycle" },
+    { label: "Purchases", note: "PO → goods receipt → invoice → payment", href: "/docs/purchases/purchase-lifecycle" },
+    { label: "Inventory", note: "Stock balances, movements, FIFO valuation", href: "/docs/inventory/stock-concepts" },
+    { label: "Accounting", note: "AR, AP, inventory, COGS, VAT journals", href: "/docs/accounting/accounting-overview" },
+    { label: "Reports", note: "Financial, stock, aging, VAT", href: "/docs/reports/using-reports" },
+  ]}
+/>
+
+**Master data feeds every transaction.** Customers and suppliers (parties), products, warehouses, taxes, and price lists are referenced when you create quotations, orders, receipts, and invoices. Without them, compose screens cannot build valid lines.
+
+**Sales and purchases drive inventory.** Stock on hand changes when you **post** goods receipts, delivery notes, returns, adjustments, and transfers — not when you save a purchase order or confirm a sales order. Sales orders **reserve** available quantity on confirm; delivery notes **issue** stock and post COGS.
+
+**All three feed accounting.** Posted delivery notes post COGS. Posted goods receipts post inventory and GRNI. Posted sales and purchase invoices post AR/AP, revenue/purchases, and VAT. Payments first hit advance accounts, then allocate to open invoices.
+
+**CRM sits upstream of sales.** Leads convert to customers and opportunities. Quotations can link to an opportunity; there is no automatic quote-from-opportunity conversion.
+
+## Where to start
+
+| If you need to… | Start here |
+|---|---|
+| Understand document posting and cancellation | <DocLink href="/docs/getting-started/working-with-documents">Working with documents</DocLink> |
+| See which document creates which | <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink> |
+| Run a full purchase cycle | <DocLink href="/docs/workflows/procure-to-pay">Procure to pay</DocLink> |
+| Run a full sales cycle | <DocLink href="/docs/workflows/order-to-cash">Order to cash</DocLink> |
+| Go live on a new tenant | <DocLink href="/docs/workflows/go-live-setup">Go-live setup</DocLink> |

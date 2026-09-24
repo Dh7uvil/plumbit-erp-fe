@@ -1,0 +1,38 @@
+The stock movement ledger is a **read-only audit trail** of every quantity change — one row per movement with type, quantity, value, source document, and before/after on-hand snapshot.
+
+<AppLink href="/stock-movements">Open stock movements</AppLink>
+
+## What each row shows
+
+| Column | Meaning |
+|---|---|
+| **Movement type** | e.g. PURCHASE, SALE, TRANSFER_OUT, ADJUSTMENT — see <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink> |
+| **Qty** | Signed change (+ inbound, − outbound) |
+| **Value** | FIFO value of the movement (null for QC audit rows) |
+| **Unit cost** | `value / qty` where costing applies |
+| **Source** | Document type and link (GRN, DN, transfer, etc.) |
+| **Document date** | Accounting / movement date |
+
+Movements are created only when source documents are **posted** (or PO **issued** for incoming, which does not create a movement row — it updates the balance directly).
+
+## Screen vs report
+
+| View | Scope | QC audit rows |
+|---|---|---|
+| **Stock movements** screen | All movement rows, filterable | Included (`QC_HOLD`, `QC_RELEASE`) |
+| **Stock movement report** | Period summary by product × warehouse | **Excluded** — audit-only; on-hand unchanged |
+
+<Callout type="note">
+QC hold and release movements adjust **available** via `qty_quality_hold` but do not change on-hand or FIFO layers. They appear on the ledger screen for traceability but are omitted from the ranged report so opening/closing quantities reconcile.
+</Callout>
+
+## Using the ledger
+
+- Trace a balance change back to its source document.
+- Filter by warehouse, product, movement type, or date range.
+- From a product's stock detail, view layers alongside recent movements.
+
+## Related
+
+- Field definitions: <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>
+- FIFO value on rows: <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>

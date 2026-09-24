@@ -1,0 +1,76 @@
+A credit note **reduces what a customer owes**. It posts to the general ledger only — no stock movement.
+
+<AppLink href="/credit-notes">Open credit notes</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Sales invoice", note: "POSTED source", href: "/docs/sales/sales-invoices" },
+    { label: "Credit note", note: "Post → reduce AR", href: "/docs/sales/credit-notes" },
+  ]}
+  branches={[
+    {
+      label: "Alternate source",
+      steps: [
+        { label: "Sales return", note: "POSTED return", href: "/docs/sales/sales-returns" },
+        { label: "Credit note", note: "Commercial credit", href: "/docs/sales/credit-notes" },
+      ],
+    },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+  compact
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable credit", actions: "Edit, post, cancel", effect: "None" },
+    { status: "POSTED", meaning: "Applied credit against customer", actions: "Allocate to invoices, cancel (if allowed)", effect: "Dr Sales returns + VAT, Cr AR" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Reversal journal if was POSTED" },
+  ]}
+/>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft CN only" },
+    { action: "Post credit note", stock: "No movement", reserved: "No change", gl: "Dr Sales returns, Dr VAT output; Cr AR", tax: "Output VAT reversed per line", documents: "Open credit item; SI amount_credited updated when linked" },
+    { action: "Cancel posted CN", stock: "No change", reserved: "No change", gl: "Reversal journal", tax: "Reversed", documents: "Blocked if allocated" },
+  ]}
+/>
+
+## GL account
+
+Credit notes always debit the **Sales Returns** system account (`SALES_RETURNS`) for product line revenue — not the original product income account.
+
+<Callout type="implementation">
+This differs from some ERPs that credit the original revenue account. See <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+## Create from
+
+| Source | Source must be |
+|---|---|
+| Sales invoice | POSTED |
+| Sales return | POSTED |
+
+Physical returns use <DocLink href="/docs/sales/sales-returns">Sales returns</DocLink> for stock; the credit note handles the commercial reduction.
+
+<Example title="Partial credit against invoice">
+Post CN for AED 500 linked to SI-1001 → Dr Sales returns 500, Cr AR 500. Invoice `amount_credited` increases; balance due drops.
+</Example>
+
+## Related
+
+- Journal summary: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- No stock on credit notes: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>

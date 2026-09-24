@@ -1,0 +1,66 @@
+Cheques and post-dated cheques (PDC) track **inbound customer cheques** and **outbound supplier cheques** through issue, deposit, clear, or bounce — separate from the customer/supplier payment screens.
+
+<AppLink href="/cheques">Open cheques</AppLink>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "ISSUED", "DEPOSITED", "CLEARED"]}
+  branches={[
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "ISSUED", action: "clear", to: "CLEARED" },
+    { from: "ISSUED", action: "bounce", to: "BOUNCED" },
+    { from: "DEPOSITED", action: "clear", to: "CLEARED" },
+    { from: "DEPOSITED", action: "bounce", to: "BOUNCED" },
+    { from: "CLEARED", action: "bounce", to: "BOUNCED" },
+  ]}
+  compact
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable cheque", actions: "Edit, issue, cancel", effect: "None" },
+    { status: "ISSUED", meaning: "Cheque issued", actions: "Deposit (inbound), clear, bounce, cancel", effect: "Clearing GL entry — see below" },
+    { status: "DEPOSITED", meaning: "Sent to bank (inbound only)", actions: "Clear, bounce", effect: "Status only — no extra GL" },
+    { status: "CLEARED", meaning: "Funds moved", actions: "Bounce (reverse)", effect: "Dr/Cr bank vs clearing account" },
+    { status: "BOUNCED", meaning: "Cheque returned", actions: "—", effect: "Reverses clear + issue journals and allocations" },
+    { status: "CANCELLED", meaning: "Voided draft or issued", actions: "—", effect: "Reversal if was issued" },
+  ]}
+/>
+
+## GL on issue
+
+| Direction | Debit | Credit |
+|---|---|---|
+| **Inbound** (customer) | CHEQUES_RECEIVABLE | Advance from customer |
+| **Outbound** (supplier) | Advance to supplier | CHEQUES_PAYABLE |
+
+On **issue**, optional allocations apply the advance to open AR/AP items (same pattern as payments).
+
+## GL on clear
+
+| Direction | Debit | Credit |
+|---|---|---|
+| **Inbound** | Bank | CHEQUES_RECEIVABLE |
+| **Outbound** | CHEQUES_PAYABLE | Bank |
+
+Clear date uses `due_date` when set, otherwise `cheque_date`.
+
+## Bounce reverses
+
+Bouncing reverses in order:
+
+1. **Clearing journal** (if cheque was cleared)
+2. **Allocation journals** (if allocations were applied)
+3. **Issue journal**
+
+Status returns to **BOUNCED**; unapplied amount resets to full cheque amount.
+
+<Callout type="note">
+Inbound cheques can skip **DEPOSITED** and go **ISSUED → CLEARED** directly. Deposit is tracking-only with no additional GL entry.
+</Callout>
+
+## Related
+
+- Payments (non-cheque): <DocLink href="/docs/sales/customer-payments">Customer payments</DocLink>, <DocLink href="/docs/purchases/supplier-payments">Supplier payments</DocLink>
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

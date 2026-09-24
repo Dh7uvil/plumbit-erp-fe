@@ -1,0 +1,41 @@
+Plumbit ERP uses **role-based access control**. What you can do depends on your assigned roles — not on which branch or warehouse you belong to.
+
+## How permission checks work
+
+1. User signs in → session loads all permission codes from assigned roles.
+2. Each API action requires a specific `module.resource.action` code.
+3. Frontend hides menus and buttons when the code is missing.
+
+Missing permission fails closed — the action is denied, not silently ignored.
+
+## What access does not do
+
+| Myth | Reality |
+|---|---|
+| "I only see my branch's documents" | **No branch RLS.** Read access shows all tenant records. Branch is a document field and filter, not a security boundary. |
+| "Warehouse staff see only their warehouse" | Same — warehouse is chosen per document, not scoped by user. |
+| "Documentation requires admin" | Documentation nav items have no permission gate — any signed-in user can open `/docs`. |
+
+See <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink> for the branch/warehouse dimension model.
+
+## What controls visibility
+
+| Layer | Control |
+|---|---|
+| Module access | Role permissions (e.g. `sales.sales_order.read`) |
+| Action access | Granular codes (e.g. `post`, `approve`, `cancel`) |
+| Document history | Entity read permission (e.g. `sales.quotation.read`) |
+| Admin screens | `identity.audit_log.read`, `identity.outbox_event.read`, etc. |
+
+## Navigation always visible
+
+These require no specific permission:
+
+- Dashboard
+- Reports (if any report permission is granted)
+- Profile, password, notification settings
+- **Documentation** (`/docs`)
+
+## Example
+
+Two sales reps in different branches both have `sales.sales_order.read`. Each sees every sales order in the tenant. They filter by branch when needed — the system does not auto-filter by their employee branch.

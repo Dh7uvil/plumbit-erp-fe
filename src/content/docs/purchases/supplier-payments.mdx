@@ -1,0 +1,95 @@
+Supplier payments record money sent to suppliers. **Posting** credits the bank (or cash) account and debits **Advance to supplier**; **allocation** then clears open payables by debiting AP and crediting the advance.
+
+<AppLink href="/supplier-payments">Open supplier payments</AppLink>
+
+## Advance model
+
+Plumbit uses an **advance-first** payment model — the same pattern as <DocLink href="/docs/sales/customer-payments">Customer payments</DocLink> on the sales side:
+
+| Step | GL effect |
+|---|---|
+| **Post payment** | Cr bank/cash; Dr **Advance to supplier** for `amount_paid` |
+| **Allocate to bill** | Dr **AP**; Cr **Advance to supplier** per allocation slice |
+
+Unallocated balance is tracked as `amount_unapplied` on the payment header. Realized FX differences post to **FX gain/loss** on allocation.
+
+<Callout type="note">
+Customer receipts use **Advance from customer** with the mirror allocation pattern — see <DocLink href="/docs/sales/customer-payments">Customer payments</DocLink>.
+</Callout>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Purchase invoice", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Supplier payment", note: "Post → advance", href: "/docs/purchases/supplier-payments" },
+    { label: "Allocate", note: "Advance → AP", href: "/docs/purchases/supplier-payments" },
+    { label: "Debit note", note: "Optional AP netting", href: "/docs/purchases/debit-notes" },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "post", to: "POSTED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Payment editable", actions: "Edit, post", effect: "None" },
+    { status: "POSTED", meaning: "Funds recorded as advance", actions: "Allocate, refund, cancel (if allowed)", effect: "Cr bank; Dr advance to supplier" },
+    { status: "CANCELLED", meaning: "Voided payment", actions: "—", effect: "Reverses post and allocations" },
+  ]}
+/>
+
+## What changes when you act
+
+<StateChangeTable
+  rows={[
+    { action: "Post payment", stock: "No change", reserved: "No change", gl: "Cr bank/cash; Dr advance to supplier (+ bank charges if any)", tax: "Optional VAT on advances (`vat_on_advances`)", documents: "Advance balance = amount_paid" },
+    { action: "Allocate to purchase invoice", stock: "No change", reserved: "No change", gl: "Dr AP; Cr advance to supplier", tax: "None", documents: "PI amount_paid and balance_due updated" },
+    { action: "Allocate to opening AP", stock: "No change", reserved: "No change", gl: "Dr AP; Cr advance to supplier", tax: "None", documents: "Opening balance item cleared" },
+    { action: "Net debit note (apply debits to invoice)", stock: "No change", reserved: "No change", gl: "AP netting via open items", tax: "None", documents: "FIFO from open AP items (debit notes + unapplied payments)" },
+  ]}
+/>
+
+## Allocation targets
+
+Open items that can receive allocation:
+
+- **Purchase invoice** — posted bills with `balance_due > 0`
+- **Opening AP** — go-live supplier balances
+- **Debit note** — netting only (via apply-debits-to-invoice, not direct payment allocation)
+
+## PO advances
+
+Link `purchase_order_id` on the payment to record an **advance against a PO** before bills exist. When a linked PI posts, org setting `auto_apply_advances_on_invoice` (default **true**) can FIFO-apply matching PO advances automatically.
+
+Advance payments do not affect PO incoming qty or GRNI — they are purely financial until allocated.
+
+## Cancellation rules (posted)
+
+Cannot cancel when:
+
+- A **refund** has been recorded against unapplied amounts
+- Live **allocations** exist
+
+## Related settings
+
+| Setting | Effect |
+|---|---|
+| `auto_apply_advances_on_invoice` | Auto-allocate PO advances when PI posts |
+| `vat_on_advances` | VAT treatment on advance post |
+| `allow_negative_cash` | Cash account guard on post |
+
+See <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>.
+
+## Related
+
+- PI auto-apply: <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>
+- AP overview: <DocLink href="/docs/accounting/accounts-payable">Accounts payable</DocLink>
+- Step-by-step: <DocLink href="/docs/workflows/procure-to-pay">Procure to pay</DocLink>

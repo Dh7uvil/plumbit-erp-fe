@@ -1,0 +1,75 @@
+Record money received from customers and paid to suppliers using the **advance-first** model: post creates an advance balance; allocation clears open AR/AP.
+
+<FlowDiagram
+  steps={[
+    { label: "Payment", note: "Post → advance", href: "/docs/sales/customer-payments" },
+    { label: "Allocate", note: "Advance → AR/AP", href: "/docs/sales/customer-payments" },
+  ]}
+  branches={[
+    {
+      label: "Supplier (mirror)",
+      steps: [
+        { label: "Supplier payment", note: "Post → advance", href: "/docs/purchases/supplier-payments" },
+        { label: "Allocate", note: "Advance → AP", href: "/docs/purchases/supplier-payments" },
+      ],
+    },
+  ]}
+/>
+
+## Customer payment
+
+<Steps>
+<Step title="Create payment">
+<AppLink href="/customer-payments">Open customer payments</AppLink> — select customer, bank account, amount. Optionally link sales order or proforma for traceability (advance before invoice).
+
+See <DocLink href="/docs/sales/customer-payments">Customer payments</DocLink>.
+</Step>
+
+<Step title="Post">
+**Post** — full receipt credits **Advance from customer** (plus output VAT on advance when `vat_on_advances` is enabled).
+
+<StateChangeTable
+  rows={[
+    { action: "Post customer payment", stock: "No change", reserved: "No change", gl: "Dr Bank; Cr Advance from customer", tax: "Optional VAT on advance", documents: "amount_unapplied tracked" },
+  ]}
+/>
+</Step>
+
+<Step title="Allocate to invoices">
+Apply unapplied balance to open sales invoices or credit notes — Dr Advance from customer, Cr AR.
+
+When `auto_apply_advances_on_invoice` is on, posting a linked SI can FIFO-apply existing advances automatically.
+</Step>
+</Steps>
+
+## Supplier payment
+
+Same pattern on the payables side:
+
+<Steps>
+<Step title="Create payment">
+<AppLink href="/supplier-payments">Open supplier payments</AppLink> — select supplier, bank/cash account, amount. Link `purchase_order_id` for PO advance before bills exist.
+</Step>
+
+<Step title="Post">
+**Post** — credits bank; debits **Advance to supplier**.
+
+<StateChangeTable
+  rows={[
+    { action: "Post supplier payment", stock: "No change", reserved: "No change", gl: "Cr bank; Dr advance to supplier", tax: "Optional VAT on advance", documents: "amount_unapplied tracked" },
+  ]}
+/>
+</Step>
+
+<Step title="Allocate to bills">
+Apply to posted purchase invoices or opening AP items — Dr AP, Cr Advance to supplier. Realized FX differences post on allocation.
+
+See <DocLink href="/docs/purchases/supplier-payments">Supplier payments</DocLink>.
+</Step>
+</Steps>
+
+## Workflow context
+
+- Customer receipts in O2C: <DocLink href="/docs/workflows/order-to-cash">Order to cash</DocLink>
+- Supplier payments in P2P: <DocLink href="/docs/workflows/procure-to-pay">Procure to pay</DocLink>
+- Cheques / PDC: separate module — <DocLink href="/docs/accounting/cheques-and-pdc">Cheques and PDC</DocLink>

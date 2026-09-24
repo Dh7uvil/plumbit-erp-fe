@@ -1,0 +1,45 @@
+Vouchers record **cash and bank receipts, payments, and contra transfers** with optional allocation to open invoices. They follow the same DRAFT → POSTED lifecycle as other financial documents.
+
+<AppLink href="/vouchers">Open vouchers</AppLink>
+
+## Voucher types
+
+| Type | Prefix | Cash/bank leg | Typical use |
+|---|---|---|---|
+| **CASH_RECEIPT** | CRV | Cash (CASH subtype) | Petty cash received |
+| **CASH_PAYMENT** | CPV | Cash | Petty cash paid |
+| **BANK_RECEIPT** | BRV | Bank (BANK subtype) | Bank deposit / receipt |
+| **BANK_PAYMENT** | BPV | Bank | Bank payment |
+| **CONTRA** | CON | Two cash/bank accounts | Transfer between accounts |
+
+Receipt vouchers (CRV, BRV) credit **Advance from customer** or debit AR on allocation. Payment vouchers (CPV, BPV) debit **Advance to supplier** or credit AP on allocation. **CONTRA** moves between cash/bank accounts with no party allocation.
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+  compact
+/>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create draft", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Draft voucher" },
+    { action: "Post receipt (CRV/BRV)", stock: "No change", reserved: "No change", gl: "Dr Cash/Bank; Cr Advance (or AR on allocation)", tax: "None", documents: "Open payment item if unallocated" },
+    { action: "Post payment (CPV/BPV)", stock: "No change", reserved: "No change", gl: "Dr Advance (or AP on allocation); Cr Cash/Bank", tax: "None", documents: "Open payment item if unallocated" },
+    { action: "Post contra", stock: "No change", reserved: "No change", gl: "Dr destination; Cr source cash/bank", tax: "None", documents: "None" },
+    { action: "Cancel posted", stock: "No change", reserved: "No change", gl: "Reversal journal", tax: "None", documents: "Allocations reversed" },
+  ]}
+/>
+
+Cash/bank accounts must use chart accounts with subtype **CASH** or **BANK** respectively.
+
+## Related
+
+- Customer/supplier payments (full payment module): <DocLink href="/docs/sales/customer-payments">Customer payments</DocLink>, <DocLink href="/docs/purchases/supplier-payments">Supplier payments</DocLink>
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

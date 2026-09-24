@@ -1,0 +1,56 @@
+This page is the canonical reference for **which document can be created from which**, and the **source status** required.
+
+## Sales chain
+
+| Create | From | Source must be |
+|---|---|---|
+| Sales order | Quotation | ACCEPTED or PARTIALLY_CONVERTED |
+| Proforma invoice | Quotation | SENT or ACCEPTED |
+| Sales invoice | Quotation, proforma, sales order, delivery note(s) | Convertible / CONFIRMED / POSTED respectively |
+| Delivery note | Sales order, sales invoice | CONFIRMED / POSTED |
+| Sales return | Delivery note | POSTED |
+| Credit note | Sales invoice, sales return | POSTED |
+| Customer payment | — (standalone); can link SO or proforma | — |
+
+## Purchase chain
+
+| Create | From | Source must be |
+|---|---|---|
+| Goods receipt | Purchase order, purchase invoice | ISSUED / POSTED |
+| Purchase invoice | Purchase order, goods receipt | ISSUED / POSTED |
+| Purchase return | Goods receipt | POSTED |
+| Debit note | Purchase invoice, purchase return | POSTED |
+| Supplier payment | — (standalone); can link PO for advances | — |
+| Landed cost | Posted expense PI lines + posted GRN lines | POSTED |
+
+## Inventory chain
+
+| Create | From | Source must be |
+|---|---|---|
+| Quality inspection | Goods receipt (auto on post if QC required) | POSTED |
+| Stock transfer | — | Draft only |
+| Stock adjustment | — | Draft only |
+
+## Import / export (no stock impact)
+
+| Create | From | Notes |
+|---|---|---|
+| Shipment | — | Attaches **delivery notes** only; never GRNs |
+| Package | Delivery note lines | Packing metadata |
+| Cost sheet | — | Planning; can pull actuals and create landed cost |
+| Landed cost | Expense PI + GRN | Capitalizes freight/duty onto FIFO layers |
+
+## CRM chain
+
+| Action | From | Result |
+|---|---|---|
+| Convert lead | Lead | Customer + contact + optional opportunity |
+| Quotation with opportunity | Opportunity | Manual create with `opportunity_id` — no auto-convert |
+
+## Cross-module
+
+| Create | From |
+|---|---|
+| Purchase order | Sales order (plan / create POs from SO) |
+
+For step-by-step procedures, use the workflow pages — <DocLink href="/docs/workflows/procure-to-pay">Procure to pay</DocLink> and <DocLink href="/docs/workflows/order-to-cash">Order to cash</DocLink>.
