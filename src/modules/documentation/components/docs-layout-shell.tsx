@@ -3,7 +3,7 @@ import { DocsSidebar } from "@/modules/documentation/components/docs-sidebar";
 
 export function DocsLayoutShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-5 [--docs-sticky-top:5rem] [--sidebar-width:15rem]">
+    <div className="flex flex-col gap-5 [--docs-sticky-top:calc(3.5rem+2.75rem)] [--sidebar-width:15rem] lg:[--docs-sticky-top:5rem]">
       <div className="bg-card/80 border-border sticky top-14 z-20 -mx-1 flex items-center gap-3 rounded-xl border px-3 py-2 backdrop-blur-sm lg:hidden">
         <DocsMobileNav />
         <p className="text-muted-foreground truncate text-sm">Browse documentation</p>
