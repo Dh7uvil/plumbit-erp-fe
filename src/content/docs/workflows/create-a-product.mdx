@@ -1,0 +1,21 @@
+Create a product or service master before using it on sales, purchase, or stock documents.
+
+<Steps>
+<Step title="Prepare prerequisites">
+Ensure **unit of measure** and **category** exist — <DocLink href="/docs/master-data/units-of-measure">Units of measure</DocLink>, <DocLink href="/docs/master-data/product-categories">Product categories</DocLink>.
+</Step>
+
+<Step title="Create product">
+<AppLink href="/products">Open products</AppLink> — enter SKU (unique, uppercased), name, item type (`PRODUCT` or `SERVICE`), default tax, selling/purchase rates.
+
+For physical goods: enable **track inventory**. Enable **requires QC** if GRN post should put qty on QC hold.
+
+See <DocLink href="/docs/master-data/products">Products</DocLink> for account overrides, HS code, volume/weight for trade.
+</Step>
+
+<Step title="Set warehouse reorder (optional)">
+On <AppLink href="/stock">stock</AppLink>, set reorder level and qty per warehouse for purchase suggestions.
+</Step>
+</Steps>
+
+Bulk create via <DocLink href="/docs/workflows/import-data-from-a-spreadsheet">Import from spreadsheet</DocLink> (product catalog).

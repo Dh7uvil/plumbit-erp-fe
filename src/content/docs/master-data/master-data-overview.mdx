@@ -1,0 +1,32 @@
+Master data is reference information that documents depend on — products, parties, taxes, and numbering rules. Set these up before transacting.
+
+## Recommended setup order
+
+<FlowDiagram
+  steps={[
+    { label: "Organization settings", note: "Fiscal year, policies, approvals", href: "/docs/organization-and-access/organization-settings" },
+    { label: "Currencies & taxes", note: "Most seeded on tenant create", href: "/docs/master-data/currencies" },
+    { label: "Exchange rates", note: "Before foreign-currency docs", href: "/docs/master-data/exchange-rates" },
+    { label: "Units → categories → products", note: "Core item catalog", href: "/docs/master-data/products" },
+    { label: "Price lists", note: "Customer pricing rules", href: "/docs/master-data/price-lists" },
+    { label: "Customers & suppliers", note: "Party master records", href: "/docs/master-data/customers" },
+    { label: "Supplier catalog", note: "GRN SKU mapping", href: "/docs/master-data/supplier-catalog" },
+    { label: "Cost centers & charge types", note: "Accounting dimensions", href: "/docs/master-data/cost-centers" },
+    { label: "Opening balances", note: "Last — after all masters", href: "/docs/accounting/opening-balances" },
+  ]}
+/>
+
+## What is seeded automatically
+
+New tenants receive: ISO currencies (AED base), four VAT taxes, units (PCS, BOX, M, KG), a `MAIN` warehouse, Net 30 payment terms, standard terms template, document sequences, 16 charge types, UAE chart of accounts, and CRM foundations.
+
+## Before first transaction
+
+| Check | Why |
+|---|---|
+| Products with correct `track_inventory` and accounts | Stock and GL posting depend on product setup |
+| Customers/suppliers with currency and payment terms | Document defaults and due dates |
+| Exchange rates for foreign currencies | Required on document date |
+| Document sequences for current fiscal year | Number allocation on first save |
+
+For document conversion rules after masters are ready, see <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.

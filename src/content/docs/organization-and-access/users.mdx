@@ -1,0 +1,33 @@
+Users are sign-in accounts for your tenant. Each user has one or more roles that determine what they can do.
+
+<AppLink href="/users">Open users</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `name` | Display name |
+| `email` | Login identifier — unique per tenant |
+| `phone` | Contact number |
+| `status` | `ACTIVE`, `INVITED`, or `DISABLED` |
+| Roles | Many-to-many — permissions union across all assigned roles |
+| Employee fields | Optional branch, department, designation, joining date |
+
+## How roles connect
+
+```
+User → Roles → Permissions (module.resource.action)
+```
+
+The session endpoint returns all granted permission codes. The UI and API check specific codes before showing actions — see <DocLink href="/docs/organization-and-access/roles-and-permissions">Roles and permissions</DocLink>.
+
+## Downstream behavior
+
+- **Audit logs** — User ID recorded on create/update/post actions.
+- **Document history** — Shows who submitted, approved, or edited.
+- **Employee link** — Optional; required for salesperson selection by name.
+- **Deactivation** — Disabled users cannot sign in; existing audit references remain.
+
+## Example
+
+Ahmed is assigned the Sales Rep role (`sales.*.read`, limited write). He sees all tenant quotations (no branch filter) but cannot post sales invoices. An admin with Superadmin role has the full permission catalog.

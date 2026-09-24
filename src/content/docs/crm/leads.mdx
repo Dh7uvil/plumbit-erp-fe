@@ -1,0 +1,44 @@
+Leads are potential customers before they exist in the party master. Qualify, assign, and **convert** to a customer, contact, and optional opportunity.
+
+<AppLink href="/leads">Open leads</AppLink>
+
+## Lifecycle
+
+<StatusTable
+  rows={[
+    { status: "NEW", meaning: "Uncontacted", actions: "Assign, update status", effect: "None" },
+    { status: "CONTACTED", meaning: "Outreach started", actions: "Log activities", effect: "None" },
+    { status: "QUALIFIED", meaning: "Fit confirmed", actions: "Convert", effect: "None" },
+    { status: "UNQUALIFIED", meaning: "Not a fit", actions: "Close or re-open", effect: "None" },
+    { status: "CONVERTED", meaning: "Converted to customer", actions: "Read-only", effect: "Customer (+ opportunity) created" },
+    { status: "LOST", meaning: "Closed lost", actions: "Read-only", effect: "Lost reason recorded" },
+  ]}
+/>
+
+Leads in **CONVERTED** or **LOST** status cannot be edited.
+
+## Convert flow
+
+Requires `crm.lead.convert` permission. From lead detail, open **Convert**:
+
+| Step | Options |
+|---|---|
+| **Customer** | Create new (name + tax treatment) or link existing customer |
+| **Contact** | Name, email, phone (primary contact) |
+| **Opportunity** | Optional — checkbox + name (defaults from company/contact) |
+
+On success, the system creates the customer and contact, optionally an opportunity, and sets lead status to **CONVERTED**. If an opportunity was created, navigation goes to that opportunity.
+
+Converted leads retain a link to the created customer for traceability.
+
+## Fields
+
+Typical lead data: company name, contact name, email, phone, lead source, assigned owner, status, lost reason (when LOST), notes.
+
+Filter the list by status. Sort by lead number, company, status, or created date.
+
+## Related
+
+- <DocLink href="/docs/crm/opportunities-and-pipelines">Opportunities and pipelines</DocLink>
+- <DocLink href="/docs/crm/lead-sources-and-lost-reasons">Lead sources and lost reasons</DocLink>
+- <DocLink href="/docs/reports/crm-reports">CRM reports</DocLink> (lead conversion)

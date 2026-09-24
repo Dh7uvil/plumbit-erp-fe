@@ -133,4 +133,26 @@ describe("buildBreadcrumbs", () => {
       { label: "History" },
     ]);
   });
+
+  it("builds documentation home breadcrumbs", () => {
+    expect(buildBreadcrumbs({ pathname: "/docs" })).toEqual([
+      { label: "Documentation", href: "/docs" },
+      { label: "Home" },
+    ]);
+  });
+
+  it("builds documentation category breadcrumbs", () => {
+    expect(buildBreadcrumbs({ pathname: "/docs/sales" })).toEqual([
+      { label: "Documentation", href: "/docs" },
+      { label: "Sales" },
+    ]);
+  });
+
+  it("builds documentation article breadcrumbs", () => {
+    expect(buildBreadcrumbs({ pathname: "/docs/sales/quotations" })).toEqual([
+      { label: "Documentation", href: "/docs" },
+      { label: "Sales", href: "/docs/sales" },
+      { label: "Quotations" },
+    ]);
+  });
 });

@@ -1,0 +1,62 @@
+Seed on-hand quantity and FIFO cost at go-live or correct stock after go-live. Two paths: **opening balances wizard** (recommended at go-live) or **stock adjustment** with Opening stock reason.
+
+<FlowDiagram
+  steps={[
+    { label: "Opening balances wizard", note: "Go-live — recommended", href: "/docs/inventory/opening-stock" },
+    { label: "Stock adjustment", note: "Post go-live corrections", href: "/docs/inventory/stock-adjustments" },
+  ]}
+/>
+
+## Option A: Opening balances wizard (go-live)
+
+Use during initial setup — part of <DocLink href="/docs/workflows/go-live-setup">Go-live setup</DocLink>.
+
+<Steps>
+<Step title="Open wizard">
+<AppLink href="/opening-balances">Open opening balances</AppLink> — add stock lines: product, warehouse, qty, unit cost.
+</Step>
+
+<Step title="Match inventory GL">
+Ensure total FIFO value (qty × unit cost across all stock lines) equals the **inventory GL line** on the same opening journal.
+</Step>
+
+<Step title="Commit">
+Commit posts OPENING_STOCK movements and sets `books_start_date` + hard lock.
+
+<StateChangeTable
+  rows={[
+    { action: "Commit wizard", stock: "On hand +; FIFO layers created", reserved: "No change", gl: "Single opening journal", tax: "None", documents: "books_start_date set" },
+  ]}
+/>
+</Step>
+</Steps>
+
+## Option B: Stock adjustment (after go-live)
+
+Use when adding or correcting opening qty **after** the tenant is live.
+
+<Steps>
+<Step title="Create adjustment">
+<AppLink href="/stock-adjustments">Open stock adjustments</AppLink> — reason **OPENING_STOCK**. Enter product, warehouse, qty delta (or COUNT with `qty_counted`), and **unit cost** for FIFO layer creation.
+</Step>
+
+<Step title="Post">
+Post creates OPENING_STOCK movement and posts Inventory ↔ Inventory adjustment GL. Does **not** change `books_start_date`.
+
+<StateChangeTable
+  rows={[
+    { action: "Post adjustment (Opening stock)", stock: "On hand +/−", reserved: "No change", gl: "Dr/Cr Inventory vs adjustment", tax: "None", documents: "FIFO layer at line unit cost" },
+  ]}
+/>
+</Step>
+</Steps>
+
+| Method | When | Sets books_start_date | GL |
+|---|---|---|---|
+| Opening balances wizard | Initial go-live | Yes | Single opening journal |
+| Adjustment (Opening stock) | Post go-live | No | Per-adjustment entry |
+
+## Module reference
+
+- Full opening stock rules: <DocLink href="/docs/inventory/opening-stock">Opening stock</DocLink>
+- FIFO valuation: <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>

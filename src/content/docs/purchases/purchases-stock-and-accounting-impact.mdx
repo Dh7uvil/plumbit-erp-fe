@@ -1,0 +1,14 @@
+Quick reference for stock and GL effects across purchase documents. Detail lives on each transaction page.
+
+<ImpactTable rows={[
+  { action: "Issue purchase order", stock: "Incoming + (no on-hand change)", accounting: "None — see purchase orders" },
+  { action: "Post goods receipt", stock: "On hand +; FIFO layer; optional QC hold", accounting: "Dr Inventory, Cr GRNI — see goods receipts" },
+  { action: "Post purchase invoice", stock: "None", accounting: "Dr GRNI/Purchases (+ PPV); Cr AP; VAT — see purchase invoices" },
+  { action: "Post landed cost", stock: "Landed unit cost revalued (qty unchanged)", accounting: "Dr Inventory/LCV; Cr expense clearing — see landed costs" },
+  { action: "Post purchase return", stock: "On hand − (RETURN_OUT)", accounting: "Dr GRNI, Cr Inventory — see purchase returns" },
+  { action: "Post debit note", stock: "None", accounting: "Dr AP; Cr GRNI/expense — see debit notes" },
+  { action: "Post supplier payment", stock: "None", accounting: "Cr bank; Dr advance to supplier — see supplier payments" },
+  { action: "Allocate payment to PI", stock: "None", accounting: "Dr AP; Cr advance to supplier — see supplier payments" },
+]} />
+
+See also <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>, <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>, and <DocLink href="/docs/workflows/procure-to-pay">Procure to pay</DocLink>.

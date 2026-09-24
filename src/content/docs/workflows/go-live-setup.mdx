@@ -1,0 +1,74 @@
+Prepare a new tenant for daily operations: configure the organization, load master data, enter opening balances and stock, then verify before locking prior periods.
+
+<FlowDiagram
+  steps={[
+    { label: "Organization", note: "Fiscal year, policies", href: "/docs/organization-and-access/organization-settings" },
+    { label: "Master data", note: "COA, parties, products", href: "/docs/master-data/master-data-overview" },
+    { label: "Opening balances", note: "GL + AR/AP + stock", href: "/docs/accounting/opening-balances" },
+    { label: "Verify", note: "Trial balance, stock", href: "/docs/workflows/month-end-close" },
+    { label: "Period lock", note: "Hard lock go-live date", href: "/docs/accounting/period-lock" },
+  ]}
+/>
+
+<Prerequisites>
+- Admin access to organization settings, master data, and opening balances wizard
+- Chart of accounts and fiscal year defined before opening journal
+</Prerequisites>
+
+<Steps>
+<Step title="Configure organization">
+<AppLink href="/organization-settings">Open organization settings</AppLink> — set fiscal year, **books start date**, default currency, tax registration, stock policies (`allow_negative_stock`, `allow_over_receipt`, QC default), and credit control.
+
+Add branches and warehouses — see <DocLink href="/docs/workflows/set-up-a-branch">Set up a branch</DocLink> and <DocLink href="/docs/workflows/set-up-a-warehouse">Set up a warehouse</DocLink>.
+</Step>
+
+<Step title="Set up master data (in order)">
+Follow the master data sequence:
+
+1. Currencies, exchange rates, taxes, units, categories
+2. Chart of accounts — <DocLink href="/docs/accounting/chart-of-accounts">Chart of accounts</DocLink>
+3. Products, customers, suppliers
+4. Bank accounts, payment terms, document sequences
+
+See <DocLink href="/docs/master-data/master-data-overview">Master data overview</DocLink>. Bulk load via <DocLink href="/docs/workflows/import-data-from-a-spreadsheet">Import from spreadsheet</DocLink> where supported.
+</Step>
+
+<Step title="Add users and roles">
+Create roles with appropriate permissions, then invite users — <DocLink href="/docs/workflows/add-a-user-and-role">Add a user and role</DocLink>.
+</Step>
+
+<Step title="Enter opening balances">
+<AppLink href="/opening-balances">Open opening balances</AppLink> wizard:
+
+1. **GL lines** — AR, AP, bank, equity, inventory control account
+2. **Stock lines** — qty + unit cost per product per warehouse
+3. **Commit** — single opening journal + OPENING_STOCK movements
+
+<StateChangeTable
+  rows={[
+    { action: "Commit opening balances", stock: "On hand + per stock lines", reserved: "No change", gl: "Opening balance journal", tax: "None", documents: "books_start_date set; hard_lock_date applied" },
+  ]}
+/>
+
+Total FIFO value from stock lines **must equal** the inventory GL line — mismatch rolls back commit.
+
+See <DocLink href="/docs/inventory/opening-stock">Opening stock</DocLink> and <DocLink href="/docs/workflows/add-opening-stock">Add opening stock</DocLink> for wizard vs adjustment paths.
+</Step>
+
+<Step title="Verify">
+Run <AppLink href="/reports/trial-balance">trial balance</AppLink> and <AppLink href="/reports/stock-valuation">stock valuation</AppLink>. Reconcile AR/AP open items to source statements. Spot-check warehouse qty on <AppLink href="/stock">stock</AppLink>.
+</Step>
+
+<Step title="Lock prior periods">
+Set **period lock** (soft and hard dates) so backdated posts cannot disturb opening figures — <DocLink href="/docs/accounting/period-lock">Period lock</DocLink>.
+</Step>
+</Steps>
+
+<Callout type="warning">
+After opening balances are committed, a **hard lock** applies to the journal date. Reset is only possible while no other documents have posted. Plan your go-live date carefully.
+</Callout>
+
+## Module reference
+
+- Accounting overview: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Document numbering: <DocLink href="/docs/master-data/document-sequences">Document sequences</DocLink>

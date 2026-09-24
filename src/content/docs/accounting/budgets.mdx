@@ -1,0 +1,41 @@
+Budgets compare **planned amounts to actual GL activity** by account and period. They are planning tools only — **no journal entries** are created from budgets.
+
+<AppLink href="/budgets">Open budgets</AppLink>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "ACTIVE", "CLOSED"]}
+  branches={[]}
+  compact
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable plan", actions: "Edit lines, delete, activate", effect: "None on GL" },
+    { status: "ACTIVE", meaning: "Live budget", actions: "Close, budget vs actual report", effect: "None on GL" },
+    { status: "CLOSED", meaning: "Archived", actions: "—", effect: "None on GL" },
+  ]}
+/>
+
+Activation requires at least one budget line. Only **one ACTIVE budget** per fiscal year is enforced when activating.
+
+## Budget lines
+
+Each line specifies:
+
+- Postable **account** (expense/income types)
+- Optional **cost center**
+- **Period** (month start/end)
+- **Budget amount** in base currency
+
+Budget vs actual compares line amounts to posted journal activity on the same account (and cost center when set) for the period.
+
+<Callout type="note">
+Budgets never post to the ledger. Actuals always come from posted journals and system documents — see <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>.
+</Callout>
+
+## Related
+
+- Cost centers: <DocLink href="/docs/master-data/cost-centers">Cost centers</DocLink>
+- Financial reports: <DocLink href="/docs/reports/financial-reports">Financial reports</DocLink>

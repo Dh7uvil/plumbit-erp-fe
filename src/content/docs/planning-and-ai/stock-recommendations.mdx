@@ -1,0 +1,41 @@
+Stock replenishment in Plumbit ERP is **rule-based**, not AI. Set reorder levels per product per warehouse; the purchase suggestions report lists items at or below threshold.
+
+<AppLink href="/reports/purchase-suggestions">Purchase suggestions</AppLink>
+
+## Reorder levels
+
+Set on warehouse stock balance screens:
+
+| Screen | Route |
+|---|---|
+| Stock list | <AppLink href="/stock">/stock</AppLink> |
+| Product warehouse detail | <AppLink href="/stock">/stock/{productId}</AppLink> |
+
+| Field | Meaning |
+|---|---|
+| **Reorder level** | Minimum available qty before replenishment is suggested |
+| **Reorder qty** | Suggested purchase quantity when at or below level |
+
+Available qty = on hand − reserved − QC hold. See <DocLink href="/docs/inventory/reorder-levels">Reorder levels</DocLink> and <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>.
+
+## Purchase suggestions report
+
+Route: <AppLink href="/reports/purchase-suggestions">/reports/purchase-suggestions</AppLink>
+
+Lists products where **available ≤ reorder level** with suggested reorder quantity. Permission: `reports.report.inventory`.
+
+The report does **not** create purchase orders — review suggestions, adjust for lead times and open POs, then create POs manually.
+
+## What this is not
+
+- No machine-learning demand forecast
+- No automatic PO generation
+- No supplier selection logic
+
+For AI capabilities, see <DocLink href="/docs/planning-and-ai/ai-features">AI features</DocLink>.
+
+## Related
+
+- <DocLink href="/docs/reports/inventory-reports">Inventory reports</DocLink>
+- <DocLink href="/docs/purchases/purchase-orders">Purchase orders</DocLink>
+- <DocLink href="/docs/workflows/check-inventory">Check inventory</DocLink>

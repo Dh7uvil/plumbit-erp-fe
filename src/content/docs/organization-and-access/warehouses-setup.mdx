@@ -1,0 +1,41 @@
+Warehouses are org-level stock locations. They are **not** tied to branches — branch and warehouse are independent dimensions on documents.
+
+<AppLink href="/warehouses">Open warehouses</AppLink> · <AppLink href="/organization-settings">Organization settings</AppLink> (Warehouses tab)
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `code` | Unique identifier (uppercased on save) |
+| `name` | Display name |
+| `is_default` | Default warehouse on new stock documents — one per tenant |
+| `is_designated_zone` | Marks warehouse for VAT designated-zone reporting |
+| `is_active` | Inactive warehouses cannot be selected |
+| Address | Location on warehouse profile |
+
+<Callout type="implementation">
+Warehouses have **no `branch_id`**. Stock is tracked per product per warehouse — see <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink> and <DocLink href="/docs/inventory/warehouse-wise-stock">Warehouse-wise stock</DocLink>.
+</Callout>
+
+## Where warehouse appears
+
+| Module | Documents |
+|---|---|
+| Sales / purchase | Sales order, purchase order, goods receipt, delivery note, returns |
+| Inventory | Stock transfer, stock adjustment, opening stock |
+
+Warehouse drives **on-hand, reserved, incoming, and QC hold** quantities. See <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>.
+
+## Default warehouse behavior
+
+- Exactly one warehouse can be `is_default` per tenant.
+- The first warehouse created is auto-set as default if none exists.
+- Setting a new default clears the flag on the previous default.
+
+## Designated zone
+
+When `is_designated_zone = true`, invoice lines linked to that warehouse are treated as designated-zone / out-of-scope in VAT register reports.
+
+## Example
+
+A tenant has `MAIN` (default) and `BONDED` (designated zone). A goods receipt posts 100 units to `MAIN`; available stock increases there. A sales order for the Dubai branch still picks warehouse independently — branch does not filter warehouse options.

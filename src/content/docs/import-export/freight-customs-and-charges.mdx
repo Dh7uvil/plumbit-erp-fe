@@ -1,0 +1,48 @@
+Freight, customs duty, clearing, and insurance charges are configured as **charge types**, recorded on **purchase invoices** or **cost sheets**, and capitalized through **landed costs**.
+
+<AppLink href="/charge-types">Charge types</AppLink> · <AppLink href="/landed-costs">Landed costs</AppLink>
+
+## Charge types
+
+Charge types are master data defining how each cost category behaves:
+
+| Setting | Effect |
+|---|---|
+| **Name / code** | Identifies freight, duty, clearing, insurance, etc. |
+| **Inventoriable** | When true, charge can be allocated to GRN FIFO layers via landed cost |
+| **Default expense account** | Used when posting non-inventoriable expense bills |
+
+Configure at <AppLink href="/charge-types">Charge types</AppLink> — see <DocLink href="/docs/master-data/charge-types">Charge types</DocLink>.
+
+## Recording actual charges
+
+Post **EXPENSE** or **IMPORT** type <DocLink href="/docs/purchases/purchase-invoices">purchase invoices</DocLink> for supplier bills:
+
+| Line category | GL on post | Landed cost eligible |
+|---|---|---|
+| `FREIGHT` | Dr expense account | Yes, if charge type is inventoriable |
+| `CUSTOMS_DUTY` | Dr expense account | Yes |
+| `INSURANCE`, `CLEARING`, `INSPECTION`, `OTHER` | Dr expense account | Per charge type |
+
+Expense lines on posted bills feed landed cost charge selection.
+
+## Capitalizing onto inventory
+
+<DocLink href="/docs/purchases/landed-costs">Landed cost</DocLink> links posted expense PI lines to posted GRN product lines. **Post** revalues FIFO `landed_unit_cost`:
+
+- **Dr Inventory** (or LCV clearing)
+- **Cr** expense clearing accounts
+
+Product purchase invoice should follow landed cost posting so GRNI clearance uses updated unit costs.
+
+## Planning charges
+
+<DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink> hold **estimated** charges before bills arrive. On confirm, compare planned vs actual from posted PIs.
+
+Allocation basis options: **VALUE**, **WEIGHT**, **QUANTITY**, **VOLUME** — same bases used on cost sheet charges and landed cost allocation.
+
+## Related
+
+- Import workflow: <DocLink href="/docs/workflows/import-shipment">Import shipment</DocLink>
+- <DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink>
+- <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>

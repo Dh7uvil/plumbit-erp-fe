@@ -1,0 +1,36 @@
+Suppliers are parties you purchase from. They use the **same party table** as customers with a supplier role filter.
+
+<AppLink href="/suppliers">Open suppliers</AppLink>
+
+## Party model
+
+| Concept | Detail |
+|---|---|
+| Storage | Single `customers` table |
+| Supplier visibility | `company_type` in `SUPPLIER`, `BOTH` |
+| Writable types | `SUPPLIER`, `BOTH` on create |
+| Default create type | `SUPPLIER` |
+
+Fields mirror customers: `name`, `code`, `trn`, `tax_treatment`, `currency_id`, `payment_terms_id`, billing/shipping address, `payable_account_id`, `is_active`.
+
+## Downstream fields
+
+| Document | Behavior |
+|---|---|
+| Purchase order, GRN, PI, debit note | Supplier link, currency, payment terms |
+| Supplier payments | AP allocation target |
+
+**AP account resolve:** supplier `payable_account_id` → system `ACCOUNTS_PAYABLE`.
+
+## Where used
+
+Purchase module, supplier catalog, three-way match reports. Document numbers embed supplier `code`.
+
+## Related
+
+- Customers (same table): <DocLink href="/docs/master-data/customers">Customers</DocLink>
+- Supplier SKU mapping: <DocLink href="/docs/master-data/supplier-catalog">Supplier catalog</DocLink>
+
+## Example
+
+"Global Steel Ltd" is created as `SUPPLIER` with code `GSL`. Purchase orders and goods receipts reference this party; posted PIs debit inventory and credit AP on the resolved payable account.

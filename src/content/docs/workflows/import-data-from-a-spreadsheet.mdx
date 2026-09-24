@@ -1,0 +1,46 @@
+Bulk load master data or draft commercial documents from CSV/XLSX using the shared **imex** import flow on supported list screens.
+
+<FlowDiagram
+  steps={[
+    { label: "Upload", note: "CSV or XLSX" },
+    { label: "Map columns", note: "Match headers" },
+    { label: "Preview", note: "Validate rows" },
+    { label: "Import", note: "Create drafts / masters" },
+    { label: "Post", note: "Normal workflow", href: "/docs/getting-started/working-with-documents" },
+  ]}
+/>
+
+<Steps>
+<Step title="Open import on a supported screen">
+Use the **Import** toolbar action on the entity list. Supported catalogs:
+
+| Catalog | Screen | Creates |
+|---|---|---|
+| Customer | <AppLink href="/customers">Customers</AppLink> | Customer master |
+| Supplier | <AppLink href="/suppliers">Suppliers</AppLink> | Supplier master |
+| Product | <AppLink href="/products">Products</AppLink> | Product master |
+| Quotation | <AppLink href="/quotations">Quotations</AppLink> | Draft quotations |
+| Proforma | <AppLink href="/proforma-invoices">Proforma invoices</AppLink> | Draft proformas |
+| Sales invoice | <AppLink href="/sales-invoices">Sales invoices</AppLink> | Draft SIs |
+| Package | <AppLink href="/packages">Packages</AppLink> | Draft packages |
+| Bank statement | <AppLink href="/bank-reconciliation">Bank reconciliation</AppLink> | Reconciliation lines |
+
+Full field reference: <DocLink href="/docs/master-data/importing-and-exporting-data">Importing and exporting data</DocLink>.
+</Step>
+
+<Step title="Upload and map columns">
+Upload CSV/XLSX. Map spreadsheet headers to canonical fields — common aliases (`Item No` → `sku`, `Qty` → `quantity`) are recognized automatically.
+</Step>
+
+<Step title="Preview and import">
+Review validation errors in preview. Import creates **draft** documents or upserts master rows — nothing posts automatically.
+</Step>
+
+<Step title="Complete in app">
+Open imported drafts, verify lines, and post through the normal workflow — e.g. <DocLink href="/docs/workflows/order-to-cash">Order to cash</DocLink> for sales invoices.
+</Step>
+</Steps>
+
+<Callout type="note">
+Import/export here means **spreadsheet data** — not international trade. For import/export shipments see <DocLink href="/docs/import-export/trade-overview">Trade overview</DocLink>.
+</Callout>

@@ -1,0 +1,55 @@
+Most Plumbit ERP screens are **lists** with search, filters, sort, pagination, and configurable columns. Preferences persist per user.
+
+## URL state
+
+List state is stored in the URL so you can bookmark or share a filtered view:
+
+| Parameter | Purpose |
+|---|---|
+| `page`, `page_size` | Pagination (10, 50, or 100 rows) |
+| `search` | Free-text search |
+| `sort_by`, `sort_order` | Column sort (`asc` or `desc`) |
+| `filters.*` | Status, date, pipeline, view mode, etc. |
+| `tab` | Tab selection where applicable |
+
+Changing search, sort, or filters resets to page 1.
+
+## Toolbar controls
+
+| Control | Use |
+|---|---|
+| **Search** | Text filter on the list API |
+| **Filter** | Common dropdowns (status, active, pipeline) |
+| **More filters** | Additional fields per screen |
+| **Sort** | Pick sort column and direction |
+| **Date range** | Reports and date-driven lists |
+| **Columns** | Show, hide, and reorder columns |
+
+## Column preferences
+
+Each list has a server-persisted `tableKey` (e.g. `crm.activities`). Open **Columns** to:
+
+- Toggle visibility (Actions column is always pinned)
+- Drag to reorder
+- Reset to defaults
+
+Audit columns (`created_at`, `updated_at`, actors) are available on many CRM and ERP lists.
+
+## Example: activities
+
+<AppLink href="/activities">Open activities</AppLink>
+
+| Feature | Values |
+|---|---|
+| Views (`view`) | All, My open (`mine`), Overdue (`overdue`), This week (`week`) |
+| Filters | Status, activity type |
+| Sort | Due date, subject, status, priority, created |
+
+## Example: opportunities
+
+<AppLink href="/opportunities">Open opportunities</AppLink> — table view by default. Add `?view=board` for the pipeline kanban board. Filter by `pipeline_id` and status.
+
+## Related
+
+- <DocLink href="/docs/getting-started/navigation-and-search">Navigation and search</DocLink>
+- <DocLink href="/docs/getting-started/working-with-documents">Working with documents</DocLink>

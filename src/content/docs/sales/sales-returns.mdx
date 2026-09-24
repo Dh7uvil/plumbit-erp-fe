@@ -1,0 +1,78 @@
+A sales return brings **goods back** from a customer after delivery. Every return must reference a **posted delivery note**.
+
+<AppLink href="/sales-returns">Open sales returns</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Delivery note", note: "POSTED — goods out", href: "/docs/sales/delivery-notes" },
+    { label: "Sales return", note: "Post → restock / scrap", href: "/docs/sales/sales-returns" },
+    { label: "Credit note", note: "Commercial credit", href: "/docs/sales/credit-notes" },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+  compact
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable return", actions: "Edit, post, cancel", effect: "None" },
+    { status: "POSTED", meaning: "Goods processed per disposition", actions: "Create credit note, cancel (if allowed)", effect: "Stock + GL per line disposition" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Reverses stock + GL if was POSTED" },
+  ]}
+/>
+
+## Line disposition
+
+Each line requires a **disposition** controlling stock and GL:
+
+| Disposition | Stock effect | GL on post |
+|---|---|---|
+| **RESTOCK** | On hand + (`RETURN_IN` at original cost) | Dr Inventory, Cr COGS |
+| **QC_HOLD** | On hand + with QC hold flag | Dr Inventory, Cr COGS; available reduced until QC release |
+| **SCRAP** | On hand + then `DAMAGE` movement out | Dr Stock scrap, Cr Inventory (restock GL reversed by scrap) |
+
+<Callout type="note">
+QC hold increases on hand but reduces **available** until released — same rules as goods receipt QC — see <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>.
+</Callout>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft return; must link posted DN lines" },
+    { action: "Post sales return (RESTOCK)", stock: "On hand +", reserved: "No SO re-reserve", gl: "Dr Inventory, Cr COGS", tax: "None", documents: "SO qty_returned updated" },
+    { action: "Post sales return (SCRAP)", stock: "Net − (return in then damage out)", reserved: "No change", gl: "Dr Stock scrap, Cr Inventory", tax: "None", documents: "SO qty_returned updated" },
+    { action: "Cancel posted return", stock: "Reversed per disposition", reserved: "No change", gl: "Reversal journal", tax: "None", documents: "SO qty_returned −" },
+  ]}
+/>
+
+<Callout type="implementation">
+Applying returns to the sales order updates `qty_returned` but **does not re-reserve** undelivered quantity — see <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+## Create from
+
+| Source | Requirement |
+|---|---|
+| Delivery note | Must be **POSTED**; return qty ≤ delivered qty on each line |
+
+Follow with a **credit note** from the return or source invoice for the commercial credit.
+
+<Example title="Restock return">
+DN-0042 delivered 20 widgets. Return 3 as RESTOCK → on hand +3 at original FIFO cost; Dr Inventory, Cr COGS for restored value.
+</Example>
+
+## Related
+
+- Movement types: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>
+- Return GL in summary: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

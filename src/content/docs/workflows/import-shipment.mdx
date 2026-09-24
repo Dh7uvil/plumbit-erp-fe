@@ -1,0 +1,91 @@
+Import purchase workflow: order overseas goods, track the shipment in transit, receive with an **IMPORT** movement, bill product and expense charges, capitalize landed costs, and reconcile planned vs actual on a cost sheet.
+
+<FlowDiagram
+  steps={[
+    { label: "Purchase order", note: "Import supplier", href: "/docs/purchases/purchase-orders" },
+    { label: "Shipment", note: "Tracking only", href: "/docs/import-export/shipments" },
+    { label: "GRN IMPORT", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
+    { label: "Expense PIs", note: "Freight, duty, clearing", href: "/docs/purchases/purchase-invoices" },
+    { label: "Landed cost", note: "Post → revalue FIFO", href: "/docs/purchases/landed-costs" },
+    { label: "Product PI", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Cost sheet", note: "Plan vs actual", href: "/docs/import-export/cost-sheets" },
+  ]}
+/>
+
+<Callout type="warning">
+**Shipments cannot link to goods receipts.** Import shipments are for carrier/BL/container tracking only. Stock receipt always happens on a separate GRN — see <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+<Prerequisites>
+- Import supplier with export tax treatment (or place of supply outside UAE)
+- Charge types configured for freight, duty, clearing — see <DocLink href="/docs/master-data/charge-types">Charge types</DocLink>
+- Permissions for PO, shipments, GRN, PI, landed cost, cost sheets
+</Prerequisites>
+
+<Steps>
+<Step title="Issue import purchase order">
+Create PO to import supplier. **Issue** — incoming qty on PO lines; no stock yet.
+
+See <DocLink href="/docs/purchases/purchase-orders">Purchase orders</DocLink>.
+</Step>
+
+<Step title="Create import shipment (tracking)">
+<AppLink href="/shipments">Open shipments</AppLink> — create **IMPORT** shipment from the PO. Enter carrier, BL/AWB, container, ports, ETD/ETA.
+
+**Tracking only** — posting or closing the shipment does **not** move stock and does **not** replace a GRN.
+
+<StateChangeTable
+  rows={[
+    { action: "Save / update shipment", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Shipment status tracks logistics" },
+  ]}
+/>
+</Step>
+
+<Step title="Receive goods — GRN with IMPORT movement">
+When goods arrive, create <DocLink href="/docs/purchases/goods-receipts">goods receipt</DocLink> from the PO (not from the shipment). **Post** GRN.
+
+<StateChangeTable
+  rows={[
+    { action: "Post GRN (import)", stock: "On hand +; PO incoming −", reserved: "No change", gl: "Dr Inventory, Cr GRNI", tax: "None", documents: "IMPORT movement type; FIFO layer at GRN rate" },
+  ]}
+/>
+
+Run QC inspection if products require it — same as domestic receipt.
+</Step>
+
+<Step title="Post expense bills">
+Create **EXPENSE** or **IMPORT** type <DocLink href="/docs/purchases/purchase-invoices">purchase invoices</DocLink> for freight, customs duty, clearing, insurance. Post each bill — hits expense accounts (available for landed cost later).
+
+<StateChangeTable
+  rows={[
+    { action: "Post expense PI", stock: "No change", reserved: "No change", gl: "Dr expense; Cr AP", tax: "As applicable", documents: "Expense lines feed landed cost charges" },
+  ]}
+/>
+</Step>
+
+<Step title="Post landed cost">
+Create <DocLink href="/docs/purchases/landed-costs">landed cost</DocLink> — link posted expense PI charge lines to posted GRN product lines. **Post** — capitalizes charges onto FIFO `landed_unit_cost`.
+
+<StateChangeTable
+  rows={[
+    { action: "Post landed cost", stock: "No on-hand change", reserved: "No change", gl: "Dr Inventory; Cr expense clearing", tax: "None", documents: "FIFO landed unit cost increased" },
+  ]}
+/>
+</Step>
+
+<Step title="Post product purchase invoice">
+Create **IMPORT** product PI from posted GRN. **Post** — clears GRNI at landed cost; creates AP.
+
+Product PI should follow landed cost so price variance uses updated unit costs.
+</Step>
+
+<Step title="Reconcile on cost sheet (optional)">
+Create <AppLink href="/cost-sheets">cost sheet</AppLink> linked to PO/shipment. Confirm planned charges, pull actuals from posted PIs, compare planned vs landed unit cost — see <DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink>.
+</Step>
+</Steps>
+
+## Module reference
+
+- Trade overview: <DocLink href="/docs/import-export/trade-overview">Trade overview</DocLink>
+- Freight and charge setup: <DocLink href="/docs/import-export/freight-customs-and-charges">Freight, customs, and charges</DocLink>
+- Standard P2P (domestic): <DocLink href="/docs/workflows/procure-to-pay">Procure to pay</DocLink>

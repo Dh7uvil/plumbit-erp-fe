@@ -1,0 +1,40 @@
+Recurring templates **generate draft sales invoices or purchase bills** on a schedule. Generation never posts — a user must review and post each draft like any other document.
+
+<AppLink href="/recurring">Open recurring templates</AppLink>
+
+## How generation works
+
+| Step | Behaviour |
+|---|---|
+| Schedule | `next_run_date` advanced by frequency (monthly, quarterly, etc.) |
+| Worker | Due active templates enqueue generation events |
+| Output | **DRAFT** sales invoice or purchase invoice copied from template lines |
+| Idempotency | One draft per template per run date — duplicates rejected |
+
+Templates with status **ACTIVE** generate on or after `next_run_date`. Completed templates (past end date) move to **COMPLETED**.
+
+<Callout type="important">
+Recurring generation **creates DRAFT only**. No GL, stock, or open items until manual post. Listed under "No GL" in <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>.
+</Callout>
+
+## Template contents
+
+Templates store party, currency, lines (products/expenses), tax treatment, and branch — same fields as the target document type. Generated drafts include a `[recurring:{template_id}:{run_date}]` trace in narration.
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "ACTIVE", "COMPLETED"]}
+  branches={[
+    { from: "DRAFT", action: "activate", to: "ACTIVE" },
+    { from: "ACTIVE", action: "pause", to: "DRAFT" },
+  ]}
+  compact
+/>
+
+Templates that have already generated drafts **cannot be deleted** — deactivate instead.
+
+## Related
+
+- Sales: <DocLink href="/docs/sales/sales-invoices">Sales invoices</DocLink>
+- Purchases: <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>

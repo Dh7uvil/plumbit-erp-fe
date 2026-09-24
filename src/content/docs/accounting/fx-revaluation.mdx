@@ -1,0 +1,43 @@
+FX revaluation posts **unrealized gain or loss** on open foreign-currency AR, AP, and bank balances at a closing rate. Open items keep their document currency — only GL base balances move.
+
+<AppLink href="/fx-revaluation">Open FX revaluation</AppLink>
+
+## Exposure
+
+Preview/run calculates buckets for:
+
+| Exposure | Basis |
+|---|---|
+| **AR** | Open customer items in foreign currency |
+| **AP** | Open supplier items in foreign currency |
+| **BANK** | Foreign-currency bank account GL balance |
+
+For each bucket: `gain = revalued_base − book_base` (AP uses inverted sign). Zero-gain lines are skipped.
+
+## Run
+
+1. **Preview exposure** as of a date (uses closing exchange rates)
+2. **Post** — creates a SYSTEM journal: Dr/Cr FX_GAIN_LOSS vs AR/AP/bank control accounts
+3. Only **one open run** at a time — reverse before running again
+
+Requires **FX_GAIN_LOSS** system role mapped.
+
+## Reverse via ledger reverse
+
+Reversing a run calls `LedgerPostingService.reverse` on the revaluation journal:
+
+- Creates a **REVERSAL** journal entry
+- Run status → **REVERSED**
+- Reversal date must be **after** the revaluation as-of date
+
+This is the standard reversal model — original journal stays posted with a link to the reversal.
+
+<Example title="Month-end USD AR">
+USD receivable book base AED 36,725 at 3.6725. Closing rate 3.70 → revalued base AED 37,000 → unrealized gain AED 275 posted to FX gain/loss.
+</Example>
+
+## Related
+
+- Rates: <DocLink href="/docs/accounting/multi-currency-and-exchange-rates">Multi-currency and exchange rates</DocLink>
+- Month-end: <DocLink href="/docs/accounting/month-end-checklist">Month-end checklist</DocLink>
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

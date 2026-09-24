@@ -2,28 +2,25 @@
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
+import {
+  getMainBottomInset,
+  getMainScrollElement,
+} from "@/shared/lib/main-scroll";
 import { cn } from "@/shared/lib/cn";
 
 export const LIST_TABLE_PANEL_CLASS = "list-table-panel";
 
 const MIN_PANEL_HEIGHT_PX = 120;
-/** Extra space below pagination so the footer is not flush with the viewport edge. */
-const LIST_TABLE_BOTTOM_INSET_PX = 8;
-
-function getMainBottomInset(main: HTMLElement): number {
-  const paddingBottom = Number.parseFloat(getComputedStyle(main).paddingBottom) || 0;
-  return paddingBottom + LIST_TABLE_BOTTOM_INSET_PX;
-}
 
 function measurePanelMaxHeight(node: HTMLElement): number {
   const top = node.getBoundingClientRect().top;
-  const main = document.getElementById("main-content");
+  const main = getMainScrollElement();
 
   let available: number;
   if (main?.contains(node)) {
     available = main.getBoundingClientRect().bottom - top - getMainBottomInset(main);
   } else {
-    available = window.innerHeight - top - 16 - LIST_TABLE_BOTTOM_INSET_PX;
+    available = window.innerHeight - top - 16 - 8;
   }
 
   if (available <= 0) {
@@ -63,9 +60,10 @@ export function DataTablePanel({
     observer.observe(document.documentElement);
     observer.observe(node);
 
-    const main = document.getElementById("main-content");
+    const main = getMainScrollElement();
     if (main) {
       observer.observe(main);
+      main.addEventListener("scroll", update, { passive: true });
     }
 
     window.addEventListener("resize", update);
@@ -73,6 +71,7 @@ export function DataTablePanel({
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", update);
+      main?.removeEventListener("scroll", update);
     };
   }, []);
 

@@ -43,10 +43,12 @@ import {
   Target,
   CalendarClock,
   Megaphone,
+  ListChecks,
   type LucideIcon,
 } from "lucide-react";
 
 import { hasAnyReportAccess, visibleReportCatalog } from "@/config/report-catalog";
+import { docsSearchGroups } from "@/config/docs-catalog";
 import { activityPermissions } from "@/modules/crm/activities/permissions";
 import { campaignPermissions } from "@/modules/crm/campaigns/permissions";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
@@ -120,6 +122,7 @@ export type NavigationItem = {
   href: string;
   permission: string | null;
   icon: LucideIcon;
+  keywords?: string[];
 };
 
 export type NavigationGroup = {
@@ -565,6 +568,25 @@ export const navigation: NavigationGroup[] = [
       },
     ],
   },
+  {
+    label: "Documentation",
+    items: [
+      {
+        label: "Documentation home",
+        href: "/docs",
+        permission: null,
+        icon: BookOpen,
+        keywords: ["help", "guide", "documentation", "docs"],
+      },
+      {
+        label: "Common workflows",
+        href: "/docs/workflows",
+        permission: null,
+        icon: ListChecks,
+        keywords: ["workflow", "how to", "steps"],
+      },
+    ],
+  },
 ];
 
 export function visibleNavigation(permissions: readonly string[]): NavigationGroup[] {
@@ -589,7 +611,7 @@ export function visibleNavigation(permissions: readonly string[]): NavigationGro
 }
 
 export function searchableNavigation(permissions: readonly string[]): NavigationGroup[] {
-  return [...visibleNavigation(permissions), ...visibleReportCatalog(permissions)];
+  return [...visibleNavigation(permissions), ...visibleReportCatalog(permissions), ...docsSearchGroups()];
 }
 
 function purchasesWorkspaceLookupPath(pathname: string): string {

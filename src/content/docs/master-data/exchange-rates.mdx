@@ -1,0 +1,33 @@
+Exchange rates convert foreign currency amounts to base currency for posting, reporting, and bank reconciliation.
+
+<AppLink href="/exchange-rates">Open exchange rates</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `from_currency_id` | Foreign currency |
+| `to_currency_id` | Typically base currency |
+| `effective_date` | Rate valid from this date forward |
+| `rate` | Base units per 1 foreign unit (6 decimal places) |
+
+Upsert accepts `currency_id`, `rate_to_base`, and optional `effective_date` (defaults to tenant today).
+
+## Resolve logic
+
+| Case | Result |
+|---|---|
+| Same currency | Rate `1` |
+| Direct pair | Latest rate on or before document date |
+| Inverse pair only | Reciprocal derived (`is_derived_reciprocal = true`) |
+| No rate | `ExchangeRateMissingError` — posting blocked |
+
+## Where used
+
+All multi-currency document posting, FX revaluation, bank reconciliation base amounts, and financial reports in base currency.
+
+See also <DocLink href="/docs/accounting/multi-currency-and-exchange-rates">Multi-currency and exchange rates</DocLink>.
+
+## Example
+
+USD → AED rate 3.6725 effective 2026-01-01. A USD invoice dated 2026-03-15 uses the latest USD rate on or before that date. Missing rate for EUR blocks EUR invoice post until a rate is entered.

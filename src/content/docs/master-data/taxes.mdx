@@ -1,0 +1,32 @@
+Taxes define VAT rates and categories applied to products and document lines.
+
+<AppLink href="/taxes">Open taxes</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `name` | Tax label (e.g. Standard VAT 5%) |
+| `tax_category` | `STANDARD`, `ZERO_RATED`, `EXEMPT`, `OUT_OF_SCOPE` |
+| `rate` | Percentage |
+| `is_default` | Default tax for new products — one per tenant |
+| `is_active` | Inactive taxes cannot be selected |
+
+Seeded on tenant create: Standard VAT 5% (default), Zero Rated, Exempt, Out of Scope.
+
+## Downstream fields
+
+| Record | Field |
+|---|---|
+| Product | `tax_id` — default on lines |
+| Document lines | Tax resolved from product or line override |
+| Charge type | `default_tax_id` |
+| VAT reports | Grouped by tax category |
+
+## Where used
+
+Sales and purchase documents, credit/debit notes, charge types on import invoices. Tax treatment on customers (`REGISTERED`, `EXPORT`, etc.) affects line eligibility — see <DocLink href="/docs/accounting/vat">VAT</DocLink>.
+
+## Example
+
+Product defaults to Standard VAT 5%. An export customer with `tax_treatment = EXPORT` may receive zero-rated lines on invoices regardless of product default, per document tax rules.

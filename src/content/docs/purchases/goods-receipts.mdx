@@ -1,0 +1,118 @@
+A goods receipt (GRN) records physical receipt of stock into a warehouse. **Posting** increases on-hand, creates a FIFO cost layer, and posts **GRNI** — it does not create accounts payable.
+
+<AppLink href="/goods-receipts">Open goods receipts</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Purchase order", note: "Issue → incoming qty", href: "/docs/purchases/purchase-orders" },
+    { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
+    { label: "Quality inspection", note: "If QC required", href: "/docs/inventory/quality-inspections-and-qc-hold" },
+    { label: "Purchase invoice", note: "Post → AP, clear GRNI", href: "/docs/purchases/purchase-invoices" },
+  ]}
+/>
+
+## Creating a GRN
+
+| Source | Source status | Notes |
+|---|---|---|
+| Issued purchase order | `ISSUED` | Standard PO receipt; updates PO `qty_received` and reduces incoming |
+| Posted purchase invoice | `POSTED` | PI-first flow; updates PI line `qty_received` |
+| Standalone | — | No PO/PI link; qty not capped by order outstanding |
+
+See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink> for the full create matrix.
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "post", to: "POSTED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Receipt quantities editable", actions: "Edit, post", effect: "None" },
+    { status: "POSTED", meaning: "Stock received", actions: "Create PI, purchase return, landed cost; cancel (if allowed)", effect: "On hand +, FIFO layer, GRNI, optional QC hold" },
+    { status: "CANCELLED", meaning: "Voided posted receipt", actions: "—", effect: "Reverses stock, GRNI, PO/PI qty counters" },
+  ]}
+/>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft GRN only" },
+    { action: "Post GRN", stock: "On hand + at header warehouse", reserved: "PO incoming − (if linked)", gl: "Dr Inventory, Cr GRNI", tax: "None", documents: "FIFO layer; PURCHASE or IMPORT movement" },
+    { action: "Post GRN (QC required product)", stock: "On hand + and QC hold +", reserved: "Same as above", gl: "Same as above", tax: "None", documents: "Draft quality inspection auto-created" },
+    { action: "Cancel posted GRN", stock: "Reversed", reserved: "PO incoming restored (if linked)", gl: "GRNI reversed", tax: "None", documents: "Draft inspections cancelled" },
+  ]}
+/>
+
+Movement type is **`PURCHASE`** for domestic suppliers and **`IMPORT`** when the supplier is export-treated or place of supply is outside UAE. See <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>.
+
+Unit cost on the FIFO layer = line rate × exchange rate (base currency). Only **FIFO** costing is supported.
+
+## Line quantity tracking
+
+Each product line tracks:
+
+- **Received** — line `quantity`
+- **Accepted / rejected / on hold** — from quality inspection (`qty_accepted`, `qty_rejected`, `qty_on_hold`)
+- **Billed** — `qty_billed` (from posted purchase invoices)
+- **Returned** — `qty_returned` (from posted purchase returns)
+
+## Over-receipt
+
+When linked to a PO, received qty is capped by PO line outstanding unless org inbound settings allow more:
+
+| Setting | Effect |
+|---|---|
+| `allow_over_receipt` = false | Cannot exceed PO remaining qty |
+| `allow_over_receipt` = true, no tolerance | Unlimited over PO line |
+| `allow_over_receipt` = true + `over_receipt_tolerance_pct` | Allowed = remaining × (1 + pct ÷ 100) |
+
+PI-sourced lines are capped by PI line outstanding (`quantity − qty_received`) — PO over-receipt rules do not apply.
+
+See <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>.
+
+## QC hold
+
+If the product has **requires QC** (default from org `qc_required_default`), the full line quantity goes on **QC hold** at post. On-hand increases but **available** does not until inspection is approved.
+
+<Callout type="note">
+QC hold details, dispositions, and scrap are documented in <DocLink href="/docs/inventory/quality-inspections-and-qc-hold">Quality inspections and QC hold</DocLink>.
+</Callout>
+
+## Partial receipt
+
+Multiple GRNs can reference the same PO while outstanding quantity remains. Each posted GRN increments PO `qty_received` independently.
+
+## Cancellation rules (posted)
+
+A posted GRN **cannot be cancelled** when any of the following apply:
+
+- Accounting period is locked (unless period override permission)
+- Any GRN line has `qty_billed > 0`
+- Linked PO has **any** billing on its lines — even if this GRN was not billed
+- An **approved** quality inspection exists for the GRN
+- A live (non-cancelled) **purchase return** references the GRN
+- FIFO layers from the receipt are **not fully remaining** (partially consumed or revalued)
+- Any line has inspection quantities recorded (`qty_accepted > 0` or `qty_rejected > 0`)
+
+<Callout type="implementation">
+A posted GRN **cannot be cancelled** if the linked PO has **any** billing, even when this GRN itself was never billed. See <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+## Downstream documents
+
+From a **posted** GRN you can create: purchase invoice, purchase return, landed cost allocation target. Quality inspection is auto-created when QC is required.
+
+## Related
+
+- Stock field definitions: <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>
+- GRNI clearing: <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>
+- Accounting context: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

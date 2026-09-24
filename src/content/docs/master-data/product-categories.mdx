@@ -1,0 +1,36 @@
+Product categories organize your catalog and provide default GL accounts for revenue and purchases.
+
+<AppLink href="/categories">Open categories</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `code` | Unique identifier |
+| `name` | Category label |
+| `parent_id` | Optional hierarchy (parent category) |
+| `income_account_id` | Default revenue account for products in this category |
+| `purchase_account_id` | Default purchase/expense account |
+| `is_active` | Inactive categories cannot be assigned |
+
+## Downstream fields
+
+| Record | Field / behavior |
+|---|---|
+| Product | `category_id` |
+| GL posting | If product lacks income/purchase accounts, category accounts apply, then system defaults (`SALES_REVENUE`, `PURCHASES`) |
+
+Account resolve order on products is documented in <DocLink href="/docs/master-data/products">Products</DocLink>.
+
+## Where used
+
+Product master, product list filters, and import/export. Categories do not appear directly on document lines — the product carries the category.
+
+## Constraints
+
+- Unique `(tenant_id, code)` among active rows.
+- Parent cycle detection on update.
+
+## Example
+
+Category "Electronics" sets income account 4100 and purchase account 5100. A new product in Electronics inherits those accounts unless overridden at product level.

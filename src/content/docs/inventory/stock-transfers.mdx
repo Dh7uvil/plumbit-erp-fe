@@ -1,0 +1,52 @@
+A stock transfer moves quantity from one warehouse to another in a **single post** — there is no in-transit step or separate receive document.
+
+<AppLink href="/stock-transfers">Open stock transfers</AppLink>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "post", to: "POSTED" },
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable transfer not yet executed", actions: "Edit, post, cancel, delete", effect: "None" },
+    { status: "POSTED", meaning: "Stock moved", actions: "View only", effect: "Paired TRANSFER_OUT / TRANSFER_IN movements" },
+    { status: "CANCELLED", meaning: "Voided draft", actions: "—", effect: "None" },
+  ]}
+/>
+
+<Callout type="warning">
+Posted transfers **cannot be cancelled**. Create a reverse transfer if you need to undo a mistake.
+</Callout>
+
+## What post does
+
+For each line:
+
+1. **TRANSFER_OUT** at the source warehouse — on hand decreases; FIFO layers are consumed oldest-first.
+2. **TRANSFER_IN** at the destination warehouse — on hand increases; the **same cost consumptions** are re-applied as new layers (cost is carried, not re-averaged).
+
+<StateChangeTable
+  rows={[
+    { action: "Save draft", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Draft transfer" },
+    { action: "Post", stock: "Source − / dest +", reserved: "No change", gl: "None", tax: "None", documents: "Paired movements" },
+  ]}
+/>
+
+Transfers are **GL-neutral** — inventory stays on one inventory account; only warehouse balances change.
+
+## Requirements
+
+- Source and destination warehouses must differ.
+- Outbound quantity is validated against **available** (on hand − reserved − QC hold) unless `allow_negative_stock` is enabled — see <DocLink href="/docs/inventory/negative-stock-and-shortfalls">Negative stock and shortfalls</DocLink>.
+
+## Related
+
+- Quantity fields: <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>
+- Movement types: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>
+- FIFO cost carry: <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>

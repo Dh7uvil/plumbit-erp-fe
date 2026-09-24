@@ -1,0 +1,123 @@
+A purchase invoice (PI) is the supplier **bill**. **Posting** creates accounts payable and clears **GRNI** for received goods — it does **not** move stock (stock was received on the GRN).
+
+<AppLink href="/purchase-invoices">Open purchase invoices</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
+    { label: "Purchase invoice", note: "Post → AP, clear GRNI", href: "/docs/purchases/purchase-invoices" },
+    { label: "Landed cost", note: "Optional capitalization", href: "/docs/purchases/landed-costs" },
+    { label: "Supplier payment", note: "Post → allocate to AP", href: "/docs/purchases/supplier-payments" },
+  ]}
+/>
+
+## Bill types
+
+| Type | Typical use | Stock link |
+|---|---|---|
+| **GOODS** | Domestic product purchases | GRN-linked or PO-linked product lines |
+| **EXPENSE** | Freight, duty, clearing, insurance, other charges | Expense lines only — no stock |
+| **IMPORT** | Import purchases | GRN-linked; RCM VAT defaults on |
+
+Line types: **PRODUCT** (inventory/purchase account) or **EXPENSE** (expense account by category: `FREIGHT`, `CUSTOMS_DUTY`, `INSURANCE`, `CLEARING`, `INSPECTION`, `OTHER`).
+
+Expense lines on posted **EXPENSE** or **IMPORT** bills can later feed **landed cost** capitalization onto GRN FIFO layers.
+
+## Creating a PI
+
+| Source | Source status | What gets billed |
+|---|---|---|
+| Posted goods receipt | `POSTED` | Unbilled GRN qty at GRN rate |
+| Issued purchase order | `ISSUED` | Unbilled PO qty (no GRN required) |
+| Standalone | — | Manual lines; no GRN/PO link |
+
+Posted PI can also be the **source for a GRN** in the PI-first flow — see <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "post", to: "POSTED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Bill editable", actions: "Edit, post", effect: "None" },
+    { status: "POSTED", meaning: "Payable recorded", actions: "Pay, debit note, cancel (if allowed)", effect: "AP + GRNI clear or purchase expense; VAT" },
+    { status: "CANCELLED", meaning: "Voided bill", actions: "—", effect: "Reverses journal, GRN layer costs, source qty counters" },
+  ]}
+/>
+
+Payment status on the header rolls up separately: `UNPAID`, `PARTIALLY_PAID`, `PAID` — driven by `amount_paid`, `amount_debited`, `amount_written_off`, and `balance_due`.
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft PI only" },
+    { action: "Post PI (GRN-linked product lines)", stock: "No change", reserved: "No change", gl: "Dr GRNI (+ PPV/Inventory reval); Cr AP; VAT", tax: "VAT input or RCM pair", documents: "GRN/PO qty_billed updated" },
+    { action: "Post PI (no GRN — product lines)", stock: "No change", reserved: "No change", gl: "Dr Purchases (product account); Cr AP; VAT", tax: "VAT input or RCM pair", documents: "PO qty_billed updated if linked" },
+    { action: "Post PI (expense lines)", stock: "No change", reserved: "No change", gl: "Dr expense account (freight, duty, etc.); Cr AP", tax: "As applicable", documents: "Expense available for landed cost" },
+  ]}
+/>
+
+## GRN-linked vs no-GRN posting
+
+**GRN-linked product lines** — journal clears GRNI at the weighted FIFO **landed unit cost** from the receipt layers. The bill amount may differ:
+
+- **Dr GRNI** — GRN unit cost × billed qty
+- **Price variance** — difference between bill net and GRNI amount splits to:
+  - **Dr Inventory** — revalues remaining FIFO layers to bill unit cost
+  - **Dr Purchase price variance (PPV)** — consumed-qty portion
+
+**No-GRN product lines** — **Dr Purchases** (product purchase account or default purchases account), **Cr AP**. No GRNI involved.
+
+## Quantity headroom
+
+Cannot bill more than source outstanding:
+
+- GRN line: `quantity − qty_billed`
+- PO line: `quantity − qty_billed`
+
+Billing beyond headroom is blocked at post.
+
+## Reverse charge (RCM) VAT
+
+`is_reverse_charge` can be set explicitly. **IMPORT** bills default to reverse charge.
+
+When RCM applies, line tax rates are forced to zero. The header computes `rcm_taxable_amount` and `rcm_tax_amount` at the standard VAT rate. GL posts **Dr VAT RCM input, Cr VAT RCM output** — not VAT input.
+
+Non-RCM bills post **Dr VAT input**. See <DocLink href="/docs/accounting/vat">VAT</DocLink>.
+
+## Auto-apply PO advances
+
+After post, if the PI links to a PO, the system can automatically allocate unapplied **PO advance payments** to the invoice balance.
+
+Gated by org setting `auto_apply_advances_on_invoice` (default **true**). Advances are applied FIFO by payment date. See <DocLink href="/docs/purchases/supplier-payments">Supplier payments</DocLink>.
+
+## Cancellation rules (posted)
+
+A posted PI **cannot be cancelled** when:
+
+- Accounting period is locked
+- `amount_paid > 0`, `amount_debited > 0`, or `amount_written_off > 0`
+- A live **debit note** references the PI
+- Live **supplier payment allocations** exist against the PI
+- A **goods receipt** was created from this PI (PI-first flow)
+
+Cancel reverses the journal and restores GRN FIFO layer costs to pre-bill values.
+
+## Downstream documents
+
+From a **posted** PI: supplier payment allocation, debit note, goods receipt (PI-first), landed cost charge source (expense lines).
+
+## Related
+
+- AP balance and aging: <DocLink href="/docs/accounting/accounts-payable">Accounts payable</DocLink>
+- Match report: <AppLink href="/reports/three-way-match">Three-way match</AppLink>
+- Stock is not affected: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>

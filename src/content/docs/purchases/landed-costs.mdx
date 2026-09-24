@@ -1,0 +1,80 @@
+A landed cost document spreads **posted expense purchase invoice lines** (freight, duty, clearing, etc.) across **posted goods receipt lines**, increasing FIFO **landed unit cost** on remaining stock.
+
+<AppLink href="/landed-costs">Open landed costs</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Goods receipt", note: "Post → FIFO layer", href: "/docs/purchases/goods-receipts" },
+    { label: "Expense PI", note: "Post → freight/duty expense", href: "/docs/purchases/purchase-invoices" },
+    { label: "Landed cost", note: "Post → revalue layers", href: "/docs/purchases/landed-costs" },
+    { label: "Product PI", note: "PPV uses landed cost", href: "/docs/purchases/purchase-invoices" },
+  ]}
+/>
+
+## Charges and allocations
+
+| Side | Source requirement | Content |
+|---|---|---|
+| **Charges** | Posted PI **expense** lines | Inventoriable charge types (`FREIGHT`, `CUSTOMS_DUTY`, etc.) |
+| **Allocations** | Posted GRN **product** lines | Receipt lines receiving a share of each charge |
+
+Both GRN and expense PI must be **posted**. See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "post", to: "POSTED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Charge/allocation lines editable", actions: "Edit, post", effect: "None" },
+    { status: "POSTED", meaning: "Costs capitalized onto GRN layers", actions: "Cancel (if allowed)", effect: "FIFO landed unit cost increased; expense cleared" },
+    { status: "CANCELLED", meaning: "Voided capitalization", actions: "—", effect: "Restores prior landed unit costs; reverses journal" },
+  ]}
+/>
+
+## Allocation methods
+
+Each charge spreads its amount across allocation lines proportionally:
+
+| Method | Basis |
+|---|---|
+| **VALUE** | Line qty × landed unit cost (or qty × rate fallback) |
+| **WEIGHT** | Line `net_weight` — required on product |
+| **QUANTITY** | Line qty |
+| **VOLUME** | Line `volume` — required on product |
+
+Charge type default `allocation_basis` can override the header method per charge.
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Post landed cost", stock: "No on-hand change", reserved: "No change", gl: "Dr Inventory (remaining stock); Dr Landed cost variance (consumed portion); Cr expense clearing (freight in, customs duty, other charges)", tax: "None", documents: "FIFO `landed_unit_cost` += allocated ÷ qty_received per GRN line" },
+    { action: "Cancel posted landed cost", stock: "No on-hand change", reserved: "No change", gl: "Reversed", tax: "None", documents: "Prior landed unit costs restored" },
+  ]}
+/>
+
+On-hand quantity is unchanged — only the **unit cost** on FIFO layers increases. Subsequent COGS and GRN-linked PI price variance use the updated landed cost.
+
+See <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>.
+
+## Cancellation rules (posted)
+
+Cannot cancel when:
+
+- Accounting period is locked
+- A **later posted landed cost** touches the same GRN lines
+
+## Related
+
+- Import cost planning: <DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink>
+- Charge type setup: <DocLink href="/docs/master-data/charge-types">Charge types</DocLink>
+- Trade module: <DocLink href="/docs/import-export/trade-overview">Trade overview</DocLink>

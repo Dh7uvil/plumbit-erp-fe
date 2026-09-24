@@ -1,0 +1,45 @@
+Sales and purchase analysis reports break down **posted** revenue and purchase spend by dimensions such as customer, supplier, product, and period.
+
+<AppLink href="/reports/sales-analysis">Sales analysis</AppLink> · <AppLink href="/reports/purchase-analysis">Purchase analysis</AppLink>
+
+## Sales analysis
+
+Route: <AppLink href="/reports/sales-analysis">/reports/sales-analysis</AppLink>
+
+Summarizes posted sales invoice lines:
+
+| Typical breakdown | Use |
+|---|---|
+| By customer | Top customers, concentration |
+| By product / category | Product mix |
+| By period | Trend over months |
+| By branch / salesperson | Territory performance |
+
+Includes net amounts and quantities from **posted** invoices only. Credit notes reduce revenue in the period posted.
+
+## Purchase analysis
+
+Route: <AppLink href="/reports/purchase-analysis">/reports/purchase-analysis</AppLink>
+
+Summarizes posted purchase invoice lines:
+
+| Typical breakdown | Use |
+|---|---|
+| By supplier | Spend concentration |
+| By product / category | Procurement mix |
+| By period | Spend trend |
+| By expense category | Freight, duty, goods split |
+
+Includes **posted** goods and expense bills. Debit notes adjust in the period posted.
+
+## Filters
+
+Date range, branch, party, product, and category filters where supported. Export CSV with `reports.report.export`.
+
+Permission: `reports.report.financial` (grouped under Financial reports in the hub).
+
+## Related
+
+- <DocLink href="/docs/reports/financial-reports">Financial reports</DocLink>
+- <DocLink href="/docs/sales/sales-invoices">Sales invoices</DocLink>
+- <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>

@@ -1,0 +1,91 @@
+A sales invoice is the **revenue and receivables** document. Posting creates AR, revenue, and output VAT. It does not issue stock — COGS is stamped from delivery data but posted only on the delivery note.
+
+<AppLink href="/sales-invoices">Open sales invoices</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Sales order / DN", note: "Optional sources", href: "/docs/sales/sales-orders" },
+    { label: "Sales invoice", note: "Post → AR + revenue", href: "/docs/sales/sales-invoices" },
+    { label: "Customer payment", note: "Allocate to AR", href: "/docs/sales/customer-payments" },
+    { label: "Credit note", note: "Reduce AR", href: "/docs/sales/credit-notes" },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+  compact
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable invoice", actions: "Edit, post, cancel", effect: "None" },
+    { status: "POSTED", meaning: "Open receivable", actions: "Collect payment, credit note, write-off, payment reminder", effect: "AR + revenue + VAT; COGS status stamped" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Reversal journal if was POSTED and allowed" },
+  ]}
+/>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft SI only" },
+    { action: "Post sales invoice", stock: "No movement", reserved: "No change", gl: "Dr AR, Cr Revenue + VAT output", tax: "Output VAT per line category", documents: "Open AR item; SO/DN qty_invoiced updated" },
+    { action: "Cancel posted SI", stock: "No change", reserved: "No change", gl: "Reversal journal", tax: "Reversed", documents: "Blocked if paid, credited, or written off" },
+  ]}
+/>
+
+## COGS status
+
+Each line and the header carry **cogs_status**:
+
+| Value | Meaning |
+|---|---|
+| `NOT_APPLICABLE` | Service or non-stock line |
+| `PENDING` | Tracked product with no posted delivery note for this qty |
+| `PARTIAL` | Some qty delivered, some pending |
+| `POSTED` | COGS already posted via delivery note |
+
+<Callout type="implementation">
+Sales invoices **without a delivery note** stamp COGS as **PENDING** indefinitely. GL COGS is recorded only when the delivery note posts — see <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+## Credit check on post
+
+Credit control runs on **post** when:
+
+- The invoice is **not linked to a sales order**, or
+- `credit_limit_include_open_orders` is **off** (open SO value is excluded from exposure, so this invoice counts in full)
+
+When the invoice is linked to an SO and open orders **are** included in exposure, the SO value already counted at confirm — only the incremental amount beyond that is evaluated. See <DocLink href="/docs/sales/credit-control">Credit control</DocLink>.
+
+## Cancellation rules
+
+A **posted** invoice cannot cancel if:
+
+- `amount_paid > 0`
+- `amount_credited > 0`
+- `amount_written_off > 0`
+- Dependent documents exist (e.g. posted delivery note created from invoice)
+
+Use a **credit note** to reduce AR after payment or credit activity.
+
+## Create from
+
+Quotation, proforma, sales order, or posted delivery note(s) — see <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
+
+<Example title="Invoice before delivery">
+Post SI for 50 units with no DN → revenue and AR post immediately; cogs_status = PENDING. Post DN later → COGS hits the ledger on the DN, not the SI.
+</Example>
+
+## Related
+
+- AR and journal patterns: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Stock is not moved on invoice post: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>

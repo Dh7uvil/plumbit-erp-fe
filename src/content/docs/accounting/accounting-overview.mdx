@@ -1,0 +1,47 @@
+Accounting in Plumbit ERP is driven by **posted operational documents** and manual journals. `LedgerPostingService` is the sole writer of journal entries.
+
+## How accounts are resolved
+
+GL accounts are mapped via **system roles** (`AccountSystemRole`) on the chart of accounts — not org-setting default account IDs. Party-specific AR/AP overrides on customers and suppliers take precedence over system AR/AP.
+
+## Document → journal summary
+
+| Document (on post) | Debit | Credit |
+|---|---|---|
+| Goods receipt | Inventory | GRNI |
+| Delivery note | COGS | Inventory |
+| Sales invoice | AR | Revenue, VAT output, shipping/charges |
+| Purchase invoice (with GRN) | GRNI (+ inventory/PPV variance) | AP (+ VAT input) |
+| Purchase invoice (no GRN, product) | Purchases | AP |
+| Purchase return | GRNI | Inventory |
+| Sales return (restock) | Inventory | COGS |
+| Sales return (scrap) | Stock scrap | Inventory |
+| QC scrap | Stock scrap | Inventory |
+| Stock adjustment (+) | Inventory | Inventory adjustment |
+| Stock adjustment (−) | Inventory adjustment | Inventory |
+| Credit note | Sales returns, VAT | AR |
+| Debit note | AP | GRNI or expense, VAT |
+| Customer payment | Bank | Advance from customer |
+| Payment allocation | Advance | AR |
+| Supplier payment | Advance to supplier | Bank |
+| Supplier allocation | AP | Advance |
+| Landed cost | Inventory (+ variance) | Charge clearing |
+| Write-off (SI) | Bad debt expense | AR |
+| FX revaluation | Control / FX gain-loss | Opposite |
+| Opening balances | As entered | Equity plug + AP |
+
+**No GL:** stock transfers, packages, shipments, cost sheets, budgets, recurring invoice generation (drafts only).
+
+## Reversal model
+
+Cancelling a posted document creates a **reversal journal** (`JournalType.REVERSAL`). The original entry remains `POSTED` with `reversed_by_id` set. Manual posted journals are **reversed**, not deleted.
+
+## Books start
+
+System journals require `books_start_date` on the tenant unless the user has period override. The opening balances wizard sets this date and hard-locks prior periods.
+
+## Related
+
+- Chart structure: <DocLink href="/docs/accounting/chart-of-accounts">Chart of accounts</DocLink>
+- Period controls: <DocLink href="/docs/accounting/period-lock">Period lock</DocLink>
+- VAT reporting: <DocLink href="/docs/accounting/vat">Taxes and VAT</DocLink>

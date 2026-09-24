@@ -1,0 +1,53 @@
+UAE VAT reporting runs from **document tax registers** — not by summing GL accounts directly. Posted invoices, credit notes, and debit notes feed registers; VAT 201 boxes are computed from line-level tax categories and RCM flags.
+
+<AppLink href="/reports/vat-201">Open VAT 201</AppLink>
+
+## VAT 201 from document registers
+
+<AppLink href="/reports/vat-201">VAT 201</AppLink> aggregates **sales** and **purchase registers** for the period:
+
+| Box | Content |
+|---|---|
+| 1a | Standard rated supplies (net) |
+| 1b | Standard rated output VAT |
+| 2 | Zero rated / exports (net) |
+| 3 | Exempt supplies (net) |
+| 4 | Out of scope / designated zones (net) |
+| 5 | Reverse charge supplies (net) |
+| 6 | Reverse charge output VAT |
+| 7 | Reverse charge input VAT |
+| 8 | Recoverable input VAT |
+| 9 | Net VAT payable / (refundable) |
+
+Sales lines classify by `tax_category`, export flag, and designated zone. Purchase recoverable input includes standard-rated input plus RCM recoverable amounts.
+
+## Reverse charge (RCM)
+
+On **IMPORT** purchase invoices with reverse charge, posting creates paired journals:
+
+- Dr **VAT_RCM_INPUT** (recoverable input)
+- Cr **VAT_RCM_OUTPUT** (deemed output)
+
+Net cash VAT impact is zero; boxes 5–7 capture RCM for the return. Map both RCM system roles on the chart.
+
+## VAT-to-GL reconciliation
+
+<AppLink href="/reports/vat-gl-recon">VAT GL recon</AppLink> compares VAT 201 box totals to GL movement on **VAT_OUTPUT** and **VAT_INPUT** accounts:
+
+| Line | Compares |
+|---|---|
+| VAT output | Boxes 1b + 6 vs VAT_OUTPUT GL |
+| VAT input | Box 8 vs VAT_INPUT GL |
+| Net VAT | Box 9 vs output − input GL |
+
+Differences highlight timing gaps (e.g. unposted drafts), RCM netting, or mis-mapped accounts — not a substitute for the statutory return calculation.
+
+<Callout type="note">
+Tax treatment is set per line via tax categories and place of supply on documents. Configure rates in <DocLink href="/docs/master-data/taxes">Taxes</DocLink>.
+</Callout>
+
+## Related
+
+- Purchase RCM: <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Month-end: <DocLink href="/docs/accounting/month-end-checklist">Month-end checklist</DocLink>

@@ -1,0 +1,37 @@
+Currencies define monetary units for customers, documents, price lists, and bank accounts.
+
+<AppLink href="/currencies">Open currencies</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `code` | ISO 4217 three-letter code (e.g. `AED`, `USD`) |
+| `name` | Full name |
+| `symbol` | Display symbol |
+| `decimal_places` | Rounding precision |
+| `is_base` | Exactly one base currency per tenant |
+| `is_active` | Inactive currencies cannot be selected |
+
+New tenants receive the full ISO 4217 list with AED as base.
+
+## Downstream fields
+
+| Record | Field |
+|---|---|
+| Customer / supplier | `currency_id` |
+| Price list | `currency_id` — must match document |
+| Commercial documents | Header currency |
+| Bank account | Account currency |
+| Exchange rates | `from_currency_id`, `to_currency_id` |
+
+Foreign-currency documents require an exchange rate on document date — see <DocLink href="/docs/master-data/exchange-rates">Exchange rates</DocLink>.
+
+## Constraints
+
+- One `is_base = true` per tenant.
+- Unique `(tenant_id, code)` among active rows.
+
+## Example
+
+Base currency AED. Customer in USD requires exchange rates before USD quotations can post. Amounts store in document currency; base amounts derive from the rate.

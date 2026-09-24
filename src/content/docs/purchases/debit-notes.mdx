@@ -1,0 +1,74 @@
+A debit note reduces what you owe a supplier. **Posting** adjusts accounts payable and clears GRNI or expense — it does **not** move stock.
+
+<AppLink href="/debit-notes">Open debit notes</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Purchase invoice", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Purchase return", note: "Post → stock out", href: "/docs/purchases/purchase-returns" },
+    { label: "Debit note", note: "Post → reduce AP", href: "/docs/purchases/debit-notes" },
+    { label: "Refund", note: "Optional bank receipt", href: "/docs/purchases/supplier-payments" },
+  ]}
+/>
+
+## Reasons
+
+| Reason | Typical use |
+|---|---|
+| **GOODS_REJECTED** | Quality or inspection rejection |
+| **PRICE_ADJUSTMENT** | Supplier credit for price difference |
+| **SHORT_RECEIPT** | Billed for more than received |
+| **QUALITY_CLAIM** | Post-delivery quality dispute |
+
+## Creating a debit note
+
+| Source | Source status | Line basis |
+|---|---|---|
+| Posted purchase invoice | `POSTED` | Remaining qty per PI line (`quantity − qty_debited`); first debit copies PI header discount/shipping/adjustment |
+| Posted purchase return | `POSTED` | GRN lines mapped to PI lines for rate and account; PI optional if none posted for the GRN |
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "post", to: "POSTED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Debit editable", actions: "Edit, post", effect: "None" },
+    { status: "POSTED", meaning: "AP reduced", actions: "Refund unapplied amount, cancel", effect: "Dr AP; Cr GRNI or expense; VAT reversal" },
+    { status: "CANCELLED", meaning: "Voided debit", actions: "—", effect: "Reverses journal and PI debit counters" },
+  ]}
+/>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft debit note only" },
+    { action: "Post debit note", stock: "No change", reserved: "No change", gl: "Dr AP; Cr GRNI (if PI line was GRN-linked) or expense/purchase account; Cr VAT input", tax: "VAT reversed on credited lines", documents: "PI qty_debited and amount_debited updated" },
+    { action: "Refund unapplied amount", stock: "No change", reserved: "No change", gl: "Dr bank/cash; Cr AP", tax: "None", documents: "Standalone debits only — capped by supplier open AP" },
+  ]}
+/>
+
+## PI-linked vs standalone
+
+**PI-linked** — on post, `amount_applied = grand_total` and `amount_unapplied = 0`; reduces the linked invoice balance via `amount_debited`.
+
+**Standalone (return-only)** — not tied to a specific PI at post; `amount_unapplied = grand_total`, capped by supplier open AP balance. Refund separately against the unapplied amount.
+
+## Cancellation
+
+Cancel reverses the journal and restores PI line `qty_debited` / header `amount_debited`.
+
+## Related
+
+- Purchase return (stock out before debit): <DocLink href="/docs/purchases/purchase-returns">Purchase returns</DocLink>
+- AP netting: <DocLink href="/docs/accounting/accounts-payable">Accounts payable</DocLink>
+- No stock movement: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>

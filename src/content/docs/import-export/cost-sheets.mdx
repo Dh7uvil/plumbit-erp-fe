@@ -1,0 +1,57 @@
+Cost sheets plan and reconcile **landed unit costs** for import or export trades. They compare estimated charges and product values against actual posted purchase invoices.
+
+<AppLink href="/cost-sheets">Open cost sheets</AppLink>
+
+## Purpose
+
+| Use | Detail |
+|---|---|
+| **Pre-landed planning** | Estimate freight, duty, and margin before goods arrive |
+| **Post-landed reconciliation** | Pull actual amounts from posted expense PIs; compare to estimates |
+| **Selling price target** | Optional target selling price and expected margin per line |
+
+Cost sheets are **informational** — confirming or closing a sheet does not post stock or GL entries. Actual capitalization happens on <DocLink href="/docs/purchases/landed-costs">landed cost</DocLink> post.
+
+## Types and status
+
+| Sheet type | Typical link |
+|---|---|
+| **IMPORT** | Purchase order and/or import shipment |
+| **EXPORT** | Customer, proforma invoice |
+| **OTHER** | Ad-hoc analysis |
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable estimates", actions: "Edit lines and charges", effect: "None" },
+    { status: "CONFIRMED", meaning: "Plan locked", actions: "Pull actuals from PIs", effect: "None" },
+    { status: "CLOSED", meaning: "Reconciliation complete", actions: "—", effect: "None" },
+  ]}
+/>
+
+## Structure
+
+**Product lines** — quantity, base rate, goods value, estimated and actual landed unit cost, optional target selling price.
+
+**Charge lines** — charge type, estimated amount, actual amount (from linked PI line), variance, allocation basis, inventoriable flag.
+
+**Totals** — goods value, inventoriable vs expensed charges (estimated/actual), weighted landed unit cost, FOB/CIF totals, reference selling total, sheet margin.
+
+## Linking documents
+
+A cost sheet can reference:
+
+- Shipment (`shipment_id`)
+- Purchase order (`purchase_order_id`)
+- Supplier or customer
+- Proforma invoice (export)
+- Posted landed cost document (`landed_cost_id`) after capitalization
+
+## Allocation method
+
+Header `allocation_method` defaults charge spread across lines: **VALUE**, **WEIGHT**, **QUANTITY**, or **VOLUME**. Individual charge lines can override basis.
+
+## Related
+
+- Charge setup: <DocLink href="/docs/import-export/freight-customs-and-charges">Freight, customs, and charges</DocLink>
+- Workflow: <DocLink href="/docs/workflows/import-shipment">Import shipment</DocLink>
+- <DocLink href="/docs/import-export/trade-overview">Trade overview</DocLink>

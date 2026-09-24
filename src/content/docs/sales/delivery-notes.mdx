@@ -1,0 +1,84 @@
+A delivery note records **physical shipment** from a warehouse. Posting is the stock-out and COGS event for domestic and export sales.
+
+<AppLink href="/delivery-notes">Open delivery notes</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Sales order", note: "CONFIRMED — reserved qty", href: "/docs/sales/sales-orders" },
+    { label: "Delivery note", note: "Post → issue + COGS", href: "/docs/sales/delivery-notes" },
+    { label: "Sales invoice", note: "Post → AR (no stock)", href: "/docs/sales/sales-invoices" },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+  compact
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable shipment draft", actions: "Edit, post, cancel", effect: "None" },
+    { status: "POSTED", meaning: "Goods issued from warehouse", actions: "Create SI / sales return, cancel (if allowed)", effect: "Stock −, COGS posted, SO delivery qty updated" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Reverses stock + GL if was POSTED" },
+  ]}
+/>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft DN only" },
+    { action: "Post delivery note", stock: "On hand − (FIFO issue)", reserved: "Release reservation then issue", gl: "Dr COGS, Cr Inventory", tax: "None", documents: "SALE or EXPORT movement; SO qty_delivered +" },
+    { action: "Cancel posted DN", stock: "On hand + (RETURN_IN reverse)", reserved: "Does not re-reserve SO", gl: "Reversal journal", tax: "None", documents: "SO qty_delivered −; blocked if dependent docs exist" },
+  ]}
+/>
+
+## Stock movement type
+
+| Tax treatment | Movement type |
+|---|---|
+| Domestic sale | `SALE` |
+| Export | `EXPORT` |
+
+Post sequence for SO-linked lines: **release reservation** (up to delivery qty) → **issue on FIFO** → update sales order delivery quantities.
+
+<Callout type="note">
+Service and non-tracked products appear on the document but skip stock operations — see <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>.
+</Callout>
+
+<Callout type="implementation">
+Cancelling a posted delivery note **reverses stock and GL** but **does not re-reserve** the sales order. Outstanding delivery qty increases; reserved qty is unchanged by the cancel.
+</Callout>
+
+## Create from
+
+| Source | Source must be |
+|---|---|
+| Sales order | CONFIRMED |
+| Sales invoice | POSTED (deliver-after-invoice path) |
+
+See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
+
+## Downstream
+
+From a **posted** delivery note:
+
+- **Sales invoice** — bill delivered qty (if not already invoiced)
+- **Sales return** — must reference this posted DN
+
+<Example title="Export delivery">
+Export DN with `tax_treatment = EXPORT` posts an `EXPORT` movement and COGS at FIFO cost — same GL pattern as domestic (Dr COGS, Cr Inventory).
+</Example>
+
+## Related
+
+- Movement catalog: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>
+- GL summary: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

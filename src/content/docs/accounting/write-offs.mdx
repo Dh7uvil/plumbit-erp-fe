@@ -1,0 +1,29 @@
+Write-offs remove **uncollectible AR** (or unpayable AP) from open balances without a cash receipt. On sales invoices, the action posts Dr bad debt expense, Cr AR and blocks invoice cancellation.
+
+## Sales invoice write-off
+
+Available on **posted** sales invoices with `balance_due > 0`.
+
+<StateChangeTable
+  rows={[
+    { action: "Write off balance", stock: "No change", reserved: "No change", gl: "Dr BAD_DEBT_EXPENSE; Cr AR", tax: "None", documents: "`amount_written_off` increases; payment status refreshed" },
+    { action: "Reverse write-off", stock: "No change", reserved: "No change", gl: "Reversal journal", tax: "None", documents: "`amount_written_off` decreases" },
+    { action: "Cancel posted SI", stock: "No change", reserved: "No change", gl: "—", tax: "—", documents: "**Blocked** if `amount_written_off > 0`" },
+  ]}
+/>
+
+Amount must be positive and ≤ `balance_due`. Default expense account resolves from **BAD_DEBT_EXPENSE** system role (override allowed).
+
+<Callout type="important">
+Once written off, cancel the sales invoice only after **reversing the write-off**. Same guard applies when `amount_paid > 0` or `amount_credited > 0`.
+</Callout>
+
+## Purchase invoice write-off
+
+Purchase bills support write-off with Dr AP, Cr expense — for supplier balances that will not be paid. Same reversal pattern; blocks cancellation while write-off amount remains.
+
+## Related
+
+- Sales invoice guards: <DocLink href="/docs/sales/sales-invoices">Sales invoices</DocLink>
+- AR open items: <DocLink href="/docs/accounting/accounts-receivable">Accounts receivable</DocLink>
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

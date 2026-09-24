@@ -1,0 +1,70 @@
+A proforma invoice is a **preliminary customer bill** used to request payment before final invoicing. It does not move stock or post revenue to the general ledger.
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Quotation", note: "Optional source", href: "/docs/sales/quotations" },
+    { label: "Proforma invoice", note: "Send → confirm", href: "/docs/sales/proforma-invoices" },
+    { label: "Customer payment", note: "Advance receipt", href: "/docs/sales/customer-payments" },
+    { label: "Sales invoice", note: "Post → auto-apply advance", href: "/docs/sales/sales-invoices" },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "SENT", "CONFIRMED", "CONVERTED"]}
+  branches={[
+    { from: "SENT", action: "decline", to: "DECLINED" },
+    { from: "SENT", action: "revise", to: "DRAFT" },
+    { from: "CONFIRMED", action: "convert", to: "PARTIALLY_CONVERTED" },
+    { from: "PARTIALLY_CONVERTED", action: "convert", to: "CONVERTED" },
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "SENT", action: "cancel", to: "CANCELLED" },
+    { from: "CONFIRMED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable preliminary bill", actions: "Edit, send, cancel", effect: "None" },
+    { status: "SENT", meaning: "Sent to customer", actions: "Confirm, decline, revise, cancel", effect: "None" },
+    { status: "CONFIRMED", meaning: "Customer confirmed terms", actions: "Convert to SO / SI, collect advance, cancel", effect: "May mark source quotation accepted" },
+    { status: "PARTIALLY_CONVERTED", meaning: "Some qty converted", actions: "Convert remaining", effect: "None" },
+    { status: "CONVERTED", meaning: "Fully converted", actions: "View linked documents", effect: "None" },
+    { status: "DECLINED", meaning: "Customer declined", actions: "Reopen to draft", effect: "None" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "None" },
+  ]}
+/>
+
+## What changes when you act
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft proforma only" },
+    { action: "Send / confirm", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Status update; optional quotation acceptance" },
+    { action: "Customer payment (linked)", stock: "No change", reserved: "No change", gl: "Bank Dr, Advance from customer Cr (+ VAT if enabled)", tax: "VAT on advance when vat_on_advances", documents: "Customer payment (canonical advance page)" },
+    { action: "Convert to sales order / invoice", stock: "No change until downstream post/confirm", reserved: "No change until SO confirm", gl: "None on convert", tax: "None on convert", documents: "SO or SI with proforma line links" },
+    { action: "Sales invoice post (with advance)", stock: "Per SI rules", reserved: "Per SO if linked", gl: "AR/revenue; advance auto-applied when enabled", tax: "Output VAT on invoice", documents: "Allocation from advance to AR" },
+  ]}
+/>
+
+## Advances
+
+Collect prepayment via <DocLink href="/docs/sales/customer-payments">Customer payments</DocLink> — the canonical advance page. Link the payment to the proforma or sales order when recording.
+
+<Callout type="note">
+When `auto_apply_advances_on_invoice` is enabled, posting a sales invoice linked to the proforma **automatically allocates** unapplied customer receipts to that invoice.
+</Callout>
+
+<Example title="Advance then invoice">
+1. Confirm proforma for AED 10,000.
+2. Post customer payment AED 10,000 → credit **Advance from customer**.
+3. Convert and post sales invoice → advance allocates to AR; customer balance nets to zero.
+</Example>
+
+## Related
+
+- Payment and advance GL: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Source rules: <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>

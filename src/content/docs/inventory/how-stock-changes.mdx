@@ -1,0 +1,42 @@
+Stock movements are created only when documents are **posted** (or PO **issued** for incoming). This page maps each movement type to its source document.
+
+## Movement types and sources
+
+| Movement type | Created by | Stock effect |
+|---|---|---|
+| `PURCHASE` | Goods receipt post (domestic) | On hand + |
+| `IMPORT` | Goods receipt post (import / outside UAE) | On hand + |
+| `SALE` | Delivery note post (domestic) | On hand − |
+| `EXPORT` | Delivery note post (export) | On hand − |
+| `TRANSFER_OUT` / `TRANSFER_IN` | Stock transfer post (paired) | Source − / dest + |
+| `ADJUSTMENT` | Stock adjustment post (COUNT, FOUND, OTHER) | ± |
+| `DAMAGE` | Adjustment DAMAGE; QC scrap; sales return scrap | On hand − |
+| `OPENING_STOCK` | Opening balances wizard or adjustment | On hand + |
+| `RETURN_IN` | Sales return restock; DN cancel | On hand + |
+| `RETURN_OUT` | Purchase return post | On hand − |
+| `QC_HOLD` / `QC_RELEASE` | Hold audit only — on hand unchanged | Available ± |
+
+## Documents that do **not** move on-hand stock
+
+| Document | What it does instead |
+|---|---|
+| Purchase order (draft/save) | Nothing |
+| Purchase order **issue** | Increases **incoming** only |
+| Sales order confirm | **Reserves** available qty |
+| Sales / purchase invoice post | GL only (no stock) |
+| Credit / debit note post | GL only |
+| Package pack | Metadata only |
+| Shipment dispatch/arrive/close | Tracking only |
+| Cost sheet confirm | Planning only |
+
+## Reservations
+
+Confirmed sales orders call `reserve_locked` for tracked lines. Reservation target = `quantity − qty_delivered − qty_returned`. Shortfalls never block confirm — see <DocLink href="/docs/inventory/negative-stock-and-shortfalls">Negative stock and shortfalls</DocLink>.
+
+Delivery note post **releases** reservation then **issues** stock on FIFO.
+
+## Where to see movements
+
+<AppLink href="/stock-movements">Stock movements</AppLink> lists every movement row. The stock movement **report** excludes QC_HOLD/QC_RELEASE audit rows.
+
+See <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink> for field definitions.

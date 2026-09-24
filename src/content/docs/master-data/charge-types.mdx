@@ -1,0 +1,33 @@
+Charge types classify freight, duty, insurance, and other trade charges on import/export purchase invoices and landed costs.
+
+<AppLink href="/charge-types">Open charge types</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `code` | Unique code (e.g. `FREIGHT`, `CUSTOMS_DUTY`) |
+| `name` | Display label |
+| `is_inventoriable` | When true, charge capitalizes into stock via landed cost |
+| `default_account_id` | GL account for non-inventoriable posting |
+| `allocation_basis` | `VALUE`, `WEIGHT`, `QUANTITY`, or `VOLUME` for landed cost split |
+| `default_tax_id` | Default tax on charge lines |
+| `applies_to` | `IMPORT`, `EXPORT`, or `BOTH` |
+| `sort_order` | Display order on forms |
+
+Sixteen standard charge types are seeded on tenant create (freight, insurance, customs duty, etc.) with inventoriable flags and GL roles.
+
+## Inventoriable flag
+
+| `is_inventoriable` | Behavior |
+|---|---|
+| `true` | Included in landed cost allocation and cost sheet CIF totals; capitalized onto FIFO layers |
+| `false` | Posted as expense; excluded from landed cost allocation |
+
+## Where used
+
+Purchase invoice charge lines, landed costs, cost sheets, import/export workflows — see <DocLink href="/docs/import-export/freight-customs-and-charges">Freight, customs, and charges</DocLink>.
+
+## Example
+
+A purchase invoice has FREIGHT (inventoriable) and BANK_CHARGES (non-inventoriable). Landed cost allocates FREIGHT across GRN lines by value; BANK_CHARGES posts immediately to expense.

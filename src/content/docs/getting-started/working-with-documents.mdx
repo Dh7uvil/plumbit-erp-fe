@@ -1,0 +1,39 @@
+Most business records in Plumbit ERP are **documents** with a status lifecycle. Understanding draft vs posted vs cancelled is essential for stock and accounting accuracy.
+
+## Draft vs posted
+
+| State | Meaning |
+|---|---|
+| **Draft** | Editable. No stock or GL impact (except PO issue — see below). |
+| **Posted** | Finalized. Stock and/or journal entries are written. |
+| **Cancelled** | Voided. Posted documents are reversed (stock restored, reversal journal created). |
+
+Posting is the action that affects business data. Saving a draft only stores the document.
+
+## Optimistic locking
+
+Documents use **version** numbers. If two users edit the same record, the second save fails with a conflict — refresh and retry. API calls send `expected_version`.
+
+## Period lock
+
+Documents dated on or before the **soft lock date** cannot be posted or cancelled unless the user has `accounting.period.override`. Documents on or before the **hard lock date** are always blocked. See <DocLink href="/docs/accounting/period-lock">Period lock</DocLink>.
+
+## Cancellation model
+
+Cancelling a **posted** document:
+
+1. Reverses stock movements (where applicable) via the stock service.
+2. Creates a **reversal journal** — the original journal stays `POSTED` with a link to the reversal.
+3. Restores quantities on linked source documents (PO received/billed, SO delivered/invoiced, etc.).
+
+Many cancellations are **blocked** when downstream documents exist, payments are applied, or FIFO layers have been consumed. Each transaction page lists its specific guards.
+
+**Cannot reverse after post:** stock adjustments, stock transfers, and approved quality inspections.
+
+## Convert / create from
+
+The **Convert** or **Create from** action copies lines and links to the source document. Source status requirements vary — see <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
+
+## Special case: purchase order issue
+
+Issuing a PO is not "posting" in the GL sense, but it **does** increase `qty_incoming` for tracked products at the PO warehouse. Cancelling an issued PO reverses incoming only.

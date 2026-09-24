@@ -1,0 +1,59 @@
+The opening balances wizard is the **go-live commit** for accounting and inventory. One transaction posts GL balances, AR/AP open items, opening stock, sets `books_start_date`, and applies a **hard period lock** on all prior dates.
+
+<AppLink href="/opening-balances">Open opening balances</AppLink>
+
+## Wizard inputs
+
+| Section | Creates |
+|---|---|
+| **GL lines** | Direct debit/credit per account |
+| **AR items** | Dr AR per customer with due date |
+| **AP items** | Cr AP per supplier with due date |
+| **Stock lines** | Dr inventory via `OPENING_STOCK` movements |
+
+Entry date = `books_start_date − 1 day`. Journal type = **OPENING_BALANCE**.
+
+## Equity plug
+
+Debits and credits must balance. Any difference posts automatically to **OPENING_BALANCE_EQUITY**:
+
+- Net debit excess → Cr opening balance equity
+- Net credit excess → Dr opening balance equity
+
+Preview shows the plug line before commit.
+
+## Stock lines
+
+Each stock line creates a **OPENING_STOCK** movement at `unit_cost × quantity`. Total layer value must equal the inventory GL debit or commit fails with a mismatch error.
+
+## Hard lock
+
+On commit:
+
+- `books_start_date` is saved on the tenant
+- `hard_lock_date` = entry date (day before books start)
+- Reason: "Opening balances committed"
+
+No document dated on or before the hard lock can post — even with period override.
+
+<Callout type="note">
+Reset is allowed only when **no other posted activity** exists after go-live. Reset reverses the opening journal and stock movements.
+</Callout>
+
+<Steps>
+<Step title="Preview">
+Enter GL, AR/AP, and stock lines. Review equity plug and totals.
+</Step>
+<Step title="Commit">
+Single idempotent post — cannot commit twice.
+</Step>
+<Step title="Operate">
+All system journals require `books_start_date`. Begin normal posting from books start date forward.
+</Step>
+</Steps>
+
+## Related
+
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Period lock: <DocLink href="/docs/accounting/period-lock">Period lock</DocLink>
+- Stock detail: <DocLink href="/docs/inventory/opening-stock">Opening stock</DocLink>

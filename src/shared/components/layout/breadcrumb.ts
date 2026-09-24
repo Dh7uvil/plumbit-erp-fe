@@ -1,5 +1,6 @@
 import type { NavigationItem } from "@/config/navigation";
 import { navigation } from "@/config/navigation";
+import { findDoc, findDocCategory } from "@/config/docs-catalog";
 import { findReportByHref } from "@/config/report-catalog";
 import { historyPageTitle, parseHistoryPath } from "@/shared/lib/history";
 
@@ -7,6 +8,34 @@ export type BreadcrumbCrumb = {
   label: string;
   href?: string;
 };
+
+function buildDocsBreadcrumbs(pathname: string): BreadcrumbCrumb[] {
+  const crumbs: BreadcrumbCrumb[] = [{ label: "Documentation", href: "/docs" }];
+  if (pathname === "/docs") {
+    crumbs.push({ label: "Home" });
+    return crumbs;
+  }
+
+  const segments = pathname.split("/").filter(Boolean);
+  const categorySlug = segments[1];
+  const pageSlug = segments[2];
+  const category = categorySlug ? findDocCategory(categorySlug) : undefined;
+
+  if (!category) {
+    crumbs.push({ label: "Not found" });
+    return crumbs;
+  }
+
+  if (!pageSlug) {
+    crumbs.push({ label: category.label });
+    return crumbs;
+  }
+
+  const doc = findDoc(categorySlug, pageSlug);
+  crumbs.push({ label: category.label, href: `/docs/${categorySlug}` });
+  crumbs.push({ label: doc?.title ?? "Article" });
+  return crumbs;
+}
 
 export function buildBreadcrumbs({
   pathname,
@@ -17,6 +46,10 @@ export function buildBreadcrumbs({
   active?: { group: string; item: NavigationItem };
   recordLabel?: string | null;
 }): BreadcrumbCrumb[] {
+  if (pathname === "/docs" || pathname.startsWith("/docs/")) {
+    return buildDocsBreadcrumbs(pathname);
+  }
+
   const history = parseHistoryPath(pathname);
   const activeNav =
     active ??

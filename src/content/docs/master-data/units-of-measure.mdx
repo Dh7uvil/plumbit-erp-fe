@@ -1,0 +1,32 @@
+Units of measure define how product quantities are counted — pieces, boxes, kilograms, meters.
+
+<AppLink href="/units">Open units</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `code` | Short code — unique per tenant (e.g. `PCS`, `KG`) |
+| `name` | Display label |
+| `is_active` | Inactive units cannot be selected on new records |
+
+Seeded defaults: PCS, BOX, M, KG.
+
+## Downstream fields
+
+| Record | Field |
+|---|---|
+| Product | `unit_id` — default unit for the item |
+| Document lines | `unit_id` — falls back to product unit when omitted |
+
+## Where used
+
+Quotations, proforma invoices, sales orders, sales invoices, purchase orders, goods receipts, and purchase invoices all carry line-level units.
+
+## Constraints
+
+Cannot deactivate or delete a unit referenced by active products (`assert_master_not_referenced`).
+
+## Example
+
+Product "Widget A" uses unit `PCS`. A sales order line for 500 widgets defaults to PCS; the user can change the line unit if another unit exists.

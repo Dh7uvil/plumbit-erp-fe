@@ -1,0 +1,57 @@
+Payment reminders (dunning) send **email notices** for overdue or upcoming sales invoices. No general-ledger entries are created.
+
+<AppLink href="/dunning-rules">Open dunning rules</AppLink>
+
+## How it works
+
+<FlowDiagram
+  steps={[
+    { label: "Dunning rule", note: "Days offset + template", href: "/docs/sales/payment-reminders" },
+    { label: "Open sales invoice", note: "POSTED, balance due", href: "/docs/sales/sales-invoices" },
+    { label: "Reminder email", note: "Logged per invoice + rule" },
+  ]}
+/>
+
+## Dunning rules
+
+Each rule defines:
+
+| Field | Purpose |
+|---|---|
+| **days_offset** | Days from invoice due date (negative = before due, positive = overdue) |
+| **template_key** | Email template (e.g. payment due soon, payment overdue) |
+| **is_active** | Include in automated scan |
+
+Rules are maintained at <AppLink href="/dunning-rules">Dunning rules</AppLink>.
+
+## Scan vs manual send
+
+<StateChangeTable
+  rows={[
+    { action: "Scheduled scan (CLI / job)", stock: "No change", reserved: "—", gl: "None", tax: "None", documents: "One email per invoice + rule pair; skips if already sent" },
+    { action: "Manual send from invoice", stock: "No change", reserved: "—", gl: "None", tax: "None", documents: "User picks rule or system picks matching rule by due-date offset" },
+  ]}
+/>
+
+**Automated scan** evaluates all active rules for the tenant as of a calendar date. For each rule it finds open invoices whose due date matches `as_of − days_offset`, then enqueues a reminder if none was already logged for that invoice and rule.
+
+**Manual send** from a posted invoice resolves the applicable rule (explicit rule ID or best match by days from due date) and sends immediately.
+
+<Callout type="note">
+Invoices without a **due date** cannot receive automated or manual reminders.
+</Callout>
+
+<Example title="7-day overdue rule">
+Rule: `days_offset = 7`, template PAYMENT_OVERDUE. Scan on 15 Feb targets invoices with due date 8 Feb that still have balance due.
+</Example>
+
+## What is not affected
+
+- No AR, revenue, or tax postings
+- No change to invoice payment status
+- Reminder history is stored in dunning logs on the invoice
+
+## Related
+
+- Invoice balances: <DocLink href="/docs/sales/sales-invoices">Sales invoices</DocLink>
+- No GL: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

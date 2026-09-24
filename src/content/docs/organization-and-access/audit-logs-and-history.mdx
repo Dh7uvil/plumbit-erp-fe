@@ -1,0 +1,44 @@
+Plumbit ERP records every significant change in a single **audit log** table. The same data powers two different views: tenant-wide audit logs and per-document activity history.
+
+<AppLink href="/audit-logs">Open audit logs</AppLink>
+
+## Audit log (admin view)
+
+Tenant-wide searchable list for compliance and troubleshooting.
+
+| Field | Content |
+|---|---|
+| `user_id` | Who performed the action |
+| `action` | `CREATE`, `UPDATE`, `POST`, `APPROVE`, `SUBMIT`, `CANCEL`, `LOGIN`, etc. |
+| `module` / `entity_type` / `entity_id` | What changed |
+| `old_values` / `new_values` | Full before/after JSON |
+| `status` | `SUCCESS` or `FAILED` |
+| `ip_address`, `user_agent` | Request context |
+
+**Permission:** `identity.audit_log.read`
+
+Filters: module, action, user, date range. Summary KPIs show total events, unique users, and failed attempts.
+
+## Document activity history (user view)
+
+Opened from a document's **History** tab or `/history/[resource]/[id]`.
+
+| Aspect | Behavior |
+|---|---|
+| Data source | Same `audit_logs` rows, scoped to one entity |
+| Permission | Entity read code (e.g. `sales.quotation.read`) |
+| Tabs | **Approvals** (submit/approve/reject) vs **Edits** (field changes, attachments) |
+| Field display | Allowlist — only business-relevant fields shown (status, totals, branch, salesperson, etc.) |
+
+## Key distinction
+
+| View | Audience | Scope |
+|---|---|---|
+| Audit logs | Administrators | Entire tenant |
+| Document history | Document users | Single record |
+
+Audit logs show failed login attempts and cross-module admin actions. Document history focuses on workflow and edits for one quotation, invoice, or customer.
+
+## Example
+
+A sales manager opens a quotation's History tab and sees submit → approve → send events. An admin opens Audit Logs, filters by `sales` module and today's date, and finds the same events plus a failed `POST` attempt on another invoice.

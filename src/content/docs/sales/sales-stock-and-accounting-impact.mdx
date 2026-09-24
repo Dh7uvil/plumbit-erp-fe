@@ -1,0 +1,16 @@
+Quick reference for **stock and GL effects** across sales documents. Details on each page linked below.
+
+<ImpactTable rows={[
+  { action: <DocLink href="/docs/sales/quotations">Quotation</DocLink>, stock: "None", accounting: "None" },
+  { action: <DocLink href="/docs/sales/proforma-invoices">Proforma invoice</DocLink>, stock: "None", accounting: "None" },
+  { action: <DocLink href="/docs/sales/sales-orders">Sales order confirm</DocLink>, stock: "Reserves available qty (shortfall never blocks)", accounting: "None" },
+  { action: <DocLink href="/docs/sales/delivery-notes">Delivery note post</DocLink>, stock: "Release reserve + issue (SALE / EXPORT)", accounting: "Dr COGS, Cr Inventory" },
+  { action: <DocLink href="/docs/sales/sales-invoices">Sales invoice post</DocLink>, stock: "None — COGS stamped, not posted", accounting: "Dr AR, Cr Revenue + VAT" },
+  { action: <DocLink href="/docs/sales/customer-payments">Customer payment post</DocLink>, stock: "None", accounting: "Dr Bank, Cr Advance from customer" },
+  { action: <DocLink href="/docs/sales/customer-payments">Payment allocation</DocLink>, stock: "None", accounting: "Dr Advance, Cr AR" },
+  { action: <DocLink href="/docs/sales/sales-returns">Sales return post (restock)</DocLink>, stock: "On hand +", accounting: "Dr Inventory, Cr COGS" },
+  { action: <DocLink href="/docs/sales/credit-notes">Credit note post</DocLink>, stock: "None", accounting: "Dr Sales returns + VAT, Cr AR" },
+  { action: <DocLink href="/docs/sales/payment-reminders">Payment reminder</DocLink>, stock: "None", accounting: "None" },
+]} />
+
+See also <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>, <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>, and <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>.

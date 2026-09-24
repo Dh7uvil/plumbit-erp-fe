@@ -1,0 +1,13 @@
+Quick reference for **stock and GL effects** across trade logistics documents. Shipments and packages are tracking only.
+
+<ImpactTable rows={[
+  { action: <DocLink href="/docs/import-export/packages">Package pack</DocLink>, stock: "None", accounting: "None" },
+  { action: <DocLink href="/docs/import-export/shipments">Shipment status change</DocLink>, stock: "None", accounting: "None" },
+  { action: <DocLink href="/docs/purchases/goods-receipts">GRN post (IMPORT)</DocLink>, stock: "On hand +", accounting: "Dr Inventory, Cr GRNI" },
+  { action: <DocLink href="/docs/purchases/purchase-invoices">Expense PI post</DocLink>, stock: "None", accounting: "Dr expense; Cr AP" },
+  { action: <DocLink href="/docs/purchases/landed-costs">Landed cost post</DocLink>, stock: "Landed unit cost revalued", accounting: "Dr Inventory; Cr expense clearing" },
+  { action: <DocLink href="/docs/sales/delivery-notes">Export DN post</DocLink>, stock: "On hand − (EXPORT)", accounting: "Dr COGS, Cr Inventory" },
+  { action: <DocLink href="/docs/import-export/cost-sheets">Cost sheet confirm/close</DocLink>, stock: "None", accounting: "None — planning only" },
+]} />
+
+See <DocLink href="/docs/import-export/trade-overview">Trade overview</DocLink>, <DocLink href="/docs/purchases/purchases-stock-and-accounting-impact">Purchases impact</DocLink>, and <DocLink href="/docs/sales/sales-stock-and-accounting-impact">Sales impact</DocLink>.

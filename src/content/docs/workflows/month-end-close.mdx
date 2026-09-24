@@ -1,0 +1,74 @@
+Close an accounting period: finish operational posting, reconcile cash, revalue foreign balances, run control reports, then advance period lock.
+
+<FlowDiagram
+  steps={[
+    { label: "Post remaining docs", note: "No drafts left", href: "/docs/getting-started/working-with-documents" },
+    { label: "Bank reconciliation", note: "Match statements", href: "/docs/accounting/bank-reconciliation" },
+    { label: "FX revaluation", note: "Period-end rates", href: "/docs/accounting/fx-revaluation" },
+    { label: "Reports checklist", note: "TB, VAT, aging", href: "/docs/accounting/month-end-checklist" },
+    { label: "Period lock", note: "Advance hard date", href: "/docs/accounting/period-lock" },
+  ]}
+/>
+
+<Prerequisites>
+- All day-to-day transactions for the period posted or intentionally deferred
+- Exchange rates loaded for revaluation date
+- Period lock permission
+</Prerequisites>
+
+<Steps>
+<Step title="Clear unposted documents">
+Review draft POs, GRNs, invoices, payments, journals. Post or cancel drafts dated in the closing period. Check <AppLink href="/outbox">outbox</AppLink> for failed async posts.
+</Step>
+
+<Step title="Reconcile bank accounts">
+<AppLink href="/bank-reconciliation">Bank reconciliation</AppLink> — import or enter statement lines, match to posted payments and receipts. Resolve unmatched items before lock.
+
+See <DocLink href="/docs/accounting/bank-reconciliation">Bank reconciliation</DocLink>.
+</Step>
+
+<Step title="Run FX revaluation">
+For foreign-currency AR, AP, and bank balances, run <AppLink href="/fx-revaluation">FX revaluation</AppLink> at period-end rates.
+
+<StateChangeTable
+  rows={[
+    { action: "Post FX revaluation", stock: "No change", reserved: "No change", gl: "Dr/Cr AR/AP/bank; offset FX gain/loss", tax: "None", documents: "Revaluation journal per run" },
+  ]}
+/>
+
+See <DocLink href="/docs/accounting/fx-revaluation">FX revaluation</DocLink> and <DocLink href="/docs/accounting/multi-currency-and-exchange-rates">Multi-currency</DocLink>.
+</Step>
+
+<Step title="Reports checklist">
+Run and archive key reports:
+
+| Report | Purpose |
+|---|---|
+| <AppLink href="/reports/trial-balance">Trial balance</AppLink> | GL balances tie out |
+| <AppLink href="/reports/profit-and-loss">Profit and loss</AppLink> | Period performance |
+| <AppLink href="/reports/balance-sheet">Balance sheet</AppLink> | Position at period end |
+| <AppLink href="/reports/ar-aging">AR aging</AppLink> | Customer collections |
+| <AppLink href="/reports/ap-aging">AP aging</AppLink> | Supplier payables |
+| <AppLink href="/reports/stock-valuation">Stock valuation</AppLink> | Inventory vs GL |
+| VAT return reports | Tax filing — <DocLink href="/docs/accounting/vat">VAT</DocLink> |
+| <AppLink href="/reports/three-way-match">Three-way match</AppLink> | PO/GRN/PI qty gaps |
+
+Full checklist: <DocLink href="/docs/accounting/month-end-checklist">Month-end checklist</DocLink>.
+</Step>
+
+<Step title="Update period lock">
+<AppLink href="/period-lock">Open period lock</AppLink> — advance **soft lock** and **hard lock** dates to the last day of the closed period.
+
+| Lock | Effect |
+|---|---|
+| **Soft lock** | Warns on backdated posts unless override permission |
+| **Hard lock** | Blocks all posts/cancels on or before date |
+
+Preview impact before saving — see <DocLink href="/docs/accounting/period-lock">Period lock</DocLink>.
+</Step>
+</Steps>
+
+## Module reference
+
+- Using reports: <DocLink href="/docs/reports/using-reports">Using reports</DocLink>
+- Review balances workflow: <DocLink href="/docs/workflows/review-customer-and-supplier-balances">Review customer and supplier balances</DocLink>

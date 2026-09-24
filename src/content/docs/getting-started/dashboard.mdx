@@ -1,0 +1,31 @@
+The dashboard at <AppLink href="/">Dashboard</AppLink> shows **posted operational totals** and open CRM pipeline. Draft documents are excluded from all KPI figures.
+
+See <DocLink href="/docs/getting-started/system-overview">System overview</DocLink> for how modules connect.
+
+## KPI cards
+
+Each card is permission-gated. If you lack access, the card is hidden. If you have no dashboard permissions at all, the page shows “Dashboard unavailable.”
+
+| KPI | What it shows | Link |
+|---|---|---|
+| Open pipeline | Total value and opportunity count | <AppLink href="/reports/sales-pipeline">Sales pipeline</AppLink> |
+| Closing this month | Value and count of opportunities closing in the current month | <AppLink href="/opportunities">Opportunities</AppLink> |
+| Overdue activities | Count of past-due CRM activities | <AppLink href="/activities?view=overdue">Activities</AppLink> |
+| Open AR | Total open receivables and overdue invoice count | <AppLink href="/reports/ar-aging">AR aging</AppLink> |
+| Open AP | Total open payables and overdue bill count | <AppLink href="/reports/ap-aging">AP aging</AppLink> |
+| Stock valuation | Total inventory value at FIFO landed cost | <AppLink href="/reports/stock-valuation">Stock valuation</AppLink> |
+| Deliveries today | Posted delivery notes dated today | <AppLink href="/delivery-notes">Delivery notes</AppLink> |
+| Receipts today | Posted goods receipts dated today | <AppLink href="/goods-receipts">Goods receipts</AppLink> |
+
+Figures are as of the server `as_of` timestamp from posted documents only.
+
+## Additional panels
+
+**Unposted documents** — counts of draft documents by type (sales orders, purchase invoices, etc.). Each row links to the relevant list screen.
+
+**Credit limit breaches** — customers whose exposure exceeds their credit limit. Links to the customer record. See <DocLink href="/docs/sales/credit-control">Credit control</DocLink>.
+
+## Related
+
+- Navigate modules: <DocLink href="/docs/getting-started/navigation-and-search">Navigation and search</DocLink>
+- Report detail: <DocLink href="/docs/reports/using-reports">Using reports</DocLink>

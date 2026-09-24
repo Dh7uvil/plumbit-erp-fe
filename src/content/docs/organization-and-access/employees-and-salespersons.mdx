@@ -1,0 +1,47 @@
+Employees represent people in your organization. When linked to a user account, they can be selected as **salesperson** on sales documents.
+
+<AppLink href="/users">Open users</AppLink>
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `employee_code` | Auto-generated (e.g. `EMP202601`) — read-only after create |
+| `user_id` | Optional link to sign-in account |
+| `branch_id` | Operating branch |
+| `department_id` | Must belong to selected branch |
+| `designation` | Job title |
+| `joining_date` | HR record |
+| `status` | `ACTIVE` or `INACTIVE` |
+
+Employee HR fields are edited on the **user create/edit form** — there is no standalone employees screen. The employee picker API powers dropdowns across the app.
+
+## User ↔ employee link
+
+The link is bidirectional:
+
+- `User.employee_id` → employee record
+- `Employee.user_id` → user account
+
+Creating a user with branch, department, and designation auto-creates the employee profile. Only employees with a linked user appear by name in the salesperson picker.
+
+## Salesperson on documents
+
+`salesperson_id` references an employee and appears on:
+
+| Location | Behavior |
+|---|---|
+| Customer master | Default salesperson for new sales documents |
+| Quotation, proforma, sales order, sales invoice | Optional header field; inherits from customer when blank |
+
+Salesperson does **not** appear on credit notes, delivery notes, purchase documents, or payments.
+
+## Downstream behavior
+
+- Inactive employees cannot be selected on new documents.
+- Backend validates that `salesperson_id` references an active employee record.
+- User list filters support employee branch, department, designation, and joining date.
+
+## Example
+
+Sarah is a user with employee profile in Dubai Sales. She is set as default salesperson on Customer ABC. New quotations for ABC pre-fill Sarah; the user can override per document.

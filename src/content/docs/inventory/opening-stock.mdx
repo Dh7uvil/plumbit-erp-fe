@@ -1,0 +1,44 @@
+Opening stock seeds on-hand quantity and FIFO cost layers when you go live. Use either the **opening balances wizard** (recommended) or a posted stock adjustment with reason **Opening stock**.
+
+## Opening balances wizard
+
+<FlowDiagram
+  steps={[
+    { label: "GL lines", note: "AR, AP, bank, equity, inventory" },
+    { label: "Stock lines", note: "Qty + unit cost per warehouse" },
+    { label: "Commit", note: "Single journal + OPENING_STOCK movements" },
+    { label: "Go live", note: "books_start_date + hard lock" },
+  ]}
+/>
+
+On commit the wizard:
+
+1. Posts one **opening balance** journal (type `OPENING_BALANCE`) with your GL lines.
+2. Creates `OPENING_STOCK` movements for each stock line — on hand increases and FIFO layers are created at the line's unit cost.
+3. Sets **`books_start_date`** to your chosen go-live date and **`hard_lock_date`** to the journal entry date (periods before this are locked).
+
+<Callout type="warning">
+Total FIFO layer value from stock lines **must equal** the inventory GL line on the same journal. A mismatch raises `OPENING_STOCK_VALUE_MISMATCH` and rolls back the commit.
+</Callout>
+
+Reset is allowed only while **no other documents** have been posted after the opening journal. Reset reverses stock movements and voids the opening journal.
+
+See <DocLink href="/docs/workflows/go-live-setup">Go-live setup</DocLink> for the full checklist.
+
+## Stock adjustment (Opening stock)
+
+Alternatively, post a <DocLink href="/docs/inventory/stock-adjustments">stock adjustment</DocLink> with reason **OPENING_STOCK** after go-live. Each line needs a non-zero `qty_delta` (or use **COUNT** with `qty_counted`) and a **unit cost** for FIFO layer creation.
+
+This path posts its own GL entry (Inventory ↔ Inventory adjustment) and does **not** set `books_start_date`.
+
+## Comparison
+
+| Method | When to use | Sets books_start_date | GL |
+|---|---|---|---|
+| Opening balances wizard | Initial go-live | Yes | Single opening journal + stock value check |
+| Adjustment (Opening stock) | Post go-live corrections | No | Per-adjustment Dr/Cr |
+
+## Related
+
+- FIFO layers created: <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>
+- Movement type: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>

@@ -1,0 +1,63 @@
+Stock availability is enforced differently at **sales order confirm** (soft reservation) vs **stock-issuing documents** (hard issue).
+
+## Organization setting
+
+`allow_negative_stock` (Organization Settings) controls whether outbound movements can drive **available** below zero.
+
+| Setting | SO confirm | Delivery note / adjustment / transfer post |
+|---|---|---|
+| **Off** (default) | Succeeds; reserves what is available; reports shortfall | **Blocked** when issue exceeds available |
+| **On** | Same shortfall reporting | Issue allowed; FIFO may create synthetic layers at fallback cost |
+
+See <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>.
+
+## Reservation shortfalls on SO confirm
+
+Confirming a sales order calls `reserve_locked` for each tracked line. Reservation target:
+
+```
+quantity − qty_delivered − qty_returned
+```
+
+<Callout type="important">
+Confirm **never fails** for insufficient stock. The system reserves up to **available** and returns `reservation_shortfalls` on the SO response for any unmet quantity.
+</Callout>
+
+Each shortfall entry shows:
+
+| Field | Meaning |
+|---|---|
+| `requested` | Target reservation after confirm |
+| `reserved` | Qty actually reserved |
+| `shortfall` | `requested − reserved` |
+
+If no warehouse is set on the SO, the full target qty is reported as shortfall and nothing is reserved.
+
+**Available** formula: see <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>.
+
+## Hard issue checks
+
+Posting a **delivery note**, **stock adjustment** (outbound), or **stock transfer** validates:
+
+```
+available + outbound_qty ≥ 0
+```
+
+…unless `allow_negative_stock` is enabled. Failure raises `InsufficientStockError` with available and requested quantities.
+
+Delivery note post also **releases reservation** then **issues** stock on FIFO — see <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>.
+
+## Practical workflow
+
+1. Confirm SO — review shortfalls on the order detail.
+2. Receive or transfer stock to cover gaps.
+3. Post delivery note — blocked here if negative stock is disallowed and available is still short.
+
+<Callout type="tip">
+Shortfalls are informational at confirm. They do not appear on the stock balance as a separate field — check SO line `qty_reserved` vs ordered quantity instead.
+</Callout>
+
+## Related
+
+- Reservation timing: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>
+- Reorder alerts: <DocLink href="/docs/inventory/reorder-levels">Reorder levels</DocLink>

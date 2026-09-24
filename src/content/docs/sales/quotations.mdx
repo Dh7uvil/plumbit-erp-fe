@@ -1,0 +1,90 @@
+A quotation is a **commercial offer** to a customer. It does not reserve stock or post to the general ledger.
+
+<AppLink href="/quotations">Open quotations</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Quotation", note: "Send / accept / convert", href: "/docs/sales/quotations" },
+    { label: "Sales order", note: "Confirm → reserve", href: "/docs/sales/sales-orders" },
+    { label: "Proforma invoice", note: "Optional advance bill", href: "/docs/sales/proforma-invoices" },
+    { label: "Sales invoice", note: "Direct convert path", href: "/docs/sales/sales-invoices" },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "SENT", "ACCEPTED", "CONVERTED"]}
+  branches={[
+    { from: "DRAFT", action: "submit", to: "PENDING_APPROVAL", optional: true },
+    { from: "PENDING_APPROVAL", action: "approve", to: "APPROVED", optional: true },
+    { from: "PENDING_APPROVAL", action: "reject", to: "REJECTED", optional: true },
+    { from: "REJECTED", action: "reopen", to: "DRAFT", optional: true },
+    { from: "APPROVED", action: "send", to: "SENT", optional: true },
+    { from: "DRAFT", action: "send", to: "SENT" },
+    { from: "SENT", action: "decline", to: "DECLINED" },
+    { from: "SENT", action: "accept", to: "ACCEPTED" },
+    { from: "ACCEPTED", action: "convert", to: "PARTIALLY_CONVERTED" },
+    { from: "PARTIALLY_CONVERTED", action: "convert", to: "CONVERTED" },
+    { from: "SENT", action: "cancel", to: "CANCELLED" },
+    { from: "ACCEPTED", action: "cancel", to: "CANCELLED" },
+  ]}
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable quote not yet sent", actions: "Edit, submit, send (if no approval), cancel", effect: "None" },
+    { status: "PENDING_APPROVAL", meaning: "Awaiting approver", actions: "Approve, reject, cancel", effect: "None" },
+    { status: "APPROVED", meaning: "Approved, ready to send", actions: "Send, cancel", effect: "None" },
+    { status: "SENT", meaning: "Delivered to customer", actions: "Accept, decline, revise, cancel, create proforma", effect: "None" },
+    { status: "ACCEPTED", meaning: "Customer accepted", actions: "Convert to SO / proforma / SI, revise, cancel", effect: "None" },
+    { status: "PARTIALLY_CONVERTED", meaning: "Some lines converted", actions: "Convert remaining qty", effect: "None" },
+    { status: "CONVERTED", meaning: "All lines converted", actions: "View linked documents", effect: "None" },
+    { status: "DECLINED", meaning: "Customer declined", actions: "Revise to draft", effect: "None" },
+    { status: "EXPIRED", meaning: "Past valid_until while still SENT", actions: "Revise to draft", effect: "None" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "None" },
+  ]}
+/>
+
+**EXPIRED** is computed when `valid_until` has passed — the stored status remains `SENT` until revised or cancelled. Lists and detail views show the effective status as EXPIRED.
+
+<Callout type="implementation">
+When `quotation_requires_approval` is enabled, **send from draft is blocked**. Submit → approve → send. There are no amount-based approval thresholds — see <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+</Callout>
+
+## What changes when you act
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft quotation only" },
+    { action: "Send / accept / decline", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Status update only" },
+    { action: "Convert to sales order", stock: "No change until SO confirm", reserved: "No change until SO confirm", gl: "None", tax: "None", documents: "Sales order (source ACCEPTED or PARTIALLY_CONVERTED)" },
+    { action: "Convert to proforma invoice", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Proforma (source SENT or ACCEPTED)" },
+    { action: "Convert to sales invoice", stock: "No change until SI post", reserved: "No change", gl: "None until SI post", tax: "None until SI post", documents: "Sales invoice draft" },
+  ]}
+/>
+
+## Conversion paths
+
+<Steps>
+<Step title="Sales order">
+From **ACCEPTED** or **PARTIALLY_CONVERTED**. Creates a confirmed-path sales order draft with line links back to the quotation.
+</Step>
+<Step title="Proforma invoice">
+From **SENT** or **ACCEPTED**. Use for advance billing before fulfillment — see <DocLink href="/docs/sales/proforma-invoices">Proforma invoices</DocLink>.
+</Step>
+<Step title="Sales invoice">
+From **ACCEPTED** or **PARTIALLY_CONVERTED**. Skips order and delivery when you bill directly from the quote.
+</Step>
+</Steps>
+
+<Example title="Expiry">
+A quotation sent on 1 Jan with `valid_until = 31 Jan` shows status **EXPIRED** from 1 Feb onward. Revise to draft to update terms and re-send.
+</Example>
+
+## Related
+
+- Document links: <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>
+- No stock or GL on quotations: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>, <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

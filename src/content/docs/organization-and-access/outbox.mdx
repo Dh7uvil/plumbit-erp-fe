@@ -1,0 +1,35 @@
+The outbox is an **email and async event queue** for administrators. Domain actions enqueue events; background workers process them with retry and backoff.
+
+<AppLink href="/outbox-events">Open outbox</AppLink>
+
+## What it tracks
+
+| Field | Purpose |
+|---|---|
+| `event_type` | Handler identifier (e.g. password reset, payment reminder) |
+| `aggregate_type` / `aggregate_id` | Source entity |
+| `payload` | Event data (JSON) |
+| `status` | `PENDING` → `PROCESSING` → `DONE` or `FAILED` → `DEAD` |
+| `attempts` / `max_attempts` | Retry count (default max 8, exponential backoff) |
+| `last_error` | Failure message on retry |
+
+**Permissions:** `identity.outbox_event.read`, `identity.outbox_event.retry`
+
+## Email event types
+
+| Event | Trigger |
+|---|---|
+| `identity.password_reset.requested` | Password reset email via SES |
+| `sales.payment_reminder.requested` | Dunning / payment reminder email |
+
+Many other domain events (posting, payments, vouchers) are enqueued for future handlers — they appear in the queue but may log-only until wired.
+
+## Admin actions
+
+- **Filter** by status, event type, date.
+- **Inspect** payload in the detail sheet.
+- **Retry** events in `FAILED` or `DEAD` status.
+
+## Example
+
+A payment reminder run enqueues 50 `sales.payment_reminder.requested` events. Three fail with SES bounce errors and move to `FAILED`. An admin retries them from the outbox after fixing the recipient email on the customer record.

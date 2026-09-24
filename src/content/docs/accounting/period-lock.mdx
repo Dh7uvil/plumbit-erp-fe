@@ -1,0 +1,48 @@
+Period lock prevents backdated posting and cancellation once a period is closed. Two tiers apply: **soft lock** (override allowed) and **hard lock** (absolute).
+
+<AppLink href="/period-lock">Open period lock</AppLink>
+
+## Soft vs hard lock
+
+| Tier | Field | Effect |
+|---|---|---|
+| **Soft lock** | `lock_date` | Documents dated ≤ lock date **blocked** unless user has `accounting.period.override` |
+| **Hard lock** | `hard_lock_date` | Documents dated ≤ hard lock date **always blocked** — no override |
+
+Hard lock is set automatically by the opening balances wizard. Soft lock is updated manually at month-end.
+
+## What is blocked
+
+When a document date falls in a locked period:
+
+- Post and cancel actions are unavailable (or fail on API)
+- Manual journal post/reverse on locked dates is blocked
+- Cheque issue/clear/bounce on locked dates is blocked
+
+Users with **`accounting.period.override`** bypass **soft lock only**.
+
+## Preview before locking
+
+<AppLink href="/period-lock">Period lock</AppLink> runs a **preview** before applying a new soft lock date. Preview surfaces:
+
+- Accounts with **negative balances** that would be frozen
+- **Unposted documents** dated on or before the proposed lock
+
+If issues exist, acknowledgement may be required before confirming.
+
+<Steps>
+<Step title="Complete period work">
+Post documents, reconcile banks, run FX — see <DocLink href="/docs/accounting/month-end-checklist">Month-end checklist</DocLink>.
+</Step>
+<Step title="Preview lock">
+Set proposed `lock_date`, review warnings.
+</Step>
+<Step title="Apply">
+Save soft lock with optional reason. Hard lock remains separate (opening balances or admin).
+</Step>
+</Steps>
+
+## Related
+
+- Document behaviour: <DocLink href="/docs/getting-started/working-with-documents">Working with documents</DocLink>
+- Books start: <DocLink href="/docs/accounting/opening-balances">Opening balances</DocLink>

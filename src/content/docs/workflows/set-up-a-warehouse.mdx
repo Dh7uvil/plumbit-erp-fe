@@ -1,0 +1,19 @@
+Add a stock location for receipts, issues, transfers, and warehouse-wise balances. Warehouses are org-level — not tied to branches.
+
+<Steps>
+<Step title="Open warehouses">
+<AppLink href="/warehouses">Open warehouses</AppLink> or **Organization settings** → Warehouses tab. See <DocLink href="/docs/organization-and-access/warehouses-setup">Warehouses setup</DocLink>.
+</Step>
+
+<Step title="Create warehouse">
+Enter code (uppercased on save), name, address. Mark **default** if this is the primary warehouse for new stock documents (one default per tenant).
+
+Optional: **designated zone** flag for VAT designated-zone reporting.
+</Step>
+
+<Step title="Use on stock documents">
+Warehouse drives on-hand, reserved, incoming, and QC hold on PO, GRN, SO, DN, transfers, and adjustments.
+</Step>
+</Steps>
+
+After creating warehouses, set reorder levels per product per warehouse on <AppLink href="/stock">stock</AppLink> — <DocLink href="/docs/inventory/reorder-levels">Reorder levels</DocLink>.

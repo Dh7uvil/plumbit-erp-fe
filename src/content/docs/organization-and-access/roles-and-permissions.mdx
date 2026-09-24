@@ -1,0 +1,50 @@
+Permissions control what each user can do. Every grant follows the format **`module.resource.action`**.
+
+<AppLink href="/roles">Open roles</AppLink> · <AppLink href="/permissions">Open permission matrix</AppLink>
+
+## Permission format
+
+Three lowercase segments, validated strictly:
+
+```
+module.resource.action
+```
+
+| Segment | Examples |
+|---|---|
+| Module | `identity`, `sales`, `purchase`, `inventory`, `accounting`, `crm` |
+| Resource | `user`, `sales_order`, `goods_receipt`, `warehouse`, `journal_entry` |
+| Action | `read`, `create`, `update`, `delete`, `post`, `approve`, `send`, `cancel` |
+
+Example codes:
+
+| Code | Allows |
+|---|---|
+| `identity.user.read` | View user list |
+| `sales.quotation.approve` | Approve quotations |
+| `sales.sales_invoice.post` | Post sales invoices |
+| `purchase.goods_receipt.post` | Post goods receipts |
+| `inventory.warehouse.create` | Create warehouses |
+| `identity.audit_log.read` | View tenant audit logs |
+
+## Roles
+
+| Field | Purpose |
+|---|---|
+| `name` | Role label assigned to users |
+| `description` | Optional notes |
+| `is_system_role` | System roles (e.g. Superadmin) cannot be deleted |
+
+Roles bundle permission IDs. A user's effective permissions are the **union** of all roles assigned.
+
+## Permission matrix UI
+
+The matrix at `/permissions` groups codes by module and resource. Select a role, toggle actions, and save. Superadmin can be reset to the full seeded catalog.
+
+## Downstream behavior
+
+- API endpoints declare required permission via dependency — missing grant returns 403.
+- Navigation items and buttons hide when the session lacks the code.
+- Read permission on a resource shows **all tenant rows** — no branch or warehouse scoping.
+
+See <DocLink href="/docs/organization-and-access/how-access-works">How access control works</DocLink> for the full access model.

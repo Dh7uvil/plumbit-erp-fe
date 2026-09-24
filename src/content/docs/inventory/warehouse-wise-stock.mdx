@@ -1,0 +1,48 @@
+Every tracked product has a separate balance in each warehouse. Quantities and reorder settings live on that balance — see <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink> for field definitions.
+
+<AppLink href="/stock">Open stock</AppLink>
+
+## Default warehouse
+
+One warehouse per tenant is marked **default** (`is_default`). New purchase orders, sales orders, goods receipts, and delivery notes pre-fill this warehouse when none is chosen. Set it under <DocLink href="/docs/organization-and-access/warehouses-setup">Warehouses setup</DocLink>.
+
+<Callout type="note">
+A balance row is created on first movement or reservation for a product in a warehouse. Until then the product does not appear in that warehouse's stock list.
+</Callout>
+
+## What changes warehouse on-hand
+
+| Document / action | Warehouse effect |
+|---|---|
+| Goods receipt post | On hand + (header warehouse) |
+| Delivery note post | On hand − (header warehouse) |
+| Stock transfer post | Source − / destination + |
+| Stock adjustment post | ± (header warehouse) |
+| Opening balances / opening adjustment | On hand + |
+| Sales / purchase return post | ± per disposition |
+| QC scrap (inspection approve) | On hand − |
+
+Full movement-type mapping: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>.
+
+## What does **not** change on-hand
+
+These affect the **same** warehouse balance but only other quantity fields, or no stock at all:
+
+<StateChangeTable
+  rows={[
+    { action: "PO issue", stock: "Incoming + only", reserved: "No change", gl: "None", tax: "None", documents: "PO at header warehouse" },
+    { action: "SO confirm", stock: "No on-hand change", reserved: "Reserved + at SO warehouse", gl: "None", tax: "None", documents: "SO only" },
+    { action: "GRN post (QC product)", stock: "On hand + and QC hold +", reserved: "No change", gl: "Inventory / GRNI", tax: "None", documents: "QC inspection draft auto-created" },
+    { action: "Sales / purchase invoice post", stock: "No change", reserved: "No change", gl: "AR/AP only", tax: "Per invoice", documents: "No stock movement" },
+    { action: "Stock transfer draft save", stock: "No change", reserved: "No change", gl: "None", tax: "None", documents: "Draft only" },
+  ]}
+/>
+
+## Viewing balances
+
+The stock list shows one row per product per warehouse. Filter by warehouse, branch, or category. Drill into a row to see FIFO cost layers and recent movements.
+
+## Related
+
+- Movement ledger: <DocLink href="/docs/inventory/stock-movements">Stock movements</DocLink>
+- Moving between warehouses: <DocLink href="/docs/inventory/stock-transfers">Stock transfers</DocLink>

@@ -1,0 +1,31 @@
+Departments group employees within a branch — for example Sales, Finance, or Warehouse. They belong to exactly one branch and are used for HR organization only.
+
+<AppLink href="/organization-settings">Open organization settings</AppLink> (Departments tab)
+
+## What it controls
+
+| Field | Purpose |
+|---|---|
+| `code` | Short identifier |
+| `name` | Department name |
+| `branch_id` | **Required** — parent branch |
+| `manager_id` | Optional user assigned as manager |
+
+## Where department is used
+
+| Used on | Not used on |
+|---|---|
+| Employee profile (`department_id`) | Sales, purchase, or inventory documents |
+| User list filters (by employee department) | Customers, suppliers, stock |
+
+Department is **employees only** — it never appears on transaction headers. See the dimensions table in <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>.
+
+## Downstream behavior
+
+- When assigning an employee to a department, the department must belong to the employee's branch (or branch is inferred from the department).
+- User filters can narrow the user list by employee branch or department.
+- Deleting a department is blocked while employees are still assigned.
+
+## Example
+
+The Dubai branch has Sales and Operations departments. Each employee is assigned to one department. Sales documents carry branch and salesperson — not department.

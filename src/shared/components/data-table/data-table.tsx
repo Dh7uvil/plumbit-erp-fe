@@ -6,8 +6,7 @@ import { Card } from "@/shared/components/ui/card";
 import { Table } from "@/shared/components/ui/table";
 import { cn } from "@/shared/lib/cn";
 
-/** Room for app header, list page header, tabs, toolbar, and pagination. */
-export const LIST_TABLE_SCROLL_CLASS = "list-table-scroll";
+export const LIST_TABLE_SCROLL_CLASS = "list-table-scroll min-h-0 flex-1";
 export { LIST_TABLE_PANEL_CLASS } from "./data-table-panel";
 
 function DataTableFooter({ footer }: { footer: ReactNode }) {
@@ -54,7 +53,7 @@ export function DataTable({
       <DataTablePanel>
         <Card
           className={cn(
-            "flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0",
+            "flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0 [&_[data-slot=table-container]]:min-h-0 [&_[data-slot=table-container]]:flex-1",
             footer ? "rounded-b-none border-b-0" : undefined,
             className,
           )}

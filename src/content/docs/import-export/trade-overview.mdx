@@ -1,0 +1,37 @@
+International trade in Plumbit ERP covers **logistics tracking** (packages, shipments) and **landed cost planning** (cost sheets, charge types, landed costs). This is separate from CSV master-data import — see <DocLink href="/docs/master-data/importing-and-exporting-data">Importing and exporting data</DocLink>.
+
+<AppLink href="/packages">Packages</AppLink> · <AppLink href="/shipments">Shipments</AppLink> · <AppLink href="/cost-sheets">Cost sheets</AppLink>
+
+## Import vs export paths
+
+<FlowDiagram
+  steps={[
+    { label: "Import", note: "PO → shipment → GRN → PI → landed cost", href: "/docs/workflows/import-shipment" },
+    { label: "Export", note: "SO → DN → package → shipment → SI", href: "/docs/workflows/export-shipment" },
+  ]}
+/>
+
+| Direction | Stock movement | Logistics docs | Cost planning |
+|---|---|---|---|
+| **Import** | <DocLink href="/docs/purchases/goods-receipts">Goods receipt</DocLink> (IMPORT movement) | Import shipment tracks BL/container | Cost sheet, landed cost |
+| **Export** | <DocLink href="/docs/sales/delivery-notes">Delivery note</DocLink> (EXPORT movement) | Export shipment links delivery notes | Export evidence for VAT |
+
+## Key principle
+
+**Shipments and packages do not move stock or post to the GL.** Stock changes happen on posted goods receipts and delivery notes. Shipments are carrier and document tracking only — see <DocLink href="/docs/getting-started/implementation-notes">Implementation notes</DocLink>.
+
+## Module map
+
+| Topic | Page |
+|---|---|
+| Packing cartons | <DocLink href="/docs/import-export/packages">Packages</DocLink> |
+| BL/AWB and carrier tracking | <DocLink href="/docs/import-export/shipments">Shipments</DocLink> |
+| Freight, duty, charge setup | <DocLink href="/docs/import-export/freight-customs-and-charges">Freight, customs, and charges</DocLink> |
+| Planned vs actual landed cost | <DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink> |
+| UAE VAT export proof | <DocLink href="/docs/import-export/export-evidence">Export evidence</DocLink> |
+| Stock and GL summary | <DocLink href="/docs/import-export/trade-stock-and-accounting-impact">Trade stock and accounting impact</DocLink> |
+
+## Related
+
+- <DocLink href="/docs/getting-started/system-overview">System overview</DocLink>
+- Domestic purchase cycle: <DocLink href="/docs/workflows/procure-to-pay">Procure to pay</DocLink>

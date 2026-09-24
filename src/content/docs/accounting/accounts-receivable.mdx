@@ -1,0 +1,60 @@
+Accounts receivable (AR) is the **open balance customers owe** after posted sales invoices, opening AR items, credit notes, and customer payments. AR is tracked as **open items** in document currency with base amounts for reporting.
+
+<AppLink href="/reports/ar-aging">Open AR aging</AppLink> · <AppLink href="/reports/customer-statement">Customer statement</AppLink>
+
+## Where balances come from
+
+<FlowDiagram
+  steps={[
+    { label: "Sales invoice", note: "Post → AR", href: "/docs/sales/sales-invoices" },
+    { label: "Customer payment", note: "Allocate → reduce AR", href: "/docs/sales/customer-payments" },
+    { label: "Credit note", note: "Reduce AR", href: "/docs/sales/credit-notes" },
+    { label: "Write-off", note: "Dr bad debt, Cr AR", href: "/docs/accounting/write-offs" },
+  ]}
+/>
+
+## Open items
+
+Each posted receivable creates an **open item** until fully settled:
+
+| Item type | Source |
+|---|---|
+| `SALES_INVOICE` | Posted sales invoice |
+| `OPENING_AR` | Opening balances wizard |
+| `CREDIT_NOTE` | Unapplied credit balance |
+| `CUSTOMER_PAYMENT` | Unapplied receipt balance |
+
+Party-specific AR accounts on customers override the system **ACCOUNTS_RECEIVABLE** role when set.
+
+## Aging buckets
+
+<AppLink href="/reports/ar-aging">AR aging</AppLink> groups outstanding items by days past due (or document date when no due date):
+
+| Bucket | Days past due |
+|---|---|
+| Current | 0 or not yet due |
+| 1–30 | 1–30 |
+| 31–60 | 31–60 |
+| 61–90 | 61–90 |
+| 91+ | Over 90 |
+| Unapplied credits | Credit notes and unallocated payments |
+
+Items dated after the **as-of** date are excluded. Items without a resolvable base amount are skipped with a warning.
+
+## Customer statement
+
+<AppLink href="/reports/customer-statement">Customer statement</AppLink> lists opening balance, invoices, payments, credits, and running balance for one customer over a date range — sourced from open items and posted journals with party tags.
+
+## GL linkage
+
+Posting patterns (Dr AR, Cr revenue/VAT) are in <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>. AR subledger totals should reconcile to the AR GL account balance.
+
+<Example title="Partial payment">
+Post SI AED 10,000 → open AR item AED 10,000. Post customer payment AED 4,000 and allocate → AR balance AED 6,000 in **current** bucket if not yet due.
+</Example>
+
+## Related
+
+- Collections: <DocLink href="/docs/sales/customer-payments">Customer payments</DocLink>
+- Credit control: <DocLink href="/docs/sales/credit-control">Credit control</DocLink>
+- FX exposure: <DocLink href="/docs/accounting/fx-revaluation">FX revaluation</DocLink>

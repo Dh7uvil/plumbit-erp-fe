@@ -1,0 +1,51 @@
+Bank accounts are **operational records** that link a real bank account (name, IBAN, currency) to a **postable GL account** on the chart. Payments, vouchers, cheques, and bank reconciliation all resolve cash movement through this link.
+
+<AppLink href="/bank-accounts">Open bank accounts</AppLink>
+
+## GL link requirement
+
+Each bank account must reference a chart account with:
+
+- `account_subtype = BANK`
+- `is_group = false` (postable)
+- Typically mapped to system role **BANK** (or a dedicated bank ledger account under Current Assets)
+
+<Callout type="note">
+Creating a bank account without a valid BANK chart account is rejected. Set up the chart first — see <DocLink href="/docs/accounting/chart-of-accounts">Chart of accounts</DocLink>.
+</Callout>
+
+## What uses bank accounts
+
+| Feature | Role |
+|---|---|
+| Customer / supplier payments | Receipt or disbursement bank |
+| Vouchers (BRV/BPV) | Bank leg of receipt/payment |
+| Cheques (clear) | Dr/Cr bank on clear |
+| Bank reconciliation | Book side matched to statement lines |
+| FX revaluation | Foreign-currency bank balances revalued at period end |
+
+## Fields
+
+| Field | Purpose |
+|---|---|
+| `account_id` | Linked BANK GL account |
+| `currency_id` | Bank account currency (may differ from base) |
+| `is_default` | Default selection on payment screens |
+| IBAN / account number | Reference only — no GL impact |
+
+<Steps>
+<Step title="Create BANK chart account">
+Under Current Assets, add or use a postable account with subtype **BANK**. Map system role **BANK** if this is the primary bank ledger.
+</Step>
+<Step title="Register bank account">
+<AppLink href="/bank-accounts">Bank accounts</AppLink> → link to the chart account, set currency and details.
+</Step>
+<Step title="Use on transactions">
+Select on customer payments, supplier payments, vouchers, and cheques. Reconcile via <DocLink href="/docs/accounting/bank-reconciliation">Bank reconciliation</DocLink>.
+</Step>
+</Steps>
+
+## Related
+
+- GL map: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Chart setup: <DocLink href="/docs/accounting/chart-of-accounts">Chart of accounts</DocLink>

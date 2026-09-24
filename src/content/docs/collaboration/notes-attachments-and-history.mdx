@@ -1,0 +1,46 @@
+Notes, attachments, and per-record history live on document and CRM detail screens — not as standalone modules.
+
+## CRM notes
+
+**Notes panel** on lead, opportunity, customer, and contact detail tabs. Requires `crm.note.*` permission.
+
+Use for internal commentary that should not appear on printed documents. Notes are not exported to sales invoices or delivery notes.
+
+## Attachments
+
+**Entity attachments panel** on many detail screens:
+
+| Document types | Examples |
+|---|---|
+| Sales | Sales orders, invoices, delivery notes, credit notes |
+| Purchases | Goods receipts, purchase invoices, landed costs |
+| Logistics | Shipments, packages |
+| Payments | Customer and supplier payments |
+
+| Category | Typical use |
+|---|---|
+| `BL_DOCUMENT` | Bill of lading, air waybill |
+| `CUSTOMS_DOC` | Customs exit/import proof |
+| `QC_PHOTO` | Quality inspection evidence |
+| `POD` | Proof of delivery |
+| `PACKING_LIST` | Carton contents |
+
+Max file size: **25 MB** per upload. Attachments feed export evidence checks — see <DocLink href="/docs/import-export/export-evidence">Export evidence</DocLink>.
+
+## Document history
+
+Route pattern: `/history/{resource}/{id}`
+
+| Document class | Title | Tabs |
+|---|---|---|
+| ERP transactions | Approvals and History | All activity, Edits, Attachments (+ approval timeline where applicable) |
+| Master data | History | All activity, Edits, Attachments |
+
+Available on quotations, orders, invoices, receipts, delivery notes, returns, packages, shipments, stock documents, journals, vouchers, payments, landed costs, and master records (customers, products, etc.).
+
+Org-wide change log: <AppLink href="/audit-logs">Audit logs</AppLink> — see <DocLink href="/docs/organization-and-access/audit-logs-and-history">Audit logs and history</DocLink>.
+
+## Related
+
+- <DocLink href="/docs/getting-started/working-with-documents">Working with documents</DocLink>
+- <DocLink href="/docs/collaboration/whats-available">What's available</DocLink>

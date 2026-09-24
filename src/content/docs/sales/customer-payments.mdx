@@ -1,0 +1,77 @@
+Customer payments record **money received** from customers. This is the **canonical page for advances** — unapplied receipts sit in Advance from customer until allocated to open invoices or credit notes.
+
+<AppLink href="/customer-payments">Open customer payments</AppLink>
+
+## Where it sits in the flow
+
+<FlowDiagram
+  steps={[
+    { label: "Proforma / SO", note: "Optional link for advance", href: "/docs/sales/proforma-invoices" },
+    { label: "Customer payment", note: "Post → advance", href: "/docs/sales/customer-payments" },
+    { label: "Sales invoice", note: "Post → auto-apply", href: "/docs/sales/sales-invoices" },
+    { label: "Allocation", note: "Advance → AR", href: "/docs/sales/customer-payments" },
+  ]}
+/>
+
+## Lifecycle
+
+<LifecycleDiagram
+  mainPath={["DRAFT", "POSTED"]}
+  branches={[
+    { from: "DRAFT", action: "cancel", to: "CANCELLED" },
+    { from: "POSTED", action: "cancel", to: "CANCELLED" },
+  ]}
+  compact
+/>
+
+<StatusTable
+  rows={[
+    { status: "DRAFT", meaning: "Editable receipt", actions: "Edit, post, cancel", effect: "None" },
+    { status: "POSTED", meaning: "Cash received", actions: "Allocate to AR / credits, refund unapplied", effect: "Dr Bank, Cr Advance from customer (+ VAT on advance if enabled)" },
+    { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Reversal if was POSTED and unallocated" },
+  ]}
+/>
+
+## What changes when you post
+
+<StateChangeTable
+  rows={[
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft payment only" },
+    { action: "Post customer payment", stock: "No change", reserved: "No change", gl: "Dr Bank (+ charges); Cr Advance from customer", tax: "Output VAT on advance when `vat_on_advances`", documents: "Open customer payment item" },
+    { action: "Allocate to invoice", stock: "No change", reserved: "No change", gl: "Dr Advance from customer; Cr AR", tax: "None on allocation", documents: "Invoice amount_paid increases; balance_due decreases" },
+    { action: "Sales invoice post (auto-apply)", stock: "Per SI", reserved: "Per SO", gl: "Advance auto-allocates when `auto_apply_advances_on_invoice`", tax: "Per SI", documents: "Linked proforma/SO advances applied" },
+  ]}
+/>
+
+## Advances
+
+On **post**, the full receipt (net of bank charges) credits **Advance from customer** until you allocate it.
+
+<Callout type="note">
+When `vat_on_advances` is enabled, standard-rated advances split into net advance and VAT output on post. When off, the entire receipt goes to advance with no VAT line.
+</Callout>
+
+<Steps>
+<Step title="Record the receipt">
+Create payment, select customer and bank account, enter amount. Optionally link a sales order or proforma for traceability.
+</Step>
+<Step title="Post">
+Creates the bank debit and advance credit (+ VAT if configured).
+</Step>
+<Step title="Allocate">
+Apply unapplied balance to open sales invoices or credit notes — Dr Advance, Cr AR.
+</Step>
+</Steps>
+
+## Cheques and PDC
+
+Post-dated cheques are tracked in a **separate module** — not on the customer payment screen. See <DocLink href="/docs/accounting/cheques-and-pdc">Cheques and PDC</DocLink>.
+
+<Example title="Advance before invoice">
+Customer pays AED 5,000 against a confirmed proforma → post payment → Advance from customer AED 5,000. Post sales invoice later → auto-apply clears AR using the advance balance.
+</Example>
+
+## Related
+
+- GL patterns: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>
+- Org settings: `vat_on_advances`, `auto_apply_advances_on_invoice` in <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>
