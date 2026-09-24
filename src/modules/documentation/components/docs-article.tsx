@@ -29,7 +29,7 @@ export function DocsArticle({
     <>
       <DocsReadingProgress />
       <article
-        className="mx-auto w-full min-w-0 max-w-6xl"
+        className="mx-auto -mt-1 w-full min-w-0 max-w-6xl"
         style={
           {
             "--docs-toc-width": TOC_COLUMN_WIDTH,
@@ -37,19 +37,17 @@ export function DocsArticle({
           } as CSSProperties
         }
       >
+        <DocsArticleHeader doc={doc} />
         <div className="relative">
           <div
             id={ARTICLE_ID}
-            className="bg-card border-border min-w-0 overflow-hidden rounded-2xl border shadow-xs xl:me-[calc(var(--docs-toc-width)+var(--docs-toc-gap))]"
+            className="bg-card border-border min-w-0 rounded-2xl border p-6 pb-10 shadow-xs md:p-8 md:pb-12 xl:me-[calc(var(--docs-toc-width)+var(--docs-toc-gap))]"
           >
-            <DocsArticleHeader doc={doc} />
-            <div className="docs-prose px-6 pb-10 md:px-8 md:pb-12">
+            <div className="docs-prose">
               <Content />
             </div>
-            <div className="px-6 pb-10 md:px-8 md:pb-12">
-              <DocsRelated doc={doc} />
-              <DocsPrevNext categorySlug={categorySlug} pageSlug={pageSlug} />
-            </div>
+            <DocsRelated doc={doc} />
+            <DocsPrevNext categorySlug={categorySlug} pageSlug={pageSlug} />
           </div>
           <DocsToc containerId={ARTICLE_ID} />
         </div>
