@@ -1,4 +1,4 @@
-Accounts payable (AP) is the **open balance owed to suppliers** after posted purchase invoices, opening AP items, debit notes, and supplier payments. Like AR, AP is tracked as **open items** in document currency.
+Accounts payable (AP) is the **open balance owed to suppliers** after posted bills, opening AP items, debit notes, and supplier payments. Like AR, AP is tracked as **open items** in document currency.
 
 <AppLink href="/reports/ap-aging">Open AP aging</AppLink> · <AppLink href="/reports/supplier-statement">Supplier statement</AppLink>
 
@@ -6,7 +6,7 @@ Accounts payable (AP) is the **open balance owed to suppliers** after posted pur
 
 <FlowDiagram
   steps={[
-    { label: "Purchase invoice", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Bill", note: "Post → AP", href: "/docs/purchases/bills" },
     { label: "Supplier payment", note: "Allocate → reduce AP", href: "/docs/purchases/supplier-payments" },
     { label: "Debit note", note: "Reduce AP", href: "/docs/purchases/debit-notes" },
     { label: "Write-off", note: "Reduce AP balance", href: "/docs/accounting/write-offs" },
@@ -17,7 +17,7 @@ Accounts payable (AP) is the **open balance owed to suppliers** after posted pur
 
 | Item type | Source |
 |---|---|
-| `PURCHASE_INVOICE` | Posted purchase invoice |
+| `PURCHASE_INVOICE` | Posted bill |
 | `OPENING_AP` | Opening balances wizard |
 | `DEBIT_NOTE` | Unapplied debit balance |
 | `SUPPLIER_PAYMENT` | Unapplied payment balance |
@@ -46,7 +46,7 @@ Party-specific AP accounts on suppliers override the system **ACCOUNTS_PAYABLE**
 Posting patterns (Dr GRNI/purchases, Cr AP) are in <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>.
 
 <Example title="GRN then bill">
-Post GRN → GRNI only. Post PI linked to GRN → clears GRNI and creates AP open item. Supplier payment allocation reduces AP.
+Post GRN → GRNI only. Post bill linked to GRN → clears GRNI and creates AP open item. Supplier payment allocation reduces AP.
 </Example>
 
 ## Related

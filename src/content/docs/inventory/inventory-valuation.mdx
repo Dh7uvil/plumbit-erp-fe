@@ -37,7 +37,7 @@ If layers are insufficient and `allow_negative_stock` is enabled, a synthetic la
 `landed_unit_cost` on remaining layers can increase when:
 
 - **Landed cost vouchers** allocate freight/duty/charges to GRN layers
-- **Purchase invoice** posts a different unit cost than the GRN (PPV revalue)
+- **Bill** posts a different unit cost than the GRN (PPV revalue)
 
 Revaluation updates layer cost and posts GL (Dr Inventory, Cr charge clearing or GRNI variance) — it does not change on-hand quantity.
 
@@ -54,7 +54,7 @@ The **GL reconciliation** view on the same report compares:
 | **Difference** | Should be zero when all stock-affecting documents are posted |
 
 <Callout type="note">
-Stock transfers are GL-neutral — they move cost between warehouse layers but do not change total inventory GL. GRNI timing (receipt before invoice) can temporarily skew GL vs layers until the purchase invoice clears GRNI.
+Stock transfers are GL-neutral — they move cost between warehouse layers but do not change total inventory GL. GRNI timing (receipt before invoice) can temporarily skew GL vs layers until the bill clears GRNI.
 </Callout>
 
 ## Related

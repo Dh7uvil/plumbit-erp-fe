@@ -235,16 +235,16 @@ export const docsCatalog: DocCategory[] = [
       }),
       page("purchase-orders", "Purchase orders", "Supplier commitment; issue increases incoming qty, not on-hand stock.", {
         appHrefs: ["/purchase-orders", "/purchases"],
-        related: ["purchases/goods-receipts", "purchases/purchase-invoices", "master-data/suppliers"],
+        related: ["purchases/goods-receipts", "purchases/bills", "master-data/suppliers"],
       }),
       page("goods-receipts", "Goods receipts", "Post to increase stock, create GRNI, and update PO received qty.", {
         appHrefs: ["/goods-receipts"],
         keywords: ["grn", "grni"],
-        related: ["purchases/purchase-orders", "purchases/purchase-invoices", "inventory/how-stock-changes"],
+        related: ["purchases/purchase-orders", "purchases/bills", "inventory/how-stock-changes"],
       }),
-      page("purchase-invoices", "Purchase invoices", "Post to create AP, clear GRNI, and record VAT input.", {
-        appHrefs: ["/purchase-invoices", "/purchases"],
-        related: ["purchases/goods-receipts", "purchases/supplier-payments"],
+      page("bills", "Bills", "Supplier bills in the Purchases workspace; post to create AP, clear GRNI, and record VAT input.", {
+        appHrefs: ["/purchases"],
+        related: ["purchases/purchase-orders", "purchases/goods-receipts", "purchases/supplier-payments"],
       }),
       page("debit-notes", "Debit notes", "Supplier debit documents.", { appHrefs: ["/debit-notes"] }),
       page("supplier-payments", "Supplier payments", "Payments and allocations.", {
@@ -256,7 +256,7 @@ export const docsCatalog: DocCategory[] = [
         appHrefs: ["/reports/three-way-match"],
       }),
       page("purchases-stock-and-accounting-impact", "Purchases stock and accounting impact", "Combined stock/GL effects.", {
-        related: ["purchases/goods-receipts", "purchases/purchase-invoices"],
+        related: ["purchases/goods-receipts", "purchases/bills"],
       }),
     ],
   },

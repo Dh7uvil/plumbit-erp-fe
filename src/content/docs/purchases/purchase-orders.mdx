@@ -9,7 +9,7 @@ A purchase order (PO) is a **commitment to a supplier** for specific products an
     { label: "Supplier", note: "Party master" },
     { label: "Purchase order", note: "Issue → incoming qty", href: "/docs/purchases/purchase-orders" },
     { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
-    { label: "Purchase invoice", note: "Post → AP, clear GRNI", href: "/docs/purchases/purchase-invoices" },
+    { label: "Bill", note: "Post → AP, clear GRNI", href: "/docs/purchases/bills" },
     { label: "Supplier payment", note: "Post → allocate to AP", href: "/docs/purchases/supplier-payments" },
   ]}
 />
@@ -37,7 +37,7 @@ A purchase order (PO) is a **commitment to a supplier** for specific products an
     { status: "DRAFT", meaning: "Editable commitment not yet sent to supplier", actions: "Edit, submit, issue (if no approval), cancel", effect: "None" },
     { status: "PENDING_APPROVAL", meaning: "Awaiting approver", actions: "Approve, reject, cancel", effect: "None" },
     { status: "APPROVED", meaning: "Approved, ready to issue", actions: "Issue, cancel", effect: "None" },
-    { status: "ISSUED", meaning: "Active order to supplier", actions: "Create GRN/PI, close, cancel (if no receipt/billing)", effect: "Incoming qty increased for tracked lines" },
+    { status: "ISSUED", meaning: "Active order to supplier", actions: "Create GRN/bill, close, cancel (if no receipt/billing)", effect: "Incoming qty increased for tracked lines" },
     { status: "CLOSED", meaning: "Manually closed", actions: "Reopen to ISSUED", effect: "None" },
     { status: "CANCELLED", meaning: "Voided", actions: "—", effect: "Reverses incoming if was ISSUED" },
   ]}
@@ -50,7 +50,7 @@ Approval applies only when `purchase_order_requires_approval` is enabled on the 
 <StateChangeTable
   rows={[
     { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft PO only" },
-    { action: "Issue PO", stock: "No on-hand change", reserved: "Incoming + at header warehouse", gl: "None", tax: "None", documents: "GRN, PI, PO advance payment enabled" },
+    { action: "Issue PO", stock: "No on-hand change", reserved: "Incoming + at header warehouse", gl: "None", tax: "None", documents: "GRN, bill, PO advance payment enabled" },
     { action: "Cancel issued PO (no receipt/billing)", stock: "No on-hand change", reserved: "Incoming reversed", gl: "None", tax: "None", documents: "PO cancelled" },
   ]}
 />
@@ -61,7 +61,7 @@ Each line tracks:
 
 - **Ordered** — `quantity`
 - **Received** — `qty_received` (from posted GRNs)
-- **Billed** — `qty_billed` (from posted PIs)
+- **Billed** — `qty_billed` (from posted bills)
 - **Returned** — `qty_returned`
 
 Remaining to receive = `quantity − qty_received + qty_returned`. Header **receipt_status** and **billing_status** roll up separately.
@@ -72,15 +72,19 @@ POs are **never auto-closed** when fully received or billed. Close manually when
 
 ## Partial receipt and billing
 
-Multiple goods receipts and purchase invoices can reference the same PO while outstanding quantity remains. Over-receipt on GRN is controlled by org inbound settings — see <DocLink href="/docs/purchases/goods-receipts">Goods receipts</DocLink>.
+Multiple goods receipts and bills can reference the same PO while outstanding quantity remains. Over-receipt on GRN is controlled by org inbound settings — see <DocLink href="/docs/purchases/goods-receipts">Goods receipts</DocLink>.
 
 ## Cancellation rules
 
 An **issued** PO cannot cancel if `receipt_status ≠ NOT_RECEIVED` or `billing_status ≠ NOT_INVOICED`.
 
+## Billing from a PO
+
+Issued POs show a **Billing** status badge (`NOT_INVOICED`, `PARTIALLY_INVOICED`, `INVOICED`). Use **Create bill** on the PO, or pick the PO from **Purchases → To bill**, to record the supplier invoice without leaving the purchase order flow.
+
 ## Downstream documents
 
-From an **issued** PO you can create: goods receipt, purchase invoice, supplier payment (with PO link for advances). POs can also be generated from a sales order.
+From an **issued** PO you can create: goods receipt, bill, supplier payment (with PO link for advances). POs can also be generated from a sales order.
 
 ## Reports
 

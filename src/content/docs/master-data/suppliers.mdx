@@ -17,7 +17,7 @@ Fields mirror customers: `name`, `code`, `trn`, `tax_treatment`, `currency_id`, 
 
 | Document | Behavior |
 |---|---|
-| Purchase order, GRN, PI, debit note | Supplier link, currency, payment terms |
+| Purchase order, GRN, bill, debit note | Supplier link, currency, payment terms |
 | Supplier payments | AP allocation target |
 
 **AP account resolve:** supplier `payable_account_id` → system `ACCOUNTS_PAYABLE`.
@@ -33,4 +33,4 @@ Purchase module, supplier catalog, three-way match reports. Document numbers emb
 
 ## Example
 
-"Global Steel Ltd" is created as `SUPPLIER` with code `GSL`. Purchase orders and goods receipts reference this party; posted PIs debit inventory and credit AP on the resolved payable account.
+"Global Steel Ltd" is created as `SUPPLIER` with code `GSL`. Purchase orders and goods receipts reference this party; posted bills debit inventory and credit AP on the resolved payable account.

@@ -6,7 +6,7 @@ A debit note reduces what you owe a supplier. **Posting** adjusts accounts payab
 
 <FlowDiagram
   steps={[
-    { label: "Purchase invoice", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Bill", note: "Post → AP", href: "/docs/purchases/bills" },
     { label: "Purchase return", note: "Post → stock out", href: "/docs/purchases/purchase-returns" },
     { label: "Debit note", note: "Post → reduce AP", href: "/docs/purchases/debit-notes" },
     { label: "Refund", note: "Optional bank receipt", href: "/docs/purchases/supplier-payments" },
@@ -26,8 +26,8 @@ A debit note reduces what you owe a supplier. **Posting** adjusts accounts payab
 
 | Source | Source status | Line basis |
 |---|---|---|
-| Posted purchase invoice | `POSTED` | Remaining qty per PI line (`quantity − qty_debited`); first debit copies PI header discount/shipping/adjustment |
-| Posted purchase return | `POSTED` | GRN lines mapped to PI lines for rate and account; PI optional if none posted for the GRN |
+| Posted bill | `POSTED` | Remaining qty per bill line (`quantity − qty_debited`); first debit copies bill header discount/shipping/adjustment |
+| Posted purchase return | `POSTED` | GRN lines mapped to bill lines for rate and account; bill optional if none posted for the GRN |
 
 ## Lifecycle
 
@@ -43,7 +43,7 @@ A debit note reduces what you owe a supplier. **Posting** adjusts accounts payab
   rows={[
     { status: "DRAFT", meaning: "Debit editable", actions: "Edit, post", effect: "None" },
     { status: "POSTED", meaning: "AP reduced", actions: "Refund unapplied amount, cancel", effect: "Dr AP; Cr GRNI or expense; VAT reversal" },
-    { status: "CANCELLED", meaning: "Voided debit", actions: "—", effect: "Reverses journal and PI debit counters" },
+    { status: "CANCELLED", meaning: "Voided debit", actions: "—", effect: "Reverses journal and bill debit counters" },
   ]}
 />
 
@@ -52,20 +52,20 @@ A debit note reduces what you owe a supplier. **Posting** adjusts accounts payab
 <StateChangeTable
   rows={[
     { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft debit note only" },
-    { action: "Post debit note", stock: "No change", reserved: "No change", gl: "Dr AP; Cr GRNI (if PI line was GRN-linked) or expense/purchase account; Cr VAT input", tax: "VAT reversed on credited lines", documents: "PI qty_debited and amount_debited updated" },
+    { action: "Post debit note", stock: "No change", reserved: "No change", gl: "Dr AP; Cr GRNI (if bill line was GRN-linked) or expense/purchase account; Cr VAT input", tax: "VAT reversed on credited lines", documents: "bill qty_debited and amount_debited updated" },
     { action: "Refund unapplied amount", stock: "No change", reserved: "No change", gl: "Dr bank/cash; Cr AP", tax: "None", documents: "Standalone debits only — capped by supplier open AP" },
   ]}
 />
 
-## PI-linked vs standalone
+## bill-linked vs standalone
 
-**PI-linked** — on post, `amount_applied = grand_total` and `amount_unapplied = 0`; reduces the linked invoice balance via `amount_debited`.
+**bill-linked** — on post, `amount_applied = grand_total` and `amount_unapplied = 0`; reduces the linked invoice balance via `amount_debited`.
 
-**Standalone (return-only)** — not tied to a specific PI at post; `amount_unapplied = grand_total`, capped by supplier open AP balance. Refund separately against the unapplied amount.
+**Standalone (return-only)** — not tied to a specific bill at post; `amount_unapplied = grand_total`, capped by supplier open AP balance. Refund separately against the unapplied amount.
 
 ## Cancellation
 
-Cancel reverses the journal and restores PI line `qty_debited` / header `amount_debited`.
+Cancel reverses the journal and restores bill line `qty_debited` / header `amount_debited`.
 
 ## Related
 

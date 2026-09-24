@@ -16,12 +16,12 @@ This page is the canonical reference for **which document can be created from wh
 
 | Create | From | Source must be |
 |---|---|---|
-| Goods receipt | Purchase order, purchase invoice | ISSUED / POSTED |
-| Purchase invoice | Purchase order, goods receipt | ISSUED / POSTED |
+| Goods receipt | Purchase order, bill | ISSUED / POSTED |
+| Bill | Purchase order, goods receipt | ISSUED / POSTED |
 | Purchase return | Goods receipt | POSTED |
-| Debit note | Purchase invoice, purchase return | POSTED |
+| Debit note | Bill, purchase return | POSTED |
 | Supplier payment | — (standalone); can link PO for advances | — |
-| Landed cost | Posted expense PI lines + posted GRN lines | POSTED |
+| Landed cost | Posted expense bill lines + posted GRN lines | POSTED |
 
 ## Inventory chain
 
@@ -38,7 +38,7 @@ This page is the canonical reference for **which document can be created from wh
 | Shipment | — | Attaches **delivery notes** only; never GRNs |
 | Package | Delivery note lines | Packing metadata |
 | Cost sheet | — | Planning; can pull actuals and create landed cost |
-| Landed cost | Expense PI + GRN | Capitalizes freight/duty onto FIFO layers |
+| Landed cost | Expense bill + GRN | Capitalizes freight/duty onto FIFO layers |
 
 ## CRM chain
 

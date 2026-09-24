@@ -1,4 +1,4 @@
-Freight, customs duty, clearing, and insurance charges are configured as **charge types**, recorded on **purchase invoices** or **cost sheets**, and capitalized through **landed costs**.
+Freight, customs duty, clearing, and insurance charges are configured as **charge types**, recorded on **bills** or **cost sheets**, and capitalized through **landed costs**.
 
 <AppLink href="/charge-types">Charge types</AppLink> · <AppLink href="/landed-costs">Landed costs</AppLink>
 
@@ -16,7 +16,7 @@ Configure at <AppLink href="/charge-types">Charge types</AppLink> — see <DocLi
 
 ## Recording actual charges
 
-Post **EXPENSE** or **IMPORT** type <DocLink href="/docs/purchases/purchase-invoices">purchase invoices</DocLink> for supplier bills:
+Post **EXPENSE** or **IMPORT** type <DocLink href="/docs/purchases/bills">bills</DocLink> for supplier bills:
 
 | Line category | GL on post | Landed cost eligible |
 |---|---|---|
@@ -28,16 +28,16 @@ Expense lines on posted bills feed landed cost charge selection.
 
 ## Capitalizing onto inventory
 
-<DocLink href="/docs/purchases/landed-costs">Landed cost</DocLink> links posted expense PI lines to posted GRN product lines. **Post** revalues FIFO `landed_unit_cost`:
+<DocLink href="/docs/purchases/landed-costs">Landed cost</DocLink> links posted expense bill lines to posted GRN product lines. **Post** revalues FIFO `landed_unit_cost`:
 
 - **Dr Inventory** (or LCV clearing)
 - **Cr** expense clearing accounts
 
-Product purchase invoice should follow landed cost posting so GRNI clearance uses updated unit costs.
+Product bill should follow landed cost posting so GRNI clearance uses updated unit costs.
 
 ## Planning charges
 
-<DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink> hold **estimated** charges before bills arrive. On confirm, compare planned vs actual from posted PIs.
+<DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink> hold **estimated** charges before bills arrive. On confirm, compare planned vs actual from posted bills.
 
 Allocation basis options: **VALUE**, **WEIGHT**, **QUANTITY**, **VOLUME** — same bases used on cost sheet charges and landed cost allocation.
 
@@ -45,4 +45,4 @@ Allocation basis options: **VALUE**, **WEIGHT**, **QUANTITY**, **VOLUME** — sa
 
 - Import workflow: <DocLink href="/docs/workflows/import-shipment">Import shipment</DocLink>
 - <DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink>
-- <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>
+- <DocLink href="/docs/purchases/bills">Bills</DocLink>

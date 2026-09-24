@@ -5,9 +5,9 @@ Import purchase workflow: order overseas goods, track the shipment in transit, r
     { label: "Purchase order", note: "Import supplier", href: "/docs/purchases/purchase-orders" },
     { label: "Shipment", note: "Tracking only", href: "/docs/import-export/shipments" },
     { label: "GRN IMPORT", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
-    { label: "Expense PIs", note: "Freight, duty, clearing", href: "/docs/purchases/purchase-invoices" },
+    { label: "Expense bills", note: "Freight, duty, clearing", href: "/docs/purchases/bills" },
     { label: "Landed cost", note: "Post → revalue FIFO", href: "/docs/purchases/landed-costs" },
-    { label: "Product PI", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Product bill", note: "Post → AP", href: "/docs/purchases/bills" },
     { label: "Cost sheet", note: "Plan vs actual", href: "/docs/import-export/cost-sheets" },
   ]}
 />
@@ -19,7 +19,7 @@ Import purchase workflow: order overseas goods, track the shipment in transit, r
 <Prerequisites>
 - Import supplier with export tax treatment (or place of supply outside UAE)
 - Charge types configured for freight, duty, clearing — see <DocLink href="/docs/master-data/charge-types">Charge types</DocLink>
-- Permissions for PO, shipments, GRN, PI, landed cost, cost sheets
+- Permissions for PO, shipments, GRN, bill, landed cost, cost sheets
 </Prerequisites>
 
 <Steps>
@@ -54,17 +54,17 @@ Run QC inspection if products require it — same as domestic receipt.
 </Step>
 
 <Step title="Post expense bills">
-Create **EXPENSE** or **IMPORT** type <DocLink href="/docs/purchases/purchase-invoices">purchase invoices</DocLink> for freight, customs duty, clearing, insurance. Post each bill — hits expense accounts (available for landed cost later).
+Create **EXPENSE** or **IMPORT** type <DocLink href="/docs/purchases/bills">bills</DocLink> for freight, customs duty, clearing, insurance. Post each bill — hits expense accounts (available for landed cost later).
 
 <StateChangeTable
   rows={[
-    { action: "Post expense PI", stock: "No change", reserved: "No change", gl: "Dr expense; Cr AP", tax: "As applicable", documents: "Expense lines feed landed cost charges" },
+    { action: "Post expense bill", stock: "No change", reserved: "No change", gl: "Dr expense; Cr AP", tax: "As applicable", documents: "Expense lines feed landed cost charges" },
   ]}
 />
 </Step>
 
 <Step title="Post landed cost">
-Create <DocLink href="/docs/purchases/landed-costs">landed cost</DocLink> — link posted expense PI charge lines to posted GRN product lines. **Post** — capitalizes charges onto FIFO `landed_unit_cost`.
+Create <DocLink href="/docs/purchases/landed-costs">landed cost</DocLink> — link posted expense bill charge lines to posted GRN product lines. **Post** — capitalizes charges onto FIFO `landed_unit_cost`.
 
 <StateChangeTable
   rows={[
@@ -73,14 +73,14 @@ Create <DocLink href="/docs/purchases/landed-costs">landed cost</DocLink> — li
 />
 </Step>
 
-<Step title="Post product purchase invoice">
-Create **IMPORT** product PI from posted GRN. **Post** — clears GRNI at landed cost; creates AP.
+<Step title="Post product bill">
+Create **IMPORT** product bill from posted GRN. **Post** — clears GRNI at landed cost; creates AP.
 
-Product PI should follow landed cost so price variance uses updated unit costs.
+Product bill should follow landed cost so price variance uses updated unit costs.
 </Step>
 
 <Step title="Reconcile on cost sheet (optional)">
-Create <AppLink href="/cost-sheets">cost sheet</AppLink> linked to PO/shipment. Confirm planned charges, pull actuals from posted PIs, compare planned vs landed unit cost — see <DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink>.
+Create <AppLink href="/cost-sheets">cost sheet</AppLink> linked to PO/shipment. Confirm planned charges, pull actuals from posted bills, compare planned vs landed unit cost — see <DocLink href="/docs/import-export/cost-sheets">Cost sheets</DocLink>.
 </Step>
 </Steps>
 

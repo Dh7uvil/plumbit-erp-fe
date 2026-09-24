@@ -32,11 +32,11 @@ If goods were QC-rejected with **RETURN_TO_SUPPLIER**, they remain on QC hold un
 </Step>
 
 <Step title="Create and post debit note">
-Create <DocLink href="/docs/purchases/debit-notes">debit note</DocLink> from the posted return (or linked PI). **Post** — AP reduced; no stock movement.
+Create <DocLink href="/docs/purchases/debit-notes">debit note</DocLink> from the posted return (or linked bill). **Post** — AP reduced; no stock movement.
 
 <StateChangeTable
   rows={[
-    { action: "Post debit note", stock: "No change", reserved: "No change", gl: "Dr AP; Cr GRNI or expense", tax: "VAT reversed", documents: "PI qty_debited updated if linked" },
+    { action: "Post debit note", stock: "No change", reserved: "No change", gl: "Dr AP; Cr GRNI or expense", tax: "VAT reversed", documents: "bill qty_debited updated if linked" },
   ]}
 />
 </Step>

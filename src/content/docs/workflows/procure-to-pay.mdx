@@ -1,10 +1,10 @@
-End-to-end purchase workflow: order goods, receive into stock, match the supplier bill, and pay. Stock moves on **goods receipt** post; AP moves on **purchase invoice** post.
+End-to-end purchase workflow: order goods, receive into stock, match the supplier bill, and pay. Stock moves on **goods receipt** post; AP moves on **bill** post.
 
 <FlowDiagram
   steps={[
     { label: "Purchase order", note: "Issue → incoming", href: "/docs/purchases/purchase-orders" },
     { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
-    { label: "Purchase invoice", note: "Post → AP", href: "/docs/purchases/purchase-invoices" },
+    { label: "Bill", note: "Post → AP", href: "/docs/purchases/bills" },
     { label: "Supplier payment", note: "Post → allocate", href: "/docs/purchases/supplier-payments" },
   ]}
   branches={[
@@ -21,7 +21,7 @@ End-to-end purchase workflow: order goods, receive into stock, match the supplie
 
 <Prerequisites>
 - Supplier and products exist — see <DocLink href="/docs/master-data/suppliers">Suppliers</DocLink> and <DocLink href="/docs/master-data/products">Products</DocLink>
-- Permissions for PO, GRN, PI, and supplier payments
+- Permissions for PO, GRN, bill, and supplier payments
 </Prerequisites>
 
 ## Standard path
@@ -51,12 +51,12 @@ Create a <DocLink href="/docs/purchases/goods-receipts">goods receipt</DocLink> 
 **Over-receipt** — when PO-linked, received qty is capped by outstanding unless org `allow_over_receipt` (and optional tolerance) is enabled — see <DocLink href="/docs/purchases/goods-receipts">Goods receipts</DocLink>.
 </Step>
 
-<Step title="Record supplier bill (PI)">
-Create a <DocLink href="/docs/purchases/purchase-invoices">purchase invoice</DocLink> from the posted GRN (or PO). **Post** the bill.
+<Step title="Record supplier bill">
+Create a <DocLink href="/docs/purchases/bills">bill</DocLink> from the posted GRN (or PO). **Post** the bill.
 
 <StateChangeTable
   rows={[
-    { action: "Post PI (GRN-linked)", stock: "No change", reserved: "No change", gl: "Dr GRNI (+ PPV); Cr AP", tax: "VAT input or RCM", documents: "GRN qty_billed +; open AP item" },
+    { action: "Post bill (GRN-linked)", stock: "No change", reserved: "No change", gl: "Dr GRNI (+ PPV); Cr AP", tax: "VAT input or RCM", documents: "GRN qty_billed +; open AP item" },
   ]}
 />
 </Step>
@@ -67,13 +67,13 @@ Create a <DocLink href="/docs/purchases/supplier-payments">supplier payment</Doc
 <StateChangeTable
   rows={[
     { action: "Post payment", stock: "No change", reserved: "No change", gl: "Cr bank; Dr advance to supplier", tax: "Optional VAT on advance", documents: "Unapplied advance balance" },
-    { action: "Allocate to PI", stock: "No change", reserved: "No change", gl: "Dr AP; Cr advance to supplier", tax: "None", documents: "PI balance_due −" },
+    { action: "Allocate to bill", stock: "No change", reserved: "No change", gl: "Dr AP; Cr advance to supplier", tax: "None", documents: "bill balance_due −" },
   ]}
 />
 </Step>
 </Steps>
 
-## Variant: bill before receipt (PI-first)
+## Variant: bill before receipt (bill-before-receipt)
 
 Use when the supplier invoice arrives before physical goods.
 
@@ -81,19 +81,19 @@ Use when the supplier invoice arrives before physical goods.
 <Step title="Issue PO">
 Same as standard — PO must be **ISSUED**.
 </Step>
-<Step title="Post purchase invoice from PO">
-Post PI with product lines **without** a GRN. GL hits **Purchases** (not GRNI); no stock movement.
+<Step title="Post bill from PO">
+Post bill with product lines **without** a GRN. GL hits **Purchases** (not GRNI); no stock movement.
 
 <StateChangeTable
   rows={[
-    { action: "Post PI (no GRN)", stock: "No change", reserved: "No change", gl: "Dr Purchases; Cr AP", tax: "VAT input or RCM", documents: "PO qty_billed +" },
+    { action: "Post bill (no GRN)", stock: "No change", reserved: "No change", gl: "Dr Purchases; Cr AP", tax: "VAT input or RCM", documents: "PO qty_billed +" },
   ]}
 />
 </Step>
-<Step title="Receive against posted PI">
-Create GRN **from the posted PI**. Post GRN — stock increases and GRNI clears against the already-posted bill logic on subsequent PI-GRN linkage.
+<Step title="Receive against posted bill">
+Create GRN **from the posted bill**. Post GRN — stock increases and GRNI clears against the already-posted bill logic on subsequent bill-GRN linkage.
 
-See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink> for the PI-first create matrix.
+See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink> for the bill-before-receipt create matrix.
 </Step>
 </Steps>
 
@@ -114,7 +114,7 @@ Create return from the posted GRN. Post — on hand −, GRNI reduced.
 Follow <DocLink href="/docs/workflows/handle-a-supplier-return">Handle a supplier return</DocLink>.
 </Step>
 <Step title="Post debit note">
-Create debit note from the posted return (or PI). Post — AP reduced; no further stock movement.
+Create debit note from the posted return (or bill). Post — AP reduced; no further stock movement.
 </Step>
 </Steps>
 
@@ -123,7 +123,7 @@ Create debit note from the posted return (or PI). Post — AP reduced; no furthe
 | Document | Cannot cancel when |
 |---|---|
 | **Posted GRN** | Period locked; any line `qty_billed > 0`; linked PO has **any** billing; approved QC inspection; live purchase return; FIFO layers partially consumed; inspection qty recorded |
-| **Posted PI** | Period locked; payments, debit notes, or write-offs applied |
+| **Posted bill** | Period locked; payments, debit notes, or write-offs applied |
 | **Posted purchase return** | Period locked; live debit note references return |
 
 <Callout type="implementation">

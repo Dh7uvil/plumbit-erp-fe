@@ -1,4 +1,4 @@
-A landed cost document spreads **posted expense purchase invoice lines** (freight, duty, clearing, etc.) across **posted goods receipt lines**, increasing FIFO **landed unit cost** on remaining stock.
+A landed cost document spreads **posted expense bill lines** (freight, duty, clearing, etc.) across **posted goods receipt lines**, increasing FIFO **landed unit cost** on remaining stock.
 
 <AppLink href="/landed-costs">Open landed costs</AppLink>
 
@@ -7,9 +7,9 @@ A landed cost document spreads **posted expense purchase invoice lines** (freigh
 <FlowDiagram
   steps={[
     { label: "Goods receipt", note: "Post → FIFO layer", href: "/docs/purchases/goods-receipts" },
-    { label: "Expense PI", note: "Post → freight/duty expense", href: "/docs/purchases/purchase-invoices" },
+    { label: "Expense bill", note: "Post → freight/duty expense", href: "/docs/purchases/bills" },
     { label: "Landed cost", note: "Post → revalue layers", href: "/docs/purchases/landed-costs" },
-    { label: "Product PI", note: "PPV uses landed cost", href: "/docs/purchases/purchase-invoices" },
+    { label: "Product bill", note: "PPV uses landed cost", href: "/docs/purchases/bills" },
   ]}
 />
 
@@ -17,10 +17,10 @@ A landed cost document spreads **posted expense purchase invoice lines** (freigh
 
 | Side | Source requirement | Content |
 |---|---|---|
-| **Charges** | Posted PI **expense** lines | Inventoriable charge types (`FREIGHT`, `CUSTOMS_DUTY`, etc.) |
+| **Charges** | Posted bill **expense** lines | Inventoriable charge types (`FREIGHT`, `CUSTOMS_DUTY`, etc.) |
 | **Allocations** | Posted GRN **product** lines | Receipt lines receiving a share of each charge |
 
-Both GRN and expense PI must be **posted**. See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
+Both GRN and expense bill must be **posted**. See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
 
 ## Lifecycle
 
@@ -62,7 +62,7 @@ Charge type default `allocation_basis` can override the header method per charge
   ]}
 />
 
-On-hand quantity is unchanged — only the **unit cost** on FIFO layers increases. Subsequent COGS and GRN-linked PI price variance use the updated landed cost.
+On-hand quantity is unchanged — only the **unit cost** on FIFO layers increases. Subsequent COGS and GRN-linked Bill price variance use the updated landed cost.
 
 See <DocLink href="/docs/inventory/inventory-valuation">Inventory valuation</DocLink>.
 

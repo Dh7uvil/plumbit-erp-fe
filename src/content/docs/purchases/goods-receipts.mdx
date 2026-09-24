@@ -9,7 +9,7 @@ A goods receipt (GRN) records physical receipt of stock into a warehouse. **Post
     { label: "Purchase order", note: "Issue → incoming qty", href: "/docs/purchases/purchase-orders" },
     { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
     { label: "Quality inspection", note: "If QC required", href: "/docs/inventory/quality-inspections-and-qc-hold" },
-    { label: "Purchase invoice", note: "Post → AP, clear GRNI", href: "/docs/purchases/purchase-invoices" },
+    { label: "Bill", note: "Post → AP, clear GRNI", href: "/docs/purchases/bills" },
   ]}
 />
 
@@ -18,8 +18,8 @@ A goods receipt (GRN) records physical receipt of stock into a warehouse. **Post
 | Source | Source status | Notes |
 |---|---|---|
 | Issued purchase order | `ISSUED` | Standard PO receipt; updates PO `qty_received` and reduces incoming |
-| Posted purchase invoice | `POSTED` | PI-first flow; updates PI line `qty_received` |
-| Standalone | — | No PO/PI link; qty not capped by order outstanding |
+| Posted bill | `POSTED` | bill-before-receipt flow; updates bill line `qty_received` |
+| Standalone | — | No PO/bill link; qty not capped by order outstanding |
 
 See <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink> for the full create matrix.
 
@@ -36,8 +36,8 @@ See <DocLink href="/docs/getting-started/document-relationships">Document relati
 <StatusTable
   rows={[
     { status: "DRAFT", meaning: "Receipt quantities editable", actions: "Edit, post", effect: "None" },
-    { status: "POSTED", meaning: "Stock received", actions: "Create PI, purchase return, landed cost; cancel (if allowed)", effect: "On hand +, FIFO layer, GRNI, optional QC hold" },
-    { status: "CANCELLED", meaning: "Voided posted receipt", actions: "—", effect: "Reverses stock, GRNI, PO/PI qty counters" },
+    { status: "POSTED", meaning: "Stock received", actions: "Create bill, purchase return, landed cost; cancel (if allowed)", effect: "On hand +, FIFO layer, GRNI, optional QC hold" },
+    { status: "CANCELLED", meaning: "Voided posted receipt", actions: "—", effect: "Reverses stock, GRNI, PO/bill qty counters" },
   ]}
 />
 
@@ -62,7 +62,7 @@ Each product line tracks:
 
 - **Received** — line `quantity`
 - **Accepted / rejected / on hold** — from quality inspection (`qty_accepted`, `qty_rejected`, `qty_on_hold`)
-- **Billed** — `qty_billed` (from posted purchase invoices)
+- **Billed** — `qty_billed` (from posted bills)
 - **Returned** — `qty_returned` (from posted purchase returns)
 
 ## Over-receipt
@@ -75,7 +75,7 @@ When linked to a PO, received qty is capped by PO line outstanding unless org in
 | `allow_over_receipt` = true, no tolerance | Unlimited over PO line |
 | `allow_over_receipt` = true + `over_receipt_tolerance_pct` | Allowed = remaining × (1 + pct ÷ 100) |
 
-PI-sourced lines are capped by PI line outstanding (`quantity − qty_received`) — PO over-receipt rules do not apply.
+Bill-sourced lines are capped by bill line outstanding (`quantity − qty_received`) — PO over-receipt rules do not apply.
 
 See <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink>.
 
@@ -109,10 +109,10 @@ A posted GRN **cannot be cancelled** if the linked PO has **any** billing, even 
 
 ## Downstream documents
 
-From a **posted** GRN you can create: purchase invoice, purchase return, landed cost allocation target. Quality inspection is auto-created when QC is required.
+From a **posted** GRN you can create: bill, purchase return, landed cost allocation target. Quality inspection is auto-created when QC is required.
 
 ## Related
 
 - Stock field definitions: <DocLink href="/docs/inventory/stock-concepts">Stock concepts</DocLink>
-- GRNI clearing: <DocLink href="/docs/purchases/purchase-invoices">Purchase invoices</DocLink>
+- GRNI clearing: <DocLink href="/docs/purchases/bills">Bills</DocLink>
 - Accounting context: <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>

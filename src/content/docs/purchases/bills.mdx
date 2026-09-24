@@ -1,13 +1,18 @@
-A purchase invoice (PI) is the supplier **bill**. **Posting** creates accounts payable and clears **GRNI** for received goods — it does **not** move stock (stock was received on the GRN).
+A **bill** is the supplier invoice for goods or charges. **Posting** creates accounts payable and clears **GRNI** for received goods — it does **not** move stock (stock was received on the GRN).
 
-<AppLink href="/purchase-invoices">Open purchase invoices</AppLink>
+Bills are managed inside the **Purchases** workspace — there is no separate "Bills" menu. Open <AppLink href="/purchases?tab=bills">Purchases → Bills</AppLink>, or create a bill from an issued purchase order or posted goods receipt.
+
+<Callout type="note">
+Purchase orders track **billing status** alongside receipt status. Use **Create bill** on an issued PO, the **To bill** queue, or **Convert from** on the Bills tab.
+</Callout>
 
 ## Where it sits in the flow
 
 <FlowDiagram
   steps={[
+    { label: "Purchase order", note: "Issue → incoming qty", href: "/docs/purchases/purchase-orders" },
     { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
-    { label: "Purchase invoice", note: "Post → AP, clear GRNI", href: "/docs/purchases/purchase-invoices" },
+    { label: "Bill", note: "Post → AP, clear GRNI", href: "/docs/purchases/bills" },
     { label: "Landed cost", note: "Optional capitalization", href: "/docs/purchases/landed-costs" },
     { label: "Supplier payment", note: "Post → allocate to AP", href: "/docs/purchases/supplier-payments" },
   ]}
@@ -25,7 +30,7 @@ Line types: **PRODUCT** (inventory/purchase account) or **EXPENSE** (expense acc
 
 Expense lines on posted **EXPENSE** or **IMPORT** bills can later feed **landed cost** capitalization onto GRN FIFO layers.
 
-## Creating a PI
+## Creating a bill
 
 | Source | Source status | What gets billed |
 |---|---|---|
@@ -33,7 +38,7 @@ Expense lines on posted **EXPENSE** or **IMPORT** bills can later feed **landed 
 | Issued purchase order | `ISSUED` | Unbilled PO qty (no GRN required) |
 | Standalone | — | Manual lines; no GRN/PO link |
 
-Posted PI can also be the **source for a GRN** in the PI-first flow — see <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
+A posted bill can also be the **source for a GRN** in the bill-before-receipt flow — see <DocLink href="/docs/getting-started/document-relationships">Document relationships</DocLink>.
 
 ## Lifecycle
 
@@ -59,10 +64,10 @@ Payment status on the header rolls up separately: `UNPAID`, `PARTIALLY_PAID`, `P
 
 <StateChangeTable
   rows={[
-    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft PI only" },
-    { action: "Post PI (GRN-linked product lines)", stock: "No change", reserved: "No change", gl: "Dr GRNI (+ PPV/Inventory reval); Cr AP; VAT", tax: "VAT input or RCM pair", documents: "GRN/PO qty_billed updated" },
-    { action: "Post PI (no GRN — product lines)", stock: "No change", reserved: "No change", gl: "Dr Purchases (product account); Cr AP; VAT", tax: "VAT input or RCM pair", documents: "PO qty_billed updated if linked" },
-    { action: "Post PI (expense lines)", stock: "No change", reserved: "No change", gl: "Dr expense account (freight, duty, etc.); Cr AP", tax: "As applicable", documents: "Expense available for landed cost" },
+    { action: "Create / save draft", stock: "No change", reserved: "No change", gl: "No entry", tax: "None", documents: "Draft bill only" },
+    { action: "Post bill (GRN-linked product lines)", stock: "No change", reserved: "No change", gl: "Dr GRNI (+ PPV/Inventory reval); Cr AP; VAT", tax: "VAT input or RCM pair", documents: "GRN/PO qty_billed updated" },
+    { action: "Post bill (no GRN — product lines)", stock: "No change", reserved: "No change", gl: "Dr Purchases (product account); Cr AP; VAT", tax: "VAT input or RCM pair", documents: "PO qty_billed updated if linked" },
+    { action: "Post bill (expense lines)", stock: "No change", reserved: "No change", gl: "Dr expense account (freight, duty, etc.); Cr AP", tax: "As applicable", documents: "Expense available for landed cost" },
   ]}
 />
 
@@ -96,28 +101,30 @@ Non-RCM bills post **Dr VAT input**. See <DocLink href="/docs/accounting/vat">VA
 
 ## Auto-apply PO advances
 
-After post, if the PI links to a PO, the system can automatically allocate unapplied **PO advance payments** to the invoice balance.
+After post, if the bill links to a PO, the system can automatically allocate unapplied **PO advance payments** to the bill balance.
 
 Gated by org setting `auto_apply_advances_on_invoice` (default **true**). Advances are applied FIFO by payment date. See <DocLink href="/docs/purchases/supplier-payments">Supplier payments</DocLink>.
 
 ## Cancellation rules (posted)
 
-A posted PI **cannot be cancelled** when:
+A posted bill **cannot be cancelled** when:
 
 - Accounting period is locked
 - `amount_paid > 0`, `amount_debited > 0`, or `amount_written_off > 0`
-- A live **debit note** references the PI
-- Live **supplier payment allocations** exist against the PI
-- A **goods receipt** was created from this PI (PI-first flow)
+- A live **debit note** references the bill
+- Live **supplier payment allocations** exist against the bill
+- A **goods receipt** was created from this bill (bill-before-receipt flow)
 
 Cancel reverses the journal and restores GRN FIFO layer costs to pre-bill values.
 
 ## Downstream documents
 
-From a **posted** PI: supplier payment allocation, debit note, goods receipt (PI-first), landed cost charge source (expense lines).
+From a **posted** bill: supplier payment allocation, debit note, goods receipt (bill-before-receipt), landed cost charge source (expense lines).
 
 ## Related
 
+- Purchases workspace: <DocLink href="/docs/purchases/purchases-workspace">Purchases workspace</DocLink>
+- PO billing status: <DocLink href="/docs/purchases/purchase-orders">Purchase orders</DocLink>
 - AP balance and aging: <DocLink href="/docs/accounting/accounts-payable">Accounts payable</DocLink>
 - Match report: <AppLink href="/reports/three-way-match">Three-way match</AppLink>
 - Stock is not affected: <DocLink href="/docs/inventory/how-stock-changes">How stock changes</DocLink>
