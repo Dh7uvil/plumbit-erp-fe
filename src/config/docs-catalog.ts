@@ -376,6 +376,13 @@ export const docsCatalog: DocCategory[] = [
       page("activities-and-follow-ups", "Activities and follow-ups", "CRM activities as tasks.", {
         appHrefs: ["/activities"],
       }),
+      page("tasks", "Tasks", "Org-wide tasks with list and kanban views.", {
+        appHrefs: ["/tasks"],
+        keywords: ["kanban", "assignee", "checklist"],
+      }),
+      page("task-labels", "Task labels", "Labels for categorizing tasks.", {
+        appHrefs: ["/task-labels"],
+      }),
       page("payment-reminders-and-emails", "Payment reminders and emails", "Dunning and email.", {
         appHrefs: ["/dunning-rules"],
       }),
@@ -418,6 +425,10 @@ export const docsCatalog: DocCategory[] = [
       }),
       page("create-a-product", "Create a product", "New product setup.", {
         related: ["master-data/products"],
+      }),
+      page("create-a-task", "Create a task", "Create and manage tasks.", {
+        appHrefs: ["/tasks"],
+        related: ["collaboration/tasks"],
       }),
       page("add-opening-stock", "Add opening stock", "Initial stock entry.", {
         related: ["inventory/opening-stock"],

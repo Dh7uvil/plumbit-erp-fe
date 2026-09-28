@@ -15,6 +15,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { activityPermissions } from "@/modules/crm/activities/permissions";
+import { MyTasksWidget } from "@/modules/task-management/tasks/components/my-tasks-widget";
 import { opportunityPermissions } from "@/modules/crm/opportunities/permissions";
 import { crmReportPermissions } from "@/modules/crm/reports/permissions";
 import { useCrmDashboard } from "@/modules/crm/reports/queries";
@@ -116,6 +117,7 @@ export function OperationalDashboardScreen() {
               iconClass="bg-warning-muted text-warning-foreground"
             />
           ) : null}
+          <MyTasksWidget />
           {canArAp && data ? (
             <KpiCard
               title="Open AR"

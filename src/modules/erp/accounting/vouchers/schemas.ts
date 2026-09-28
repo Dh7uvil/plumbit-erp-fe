@@ -64,6 +64,23 @@ export const VOUCHER_ENTRY_BOOK_OPTIONS = VOUCHER_ENTRY_TYPES.map((type) => ({
   label: VOUCHER_ENTRY_BOOK_LABELS[type],
 }));
 
+/** Frontend-only entry book value; journal vouchers use the journals API. */
+export const JOURNAL_ENTRY_BOOK = "JOURNAL" as const;
+export type VoucherEntryBook = VoucherEntryType | typeof JOURNAL_ENTRY_BOOK;
+
+export const VOUCHER_ENTRY_BOOK_ALL_OPTIONS: { value: VoucherEntryBook; label: string }[] = [
+  ...VOUCHER_ENTRY_BOOK_OPTIONS,
+  { value: JOURNAL_ENTRY_BOOK, label: "Journal Voucher" },
+];
+
+export function parseVoucherEntryBook(value: string | null): VoucherEntryBook {
+  if (value === JOURNAL_ENTRY_BOOK) {
+    return JOURNAL_ENTRY_BOOK;
+  }
+  const parsed = VoucherEntryTypeSchema.safeParse(value);
+  return parsed.success ? parsed.data : "CASH_RECEIPT";
+}
+
 export const VOUCHER_WORKSPACE_TABS = [
   "cash-receipt",
   "cash-payment",

@@ -17,6 +17,9 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
   { id: "new", keys: "N", action: "New record on this page" },
   { id: "edit", keys: "E", action: "Edit the open record" },
   { id: "palette-move", keys: "↑ ↓ Enter", action: "Move and open a search result" },
+  { id: "board-open", keys: "Enter / O", action: "Open focused task on the board" },
+  { id: "board-assign", keys: "I", action: "Assign focused task to me on the board" },
+  { id: "board-menu", keys: ".", action: "Open focused task menu on the board" },
 ];
 
 const NON_TEXT_INPUT_TYPES = new Set([

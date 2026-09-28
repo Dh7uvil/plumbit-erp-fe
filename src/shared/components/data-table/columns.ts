@@ -87,8 +87,14 @@ export function defaultColumnPreference<T>(
   };
 }
 
-export function pinnedColumnIds<T>(defs: readonly DataTableColumn<T>[]): string[] {
-  return defaultColumnPreference(defs).visible_columns.slice(0, 2);
+export function pinnedColumnIds<T>(
+  defs: readonly DataTableColumn<T>[],
+  pinnedCount = 2,
+): string[] {
+  if (pinnedCount <= 0) {
+    return [];
+  }
+  return defaultColumnPreference(defs).visible_columns.slice(0, pinnedCount);
 }
 
 function applyPinnedColumns(
@@ -106,10 +112,11 @@ function applyPinnedColumns(
 export function columnPickerDraft<T>(
   defs: readonly DataTableColumn<T>[],
   preference: TableColumnPreference | null | undefined,
+  pinnedCount = 2,
 ): ColumnPickerItem[] {
   const customizable = customizableColumns(defs);
   const defaults = defaultColumnPreference(defs);
-  const pinned = pinnedColumnIds(defs);
+  const pinned = pinnedColumnIds(defs, pinnedCount);
   const pinnedSet = new Set(pinned);
   const known = new Map(customizable.map((column) => [column.id, column]));
   const savedOrder = (preference?.column_order ?? []).filter((id) => known.has(id));
@@ -142,13 +149,14 @@ export function columnPickerDraft<T>(
 export function resolveTableColumns<T>(
   defs: readonly DataTableColumn<T>[],
   preference: TableColumnPreference | null | undefined,
+  pinnedCount = 2,
 ): Array<DataTableColumn<T>> {
   const byId = new Map(defs.map((column) => [column.id, column]));
   const locked = defs.filter((column) => column.locked);
   const customizable = customizableColumns(defs);
   const known = new Set(customizable.map((column) => column.id));
   const defaults = defaultColumnPreference(defs);
-  const pinned = pinnedColumnIds(defs);
+  const pinned = pinnedColumnIds(defs, pinnedCount);
 
   const savedOrder = (preference?.column_order ?? []).filter((id) => known.has(id));
   const missing = defaults.column_order.filter((id) => !savedOrder.includes(id));

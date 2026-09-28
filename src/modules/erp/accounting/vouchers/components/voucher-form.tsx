@@ -14,12 +14,11 @@ import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
 import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { useCreateVoucher, useUpdateVoucher } from "@/modules/erp/accounting/vouchers/mutations";
+import { EntryBookSelect } from "@/modules/erp/accounting/vouchers/components/entry-book-select";
 import { VoucherLinesEditor } from "@/modules/erp/accounting/vouchers/components/voucher-lines-editor";
 import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_METHODS,
-  VOUCHER_ENTRY_BOOK_OPTIONS,
-  VOUCHER_TYPES,
   VoucherFormSchema,
   emptyVoucherLine,
   isContraVoucher,
@@ -307,33 +306,21 @@ export function VoucherForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Entry book</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    const nextType = value as VoucherEntryType;
-                    field.onChange(nextType);
-                    form.setValue("payment_account_id", OPTIONAL_SELECT_NONE);
-                    form.setValue("counter_account_id", OPTIONAL_SELECT_NONE);
-                    form.setValue("payment_method", nextType.startsWith("BANK") ? "TT" : "CASH");
-                    if ((form.getValues("lines") ?? []).length === 0) {
-                      form.setValue("lines", [emptyVoucherLine()]);
-                    }
-                  }}
-                  disabled={disabled || isEdit}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select entry book" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {VOUCHER_ENTRY_BOOK_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <EntryBookSelect
+                    value={field.value as VoucherEntryType}
+                    onChange={(nextType) => {
+                      field.onChange(nextType);
+                      form.setValue("payment_account_id", OPTIONAL_SELECT_NONE);
+                      form.setValue("counter_account_id", OPTIONAL_SELECT_NONE);
+                      form.setValue("payment_method", nextType.startsWith("BANK") ? "TT" : "CASH");
+                      if ((form.getValues("lines") ?? []).length === 0) {
+                        form.setValue("lines", [emptyVoucherLine()]);
+                      }
+                    }}
+                    disabled={disabled || isEdit}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

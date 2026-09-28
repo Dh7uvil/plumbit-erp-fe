@@ -15,6 +15,10 @@ import {
 } from "@/shared/components/ui/tooltip";
 import { useLogout } from "@/modules/users-management/auth/mutations";
 import { useMe } from "@/modules/users-management/auth/queries";
+import { taskPermissions } from "@/modules/task-management/tasks/permissions";
+import { useOverdueTasksCount } from "@/modules/task-management/tasks/queries";
+import { useCan } from "@/shared/providers/session-provider";
+import { Badge } from "@/shared/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -40,6 +44,10 @@ export function AppHeader({
   const logout = useLogout();
   const { theme, toggleTheme } = useTheme();
   const themeTooltip = theme === "dark" ? "Light mode" : "Dark mode";
+  const can = useCan();
+  const canTasks = can(taskPermissions.read);
+  const overdueTasksQuery = useOverdueTasksCount(canTasks);
+  const overdueTasks = overdueTasksQuery.data ?? 0;
 
   return (
     <TooltipProvider>
@@ -83,6 +91,27 @@ export function AppHeader({
           <TooltipContent>{themeTooltip}</TooltipContent>
         </Tooltip>
         <HelpTrigger onClick={onHelpOpen} />
+        {canTasks && overdueTasks > 0 ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground relative"
+                asChild
+              >
+                <Link href="/tasks?overdue=1" aria-label={`${overdueTasks} overdue tasks`}>
+                  <Bell className="size-4" />
+                  <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]">
+                    {overdueTasks > 99 ? "99+" : overdueTasks}
+                  </Badge>
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Overdue tasks</TooltipContent>
+          </Tooltip>
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

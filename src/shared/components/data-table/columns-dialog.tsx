@@ -46,12 +46,16 @@ export function ColumnsDialog<T>({
   columns,
   preference,
   pending = false,
+  pinnedCount = 2,
+  title = "Customize list view",
   onApply,
   onReset,
 }: {
   columns: readonly DataTableColumn<T>[];
   preference: TableColumnPreference | null;
   pending?: boolean;
+  pinnedCount?: number;
+  title?: string;
   onApply: (next: ColumnPreferencePatch) => Promise<void> | void;
   onReset: () => Promise<void> | void;
 }) {
@@ -70,7 +74,7 @@ export function ColumnsDialog<T>({
 
   function handleOpenChange(next: boolean) {
     if (next) {
-      setDraft(columnPickerDraft(columns, preference));
+      setDraft(columnPickerDraft(columns, preference, pinnedCount));
       setShowExtras(false);
     }
     setOpen(next);
@@ -85,7 +89,7 @@ export function ColumnsDialog<T>({
     try {
       await onApply(patchFrom(next));
     } catch {
-      setDraft(columnPickerDraft(columns, preference));
+      setDraft(columnPickerDraft(columns, preference, pinnedCount));
     }
   }
 
@@ -133,7 +137,7 @@ export function ColumnsDialog<T>({
           }}
         >
           <div className="px-3 py-2.5">
-            <p className="text-sm font-medium">Customize list view</p>
+            <p className="text-sm font-medium">{title}</p>
           </div>
           <ul className="max-h-80 overflow-y-auto px-1 pb-1">
             {visibleItems.map((item) => (

@@ -1,0 +1,17 @@
+Tasks are org-wide work items with issue types (Task, Bug, Story, Epic), parent/subtask hierarchy, assignees, due dates, labels, checklists, comments, and optional links to CRM or ERP records.
+
+<AppLink href="/tasks">Open tasks</AppLink>
+
+Use the board toggle on the tasks page for a kanban view grouped by status. Optional swimlanes add horizontal rows grouped by assignee, priority, or epic — drag cards across rows to reassign, reprioritize, or link to an epic.
+
+Quick filters are independent toggles in the URL:
+
+| Toggle | URL param | Meaning |
+| --- | --- | --- |
+| My open | `mine=1` | Tasks assigned to you |
+| Overdue | `overdue=1` | Past due and not done |
+| This week | `due_this_week=1` | Due in the current week |
+| Show subtasks | `subtasks=1` | Include child tasks on the board (board view only) |
+| Swimlanes | `swimlane=assignee` | Board rows by assignee (`priority` or `epic` also supported) |
+
+Combine filters freely, for example `/tasks?mine=1&overdue=1&view=board&swimlane=assignee`.
