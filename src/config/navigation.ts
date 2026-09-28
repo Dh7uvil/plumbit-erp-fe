@@ -50,6 +50,8 @@ import {
 import { hasAnyReportAccess, visibleReportCatalog } from "@/config/report-catalog";
 import { docsSearchGroups } from "@/config/docs-catalog";
 import { activityPermissions } from "@/modules/crm/activities/permissions";
+import { taskLabelPermissions } from "@/modules/task-management/task-labels/permissions";
+import { taskPermissions } from "@/modules/task-management/tasks/permissions";
 import { campaignPermissions } from "@/modules/crm/campaigns/permissions";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
@@ -136,6 +138,23 @@ export const navigation: NavigationGroup[] = [
     items: [
       { label: "Dashboard", href: "/", permission: null, icon: LayoutDashboard },
       { label: "Reports", href: "/reports", permission: null, icon: FileSpreadsheet },
+    ],
+  },
+  {
+    label: "Tasks",
+    items: [
+      {
+        label: "Tasks",
+        href: "/tasks",
+        permission: taskPermissions.read,
+        icon: ListChecks,
+      },
+      {
+        label: "Task labels",
+        href: "/task-labels",
+        permission: taskLabelPermissions.read,
+        icon: Tags,
+      },
     ],
   },
   {

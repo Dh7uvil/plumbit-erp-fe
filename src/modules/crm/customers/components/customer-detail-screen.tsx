@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { ActivityTimeline } from "@/modules/crm/activities/components/activity-timeline";
+import { TasksPanel } from "@/modules/task-management/tasks/components/tasks-panel";
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
 import { CustomerForm } from "@/modules/crm/customers/components/customer-form";
 import {
@@ -409,6 +410,7 @@ export function CustomerDetailScreen({
           <CustomerSoldItemsCard customerId={customer.id} />
           <CustomerSalesHistoryCard customerId={customer.id} />
           <EntityAttachmentsPanel entityType="CUSTOMER" entityId={customer.id} />
+          <TasksPanel entityType="customer" entityId={customer.id} />
           <Tabs defaultValue="activities">
             <TabsList>
               <TabsTrigger value="activities">Activities</TabsTrigger>

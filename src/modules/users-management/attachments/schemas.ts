@@ -29,6 +29,7 @@ export const AttachmentEntityTypeSchema = z.enum([
   "CUSTOMER_PAYMENT",
   "SUPPLIER_PAYMENT",
   "LANDED_COST",
+  "TASK",
 ]);
 export type AttachmentEntityType = z.infer<typeof AttachmentEntityTypeSchema>;
 

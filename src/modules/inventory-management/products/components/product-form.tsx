@@ -79,7 +79,7 @@ function toFormValues(product: Product | null): ProductFormValues {
     purchase_account_id: product?.purchase_account_id ?? OPTIONAL_SELECT_NONE,
     hs_code: product?.hs_code ?? "",
     volume: product?.volume ?? "",
-    track_inventory: product?.track_inventory ?? false,
+    track_inventory: product?.track_inventory ?? true,
     requires_qc: product?.requires_qc ?? false,
     is_active: product?.is_active ?? true,
   };
