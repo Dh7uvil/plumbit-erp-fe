@@ -1,47 +1,30 @@
 /**
- * Generates src/shared/lib/generated-permissions.ts from the backend catalog.
+ * Generates src/shared/lib/generated-permissions.ts from the vendored catalog snapshot.
  *
- * Reads plumbit-erp-be/docs/permissions-catalog.json (export with:
- *   cd plumbit-erp-be && uv run python -c "from app.auth.catalog import CATALOG_PERMISSIONS, _CATALOG_ACTIONS; ..."
- * or re-run this script after updating app/auth/catalog.py).
+ * Source: src/shared/lib/permissions-catalog.json
+ * (copy from plumbit-erp-be/docs/permissions-catalog.json after exporting the backend catalog)
  *
- * Run: node scripts/generate-fe-permissions.mjs
+ * Run: npm run generate:permissions
+ * Check: npm run generate:permissions:check
+ * Sync from sibling backend checkout: npm run sync:permissions
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+import prettier from "prettier";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const feRoot = path.join(__dirname, "..");
-const beRoot = path.join(feRoot, "../../plumbit-erp-be");
-const catalogJson = path.join(beRoot, "docs/permissions-catalog.json");
+const catalogJson = path.join(feRoot, "src/shared/lib/permissions-catalog.json");
 const outFile = path.join(feRoot, "src/shared/lib/generated-permissions.ts");
-
-function refreshCatalogJson() {
-  const script = `
-from app.auth.catalog import CATALOG_PERMISSIONS, _CATALOG_ACTIONS
-import json
-from pathlib import Path
-payload = {
-    "permissions": sorted(CATALOG_PERMISSIONS),
-    "modules": {
-        module: {resource: list(actions) for resource, actions in resources.items()}
-        for module, resources in _CATALOG_ACTIONS.items()
-    },
-}
-Path("docs/permissions-catalog.json").write_text(json.dumps(payload, indent=2) + "\\n")
-`;
-  execSync(`uv run python -c ${JSON.stringify(script)}`, {
-    cwd: beRoot,
-    stdio: "inherit",
-  });
-}
+const beCatalogJson = path.join(feRoot, "../../plumbit-erp-be/docs/permissions-catalog.json");
 
 function loadCatalog() {
   if (!fs.existsSync(catalogJson)) {
-    console.log(`Missing ${catalogJson}; exporting from backend catalog...`);
-    refreshCatalogJson();
+    throw new Error(
+      `Missing ${catalogJson}. Copy plumbit-erp-be/docs/permissions-catalog.json here, ` +
+        "or run: npm run sync:permissions",
+    );
   }
   const raw = fs.readFileSync(catalogJson, "utf8");
   const parsed = JSON.parse(raw);
@@ -51,11 +34,7 @@ function loadCatalog() {
   return parsed;
 }
 
-function toConstName(code) {
-  return code.replace(/\./g, "_").replace(/-/g, "_").toUpperCase();
-}
-
-function generate(catalog) {
+function generateSource(catalog) {
   const permissions = [...catalog.permissions].sort();
   const lines = permissions.map((code) => `  "${code}",`).join("\n");
   const byModuleEntries = Object.entries(catalog.modules ?? {})
@@ -79,7 +58,7 @@ function generate(catalog) {
     .join("\n");
 
   return `/** Generated from plumbit-erp-be/app/auth/catalog.py — do not edit manually. */
-/** Regenerate: node scripts/generate-fe-permissions.mjs */
+/** Regenerate: npm run generate:permissions */
 
 export const catalogPermissions = [
 ${lines}
@@ -99,9 +78,49 @@ ${byModuleEntries}
 `;
 }
 
-const catalog = loadCatalog();
-fs.mkdirSync(path.dirname(outFile), { recursive: true });
-fs.writeFileSync(outFile, generate(catalog));
-console.log(
-  `Generated ${catalog.permissions.length} permissions in src/shared/lib/generated-permissions.ts`,
-);
+async function formatSource(source) {
+  const config = (await prettier.resolveConfig(outFile)) ?? {};
+  return prettier.format(source, { ...config, filepath: outFile });
+}
+
+async function buildOutput() {
+  const catalog = loadCatalog();
+  return formatSource(generateSource(catalog));
+}
+
+async function writeOutput(content) {
+  fs.mkdirSync(path.dirname(outFile), { recursive: true });
+  fs.writeFileSync(outFile, content);
+}
+
+async function main() {
+  const checkMode = process.argv.includes("--check");
+  const content = await buildOutput();
+
+  if (checkMode) {
+    if (!fs.existsSync(outFile)) {
+      console.error(`Missing ${outFile}. Run: npm run generate:permissions`);
+      process.exit(1);
+    }
+    const committed = fs.readFileSync(outFile, "utf8");
+    if (committed !== content) {
+      console.error(
+        "generated-permissions.ts is out of date.\nRun: npm run generate:permissions",
+      );
+      process.exit(1);
+    }
+    console.log("generated-permissions.ts is up to date");
+    return;
+  }
+
+  await writeOutput(content);
+  const count = loadCatalog().permissions.length;
+  console.log(`Generated ${count} permissions in src/shared/lib/generated-permissions.ts`);
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+});
+
+export { beCatalogJson, catalogJson, outFile };

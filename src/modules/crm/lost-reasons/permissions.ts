@@ -1,6 +1,8 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const lostReasonPermissions = {
   read: "crm.lost_reason.read",
   create: "crm.lost_reason.create",
   update: "crm.lost_reason.update",
   delete: "crm.lost_reason.delete",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;

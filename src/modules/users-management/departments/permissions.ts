@@ -1,6 +1,8 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const departmentPermissions = {
   read: "identity.department.read",
   create: "identity.department.create",
   update: "identity.department.update",
   delete: "identity.department.delete",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;

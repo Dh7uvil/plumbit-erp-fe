@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const proformaInvoicePermissions = {
   read: "sales.proforma_invoice.read",
   create: "sales.proforma_invoice.create",
@@ -7,4 +9,4 @@ export const proformaInvoicePermissions = {
   confirm: "sales.proforma_invoice.confirm",
   import: "sales.proforma_invoice.import",
   export: "sales.proforma_invoice.export",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;

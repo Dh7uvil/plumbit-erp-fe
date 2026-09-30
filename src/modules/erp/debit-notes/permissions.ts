@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const debitNotePermissions = {
   read: "purchase.debit_note.read",
   create: "purchase.debit_note.create",
@@ -5,4 +7,4 @@ export const debitNotePermissions = {
   delete: "purchase.debit_note.delete",
   post: "purchase.debit_note.post",
   cancel: "purchase.debit_note.cancel",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;
