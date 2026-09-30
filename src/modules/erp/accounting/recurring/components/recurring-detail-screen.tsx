@@ -8,6 +8,10 @@ import { toast } from "sonner";
 import { useGenerateRecurringDraft } from "@/modules/erp/accounting/recurring/mutations";
 import { recurringPermissions } from "@/modules/erp/accounting/recurring/permissions";
 import { useRecurringTemplate } from "@/modules/erp/accounting/recurring/queries";
+import {
+  recurringDocumentHref,
+  recurringDocumentKindLabel,
+} from "@/modules/erp/accounting/recurring/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -27,10 +31,6 @@ import {
 } from "@/shared/components/ui/table";
 import { formatDate, humanizeEnum } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
-
-function documentHref(kind: string, id: string): string {
-  return kind === "PURCHASE_INVOICE" ? `/purchase-invoices/${id}` : `/sales-invoices/${id}`;
-}
 
 export function RecurringDetailScreen({ templateId }: { templateId: string }) {
   const can = useCan();
@@ -106,7 +106,7 @@ export function RecurringDetailScreen({ templateId }: { templateId: string }) {
         }
       />
       <p className="text-muted-foreground text-sm">
-        {template.document_kind === "SALES_INVOICE" ? "Sales invoice" : "Purchase bill"} ·{" "}
+        {recurringDocumentKindLabel(template.document_kind)} ·{" "}
         {template.interval > 1
           ? `Every ${template.interval} ${humanizeEnum(template.frequency).toLowerCase()}`
           : humanizeEnum(template.frequency)}{" "}
@@ -143,7 +143,9 @@ export function RecurringDetailScreen({ templateId }: { templateId: string }) {
                     <TableCell>{formatDate(row.run_date)}</TableCell>
                     <TableCell>
                       {row.document_id ? (
-                        <RecordLink href={documentHref(row.document_kind, row.document_id)}>
+                        <RecordLink
+                          href={recurringDocumentHref(row.document_kind, row.document_id)}
+                        >
                           {row.document_number ?? "Open draft"}
                         </RecordLink>
                       ) : (

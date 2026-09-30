@@ -71,6 +71,7 @@ import { fxRevaluationPermissions } from "@/modules/erp/accounting/fx-revaluatio
 import { recurringPermissions } from "@/modules/erp/accounting/recurring/permissions";
 import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
+import { yearEndPermissions } from "@/modules/erp/accounting/year-end/permissions";
 import { chargeTypePermissions } from "@/modules/erp/accounting/charge-types/permissions";
 import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
@@ -78,7 +79,6 @@ import { dunningPermissions } from "@/modules/erp/accounting/dunning-rules/permi
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { periodLockPermissions } from "@/modules/erp/period-lock/permissions";
 import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
-import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
@@ -315,12 +315,6 @@ export const navigation: NavigationGroup[] = [
         icon: CircleDollarSign,
       },
       {
-        label: "Landed costs",
-        href: "/landed-costs",
-        permission: landedCostPermissions.read,
-        icon: PackageCheck,
-      },
-      {
         label: "Purchase returns",
         href: "/purchase-returns",
         permission: purchaseReturnPermissions.read,
@@ -476,6 +470,12 @@ export const navigation: NavigationGroup[] = [
         icon: CircleDollarSign,
       },
       {
+        label: "Year-end closing",
+        href: "/year-end",
+        permission: yearEndPermissions.manage,
+        icon: CalendarClock,
+      },
+      {
         label: "Period lock",
         href: "/period-lock",
         permission: periodLockPermissions.read,
@@ -595,14 +595,7 @@ export const navigation: NavigationGroup[] = [
         href: "/docs",
         permission: null,
         icon: BookOpen,
-        keywords: ["help", "guide", "documentation", "docs"],
-      },
-      {
-        label: "Common workflows",
-        href: "/docs/workflows",
-        permission: null,
-        icon: ListChecks,
-        keywords: ["workflow", "how to", "steps"],
+        keywords: ["help", "guide", "documentation", "docs", "workflow", "how to", "steps"],
       },
     ],
   },

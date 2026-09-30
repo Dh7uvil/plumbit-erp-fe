@@ -83,14 +83,3 @@ export function usePullCostSheetActuals(id: string) {
     },
   });
 }
-
-export function useCreateLandedCostFromSheet(id: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (options: CostSheetWriteOptions) => costSheetsApi.createLandedCost(id, options),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: costSheetKeys.all });
-      void queryClient.invalidateQueries({ queryKey: costSheetKeys.detail(id) });
-    },
-  });
-}

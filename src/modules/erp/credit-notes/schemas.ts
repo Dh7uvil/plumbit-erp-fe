@@ -106,6 +106,7 @@ export const CreditNoteSchema = z.object({
   subtotal: MoneySchema,
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
+  prices_include_tax: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   notes: z.string().nullable(),
@@ -166,6 +167,7 @@ export const CreditNoteCreateRequestSchema = z.object({
   adjustment_amount: MoneySchema.optional(),
   round_off_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   country_of_origin: z.string().max(2).nullable().optional(),
   lines: z.array(CreditNoteLineInputSchema),
 });
@@ -185,6 +187,7 @@ export const CreditNoteUpdateRequestSchema = z.object({
   adjustment_amount: MoneySchema.nullable().optional(),
   round_off_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   country_of_origin: z.string().max(2).nullable().optional(),
   lines: z.array(CreditNoteLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
@@ -252,6 +255,7 @@ export const CreditNoteFormSchema = z
     adjustment_amount: z.string(),
     round_off_amount: z.string(),
     place_of_supply: z.string(),
+    prices_include_tax: z.boolean(),
     country_of_origin: z.string(),
     lines: z.array(CreditNoteLineFormSchema),
   })

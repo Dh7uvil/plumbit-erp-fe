@@ -9,7 +9,7 @@ import {
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { CreateBillFromGoodsReceiptDialog } from "@/modules/erp/purchase-invoices/components/create-from-goods-receipt-dialog";
-import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
+import { GrnChargesReadOnlyCard } from "@/modules/inventory-management/goods-receipts/components/grn-charges-panel";
 import { GoodsReceiptForm } from "@/modules/inventory-management/goods-receipts/components/goods-receipt-form";
 import { useGoodsReceiptWorkflow } from "@/modules/inventory-management/goods-receipts/hooks/use-goods-receipt-workflow";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
@@ -116,7 +116,6 @@ function GoodsReceiptDetailLoaded({
   const onAction = useGoodsReceiptWorkflow(receipt);
   const [writeError, setWriteError] = useState<unknown>(null);
   const [billOpen, setBillOpen] = useState(false);
-  const [landedCostOpen, setLandedCostOpen] = useState(false);
   const workflowActions = receipt.available_actions;
   const canReadInspections = can(qualityInspectionPermissions.read);
   const inspectionsQuery = useQualityInspections(
@@ -179,10 +178,6 @@ function GoodsReceiptDetailLoaded({
             setWriteError(null);
             if (action === "create_bill") {
               setBillOpen(true);
-              return;
-            }
-            if (action === "create_landed_cost") {
-              setLandedCostOpen(true);
               return;
             }
             await onAction(action, extras);
@@ -248,6 +243,10 @@ function GoodsReceiptDetailLoaded({
       formTitle={isEdit ? "Edit goods receipt" : "Goods receipt"}
       panels={
         <>
+          <GrnChargesReadOnlyCard
+            charges={receipt.charges}
+            chargesTotal={receipt.charges_total}
+          />
           <RelatedDocumentsCard documents={receipt.related_documents} />
           <DocumentLedgerCard journalEntryId={receipt.journal_entry_id} />
         </>
@@ -269,11 +268,6 @@ function GoodsReceiptDetailLoaded({
       <CreateBillFromGoodsReceiptDialog
         open={billOpen}
         onOpenChange={setBillOpen}
-        goodsReceiptId={receipt.id}
-      />
-      <ComposeFromBillsDialog
-        open={landedCostOpen}
-        onOpenChange={setLandedCostOpen}
         goodsReceiptId={receipt.id}
       />
     </DocumentRecordShell>

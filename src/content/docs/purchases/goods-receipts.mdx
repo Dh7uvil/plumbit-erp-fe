@@ -36,7 +36,7 @@ See <DocLink href="/docs/getting-started/document-relationships">Document relati
 <StatusTable
   rows={[
     { status: "DRAFT", meaning: "Receipt quantities editable", actions: "Edit, post", effect: "None" },
-    { status: "POSTED", meaning: "Stock received", actions: "Create bill, purchase return, landed cost; cancel (if allowed)", effect: "On hand +, FIFO layer, GRNI, optional QC hold" },
+    { status: "POSTED", meaning: "Stock received", actions: "Create bill, purchase return; cancel (if allowed)", effect: "On hand +, FIFO layer, GRNI, optional QC hold" },
     { status: "CANCELLED", meaning: "Voided posted receipt", actions: "—", effect: "Reverses stock, GRNI, PO/bill qty counters" },
   ]}
 />
@@ -109,7 +109,11 @@ A posted GRN **cannot be cancelled** if the linked PO has **any** billing, even 
 
 ## Downstream documents
 
-From a **posted** GRN you can create: bill, purchase return, landed cost allocation target. Quality inspection is auto-created when QC is required.
+From a **posted** GRN you can create: bill and purchase return. Quality inspection is auto-created when QC is required.
+
+## Import charges
+
+On draft GRNs you can enter **inventoriable import charges** (freight, duty, etc.) per active charge type. Amounts are stored on the GRN and allocated across product lines when the receipt is posted, increasing FIFO unit cost. Expensed charges belong on purchase bills, not on the GRN.
 
 ## Related
 

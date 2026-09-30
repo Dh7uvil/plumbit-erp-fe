@@ -170,6 +170,7 @@ function toFormValues(
     tax_treatment: quotation?.tax_treatment ?? "",
     bill_to_snapshot: quotation?.bill_to_snapshot ?? "",
     ship_to_snapshot: quotation?.ship_to_snapshot ?? "",
+    prices_include_tax: quotation?.prices_include_tax ?? false,
     lines: toFormLines(quotation),
   };
 }
@@ -197,6 +198,7 @@ function toCreateRequest(
     shipping_amount: values.shipping_amount.trim() || "0",
     adjustment_amount: values.adjustment_amount.trim() || "0",
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
+    prices_include_tax: values.prices_include_tax,
     lines: values.lines.filter((line) => !isBlankQuotationLine(line)).map(toLineInput),
   };
 }
@@ -219,6 +221,7 @@ function toUpdateRequest(values: QuotationFormValues): QuotationUpdateRequest {
     shipping_amount: created.shipping_amount,
     adjustment_amount: created.adjustment_amount,
     place_of_supply: created.place_of_supply,
+    prices_include_tax: created.prices_include_tax,
     lines: created.lines,
   };
 }
@@ -764,7 +767,13 @@ export function QuotationForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor form={form} disabled={disabled} productSide="sales" showPacking />
+          <DocumentLinesEditor
+            form={form}
+            disabled={disabled}
+            productSide="sales"
+            showPacking
+            showPricesIncludeTax
+          />
         </div>
         {quotation ? <DocumentTotalsPanel totals={quotation} currencies={currencies} /> : null}
         <div className="grid grid-cols-1 gap-3">

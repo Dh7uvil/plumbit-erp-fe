@@ -4,10 +4,13 @@ import {
   BankAccountListSchema,
   BankAccountSchema,
   BankAccountUpdateRequestSchema,
+  BankBalanceProjectionSchema,
   type BankAccount,
   type BankAccountCreateRequest,
   type BankAccountListParams,
   type BankAccountUpdateRequest,
+  type BankBalanceProjection,
+  type BankBalanceProjectionParams,
 } from "@/modules/erp/accounting/bank-accounts/schemas";
 import { apiClient } from "@/shared/api/client";
 import type { ListResponse } from "@/shared/api/envelope";
@@ -42,4 +45,16 @@ export const bankAccountsApi = {
     ),
   delete: async (id: string): Promise<BankAccount> =>
     BankAccountSchema.parse(await apiClient.delete(`/bank-accounts/${id}`)),
+  balanceProjection: async (
+    id: string,
+    params: BankBalanceProjectionParams = {},
+  ): Promise<BankBalanceProjection> =>
+    BankBalanceProjectionSchema.parse(
+      await apiClient.get(`/bank-accounts/${id}/balance-projection`, {
+        params: {
+          as_of: params.as_of,
+          horizon_days: params.horizon_days,
+        },
+      }),
+    ),
 };

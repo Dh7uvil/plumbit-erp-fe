@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { voucherColumnDefs } from "@/modules/erp/accounting/vouchers/components/voucher-columns";
+import { entryBookFor } from "@/modules/erp/accounting/vouchers/entry-books";
 import { useDeleteVoucher } from "@/modules/erp/accounting/vouchers/mutations";
 import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
 import { useVouchers } from "@/modules/erp/accounting/vouchers/queries";
@@ -181,7 +182,9 @@ export function VouchersScreen({
 
   const rows = query.data?.data ?? [];
   const meta = query.data?.meta;
-  const newHref = voucherType ? `/vouchers/new?voucher_type=${voucherType}` : "/vouchers/new";
+  const newHref = voucherType
+    ? entryBookFor(voucherType).newEntryHref
+    : "/vouchers/entry";
   const hasActiveFilters =
     Boolean(search) ||
     Boolean(filters.status) ||

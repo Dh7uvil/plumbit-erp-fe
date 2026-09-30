@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import type { FieldValues, Path, PathValue, UseFormReturn } from "react-hook-form";
 
 import { useActiveChargeTypes } from "@/modules/erp/accounting/charge-types/queries";
 import type { ChargeType } from "@/modules/erp/accounting/charge-types/schemas";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
-import type { PurchaseInvoiceFormValues } from "@/modules/erp/purchase-invoices/schemas";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
 import {
@@ -17,8 +16,29 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 
-type Props = {
-  form: UseFormReturn<PurchaseInvoiceFormValues>;
+export type DocumentChargeLine = {
+  line_type?: string;
+  charge_type_id?: string;
+  description?: string;
+  quantity?: string;
+  rate?: string;
+  tax_id?: string;
+  expense_category?: string;
+  expense_account_id?: string;
+  product_id?: string;
+  supplier_product_id?: string;
+  supplier_sku?: string;
+  unit_id?: string;
+  discount_type?: string;
+  discount_value?: string;
+  purchase_order_line_id?: string;
+  goods_receipt_id?: string;
+  goods_receipt_line_id?: string;
+  grn_unit_cost?: string;
+};
+
+type Props<TFieldValues extends FieldValues & { lines: DocumentChargeLine[] }> = {
+  form: UseFormReturn<TFieldValues>;
   disabled?: boolean;
   appliesTo?: "IMPORT" | "EXPORT" | "BOTH";
 };
@@ -30,10 +50,41 @@ function chargeApplies(charge: ChargeType, appliesTo: "IMPORT" | "EXPORT" | "BOT
   return charge.applies_to === appliesTo || charge.applies_to === "BOTH";
 }
 
-export function DocumentChargesPanel({ form, disabled, appliesTo = "IMPORT" }: Props) {
+export function createDocumentChargeLine(
+  charge: ChargeType,
+  amount: string,
+  taxId: string,
+): DocumentChargeLine {
+  return {
+    line_type: "EXPENSE",
+    charge_type_id: charge.id,
+    description: charge.name,
+    quantity: "1",
+    rate: amount,
+    tax_id: taxId,
+    expense_category: OPTIONAL_SELECT_NONE,
+    expense_account_id: OPTIONAL_SELECT_NONE,
+    product_id: OPTIONAL_SELECT_NONE,
+    supplier_product_id: OPTIONAL_SELECT_NONE,
+    supplier_sku: "",
+    unit_id: OPTIONAL_SELECT_NONE,
+    discount_type: OPTIONAL_SELECT_NONE,
+    discount_value: "",
+    purchase_order_line_id: "",
+    goods_receipt_id: "",
+    goods_receipt_line_id: "",
+    grn_unit_cost: "",
+  };
+}
+
+export function DocumentChargesPanel<TFieldValues extends FieldValues & { lines: DocumentChargeLine[] }>({
+  form,
+  disabled,
+  appliesTo = "IMPORT",
+}: Props<TFieldValues>) {
   const chargeTypesQuery = useActiveChargeTypes();
   const taxesQuery = useAllTaxes();
-  const lines = form.watch("lines");
+  const lines = form.watch("lines" as Path<TFieldValues>) as DocumentChargeLine[];
 
   const charges = useMemo(
     () =>
@@ -75,28 +126,13 @@ export function DocumentChargesPanel({ form, disabled, appliesTo = "IMPORT" }: P
     );
     const next = [...productLines, ...otherChargeLines];
     if (hasAmount) {
-      next.push({
-        line_type: "EXPENSE",
-        charge_type_id: charge.id,
-        description: charge.name,
-        quantity: "1",
-        rate: normalized,
-        tax_id: taxId,
-        expense_category: OPTIONAL_SELECT_NONE,
-        expense_account_id: OPTIONAL_SELECT_NONE,
-        product_id: OPTIONAL_SELECT_NONE,
-        supplier_product_id: OPTIONAL_SELECT_NONE,
-        supplier_sku: "",
-        unit_id: OPTIONAL_SELECT_NONE,
-        discount_type: OPTIONAL_SELECT_NONE,
-        discount_value: "",
-        purchase_order_line_id: "",
-        goods_receipt_id: "",
-        goods_receipt_line_id: "",
-        grn_unit_cost: "",
-      });
+      next.push(createDocumentChargeLine(charge, normalized, taxId));
     }
-    form.setValue("lines", next, { shouldDirty: true });
+    form.setValue(
+      "lines" as Path<TFieldValues>,
+      next as PathValue<TFieldValues, Path<TFieldValues>>,
+      { shouldDirty: true },
+    );
   };
 
   if (chargeTypesQuery.isLoading) {
@@ -108,8 +144,8 @@ export function DocumentChargesPanel({ form, disabled, appliesTo = "IMPORT" }: P
       <div>
         <p className="text-sm font-medium">Import / export charges</p>
         <p className="text-muted-foreground text-xs">
-          Enter amounts per charge. Capitalized charges flow to stock via landed cost; expensed
-          charges post directly to P&amp;L.
+          Enter amounts per charge. Capitalized charges increase inventory cost; expensed charges
+          post directly to P&amp;L.
         </p>
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

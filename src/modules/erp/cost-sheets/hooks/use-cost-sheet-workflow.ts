@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import {
   useCloseCostSheet,
   useConfirmCostSheet,
-  useCreateLandedCostFromSheet,
   useDeleteCostSheet,
   usePullCostSheetActuals,
   useReopenCostSheet,
@@ -21,7 +20,6 @@ export function useCostSheetWorkflow(document: CostSheet) {
   const close = useCloseCostSheet(document.id);
   const reopen = useReopenCostSheet(document.id);
   const pullActuals = usePullCostSheetActuals(document.id);
-  const createLandedCost = useCreateLandedCostFromSheet(document.id);
   const deleteDocument = useDeleteCostSheet();
   const write = { version: document.version };
 
@@ -39,10 +37,6 @@ export function useCostSheetWorkflow(document: CostSheet) {
     } else if (action === "pull_actuals") {
       await pullActuals.mutateAsync(write);
       toast.success("Actuals refreshed");
-    } else if (action === "create_landed_cost") {
-      const landed = await createLandedCost.mutateAsync(write);
-      toast.success("Landed cost created");
-      router.push(`/landed-costs/${landed.id}`);
     } else if (action === "delete") {
       await deleteDocument.mutateAsync({ id: document.id, options: write });
       toast.success("Cost sheet deleted");

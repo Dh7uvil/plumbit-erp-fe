@@ -10,7 +10,7 @@ Cost sheets plan and reconcile **landed unit costs** for import or export trades
 | **Post-landed reconciliation** | Pull actual amounts from posted expense bills; compare to estimates |
 | **Selling price target** | Optional target selling price and expected margin per line |
 
-Cost sheets are **informational** — confirming or closing a sheet does not post stock or GL entries. Actual capitalization happens on <DocLink href="/docs/purchases/landed-costs">landed cost</DocLink> post.
+Cost sheets are **informational** — confirming or closing a sheet does not post stock or GL entries. Actual capitalization of inventoriable charges happens when the linked <DocLink href="/docs/purchases/goods-receipts">goods receipt</DocLink> is posted with import charges.
 
 ## Types and status
 
@@ -44,7 +44,7 @@ A cost sheet can reference:
 - Purchase order (`purchase_order_id`)
 - Supplier or customer
 - Proforma invoice (export)
-- Posted landed cost document (`landed_cost_id`) after capitalization
+- Posted goods receipt with import charges (via GRN line actuals after pull actuals)
 
 ## Allocation method
 

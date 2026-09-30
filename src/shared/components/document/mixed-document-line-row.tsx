@@ -36,6 +36,7 @@ import {
 import { TableCell, TableRow } from "@/shared/components/ui/table";
 import {
   formatFixedDecimal,
+  minDecimals,
   multiplyDecimals,
   subtractDecimals,
 } from "@/shared/lib/format";
@@ -88,7 +89,8 @@ function LineAmountPreview({ form, index }: { form: UseFormReturn<FieldValues>; 
       const discountAmount = pct ? multiplyDecimals(lineTotal, pct) : null;
       net = discountAmount ? (subtractDecimals(lineTotal, discountAmount) ?? lineTotal) : lineTotal;
     } else if (type === "AMOUNT") {
-      net = subtractDecimals(lineTotal, disc) ?? lineTotal;
+      const capped = minDecimals(disc, lineTotal) ?? disc;
+      net = subtractDecimals(lineTotal, capped) ?? lineTotal;
     }
   }
   return (
@@ -109,6 +111,7 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
   catalog,
   supplierId,
   showSupplierSku,
+  showImportMetrics = false,
   onApplyProduct,
   onApplyCatalogRow,
   onRemove,
@@ -126,6 +129,7 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
   catalog: SupplierProduct[];
   supplierId: string | null;
   showSupplierSku: boolean;
+  showImportMetrics?: boolean;
   onApplyProduct: (index: number, productId: string) => void;
   onApplyCatalogRow: (index: number, row: SupplierProduct) => void;
   onRemove: (index: number) => void;
@@ -400,6 +404,44 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
           )}
         />
       </TableCell>
+      {isExpense ? (
+        showImportMetrics ? (
+          <>
+            <TableCell className="text-muted-foreground text-sm">—</TableCell>
+            <TableCell className="text-muted-foreground text-sm">—</TableCell>
+            <TableCell className="text-muted-foreground text-sm">—</TableCell>
+          </>
+        ) : null
+      ) : showImportMetrics ? (
+        (
+          [
+            ["net_weight", "net weight"],
+            ["gross_weight", "gross weight"],
+            ["volume", "volume"],
+          ] as const
+        ).map(([name, label]) => (
+          <TableCell key={name} className="w-24 min-w-24 align-top">
+            <FormField
+              control={form.control}
+              name={linePath<TFieldValues>(index, name)}
+              render={({ field: metricField }) => (
+                <FormItem>
+                  <FormControl>
+                    <DecimalInput
+                      kind="quantity"
+                      className="w-full min-w-0 text-right"
+                      disabled={disabled}
+                      aria-label={`Line ${index + 1} ${label}`}
+                      {...metricField}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TableCell>
+        ))
+      ) : null}
       {isExpense ? (
         <>
           <TableCell className="text-muted-foreground text-sm">—</TableCell>

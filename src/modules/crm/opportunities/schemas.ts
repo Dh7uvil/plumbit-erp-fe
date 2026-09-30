@@ -41,6 +41,7 @@ export const OpportunitySchema = z.object({
   source_id: z.string().uuid().nullable(),
   lead_id: z.string().uuid().nullable(),
   campaign_id: z.string().uuid().nullable(),
+  closed_at: z.string().nullable().optional().default(null),
   version: z.number().int(),
   available_actions: z.array(z.string()).default([]),
   created_at: z.string(),

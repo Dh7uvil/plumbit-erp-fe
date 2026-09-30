@@ -1,5 +1,4 @@
 import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
-import { landedCostPermissions } from "@/modules/erp/landed-costs/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
 export const COST_SHEET_WORKFLOW_ACTIONS = [
@@ -7,7 +6,6 @@ export const COST_SHEET_WORKFLOW_ACTIONS = [
   "close",
   "reopen",
   "pull_actuals",
-  "create_landed_cost",
   "delete",
 ] as const;
 export type CostSheetWorkflowAction = (typeof COST_SHEET_WORKFLOW_ACTIONS)[number];
@@ -39,13 +37,6 @@ export const COST_SHEET_ACTION_REGISTRY: DocumentActionSpec<CostSheetWorkflowAct
     permission: costSheetPermissions.update,
     confirmCopy: (documentNumber) =>
       `Refresh charge and GRN layer actuals on ${documentNumber} from posted documents.`,
-  },
-  {
-    action: "create_landed_cost",
-    label: "Create landed cost",
-    permission: landedCostPermissions.create,
-    confirmCopy: (documentNumber) =>
-      `Create a draft landed cost from confirmed charges on ${documentNumber}. The cost sheet does not post to the GL.`,
   },
   {
     action: "delete",

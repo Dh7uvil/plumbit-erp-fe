@@ -43,6 +43,12 @@ export const reportCatalog: ReportCatalogGroup[] = [
         icon: Scale,
       },
       {
+        label: "GL integrity",
+        href: "/reports/gl-integrity",
+        permission: reportPermissions.ledger,
+        icon: ClipboardCheck,
+      },
+      {
         label: "General ledger",
         href: "/reports/general-ledger",
         permission: reportPermissions.ledger,
@@ -65,6 +71,12 @@ export const reportCatalog: ReportCatalogGroup[] = [
         href: "/reports/bank-book",
         permission: reportPermissions.ledger,
         icon: Landmark,
+      },
+      {
+        label: "PDC register",
+        href: "/reports/pdc-register",
+        permission: reportPermissions.ledger,
+        icon: ScrollText,
       },
       {
         label: "Account statement",
@@ -113,6 +125,12 @@ export const reportCatalog: ReportCatalogGroup[] = [
         href: "/reports/purchase-analysis",
         permission: reportPermissions.financial,
         icon: FileSpreadsheet,
+      },
+      {
+        label: "Ratio analysis",
+        href: "/reports/ratio-analysis",
+        permission: reportPermissions.financial,
+        icon: Scale,
       },
     ],
   },

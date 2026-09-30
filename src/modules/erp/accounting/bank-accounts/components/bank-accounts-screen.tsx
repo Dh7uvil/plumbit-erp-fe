@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { BankAccountForm } from "@/modules/erp/accounting/bank-accounts/components/bank-account-form";
+import { BankBalanceProjectionPanel } from "@/modules/erp/accounting/bank-accounts/components/bank-balance-projection-panel";
 import { useDeleteBankAccount } from "@/modules/erp/accounting/bank-accounts/mutations";
 import { bankAccountPermissions } from "@/modules/erp/accounting/bank-accounts/permissions";
 import { useBankAccounts } from "@/modules/erp/accounting/bank-accounts/queries";
@@ -38,6 +39,7 @@ export function BankAccountsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<BankAccount | null>(null);
   const [deleting, setDeleting] = useState<BankAccount | null>(null);
+  const [projecting, setProjecting] = useState<BankAccount | null>(null);
   const showActions = hasRowActions(canRead, canUpdate, canDelete);
   const rows = query.data?.data ?? [];
   const meta = query.data?.meta;
@@ -49,14 +51,21 @@ export function BankAccountsScreen() {
       { id: "account_number", header: "Number", cell: (row) => row.account_number ?? "—" },
       { id: "is_default", header: "Default", cell: (row) => (row.is_default ? "Yes" : "No") },
       { id: "is_active", header: "Status", cell: (row) => <ActiveBadge active={row.is_active} /> },
-      ...actionsColumn<BankAccount>(showActions, (row) => (
+      ...actionsColumn<BankAccount>(showActions || canRead, (row) => (
         <DataTableRowActions
           onEdit={canUpdate ? () => setEditing(row) : undefined}
           onDelete={canDelete ? () => setDeleting(row) : undefined}
+          extra={
+            canRead ? (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setProjecting(row)}>
+                Projection
+              </Button>
+            ) : undefined
+          }
         />
       )),
     ],
-    [canDelete, canUpdate, showActions],
+    [canDelete, canRead, canUpdate, showActions],
   );
   const { columns: columnsForTable, colSpan } = useTableColumns("bank-accounts", columns);
 
@@ -145,6 +154,14 @@ export function BankAccountsScreen() {
               onSuccess={() => setEditing(null)}
             />
           ) : null}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(projecting)} onOpenChange={(open) => !open && setProjecting(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Balance projection</DialogTitle>
+          </DialogHeader>
+          {projecting ? <BankBalanceProjectionPanel bankAccount={projecting} /> : null}
         </DialogContent>
       </Dialog>
       <ConfirmActionDialog

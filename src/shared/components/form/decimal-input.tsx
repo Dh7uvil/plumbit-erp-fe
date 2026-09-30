@@ -9,7 +9,7 @@ export type DecimalInputKind = "money" | "quantity" | "percent";
 
 const KIND_DIGITS: Record<DecimalInputKind, number> = {
   money: 2,
-  quantity: 2,
+  quantity: 6,
   percent: 2,
 };
 

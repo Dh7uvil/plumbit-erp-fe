@@ -128,6 +128,7 @@ function toFormValues(note: CreditNote | null, defaultCurrencyId?: string): Cred
     adjustment_amount: note?.adjustment_amount ?? "0",
     round_off_amount: note?.round_off_amount ?? "0",
     place_of_supply: note?.place_of_supply ?? OPTIONAL_SELECT_NONE,
+    prices_include_tax: note?.prices_include_tax ?? false,
     country_of_origin: note?.country_of_origin ?? "",
     lines: toFormLines(note),
   };
@@ -153,6 +154,7 @@ function toCreateRequest(values: CreditNoteFormValues): CreditNoteCreateRequest 
     place_of_supply: PLACES_OF_SUPPLY.includes(values.place_of_supply as PlaceOfSupply)
       ? (values.place_of_supply as PlaceOfSupply)
       : null,
+    prices_include_tax: values.prices_include_tax,
     country_of_origin: emptyToNull(values.country_of_origin)?.toUpperCase() ?? null,
     lines: values.lines.filter((line) => !isBlankCreditNoteLine(line)).map(toLineInput),
   };
@@ -174,6 +176,7 @@ function toUpdateRequest(values: CreditNoteFormValues): CreditNoteUpdateRequest 
     adjustment_amount: created.adjustment_amount,
     round_off_amount: created.round_off_amount,
     place_of_supply: created.place_of_supply,
+    prices_include_tax: created.prices_include_tax,
     country_of_origin: created.country_of_origin,
     lines: created.lines,
   };
@@ -418,6 +421,7 @@ export function CreditNoteForm({
             disabled={disabled || sourced}
             productSide="sales"
             showHsCode
+            showPricesIncludeTax
           />
         </div>
         {note ? <DocumentTotalsPanel totals={note} currencies={currencies} /> : null}

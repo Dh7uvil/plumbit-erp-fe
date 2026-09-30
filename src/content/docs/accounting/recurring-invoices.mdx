@@ -1,4 +1,4 @@
-Recurring templates **generate draft sales invoices or purchase bills** on a schedule. Generation never posts — a user must review and post each draft like any other document.
+Recurring templates **generate draft sales invoices, purchase bills, or standing journal vouchers** on a schedule. Generation never posts — a user must review and post each draft like any other document.
 
 <AppLink href="/recurring">Open recurring templates</AppLink>
 
@@ -8,7 +8,7 @@ Recurring templates **generate draft sales invoices or purchase bills** on a sch
 |---|---|
 | Schedule | `next_run_date` advanced by frequency (monthly, quarterly, etc.) |
 | Worker | Due active templates enqueue generation events |
-| Output | **DRAFT** sales invoice or bill copied from template lines |
+| Output | **DRAFT** sales invoice, bill, or **JOURNAL** voucher copied from template payload |
 | Idempotency | One draft per template per run date — duplicates rejected |
 
 Templates with status **ACTIVE** generate on or after `next_run_date`. Completed templates (past end date) move to **COMPLETED**.

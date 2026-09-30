@@ -144,18 +144,18 @@ const HISTORY_RESOURCES = [
     hasApprovals: true,
   },
   {
-    slug: "landed-costs",
-    entityType: "landed_cost",
-    listHref: "/landed-costs",
-    label: "Landed costs",
-    hasApprovals: true,
-  },
-  {
     slug: "journals",
     entityType: "journal_entry",
     listHref: "/journals",
     label: "Journals",
     hasApprovals: true,
+  },
+  {
+    slug: "cheques",
+    entityType: "cheque",
+    listHref: "/cheques",
+    label: "Cheques",
+    hasApprovals: false,
   },
   {
     slug: "customers",

@@ -3083,14 +3083,18 @@ function dayBookReport(bookKind, accountId, from, to) {
   };
 }
 
-function accountStatementReport(partyType, partyId, from, to) {
+function accountStatementReport(partyType, partyId, accountId, from, to) {
   const rows = [];
   for (const journal of journals.values()) {
     if (journal.status !== "POSTED") {
       continue;
     }
     for (const line of journal.lines) {
-      if (line.party_id !== partyId || (partyType && line.party_type !== partyType)) {
+      if (accountId) {
+        if (line.account_id !== accountId) {
+          continue;
+        }
+      } else if (line.party_id !== partyId || (partyType && line.party_type !== partyType)) {
         continue;
       }
       rows.push({ journal, line });
@@ -3123,9 +3127,13 @@ function accountStatementReport(partyType, partyId, from, to) {
       description: row.line.description,
     });
   }
+  const account = accountId ? accounts.get(accountId) : null;
   return {
     party_type: partyType,
     party_id: partyId,
+    account_id: accountId,
+    account_code: account?.code ?? null,
+    account_name: account?.name ?? null,
     from_date: from,
     to_date: to,
     opening_balance: money4(opening),
@@ -3246,7 +3254,7 @@ function me() {
       created_at: NOW,
       updated_at: NOW,
       roles: [{ id: EMPLOYEE_ROLE_ID, name: "Employee", is_system_role: false }],
-      permissions: ["users.auth.change_password", "inventory.unit.read"],
+      permissions: ["inventory.unit.read"],
     };
   }
   return {
@@ -3265,7 +3273,6 @@ function me() {
       { id: EMPLOYEE_ROLE_ID, name: "Employee", is_system_role: false },
     ],
     permissions: [
-      "users.auth.change_password",
       "erp.currency.read",
       "erp.currency.create",
       "erp.currency.update",
@@ -3392,8 +3399,8 @@ function me() {
       "erp.purchase_order.approve",
       "erp.purchase_order.issue",
       "erp.purchase_order.close",
-      "erp.period.lock",
-      "erp.period.override",
+      "accounting.period.lock",
+      "accounting.period.override",
       "erp.supplier.read",
       "erp.supplier.create",
       "erp.supplier.update",
@@ -3415,6 +3422,9 @@ function me() {
       "erp.journal_entry.reverse",
       "erp.opening_balance.manage",
       "erp.report.ledger",
+      "reports.report.ledger",
+      "reports.report.financial",
+      "reports.report.export",
       "identity.attachment.read",
       "identity.attachment.create",
       "identity.attachment.update",
@@ -4782,7 +4792,7 @@ const server = http.createServer(async (req, res) => {
             ],
           },
           {
-            module: "erp",
+            module: "accounting",
             resources: [
               {
                 resource: "period",
@@ -4790,13 +4800,13 @@ const server = http.createServer(async (req, res) => {
                   {
                     id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
                     action: "lock",
-                    code: "erp.period.lock",
+                    code: "accounting.period.lock",
                     granted: true,
                   },
                   {
                     id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
                     action: "override",
-                    code: "erp.period.override",
+                    code: "accounting.period.override",
                     granted: true,
                   },
                 ],
@@ -6631,9 +6641,10 @@ const server = http.createServer(async (req, res) => {
       }
       const partyType = url.searchParams.get("party_type");
       const partyId = url.searchParams.get("party_id");
+      const accountId = url.searchParams.get("account_id");
       const from = url.searchParams.get("from") ?? url.searchParams.get("from_date");
       const to = url.searchParams.get("to") ?? url.searchParams.get("to_date");
-      ok(res, accountStatementReport(partyType, partyId, from, to));
+      ok(res, accountStatementReport(partyType, partyId, accountId, from, to));
       return;
     }
 

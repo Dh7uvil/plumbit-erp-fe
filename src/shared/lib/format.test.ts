@@ -2,16 +2,21 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareDecimals,
+  formatBalanceWithSide,
   formatDecimal,
   formatFixedDecimal,
   formatMoney,
   formatPercent,
   formatQuantity,
   formatQuantitySummary,
+  formatRate,
+  formatRawDecimal,
   humanizeEnum,
   isZeroDecimal,
+  minDecimals,
   multiplyDecimals,
   normalizeDecimalInput,
+  proportionDecimal,
   subtractDecimals,
 } from "@/shared/lib/format";
 
@@ -84,6 +89,38 @@ describe("formatQuantitySummary", () => {
   it("formats qty values inside tracker summaries", () => {
     expect(formatQuantitySummary("1 lines · qty 2.000000")).toBe("1 lines · qty 2.00");
     expect(formatQuantitySummary("qty 1.250000")).toBe("qty 1.25");
+  });
+});
+
+describe("formatRate", () => {
+  it("rounds exchange rates to two fraction digits", () => {
+    expect(digitsAndDot(formatRate("3.672500"))).toBe("3.67");
+    expect(digitsAndDot(formatRate("1.234567"))).toBe("1.23");
+  });
+});
+
+describe("proportionDecimal", () => {
+  it("rounds half-up when allocating a proportion", () => {
+    expect(proportionDecimal("1", "3", "10.0000")).toBe("3.3333");
+    expect(proportionDecimal("2", "3", "10.0000")).toBe("6.6667");
+  });
+});
+
+describe("minDecimals", () => {
+  it("returns the smaller amount discount cap", () => {
+    expect(minDecimals("5.00", "12.50", 2)).toBe("5.00");
+    expect(minDecimals("15.00", "12.50", 2)).toBe("12.50");
+  });
+});
+
+describe("formatBalanceWithSide", () => {
+  it("appends DR or CR side labels to formatted money", () => {
+    expect(formatBalanceWithSide("1250.0000", "DR", "AED")).toMatch(/DR$/);
+    expect(formatBalanceWithSide("1250.0000", "CR", "AED")).toMatch(/CR$/);
+  });
+
+  it("returns money only when side is missing", () => {
+    expect(formatBalanceWithSide("1250.0000", null, "AED")).not.toMatch(/DR|CR/);
   });
 });
 
@@ -162,9 +199,16 @@ describe("formatDecimal", () => {
     expect(formatDecimal("")).toBe("—");
   });
 
+  it("rounds to two fraction digits", () => {
+    expect(digitsAndDot(formatDecimal("1.234567"))).toBe("1.23");
+    expect(digitsAndDot(formatDecimal("3.672500"))).toBe("3.67");
+  });
+});
+
+describe("formatRawDecimal", () => {
   it("preserves extra FX digits without padding", () => {
-    expect(formatDecimal("1.234567")).toMatch(/1\.234567/);
-    expect(formatDecimal("3.672500")).toMatch(/3\.672500/);
+    expect(formatRawDecimal("1.234567")).toMatch(/1\.234567/);
+    expect(formatRawDecimal("3.672500")).toMatch(/3\.672500/);
   });
 });
 

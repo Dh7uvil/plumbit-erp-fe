@@ -45,7 +45,7 @@ const MATRIX: PermissionMatrixResponse = {
       ],
     },
     {
-      module: "erp",
+      module: "accounting",
       resources: [
         {
           resource: "period",
@@ -53,7 +53,7 @@ const MATRIX: PermissionMatrixResponse = {
             {
               id: "44444444-4444-4444-8444-444444444444",
               action: "lock",
-              code: "erp.period.lock",
+              code: "accounting.period.lock",
               granted: false,
             },
           ],

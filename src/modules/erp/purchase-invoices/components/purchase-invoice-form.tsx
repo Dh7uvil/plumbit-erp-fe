@@ -196,6 +196,7 @@ function toFormValues(
     is_reverse_charge: invoice?.is_reverse_charge ?? false,
     supplier_trn: invoice?.supplier_trn ?? "",
     tax_treatment: invoice?.tax_treatment ?? "",
+    prices_include_tax: invoice?.prices_include_tax ?? false,
     lines: toFormLines(invoice),
   };
 }
@@ -221,6 +222,7 @@ function toCreateRequest(values: PurchaseInvoiceFormValues): PurchaseInvoiceCrea
     round_off_amount: values.round_off_amount.trim() || "0",
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
     is_reverse_charge: values.is_reverse_charge,
+    prices_include_tax: values.prices_include_tax,
     lines: values.lines.filter((line) => !isBlankPurchaseInvoiceLine(line)).map(toLineInput),
   };
 }
@@ -246,6 +248,7 @@ function toUpdateRequest(values: PurchaseInvoiceFormValues): PurchaseInvoiceUpda
     round_off_amount: created.round_off_amount,
     place_of_supply: created.place_of_supply,
     is_reverse_charge: created.is_reverse_charge,
+    prices_include_tax: created.prices_include_tax,
     lines: created.lines,
   };
 }
@@ -729,6 +732,7 @@ export function PurchaseInvoiceForm({
             disabled={disabled || sourced}
             productSide="purchase"
             lineMode="mixed"
+            showPricesIncludeTax
             supplierCatalog={selectedSupplierId ? { supplierId: selectedSupplierId } : undefined}
           />
         </div>

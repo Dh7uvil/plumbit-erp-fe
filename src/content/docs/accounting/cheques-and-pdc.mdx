@@ -60,6 +60,18 @@ Status returns to **BOUNCED**; unapplied amount resets to full cheque amount.
 Inbound cheques can skip **DEPOSITED** and go **ISSUED → CLEARED** directly. Deposit is tracking-only with no additional GL entry.
 </Callout>
 
+## PDC register and bank projection
+
+| Report / endpoint | Purpose |
+|---|---|
+| **PDC register** (`GET /reports/pdc-register`) | Uncleared cheques by due date, direction, and bank |
+| **Bank balance projection** (`GET /bank-accounts/{id}/balance-projection`) | Book balance plus inbound/outbound PDC due within a horizon |
+| **cheque-due-scan** CLI | Operations scan for cheques due within a lookahead window |
+
+Account statements accept `include_pdc=true` to show pending PDC lines with voucher code **PD**.
+
+Cheques support print with **amount in words** via `GET /cheques/{id}/print`.
+
 ## Related
 
 - Payments (non-cheque): <DocLink href="/docs/sales/customer-payments">Customer payments</DocLink>, <DocLink href="/docs/purchases/supplier-payments">Supplier payments</DocLink>

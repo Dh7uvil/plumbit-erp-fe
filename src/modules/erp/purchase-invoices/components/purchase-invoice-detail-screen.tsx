@@ -11,13 +11,11 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
-import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
 import { CreateGoodsReceiptFromPurchaseInvoiceDialog } from "@/modules/inventory-management/goods-receipts/components/create-from-purchase-invoice-dialog";
 import { ApplyDebitsDialog } from "@/modules/erp/purchase-invoices/components/apply-debits-dialog";
 import { PurchaseInvoiceWriteOffDialog } from "@/modules/erp/purchase-invoices/components/write-off-dialog";
 import { PurchaseOrderCycleCard } from "@/modules/erp/purchase-orders/components/purchase-order-cycle-card";
 import { PurchaseInvoiceForm } from "@/modules/erp/purchase-invoices/components/purchase-invoice-form";
-import { PurchaseInvoiceLandedCostCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-landed-cost-card";
 import { PurchaseInvoiceReverseChargeCard } from "@/modules/erp/purchase-invoices/components/purchase-invoice-reverse-charge-card";
 import { usePurchaseInvoiceWorkflow } from "@/modules/erp/purchase-invoices/hooks/use-purchase-invoice-workflow";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
@@ -119,7 +117,6 @@ function PurchaseInvoiceDetailLoaded({
   const [debitOpen, setDebitOpen] = useState(false);
   const [applyDebitsOpen, setApplyDebitsOpen] = useState(false);
   const [writeOffOpen, setWriteOffOpen] = useState(false);
-  const [landedCostOpen, setLandedCostOpen] = useState(false);
   const [grnOpen, setGrnOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
   const currencyCode =
@@ -215,10 +212,6 @@ function PurchaseInvoiceDetailLoaded({
               setGrnOpen(true);
               return;
             }
-            if (action === "create_landed_cost") {
-              setLandedCostOpen(true);
-              return;
-            }
             if (action === "write_off") {
               setWriteOffOpen(true);
               return;
@@ -279,7 +272,6 @@ function PurchaseInvoiceDetailLoaded({
             currencyCode={currencyCode}
           />
           <RelatedDocumentsCard documents={invoice.related_documents} />
-          <PurchaseInvoiceLandedCostCard invoice={invoice} />
           <PurchaseInvoiceReverseChargeCard invoice={invoice} currencyCode={currencyCode} />
           <DocumentLedgerCard
             journalEntryId={invoice.journal_entry_id}
@@ -317,11 +309,6 @@ function PurchaseInvoiceDetailLoaded({
         currencyCode={currencyCode}
         open={applyDebitsOpen}
         onOpenChange={setApplyDebitsOpen}
-      />
-      <ComposeFromBillsDialog
-        open={landedCostOpen}
-        onOpenChange={setLandedCostOpen}
-        purchaseInvoiceId={invoice.id}
       />
       <PurchaseInvoiceWriteOffDialog
         invoice={invoice}

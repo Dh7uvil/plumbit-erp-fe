@@ -12,9 +12,11 @@ import {
 import { ProductForm } from "@/modules/inventory-management/products/components/product-form";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useProduct } from "@/modules/inventory-management/products/queries";
+import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { useCan } from "@/shared/providers/session-provider";
 import { DataTableError } from "@/shared/components/data-table/states";
 import {
   RecordPageHeader,
@@ -34,7 +36,9 @@ export function ProductDetailScreen({
   mode: RecordPageMode;
 }) {
   const router = useRouter();
+  const can = useCan();
   const { canUpdate } = useCrudPermissions(productPermissions);
+  const canReadStock = can(stockPermissions.read);
   const productQuery = useProduct(productId);
   const product = productQuery.data;
   const isEdit = mode === "edit";
@@ -74,6 +78,13 @@ export function ProductDetailScreen({
         editHref={`${viewHref}/edit`}
         canUpdate={canUpdate}
         mode={mode}
+        extraActions={
+          mode === "view" && canReadStock ? (
+            <Button type="button" size="sm" variant="outline" asChild>
+              <Link href={`/stock/${productId}`}>View stock</Link>
+            </Button>
+          ) : null
+        }
       />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">

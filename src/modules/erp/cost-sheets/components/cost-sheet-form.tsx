@@ -26,9 +26,9 @@ import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import {
-  LANDED_COST_ALLOCATION_METHOD_LABELS,
-  LANDED_COST_ALLOCATION_METHODS,
-} from "@/modules/erp/landed-costs/schemas";
+  CHARGE_ALLOCATION_METHOD_LABELS,
+  CHARGE_ALLOCATION_METHODS,
+} from "@/modules/erp/accounting/charge-types/schemas";
 import { useProformaInvoices } from "@/modules/erp/proforma-invoices/queries";
 import { proformaInvoiceDisplayNumber } from "@/modules/erp/proforma-invoices/schemas";
 import { usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
@@ -81,7 +81,7 @@ const formSchema = z
     shipment_id: z.string().min(1),
     purchase_order_id: z.string().min(1),
     proforma_invoice_id: z.string().min(1),
-    allocation_method: z.enum(LANDED_COST_ALLOCATION_METHODS),
+    allocation_method: z.enum(CHARGE_ALLOCATION_METHODS),
     incoterm: z.string().optional(),
     port_of_loading: z.string().optional(),
     port_of_discharge: z.string().optional(),
@@ -531,9 +531,9 @@ export function CostSheetForm({ sheet }: Props) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {LANDED_COST_ALLOCATION_METHODS.map((method) => (
+                    {CHARGE_ALLOCATION_METHODS.map((method) => (
                       <SelectItem key={method} value={method}>
-                        {LANDED_COST_ALLOCATION_METHOD_LABELS[method]}
+                        {CHARGE_ALLOCATION_METHOD_LABELS[method]}
                       </SelectItem>
                     ))}
                   </SelectContent>

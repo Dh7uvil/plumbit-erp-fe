@@ -176,6 +176,7 @@ function toFormValues(
     tax_treatment: salesOrder?.tax_treatment ?? "",
     bill_to_snapshot: salesOrder?.bill_to_snapshot ?? "",
     ship_to_snapshot: salesOrder?.ship_to_snapshot ?? "",
+    prices_include_tax: salesOrder?.prices_include_tax ?? false,
     lines: toFormLines(salesOrder),
   };
 }
@@ -203,6 +204,7 @@ function toCreateRequest(values: SalesOrderFormValues): SalesOrderCreateRequest 
     shipping_amount: values.shipping_amount.trim() || "0",
     adjustment_amount: values.adjustment_amount.trim() || "0",
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
+    prices_include_tax: values.prices_include_tax,
     lines: values.lines.filter((line) => !isBlankSalesOrderLine(line)).map(toLineInput),
   };
 }
@@ -229,6 +231,7 @@ function toUpdateRequest(values: SalesOrderFormValues): SalesOrderUpdateRequest 
     shipping_amount: created.shipping_amount,
     adjustment_amount: created.adjustment_amount,
     place_of_supply: created.place_of_supply,
+    prices_include_tax: created.prices_include_tax,
     lines: created.lines,
   };
 }
@@ -858,7 +861,12 @@ export function SalesOrderForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor form={form} disabled={disabled} productSide="sales" />
+          <DocumentLinesEditor
+            form={form}
+            disabled={disabled}
+            productSide="sales"
+            showPricesIncludeTax
+          />
         </div>
         {salesOrder ? <DocumentTotalsPanel totals={salesOrder} currencies={currencies} /> : null}
         <div className="grid grid-cols-1 gap-3">

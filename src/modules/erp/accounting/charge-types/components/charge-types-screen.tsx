@@ -135,7 +135,7 @@ export function ChargeTypesScreen() {
       {
         id: "allocation_basis",
         header: "Allocation basis",
-        cell: (row) => row.allocation_basis ?? "Follow landed cost",
+        cell: (row) => row.allocation_basis ?? "Follow charge allocation",
       },
       {
         id: "is_active",

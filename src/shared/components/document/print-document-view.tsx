@@ -3,21 +3,34 @@
 import { useEffect } from "react";
 
 import type { PrintDocument } from "@/shared/lib/print";
-import { formatDate, formatMoney, formatQuantity } from "@/shared/lib/format";
+import { formatDate, formatMoney, formatQuantity, humanizeEnum } from "@/shared/lib/format";
 
 function showChina(doc: PrintDocument): boolean {
   return doc.template_family.toLowerCase() === "china";
 }
 
-export function PrintDocumentView({ document }: { document: PrintDocument }) {
-  const china = showChina(document);
-  const letterhead = document.letterhead;
-  const currency = document.currency_code ?? "";
+function isAccountingDocument(doc: PrintDocument): boolean {
+  const kind = doc.template_kind.toLowerCase();
+  return kind === "voucher" || kind === "journal" || kind === "cheque";
+}
 
+export function PrintDocumentView({ document }: { document: PrintDocument }) {
   useEffect(() => {
     const timer = window.setTimeout(() => window.print(), 400);
     return () => window.clearTimeout(timer);
   }, [document.document_id, document.template_family]);
+
+  if (isAccountingDocument(document)) {
+    return <AccountingPrintDocumentView document={document} />;
+  }
+
+  return <CommercialPrintDocumentView document={document} />;
+}
+
+function CommercialPrintDocumentView({ document }: { document: PrintDocument }) {
+  const china = showChina(document);
+  const letterhead = document.letterhead;
+  const currency = document.currency_code ?? "";
 
   return (
     <article className="mx-auto max-w-[210mm] bg-white p-8 text-black print:max-w-none print:p-0">
@@ -171,6 +184,132 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
       </footer>
     </article>
   );
+}
+
+function AccountingPrintDocumentView({ document }: { document: PrintDocument }) {
+  const letterhead = document.letterhead;
+  const currency = document.currency_code ?? "";
+  const partyName = document.party_name ?? document.customer_name;
+  const partyCode = document.party_code ?? document.customer_code;
+  const kind = document.template_kind.toLowerCase();
+
+  return (
+    <article className="mx-auto max-w-[210mm] bg-white p-8 text-black print:max-w-none print:p-0">
+      <header className="border-b pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            {letterhead.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- print letterhead uses tenant logo URL
+              <img src={letterhead.logo_url} alt="" className="mb-2 h-12 object-contain" />
+            ) : null}
+            <p className="text-lg font-semibold">{letterhead.company_name}</p>
+            {letterhead.address ? (
+              <p className="text-sm whitespace-pre-wrap">{letterhead.address}</p>
+            ) : null}
+            <p className="text-sm">
+              {[letterhead.phone, letterhead.email, letterhead.website].filter(Boolean).join(" · ")}
+            </p>
+            {letterhead.trn ? <p className="text-sm">TRN: {letterhead.trn}</p> : null}
+          </div>
+          <div className="text-right">
+            <p className="text-xl font-semibold tracking-tight">
+              {accountingTitle(document)}
+            </p>
+            <p className="font-mono text-sm">{document.document_number}</p>
+            <p className="text-sm">{formatDate(document.document_date)}</p>
+          </div>
+        </div>
+      </header>
+      <section className="mt-4 grid grid-cols-2 gap-4 text-sm">
+        <div>
+          {partyName ? <p className="font-medium">{partyName}</p> : null}
+          {partyCode ? <p>Party code: {partyCode}</p> : null}
+          {kind === "cheque" && document.cheque_number ? (
+            <p>Cheque no.: {document.cheque_number}</p>
+          ) : null}
+          {document.payment_method ? (
+            <p>Payment method: {humanizeEnum(document.payment_method)}</p>
+          ) : null}
+          {document.reference ? <p>Reference: {document.reference}</p> : null}
+        </div>
+        <div className="text-right">
+          {document.cheque_date ? <p>Cheque date: {formatDate(document.cheque_date)}</p> : null}
+          {document.due_date ? <p>Due date: {formatDate(document.due_date)}</p> : null}
+          {document.voucher_type ? (
+            <p>Voucher type: {humanizeEnum(document.voucher_type)}</p>
+          ) : null}
+        </div>
+      </section>
+      {document.journal_lines.length > 0 ? (
+        <table className="mt-6 w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-y">
+              <th className="py-2 text-left font-medium">#</th>
+              <th className="py-2 text-left font-medium">Account</th>
+              <th className="py-2 text-left font-medium">Description</th>
+              <th className="py-2 text-right font-medium">Debit</th>
+              <th className="py-2 text-right font-medium">Credit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {document.journal_lines.map((line) => (
+              <tr key={line.line_number} className="border-b">
+                <td className="py-1.5">{line.line_number}</td>
+                <td className="py-1.5">
+                  {line.account_code ? `${line.account_code} — ` : ""}
+                  {line.account_name}
+                </td>
+                <td className="py-1.5">{line.description ?? ""}</td>
+                <td className="py-1.5 text-right tabular-nums">
+                  {line.debit ? formatMoney(line.debit, currency) : ""}
+                </td>
+                <td className="py-1.5 text-right tabular-nums">
+                  {line.credit ? formatMoney(line.credit, currency) : ""}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+      <section className="mt-4 flex justify-end text-sm">
+        {document.grand_total ? (
+          <dl className="grid min-w-64 grid-cols-2 gap-x-4 gap-y-1">
+            <dt className="font-medium">Amount</dt>
+            <dd className="text-right font-medium tabular-nums">
+              {formatMoney(document.grand_total, currency)}
+            </dd>
+          </dl>
+        ) : null}
+      </section>
+      {document.amount_in_words ? (
+        <p className="mt-3 text-sm font-medium">Amount in words: {document.amount_in_words}</p>
+      ) : null}
+      {document.narration ? (
+        <p className="mt-3 text-sm whitespace-pre-wrap">{document.narration}</p>
+      ) : null}
+      {document.notes && document.notes !== document.narration ? (
+        <p className="mt-3 text-sm whitespace-pre-wrap">{document.notes}</p>
+      ) : null}
+      <footer className="mt-12 grid grid-cols-2 gap-8 text-sm">
+        <p>Received by ______________________</p>
+        <p className="text-right">Authorized signatory ______________________</p>
+      </footer>
+    </article>
+  );
+}
+
+function accountingTitle(document: PrintDocument): string {
+  const kind = document.template_kind.toLowerCase();
+  if (kind === "cheque") {
+    return "CHEQUE";
+  }
+  if (kind === "journal") {
+    return "JOURNAL VOUCHER";
+  }
+  if (document.voucher_type) {
+    return humanizeEnum(document.voucher_type).toUpperCase();
+  }
+  return humanizeEnum(document.document_type).toUpperCase();
 }
 
 function uaeTitle(type: string): string {

@@ -4,6 +4,13 @@ import { useEffect } from "react";
 
 const LEAVE_MESSAGE = "You have unsaved changes. Leave this page?";
 
+function shouldInterceptNavigation(url: URL): boolean {
+  if (url.origin !== window.location.origin) {
+    return false;
+  }
+  return url.pathname !== window.location.pathname || url.search !== window.location.search;
+}
+
 export function useDirtyFormGuard(isDirty: boolean) {
   useEffect(() => {
     if (!isDirty) {
@@ -42,10 +49,7 @@ export function useDirtyFormGuard(isDirty: boolean) {
         return;
       }
       const url = new URL(anchor.href, window.location.href);
-      if (url.origin !== window.location.origin) {
-        return;
-      }
-      if (url.pathname === window.location.pathname && url.search === window.location.search) {
+      if (!shouldInterceptNavigation(url)) {
         return;
       }
       if (!window.confirm(LEAVE_MESSAGE)) {
@@ -54,11 +58,40 @@ export function useDirtyFormGuard(isDirty: boolean) {
       }
     }
 
+    function guardHistoryMethod(
+      original: History["pushState"] | History["replaceState"],
+    ): History["pushState"] | History["replaceState"] {
+      return function guardedHistoryMethod(state, title, url) {
+        if (typeof url === "string") {
+          const nextUrl = new URL(url, window.location.href);
+          if (shouldInterceptNavigation(nextUrl) && !window.confirm(LEAVE_MESSAGE)) {
+            return;
+          }
+        }
+        return original.call(history, state, title, url);
+      };
+    }
+
+    const originalPushState = history.pushState.bind(history);
+    const originalReplaceState = history.replaceState.bind(history);
+    history.pushState = guardHistoryMethod(originalPushState) as History["pushState"];
+    history.replaceState = guardHistoryMethod(originalReplaceState) as History["replaceState"];
+
+    function onPopState() {
+      if (!window.confirm(LEAVE_MESSAGE)) {
+        history.pushState(null, "", window.location.href);
+      }
+    }
+
     window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("popstate", onPopState);
     document.addEventListener("click", onDocumentClick, true);
     return () => {
       window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("popstate", onPopState);
       document.removeEventListener("click", onDocumentClick, true);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
     };
   }, [isDirty]);
 }

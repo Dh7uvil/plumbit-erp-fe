@@ -11,8 +11,11 @@ Vouchers record **cash and bank receipts, payments, and contra transfers** with 
 | **BANK_RECEIPT** | BRV | Bank (BANK subtype) | Bank deposit / receipt |
 | **BANK_PAYMENT** | BPV | Bank | Bank payment |
 | **CONTRA** | CON | Two cash/bank accounts | Transfer between accounts |
+| **JOURNAL** | JV | Multi-line debit/credit | Manual / standing journal entries |
 
-Receipt vouchers (CRV, BRV) credit **Advance from customer** or debit AR on allocation. Payment vouchers (CPV, BPV) debit **Advance to supplier** or credit AP on allocation. **CONTRA** moves between cash/bank accounts with no party allocation.
+Receipt vouchers (CRV, BRV) credit **Advance from customer** or debit AR on allocation. Payment vouchers (CPV, BPV) debit **Advance to supplier** or credit AP on allocation. **CONTRA** moves between cash/bank accounts with no party allocation. **JOURNAL** vouchers accept balanced debit/credit lines with no payment account.
+
+Print any voucher (including journal) from the document actions menu — the print payload includes **amount in words** and journal line detail for the frontend template.
 
 ## Lifecycle
 

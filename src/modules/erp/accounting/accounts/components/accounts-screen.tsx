@@ -168,7 +168,7 @@ export function AccountsScreen() {
       },
       {
         id: "subtype",
-        header: "Subtype",
+        header: "Financial category",
         cell: (row) => ACCOUNT_SUBTYPE_LABELS[row.account_subtype],
       },
       {

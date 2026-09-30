@@ -167,6 +167,7 @@ export const SalesInvoiceSchema = z.object({
   subtotal: MoneySchema,
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
+  prices_include_tax: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   bill_to_snapshot: z.string().nullable(),
@@ -240,6 +241,7 @@ export const SalesInvoiceCreateRequestSchema = z.object({
   adjustment_amount: MoneySchema.optional(),
   round_off_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   country_of_origin: z.string().max(2).nullable().optional(),
   lines: z.array(SalesInvoiceLineInputSchema),
 });
@@ -261,6 +263,7 @@ export const SalesInvoiceUpdateRequestSchema = z.object({
   adjustment_amount: MoneySchema.nullable().optional(),
   round_off_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   country_of_origin: z.string().max(2).nullable().optional(),
   lines: z.array(SalesInvoiceLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
@@ -362,6 +365,7 @@ export const SalesInvoiceFormSchema = z
     bill_to_snapshot: z.string(),
     ship_to_snapshot: z.string(),
     country_of_origin: z.string(),
+    prices_include_tax: z.boolean(),
     lines: z.array(SalesInvoiceLineFormSchema),
   })
   .superRefine((values, ctx) => {

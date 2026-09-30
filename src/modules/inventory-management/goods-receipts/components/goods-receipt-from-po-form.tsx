@@ -13,9 +13,12 @@ import {
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { usePurchaseOrder } from "@/modules/erp/purchase-orders/queries";
 import { purchaseOrderDisplayNumber } from "@/modules/erp/purchase-orders/schemas";
+import { GrnChargesPanel } from "@/modules/inventory-management/goods-receipts/components/grn-charges-panel";
 import { useCreateGoodsReceiptFromPurchaseOrder } from "@/modules/inventory-management/goods-receipts/mutations";
 import {
   GoodsReceiptFromPoFormSchema,
+  type GoodsReceiptChargeFormValues,
+  type GoodsReceiptChargeInput,
   type GoodsReceiptFromPoFormValues,
 } from "@/modules/inventory-management/goods-receipts/schemas";
 import { WarehouseFormDialog } from "@/modules/inventory-management/warehouses/components/warehouse-form-dialog";
@@ -51,6 +54,18 @@ function optionalUuid(value: string): string | null {
   return !value || value === OPTIONAL_SELECT_NONE ? null : value;
 }
 
+function toChargeInput(charge: GoodsReceiptChargeFormValues): GoodsReceiptChargeInput | null {
+  const amount = charge.amount.trim();
+  if (!amount || amount === "0" || amount === "0.00") {
+    return null;
+  }
+  return {
+    charge_type_id: charge.charge_type_id,
+    amount,
+    notes: emptyToNull(charge.notes),
+  };
+}
+
 export function GoodsReceiptFromPoForm({ purchaseOrderId }: { purchaseOrderId: string }) {
   const can = useCan();
   const router = useRouter();
@@ -66,6 +81,7 @@ export function GoodsReceiptFromPoForm({ purchaseOrderId }: { purchaseOrderId: s
       warehouse_id: OPTIONAL_SELECT_NONE,
       document_date: todayIsoDate(),
       notes: "",
+      charges: [],
     },
   });
   useDirtyFormGuard(form.formState.isDirty);
@@ -76,11 +92,15 @@ export function GoodsReceiptFromPoForm({ purchaseOrderId }: { purchaseOrderId: s
   async function onSubmit(values: GoodsReceiptFromPoFormValues) {
     setWriteError(null);
     try {
+      const charges = (values.charges ?? [])
+        .map(toChargeInput)
+        .filter((charge): charge is GoodsReceiptChargeInput => charge != null);
       const created = await createFromPo.mutateAsync({
         purchase_order_id: values.purchase_order_id,
         warehouse_id: optionalUuid(values.warehouse_id),
         document_date: values.document_date,
         notes: emptyToNull(values.notes),
+        charges: charges.length > 0 ? charges : undefined,
       });
       toast.success("Goods receipt created");
       router.push(`/goods-receipts/${created.id}`);
@@ -160,6 +180,7 @@ export function GoodsReceiptFromPoForm({ purchaseOrderId }: { purchaseOrderId: s
             </FormItem>
           )}
         />
+        <GrnChargesPanel form={form} />
         <div className="flex justify-end">
           <Button type="submit" disabled={createFromPo.isPending}>
             {createFromPo.isPending ? <Loader2 className="size-4 animate-spin" /> : null}

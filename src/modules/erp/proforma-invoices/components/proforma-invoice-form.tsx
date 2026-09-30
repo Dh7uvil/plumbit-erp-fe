@@ -234,6 +234,7 @@ function toFormValues(
     expected_shipment_date: invoice?.expected_shipment_date ?? "",
     partial_shipment_allowed: invoice?.partial_shipment_allowed ?? false,
     transhipment_allowed: invoice?.transhipment_allowed ?? false,
+    prices_include_tax: invoice?.prices_include_tax ?? false,
     grand_total: invoice?.grand_total ?? "",
     lines: toFormLines(invoice),
     milestones: toFormMilestones(invoice),
@@ -259,6 +260,7 @@ function toCreateRequest(values: ProformaInvoiceFormValues): ProformaInvoiceCrea
     shipping_amount: values.shipping_amount.trim() || "0",
     adjustment_amount: values.adjustment_amount.trim() || "0",
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
+    prices_include_tax: values.prices_include_tax,
     incoterm: optionalIncoterm(values.incoterm),
     incoterm_place: emptyToNull(values.incoterm_place),
     port_of_loading: emptyToNull(values.port_of_loading),
@@ -291,6 +293,7 @@ function toUpdateRequest(values: ProformaInvoiceFormValues): ProformaInvoiceUpda
     shipping_amount: created.shipping_amount,
     adjustment_amount: created.adjustment_amount,
     place_of_supply: created.place_of_supply,
+    prices_include_tax: created.prices_include_tax,
     incoterm: created.incoterm,
     incoterm_place: created.incoterm_place,
     port_of_loading: created.port_of_loading,
@@ -838,6 +841,7 @@ export function ProformaInvoiceForm({
             productSide="sales"
             showPacking
             showHsCode
+            showPricesIncludeTax
           />
         </div>
         {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}

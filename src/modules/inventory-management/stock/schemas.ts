@@ -160,6 +160,9 @@ export const STOCK_MOVEMENT_SOURCE_TYPES = [
   "stock_transfer",
   "goods_receipt",
   "quality_inspection",
+  "delivery_note",
+  "sales_return",
+  "purchase_return",
 ] as const;
 export type StockMovementSourceType = (typeof STOCK_MOVEMENT_SOURCE_TYPES)[number];
 
@@ -168,6 +171,9 @@ export const STOCK_MOVEMENT_SOURCE_TYPE_LABELS: Record<StockMovementSourceType, 
   stock_transfer: "Stock transfer",
   goods_receipt: "Goods receipt",
   quality_inspection: "Quality inspection",
+  delivery_note: "Delivery note",
+  sales_return: "Sales return",
+  purchase_return: "Purchase return",
 };
 
 export function parseStockMovementType(value: string | undefined): StockMovementType | undefined {
@@ -200,6 +206,15 @@ export function stockMovementSourceHref(sourceType: string, sourceId: string): s
   }
   if (sourceType === "quality_inspection") {
     return `/quality-inspections/${sourceId}`;
+  }
+  if (sourceType === "delivery_note") {
+    return `/delivery-notes/${sourceId}`;
+  }
+  if (sourceType === "sales_return") {
+    return `/sales-returns/${sourceId}`;
+  }
+  if (sourceType === "purchase_return") {
+    return `/purchase-returns/${sourceId}`;
   }
   return null;
 }

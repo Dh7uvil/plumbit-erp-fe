@@ -1,5 +1,4 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
-import { LandedCostSchema, type LandedCost } from "@/modules/erp/landed-costs/schemas";
 import {
   CostSheetCreateRequestSchema,
   CostSheetListSchema,
@@ -13,8 +12,6 @@ import {
 import { apiClient } from "@/shared/api/client";
 import { ifMatchHeaders } from "@/shared/api/concurrency";
 import type { ListResponse } from "@/shared/api/envelope";
-import { randomUuid } from "@/shared/lib/uuid";
-
 export type CostSheetWriteOptions = { version: number };
 
 export const costSheetsApi = {
@@ -88,22 +85,6 @@ export const costSheetsApi = {
         `/cost-sheets/${id}/pull-actuals`,
         { version: options.version },
         { headers: ifMatchHeaders(options.version) },
-      ),
-    ),
-  createLandedCost: async (
-    id: string,
-    options: CostSheetWriteOptions & { document_date?: string },
-  ): Promise<LandedCost> =>
-    LandedCostSchema.parse(
-      await apiClient.post(
-        `/cost-sheets/${id}/create-landed-cost`,
-        { version: options.version, document_date: options.document_date },
-        {
-          headers: {
-            ...ifMatchHeaders(options.version),
-            "Idempotency-Key": randomUuid(),
-          },
-        },
       ),
     ),
 };

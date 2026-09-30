@@ -111,6 +111,10 @@ function optionalPlaceOfSupply(value: string): PlaceOfSupply | null {
   return PLACES_OF_SUPPLY.includes(value as PlaceOfSupply) ? (value as PlaceOfSupply) : null;
 }
 
+function emptyProductLine(): PurchaseOrderLineFormValues {
+  return emptyDocumentLine();
+}
+
 function toLineInput(line: PurchaseOrderLineFormValues): PurchaseOrderLineInput {
   return {
     product_id: optionalUuid(line.product_id),
@@ -119,6 +123,9 @@ function toLineInput(line: PurchaseOrderLineFormValues): PurchaseOrderLineInput 
     quantity: line.quantity.trim(),
     unit_id: optionalUuid(line.unit_id),
     rate: emptyToNull(line.rate),
+    net_weight: emptyToNull(line.net_weight ?? ""),
+    gross_weight: emptyToNull(line.gross_weight ?? ""),
+    volume: emptyToNull(line.volume ?? ""),
     discount_type: optionalDiscountType(line.discount_type),
     discount_value: emptyToNull(line.discount_value),
     tax_id: optionalUuid(line.tax_id),
@@ -128,7 +135,7 @@ function toLineInput(line: PurchaseOrderLineFormValues): PurchaseOrderLineInput 
 function toFormLines(purchaseOrder: PurchaseOrder | null): PurchaseOrderLineFormValues[] {
   const lines = purchaseOrder?.lines ?? [];
   if (lines.length === 0) {
-    return [emptyDocumentLine()];
+    return [emptyProductLine()];
   }
   return lines.map((line) => ({
     product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
@@ -138,6 +145,9 @@ function toFormLines(purchaseOrder: PurchaseOrder | null): PurchaseOrderLineForm
     quantity: line.quantity,
     unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
     rate: line.rate ?? "",
+    net_weight: line.net_weight ?? "",
+    gross_weight: line.gross_weight ?? "",
+    volume: line.volume ?? "",
     discount_type: line.discount_type ?? OPTIONAL_SELECT_NONE,
     discount_value: line.discount_value ?? "",
     tax_id: line.tax_id ?? OPTIONAL_SELECT_NONE,
@@ -178,6 +188,7 @@ function toFormValues(
     tax_treatment: purchaseOrder?.tax_treatment ?? "",
     supplier_address_snapshot: purchaseOrder?.supplier_address_snapshot ?? "",
     deliver_to_snapshot: purchaseOrder?.deliver_to_snapshot ?? "",
+    prices_include_tax: purchaseOrder?.prices_include_tax ?? false,
     lines: toFormLines(purchaseOrder),
   };
   if (purchaseOrder || !suggestionCompose) {
@@ -190,7 +201,7 @@ function toFormValues(
     lines: suggestionCompose.productId
       ? [
           {
-            ...emptyDocumentLine(),
+            ...emptyProductLine(),
             product_id: suggestionCompose.productId,
             quantity: suggestionCompose.quantity?.trim() || "1",
           },
@@ -218,6 +229,7 @@ function toCreateRequest(values: PurchaseOrderFormValues): PurchaseOrderCreateRe
     shipping_amount: values.shipping_amount.trim() || "0",
     adjustment_amount: values.adjustment_amount.trim() || "0",
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
+    prices_include_tax: values.prices_include_tax,
     lines: values.lines.filter((line) => !isBlankPurchaseOrderLine(line)).map(toLineInput),
   };
 }
@@ -240,6 +252,7 @@ function toUpdateRequest(values: PurchaseOrderFormValues): PurchaseOrderUpdateRe
     shipping_amount: created.shipping_amount,
     adjustment_amount: created.adjustment_amount,
     place_of_supply: created.place_of_supply,
+    prices_include_tax: created.prices_include_tax,
     lines: created.lines,
   };
 }
@@ -790,6 +803,9 @@ export function PurchaseOrderForm({
             form={form}
             disabled={disabled}
             productSide="purchase"
+            lineMode="standard"
+            showImportMetrics
+            showPricesIncludeTax
             supplierCatalog={{ supplierId: selectedSupplierId }}
           />
         </div>

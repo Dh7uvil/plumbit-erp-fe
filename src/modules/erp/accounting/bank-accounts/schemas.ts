@@ -53,3 +53,28 @@ export type BankAccountListParams = {
   is_active?: boolean;
   currency_id?: string;
 };
+
+export const BankBalanceProjectionLineSchema = z.object({
+  kind: z.string(),
+  event_date: z.string(),
+  description: z.string(),
+  amount: z.string(),
+});
+export type BankBalanceProjectionLine = z.infer<typeof BankBalanceProjectionLineSchema>;
+
+export const BankBalanceProjectionSchema = z.object({
+  bank_account_id: z.string().uuid(),
+  account_id: z.string().uuid(),
+  currency_code: z.string(),
+  as_of: z.string(),
+  horizon_date: z.string(),
+  book_balance: z.string(),
+  projected_balance: z.string(),
+  lines: z.array(BankBalanceProjectionLineSchema).default([]),
+});
+export type BankBalanceProjection = z.infer<typeof BankBalanceProjectionSchema>;
+
+export type BankBalanceProjectionParams = {
+  as_of?: string;
+  horizon_days?: number;
+};

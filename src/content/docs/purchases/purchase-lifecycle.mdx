@@ -1,4 +1,4 @@
-The purchase module covers ordering, receiving, billing, paying, and adjusting supplier transactions. Stock moves on **goods receipt** and **purchase return** post; accounting moves on **bill**, **supplier payment**, **debit note**, and **landed cost** post.
+The purchase module covers ordering, receiving, billing, paying, and adjusting supplier transactions. Stock moves on **goods receipt** and **purchase return** post; accounting moves on **bill**, **supplier payment**, and **debit note** post. Inventoriable import charges are captured on the goods receipt and capitalized into stock at post.
 
 ## Module map
 
@@ -8,7 +8,6 @@ The purchase module covers ordering, receiving, billing, paying, and adjusting s
     { label: "Goods receipt", note: "Post → stock + GRNI", href: "/docs/purchases/goods-receipts" },
     { label: "Bill", note: "Post → AP", href: "/docs/purchases/bills" },
     { label: "Supplier payment", note: "Post → allocate", href: "/docs/purchases/supplier-payments" },
-    { label: "Landed cost", note: "Optional revalue", href: "/docs/purchases/landed-costs" },
     { label: "Purchase return", note: "Optional stock out", href: "/docs/purchases/purchase-returns" },
     { label: "Debit note", note: "Optional AP credit", href: "/docs/purchases/debit-notes" },
   ]}
@@ -26,7 +25,6 @@ For step-by-step procedures, see <DocLink href="/docs/workflows/procure-to-pay">
 | **Goods receipt** | Required for stock receipt | On hand + on post | Dr Inventory, Cr GRNI | Physical delivery |
 | **Bill** | Required for AP | None | Dr GRNI/Purchases, Cr AP | Supplier bill |
 | **Supplier payment** | When paying | None | Cr bank, Dr AP (via advance) | Settlement |
-| **Landed cost** | Optional | Revalues FIFO only | Capitalizes expense onto inventory | Freight/duty after receipt |
 | **Purchase return** | Optional | On hand − on post | Dr GRNI, Cr Inventory | Reject/return goods |
 | **Debit note** | Optional | None | Dr AP, Cr GRNI/expense | Supplier credit/refund |
 
@@ -37,7 +35,7 @@ For step-by-step procedures, see <DocLink href="/docs/workflows/procure-to-pay">
 | **Standard** | PO issue → GRN post → bill post → payment |
 | **Bill before receipt (bill-before-receipt)** | PO issue → bill post → GRN post → payment |
 | **Direct bill (no GRN)** | PO issue → bill post (no stock) → payment |
-| **Import with landed cost** | GRN post → expense bill post → landed cost post → product bill post |
+| **Import with GRN charges** | GRN post (with import charges) → expense/product bills post → payment |
 | **Supplier return** | GRN post → purchase return post → debit note post |
 
 ## Cross-links

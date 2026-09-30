@@ -12,7 +12,7 @@ The chart of accounts is the tenant **GL hierarchy**. Group accounts organize re
 | **INCOME** | Credit | Sales revenue, shipping income |
 | **EXPENSE** | Debit | COGS, purchases, bad debt |
 
-Each account also has an **account_subtype** (e.g. `BANK`, `ACCOUNTS_RECEIVABLE`, `COGS`) used for validation and reports.
+Each account also has a **Financial category** (`account_subtype` in the API — e.g. `BANK`, `ACCOUNTS_RECEIVABLE`, `COGS`) used for validation, bank/cash book routing, and financial statement grouping. The chart-of-accounts UI labels this field **Financial category**; pick a subtype allowed for the account type.
 
 ## Groups vs postable accounts
 

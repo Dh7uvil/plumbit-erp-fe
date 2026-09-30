@@ -26,7 +26,7 @@ export const recurringApi = {
     RecurringTemplateSchema.parse(await apiClient.get(`/recurring-templates/${id}`)),
   create: async (values: {
     name: string;
-    document_kind: "SALES_INVOICE" | "PURCHASE_INVOICE";
+    document_kind: "SALES_INVOICE" | "PURCHASE_INVOICE" | "STANDING_JOURNAL";
     frequency: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
     interval?: number;
     next_run_date: string;

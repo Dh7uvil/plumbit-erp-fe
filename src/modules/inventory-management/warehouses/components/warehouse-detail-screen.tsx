@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { WarehouseForm } from "@/modules/inventory-management/warehouses/components/warehouse-form";
+import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { warehousePermissions } from "@/modules/inventory-management/warehouses/permissions";
 import { useWarehouse } from "@/modules/inventory-management/warehouses/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { useCan } from "@/shared/providers/session-provider";
 import { DataTableError } from "@/shared/components/data-table/states";
 import { RecordCode } from "@/shared/components/form/record-code";
 import {
@@ -26,7 +28,9 @@ export function WarehouseDetailScreen({
   mode: RecordPageMode;
 }) {
   const router = useRouter();
+  const can = useCan();
   const { canUpdate } = useCrudPermissions(warehousePermissions);
+  const canReadStock = can(stockPermissions.read);
   const warehouseQuery = useWarehouse(warehouseId);
   const warehouse = warehouseQuery.data;
   const isEdit = mode === "edit";
@@ -68,6 +72,13 @@ export function WarehouseDetailScreen({
         editHref={`${viewHref}/edit`}
         canUpdate={canUpdate}
         mode={mode}
+        extraActions={
+          mode === "view" && canReadStock ? (
+            <Button type="button" size="sm" variant="outline" asChild>
+              <Link href={`/stock?warehouse_id=${warehouseId}`}>View stock</Link>
+            </Button>
+          ) : null
+        }
       />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">

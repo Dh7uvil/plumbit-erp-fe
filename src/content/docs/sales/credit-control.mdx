@@ -1,4 +1,4 @@
-Credit control evaluates a customer's **credit exposure** against their credit limit before high-risk sales actions. A NULL limit means unlimited.
+Credit control evaluates a customer's **credit exposure** against their credit limit before high-risk sales actions. A NULL limit means unlimited. Customers with **credit hold** are blocked from SO confirm and SI post regardless of limit or policy.
 
 ## When it runs
 
@@ -58,6 +58,7 @@ Override requires both the permission **and** a non-empty reason. WARN policy ne
 | `credit_limit_policy` | OFF / WARN / BLOCK |
 | `credit_limit_include_open_orders` | Include confirmed SO uninvoiced value in exposure |
 | Customer `credit_limit` | Per-customer ceiling; NULL = unlimited |
+| Customer `credit_hold` | Hard stop on confirm/post; override with `CREDIT_CONTROL_OVERRIDE` + reason |
 
 Configured in <DocLink href="/docs/organization-and-access/organization-settings">Organization settings</DocLink> and on the customer master.
 

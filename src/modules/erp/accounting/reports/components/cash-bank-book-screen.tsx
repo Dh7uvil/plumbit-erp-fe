@@ -47,7 +47,7 @@ const GL_SOURCE_TYPES = [
   { value: "delivery_note", label: "Delivery note" },
   { value: "sales_return", label: "Sales return" },
   { value: "purchase_return", label: "Purchase return" },
-  { value: "landed_cost", label: "Landed cost" },
+  { value: "landed_cost", label: "Landed cost (legacy)" },
   { value: "stock_adjustment", label: "Stock adjustment" },
   { value: "cash_receipt_voucher", label: "Cash receipt voucher" },
   { value: "cash_payment_voucher", label: "Cash payment voucher" },

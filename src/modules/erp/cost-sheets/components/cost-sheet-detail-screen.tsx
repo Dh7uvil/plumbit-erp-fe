@@ -18,7 +18,7 @@ import {
   type CostSheetWorkflowAction,
 } from "@/modules/erp/cost-sheets/workflow";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { LANDED_COST_ALLOCATION_METHOD_LABELS } from "@/modules/erp/landed-costs/schemas";
+import { CHARGE_ALLOCATION_METHOD_LABELS } from "@/modules/erp/accounting/charge-types/schemas";
 import { useProformaInvoice } from "@/modules/erp/proforma-invoices/queries";
 import { proformaInvoiceDisplayNumber } from "@/modules/erp/proforma-invoices/schemas";
 import { usePurchaseOrder } from "@/modules/erp/purchase-orders/queries";
@@ -120,11 +120,6 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
       />
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline">{COST_SHEET_STATUS_LABELS[sheet.status]}</Badge>
-        {sheet.landed_cost_id ? (
-          <Button variant="link" size="sm" className="h-auto px-0" asChild>
-            <Link href={`/landed-costs/${sheet.landed_cost_id}`}>View landed cost</Link>
-          </Button>
-        ) : null}
       </div>
       <Card>
         <CardHeader>
@@ -166,7 +161,7 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
               </Link>
             </div>
           ) : null}
-          <div>Allocation: {LANDED_COST_ALLOCATION_METHOD_LABELS[sheet.allocation_method]}</div>
+          <div>Allocation: {CHARGE_ALLOCATION_METHOD_LABELS[sheet.allocation_method]}</div>
           {sheet.incoterm ? <div>Incoterm: {sheet.incoterm}</div> : null}
           {sheet.port_of_loading ? <div>Port of loading: {sheet.port_of_loading}</div> : null}
           {sheet.port_of_discharge ? <div>Port of discharge: {sheet.port_of_discharge}</div> : null}

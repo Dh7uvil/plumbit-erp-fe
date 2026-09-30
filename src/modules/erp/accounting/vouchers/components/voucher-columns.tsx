@@ -68,7 +68,8 @@ export function voucherColumnDefs({
     {
       id: "payment_method",
       header: "Method",
-      cell: (voucher) => PAYMENT_METHOD_LABELS[voucher.payment_method],
+      cell: (voucher) =>
+        voucher.payment_method ? PAYMENT_METHOD_LABELS[voucher.payment_method] : "—",
     },
     {
       id: "status",

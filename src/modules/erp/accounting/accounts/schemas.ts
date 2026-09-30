@@ -100,7 +100,7 @@ export const ACCOUNT_SYSTEM_ROLES = [
   "GOODS_RECEIVED_NOT_INVOICED",
   "SHIPPING_INCOME",
   "OTHER_CHARGES",
-  "LANDED_COST_VARIANCE",
+  "LANDED_COST_VARIANCE", // legacy chart role; not used by GRN charges
   "CHEQUES_RECEIVABLE",
   "CHEQUES_PAYABLE",
   "BAD_DEBT_EXPENSE",
@@ -138,7 +138,7 @@ export const ACCOUNT_SYSTEM_ROLE_LABELS: Record<AccountSystemRole, string> = {
   GOODS_RECEIVED_NOT_INVOICED: "Goods received not invoiced",
   SHIPPING_INCOME: "Shipping income",
   OTHER_CHARGES: "Other charges",
-  LANDED_COST_VARIANCE: "Landed cost variance",
+  LANDED_COST_VARIANCE: "Landed cost variance (legacy)",
   CHEQUES_RECEIVABLE: "Cheques receivable (PDC)",
   CHEQUES_PAYABLE: "Cheques payable (PDC)",
   BAD_DEBT_EXPENSE: "Bad debt expense",
@@ -159,12 +159,15 @@ export const AccountSchema = z.object({
   account_type: AccountTypeSchema,
   account_subtype: AccountSubtypeSchema,
   parent_id: z.string().uuid().nullable(),
+  parent_code: z.string().nullable().optional().default(null),
+  parent_name: z.string().nullable().optional().default(null),
   depth: z.number().int(),
   is_group: z.boolean(),
   is_system: z.boolean(),
   system_role: AccountSystemRoleSchema.nullable(),
   currency_id: z.string().uuid().nullable(),
   is_active: z.boolean(),
+  is_blocked: z.boolean().optional().default(false),
   created_at: z.string(),
   updated_at: z.string(),
   created_by: z.string().uuid().nullable().optional().default(null),
@@ -200,6 +203,7 @@ export const AccountCreateRequestSchema = z.object({
   account_subtype: AccountSubtypeSchema,
   parent_id: z.string().uuid().nullable().optional(),
   is_group: z.boolean().optional(),
+  is_blocked: z.boolean().optional(),
   currency_id: z.string().uuid().nullable().optional(),
 });
 export type AccountCreateRequest = z.infer<typeof AccountCreateRequestSchema>;
@@ -213,12 +217,15 @@ export const AccountUpdateRequestSchema = z.object({
   parent_id: z.string().uuid().nullable().optional(),
   is_group: z.boolean().nullable().optional(),
   is_active: z.boolean().nullable().optional(),
+  is_blocked: z.boolean().nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
 });
 export type AccountUpdateRequest = z.infer<typeof AccountUpdateRequestSchema>;
 
 export const AccountFormSchema = z.object({
   code: z.string().min(1, "Enter a code").max(20),
+  sub_account_number: z.string(),
+  manual_code: z.boolean(),
   name: z.string().min(1, "Enter a name").max(200),
   description: z.string(),
   account_type: AccountTypeSchema,
@@ -226,12 +233,15 @@ export const AccountFormSchema = z.object({
   parent_id: z.string(),
   is_group: z.boolean(),
   is_active: z.boolean(),
+  is_blocked: z.boolean(),
   currency_id: z.string(),
 });
 export type AccountFormValues = z.infer<typeof AccountFormSchema>;
 
 export const EMPTY_ACCOUNT_FORM: AccountFormValues = {
   code: "",
+  sub_account_number: "",
+  manual_code: false,
   name: "",
   description: "",
   account_type: "ASSET",
@@ -239,6 +249,7 @@ export const EMPTY_ACCOUNT_FORM: AccountFormValues = {
   parent_id: OPTIONAL_SELECT_NONE,
   is_group: false,
   is_active: true,
+  is_blocked: false,
   currency_id: OPTIONAL_SELECT_NONE,
 };
 
@@ -251,6 +262,42 @@ export const AccountBalanceSchema = z.object({
   currency_code: z.string().nullable().optional().default(null),
 });
 export type AccountBalance = z.infer<typeof AccountBalanceSchema>;
+
+export const AccountPeriodBalanceSchema = z.object({
+  period: z.number().int(),
+  from_date: z.string(),
+  to_date: z.string(),
+  debit: DecimalStringSchema,
+  credit: DecimalStringSchema,
+  closing: DecimalStringSchema,
+});
+export type AccountPeriodBalance = z.infer<typeof AccountPeriodBalanceSchema>;
+
+export const AccountPeriodBalancesSchema = z.object({
+  account_id: z.string().uuid(),
+  fiscal_year: z.number().int(),
+  currency_code: z.string(),
+  opening: DecimalStringSchema,
+  periods: z.array(AccountPeriodBalanceSchema),
+  closing: DecimalStringSchema,
+});
+export type AccountPeriodBalances = z.infer<typeof AccountPeriodBalancesSchema>;
+
+/** Split a stored code into main (parent) and sub segments when possible. */
+export function splitAccountCode(
+  code: string,
+  parentCode: string | null | undefined,
+): { subAccountNumber: string; manualCode: boolean } {
+  if (!parentCode || !code.startsWith(parentCode)) {
+    return { subAccountNumber: "", manualCode: true };
+  }
+  return { subAccountNumber: code.slice(parentCode.length), manualCode: false };
+}
+
+/** Compose a full account code from a main (group) code and sub segment. */
+export function composeAccountCode(mainCode: string, subAccountNumber: string): string {
+  return `${mainCode}${subAccountNumber.trim()}`;
+}
 
 export type AccountListParams = {
   page?: number;

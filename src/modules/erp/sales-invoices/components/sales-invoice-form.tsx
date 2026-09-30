@@ -186,6 +186,7 @@ function toFormValues(
     bill_to_snapshot: invoice?.bill_to_snapshot ?? "",
     ship_to_snapshot: invoice?.ship_to_snapshot ?? "",
     country_of_origin: invoice?.country_of_origin ?? "",
+    prices_include_tax: invoice?.prices_include_tax ?? false,
     lines: toFormLines(invoice),
   };
 }
@@ -209,6 +210,7 @@ function toCreateRequest(values: SalesInvoiceFormValues): SalesInvoiceCreateRequ
     adjustment_amount: values.adjustment_amount.trim() || "0",
     round_off_amount: values.round_off_amount.trim() || "0",
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
+    prices_include_tax: values.prices_include_tax,
     country_of_origin: emptyToNull(values.country_of_origin)?.toUpperCase() ?? null,
     lines: values.lines.filter((line) => !isBlankSalesInvoiceLine(line)).map(toLineInput),
   };
@@ -232,6 +234,7 @@ function toUpdateRequest(values: SalesInvoiceFormValues): SalesInvoiceUpdateRequ
     adjustment_amount: created.adjustment_amount,
     round_off_amount: created.round_off_amount,
     place_of_supply: created.place_of_supply,
+    prices_include_tax: created.prices_include_tax,
     country_of_origin: created.country_of_origin,
     lines: created.lines,
   };
@@ -732,6 +735,7 @@ export function SalesInvoiceForm({
             productSide="sales"
             showPacking
             showHsCode
+            showPricesIncludeTax
           />
         </div>
         {invoice ? (

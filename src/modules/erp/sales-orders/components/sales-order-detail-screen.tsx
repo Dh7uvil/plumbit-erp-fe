@@ -43,6 +43,7 @@ import { RelatedDocumentsCard } from "@/shared/components/document/related-docum
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 import { isApiError } from "@/shared/api/errors";
 import { formatDate, formatDateTime } from "@/shared/lib/format";
+import { printHref } from "@/shared/lib/print";
 import { toast } from "sonner";
 
 export function SalesOrderDetailScreen({
@@ -151,6 +152,7 @@ function SalesOrderDetailLoaded({
       code={number}
       listHref="/sales-orders"
       viewHref={viewHref}
+      printHref={printHref("sales-orders", salesOrder.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}

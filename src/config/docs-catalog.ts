@@ -250,7 +250,6 @@ export const docsCatalog: DocCategory[] = [
       page("supplier-payments", "Supplier payments", "Payments and allocations.", {
         appHrefs: ["/supplier-payments"],
       }),
-      page("landed-costs", "Landed costs", "Freight and duty capitalization.", { appHrefs: ["/landed-costs"] }),
       page("purchase-returns", "Purchase returns", "Returns to suppliers.", { appHrefs: ["/purchase-returns"] }),
       page("three-way-match", "Three-way match", "PO, receipt, and bill matching.", {
         appHrefs: ["/reports/three-way-match"],
@@ -263,22 +262,22 @@ export const docsCatalog: DocCategory[] = [
   {
     slug: "import-export",
     label: "Import & Export",
-    description: "International trade, shipments, and landed costs.",
+    description: "International trade, shipments, and import charges.",
     pages: [
       page("trade-overview", "Trade overview", "Import/export vs data import.", {
         related: ["master-data/importing-and-exporting-data"],
       }),
       page("packages", "Packages", "Packing for shipment.", { appHrefs: ["/packages"] }),
       page("shipments", "Shipments", "Shipment tracking and statuses.", { appHrefs: ["/shipments"] }),
-      page("freight-customs-and-charges", "Freight and customs charges", "Charge types and landed costs.", {
-        appHrefs: ["/charge-types", "/landed-costs"],
+      page("freight-customs-and-charges", "Freight and customs charges", "Charge types and GRN import charges.", {
+        appHrefs: ["/charge-types"],
       }),
       page("cost-sheets", "Cost sheets", "Import/export cost planning.", { appHrefs: ["/cost-sheets"] }),
       page("export-evidence", "Export evidence", "UAE VAT export documentation.", {
         appHrefs: ["/reports/export-evidence-exceptions"],
       }),
       page("trade-stock-and-accounting-impact", "Trade stock and accounting impact", "When trade documents affect stock/GL.", {
-        related: ["import-export/shipments", "purchases/landed-costs"],
+        related: ["import-export/shipments", "purchases/goods-receipts"],
       }),
     ],
   },

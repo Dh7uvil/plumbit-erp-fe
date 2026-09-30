@@ -126,8 +126,18 @@ export type DayBookParams = {
   side?: string;
 };
 
+export const AccountStatementOpeningSchema = z.object({
+  entry_date: z.string(),
+  debit: DecimalStringSchema,
+  credit: DecimalStringSchema,
+  running_balance: DecimalStringSchema,
+  balance_side: z.string(),
+  description: z.string().nullable().optional(),
+});
+export type AccountStatementOpening = z.infer<typeof AccountStatementOpeningSchema>;
+
 export const AccountStatementLineSchema = z.object({
-  journal_entry_id: z.string().uuid(),
+  journal_entry_id: z.string().uuid().nullable().optional(),
   document_number: z.string(),
   entry_date: z.string(),
   due_date: z.string().nullable(),
@@ -136,17 +146,30 @@ export const AccountStatementLineSchema = z.object({
   credit: DecimalStringSchema,
   running_balance: DecimalStringSchema,
   description: z.string().nullable(),
+  voucher_code: z.string().nullable().optional(),
+  source_type: z.string().nullable().optional(),
+  source_id: z.string().uuid().nullable().optional(),
+  cheque_number: z.string().nullable().optional(),
+  cheque_clearing_date: z.string().nullable().optional(),
+  balance_side: z.string().nullable().optional(),
+  narration: z.string().nullable().optional(),
 });
 export type AccountStatementLine = z.infer<typeof AccountStatementLineSchema>;
 
 export const AccountStatementSchema = z.object({
   currency_code: z.string().nullable().optional().default(null),
-  party_type: z.string(),
-  party_id: z.string().uuid(),
+  party_type: z.string().nullable().optional(),
+  party_id: z.string().uuid().nullable().optional(),
+  account_id: z.string().uuid().nullable().optional(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
   from_date: z.string(),
   to_date: z.string(),
   opening_balance: DecimalStringSchema,
   closing_balance: DecimalStringSchema,
+  total_debit: DecimalStringSchema.optional().default("0"),
+  total_credit: DecimalStringSchema.optional().default("0"),
+  opening: AccountStatementOpeningSchema.nullable().optional(),
   lines: z.array(AccountStatementLineSchema).default([]),
 });
 export type AccountStatement = z.infer<typeof AccountStatementSchema>;
@@ -173,10 +196,14 @@ export type GeneralLedgerParams = {
 };
 
 export type AccountStatementParams = {
-  party_type: "CUSTOMER" | "SUPPLIER";
-  party_id: string;
   from: string;
   to: string;
+  party_type?: "CUSTOMER" | "SUPPLIER";
+  party_id?: string;
+  account_id?: string;
+  include_opening?: boolean;
+  include_pdc?: boolean;
+  currency_id?: string;
 };
 
 export const ExportEvidenceExceptionLineSchema = z.object({
@@ -331,7 +358,6 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   supplier_payment: (id) => `/supplier-payments/${id}`,
   supplier_payment_allocation: (id) => `/supplier-payments/${id}`,
   supplier_payment_refund: (id) => `/supplier-payments/${id}`,
-  landed_cost: (id) => `/landed-costs/${id}`,
   stock_transfer: (id) => `/stock-transfers/${id}`,
   stock_adjustment: (id) => `/stock-adjustments/${id}`,
   opening_balance: (id) => `/journals/${id}`,
@@ -339,9 +365,17 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   cash_payment_voucher: (id) => `/vouchers/${id}`,
   bank_receipt_voucher: (id) => `/vouchers/${id}`,
   bank_payment_voucher: (id) => `/vouchers/${id}`,
+  journal_voucher: (id) => `/vouchers/${id}`,
   contra_voucher: (id) => `/vouchers/${id}`,
   voucher_allocation: (id) => `/vouchers/${id}`,
   fx_revaluation: (id) => `/fx-revaluation/${id}`,
+  cheque_issue: (id) => `/cheques/${id}`,
+  cheque_clear: (id) => `/cheques/${id}`,
+  cheque_bounce: (id) => `/cheques/${id}`,
+  cheque_bounce_charge: (id) => `/cheques/${id}`,
+  year_end_closing: () => `/year-end`,
+  grn_charge_adjustment: (id) => `/goods-receipt-charge-adjustments/${id}`,
+  goods_receipt_charge_adjustment: (id) => `/goods-receipt-charge-adjustments/${id}`,
 };
 
 export function sourceDocumentHref(
@@ -873,6 +907,65 @@ export const DashboardSchema = z.object({
   credit_limit_breaches: z.array(DashboardCreditBreachSchema).optional().default([]),
 });
 export type Dashboard = z.infer<typeof DashboardSchema>;
+
+export const RatioAnalysisLineSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  numerator: DecimalStringSchema,
+  denominator: DecimalStringSchema,
+  value: DecimalStringSchema.nullable().optional(),
+});
+export type RatioAnalysisLine = z.infer<typeof RatioAnalysisLineSchema>;
+
+export const RatioAnalysisSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
+  from_date: z.string(),
+  to_date: z.string(),
+  as_of: z.string(),
+  lines: z.array(RatioAnalysisLineSchema).default([]),
+});
+export type RatioAnalysis = z.infer<typeof RatioAnalysisSchema>;
+
+export type RatioAnalysisParams = {
+  from: string;
+  to: string;
+  branch_id?: string;
+};
+
+export const PdcRegisterLineSchema = z.object({
+  cheque_id: z.string().uuid(),
+  document_number: z.string(),
+  cheque_number: z.string(),
+  direction: z.string(),
+  status: z.string(),
+  cheque_date: z.string(),
+  due_date: z.string().nullable().optional().default(null),
+  amount: DecimalStringSchema,
+  party_type: z.string().nullable().optional().default(null),
+  party_id: z.string().uuid().nullable().optional().default(null),
+  party_name: z.string().nullable().optional().default(null),
+  bank_account_id: z.string().uuid(),
+  bank_name: z.string().nullable().optional().default(null),
+});
+export type PdcRegisterLine = z.infer<typeof PdcRegisterLineSchema>;
+
+export const PdcRegisterSchema = z.object({
+  currency_code: z.string().nullable().optional().default(null),
+  from_date: z.string().nullable().optional().default(null),
+  to_date: z.string().nullable().optional().default(null),
+  total_inbound: DecimalStringSchema,
+  total_outbound: DecimalStringSchema,
+  lines: z.array(PdcRegisterLineSchema).default([]),
+});
+export type PdcRegister = z.infer<typeof PdcRegisterSchema>;
+
+export type PdcRegisterParams = {
+  due_date_from?: string;
+  due_date_to?: string;
+  direction?: string;
+  status?: string;
+  bank_account_id?: string;
+};
 
 export function glHref(
   accountId: string,

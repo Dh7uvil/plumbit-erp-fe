@@ -1,5 +1,6 @@
 import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { QuotationListSchema } from "@/modules/erp/quotations/schemas";
+import { SalesOrderListSchema } from "@/modules/erp/sales-orders/schemas";
 import {
   OpportunityCreateRequestSchema,
   OpportunityListSchema,
@@ -86,5 +87,11 @@ export const opportunitiesApi = {
       params: { page, page_size: pageSize },
     });
     return { data: QuotationListSchema.parse(result.data), meta: result.meta };
+  },
+  listSalesOrders: async (id: string, page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
+    const result = await apiClient.getList<unknown>(`/opportunities/${id}/sales-orders`, {
+      params: { page, page_size: pageSize },
+    });
+    return { data: SalesOrderListSchema.parse(result.data), meta: result.meta };
   },
 };

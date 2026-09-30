@@ -83,7 +83,6 @@ export const CostSheetSchema = z.object({
   port_of_loading: z.string().nullable(),
   port_of_discharge: z.string().nullable(),
   allocation_method: z.enum(["VALUE", "WEIGHT", "QUANTITY", "VOLUME"]),
-  landed_cost_id: z.string().uuid().nullable(),
   notes: z.string().nullable(),
   totals: CostSheetTotalsSchema,
   available_actions: z.array(z.string()),
