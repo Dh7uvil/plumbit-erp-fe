@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const leadPermissions = {
   read: "crm.lead.read",
   create: "crm.lead.create",
@@ -5,4 +7,4 @@ export const leadPermissions = {
   delete: "crm.lead.delete",
   assign: "crm.lead.assign",
   convert: "crm.lead.convert",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;

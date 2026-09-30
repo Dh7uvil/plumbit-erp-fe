@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const bankReconciliationPermissions = {
   read: "accounting.bank_reconciliation.read",
   create: "accounting.bank_reconciliation.create",
@@ -6,4 +8,4 @@ export const bankReconciliationPermissions = {
   reconcile: "accounting.bank_reconciliation.reconcile",
   import: "accounting.bank_reconciliation.import",
   export: "accounting.bank_reconciliation.export",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;

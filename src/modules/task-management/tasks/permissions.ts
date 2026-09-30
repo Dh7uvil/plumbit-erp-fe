@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const taskPermissions = {
   read: "tasks.task.read",
   create: "tasks.task.create",
@@ -13,4 +15,4 @@ export const taskPermissions = {
   commentCreate: "tasks.comment.create",
   commentUpdate: "tasks.comment.update",
   commentDelete: "tasks.comment.delete",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;

@@ -1,5 +1,5 @@
 /** Generated from plumbit-erp-be/app/auth/catalog.py — do not edit manually. */
-/** Regenerate: node scripts/generate-fe-permissions.mjs */
+/** Regenerate: npm run generate:permissions */
 
 export const catalogPermissions = [
   "accounting.account.create",
@@ -75,6 +75,7 @@ export const catalogPermissions = [
   "accounting.write_off.create",
   "accounting.write_off.reverse",
   "accounting.year_end.manage",
+  "ai.assistant.use",
   "crm.activity.create",
   "crm.activity.delete",
   "crm.activity.read",
@@ -163,6 +164,11 @@ export const catalogPermissions = [
   "inventory.category.read",
   "inventory.category.update",
   "inventory.cost.read",
+  "inventory.grn_charge_adjustment.create",
+  "inventory.grn_charge_adjustment.delete",
+  "inventory.grn_charge_adjustment.post",
+  "inventory.grn_charge_adjustment.read",
+  "inventory.grn_charge_adjustment.update",
   "inventory.price_list.create",
   "inventory.price_list.delete",
   "inventory.price_list.read",
@@ -520,6 +526,11 @@ export const permissionsByModule = {
       manage: "accounting.year_end.manage",
     },
   },
+  ai: {
+    assistant: {
+      use: "ai.assistant.use",
+    },
+  },
   crm: {
     activity: {
       create: "crm.activity.create",
@@ -656,6 +667,13 @@ export const permissionsByModule = {
     },
     cost: {
       read: "inventory.cost.read",
+    },
+    grn_charge_adjustment: {
+      create: "inventory.grn_charge_adjustment.create",
+      delete: "inventory.grn_charge_adjustment.delete",
+      post: "inventory.grn_charge_adjustment.post",
+      read: "inventory.grn_charge_adjustment.read",
+      update: "inventory.grn_charge_adjustment.update",
     },
     price_list: {
       create: "inventory.price_list.create",

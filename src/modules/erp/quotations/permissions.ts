@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const quotationPermissions = {
   read: "sales.quotation.read",
   create: "sales.quotation.create",
@@ -8,4 +10,4 @@ export const quotationPermissions = {
   revise: "sales.quotation.revise",
   import: "sales.quotation.import",
   export: "sales.quotation.export",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;

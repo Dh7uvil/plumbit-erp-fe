@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const reportPermissions = {
   ledger: "reports.report.ledger",
   dayBook: "reports.report.day_book",
@@ -6,4 +8,4 @@ export const reportPermissions = {
   inventory: "reports.report.inventory",
   financial: "reports.report.financial",
   export: "reports.report.export",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;

@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 import type { Role } from "@/modules/users-management/roles/schemas";
 
 export const rolePermissions = {

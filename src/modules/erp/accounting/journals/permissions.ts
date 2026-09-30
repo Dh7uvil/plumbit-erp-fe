@@ -1,3 +1,5 @@
+import type { CatalogPermission } from "@/shared/lib/generated-permissions";
+
 export const journalPermissions = {
   read: "accounting.journal_entry.read",
   create: "accounting.journal_entry.create",
@@ -5,4 +7,4 @@ export const journalPermissions = {
   delete: "accounting.journal_entry.delete",
   post: "accounting.journal_entry.post",
   reverse: "accounting.journal_entry.reverse",
-} as const;
+} as const satisfies Record<string, CatalogPermission>;
