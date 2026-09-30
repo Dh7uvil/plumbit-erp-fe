@@ -1,12 +1,15 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { chequeColumnDefs } from "@/modules/erp/accounting/cheques/components/cheque-columns";
+import { useChequeWorkflow } from "@/modules/erp/accounting/cheques/mutations";
 import { useCheques } from "@/modules/erp/accounting/cheques/queries";
 import { chequePermissions } from "@/modules/erp/accounting/cheques/permissions";
+import type { Cheque } from "@/modules/erp/accounting/cheques/schemas";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -22,15 +25,29 @@ import { useTableColumns } from "@/shared/components/data-table/use-table-column
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useTableParams } from "@/shared/hooks/use-table-params";
+import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
 
+function isDepositable(cheque: Cheque): boolean {
+  return (
+    cheque.direction === "INBOUND" &&
+    cheque.status === "ISSUED" &&
+    cheque.available_actions.includes("deposit")
+  );
+}
+
 export function ChequesScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate } = useCrudPermissions(chequePermissions);
+  const canDeposit = can(chequePermissions.deposit);
+  const batchDeposit = useChequeWorkflow().batchDeposit;
+  const [selected, setSelected] = useState<Record<string, number>>({});
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const currenciesQuery = useAllCurrencies();
   const { baseCurrencyCode } = useBaseCurrency();
@@ -50,6 +67,35 @@ export function ChequesScreen() {
     [currenciesQuery.data],
   );
   const showActions = hasRowActions(canRead, canUpdate, false, false);
+  const selectedItems = useMemo(
+    () => Object.entries(selected).map(([id, version]) => ({ id, version })),
+    [selected],
+  );
+
+  function toggleSelected(cheque: Cheque, checked: boolean) {
+    setSelected((current) => {
+      const next = { ...current };
+      if (checked) {
+        next[cheque.id] = cheque.version;
+      } else {
+        delete next[cheque.id];
+      }
+      return next;
+    });
+  }
+
+  async function onBatchDeposit() {
+    if (selectedItems.length === 0) {
+      return;
+    }
+    try {
+      await batchDeposit.mutateAsync(selectedItems);
+      toast.success(`Deposited ${selectedItems.length} cheque(s)`);
+      setSelected({});
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  }
 
   const columnDefs = useMemo(
     () =>
@@ -73,7 +119,11 @@ export function ChequesScreen() {
     [baseCurrencyCode, canRead, canUpdate, currencyCodeById, showActions],
   );
 
-  const { columns, columnsDialog, colSpan } = useTableColumns("erp.cheques", columnDefs);
+  const { columns, columnsDialog, colSpan: baseColSpan } = useTableColumns(
+    "erp.cheques",
+    columnDefs,
+  );
+  const colSpan = baseColSpan + (canDeposit ? 1 : 0);
 
   return (
     <ListPage>
@@ -146,6 +196,17 @@ export function ChequesScreen() {
         >
           PDC due view
         </Button>
+        {canDeposit && selectedItems.length > 0 ? (
+          <Button
+            type="button"
+            size="sm"
+            disabled={batchDeposit.isPending}
+            onClick={() => void onBatchDeposit()}
+          >
+            {batchDeposit.isPending ? <Loader2 className="size-3.5 animate-spin" /> : null}
+            Deposit selected ({selectedItems.length})
+          </Button>
+        ) : null}
         {columnsDialog}
         {search || filters.status || filters.direction || filters.due ? (
           <Button
@@ -167,6 +228,7 @@ export function ChequesScreen() {
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>
+            {canDeposit ? <TableCell className="w-10" /> : null}
             <DataTableColumnHeads columns={columns} />
           </TableRow>
         </TableHeader>
@@ -200,6 +262,17 @@ export function ChequesScreen() {
           ) : (
             rows.map((row) => (
               <TableRow key={row.id}>
+                {canDeposit ? (
+                  <TableCell>
+                    {isDepositable(row) ? (
+                      <Checkbox
+                        checked={row.id in selected}
+                        onCheckedChange={(checked) => toggleSelected(row, checked === true)}
+                        aria-label={`Select ${row.cheque_number}`}
+                      />
+                    ) : null}
+                  </TableCell>
+                ) : null}
                 <DataTableCells columns={columns} row={row} />
               </TableRow>
             ))

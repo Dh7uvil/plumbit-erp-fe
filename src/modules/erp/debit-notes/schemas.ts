@@ -101,6 +101,7 @@ export const DebitNoteSchema = z.object({
   subtotal: MoneySchema,
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
+  prices_include_tax: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   notes: z.string().nullable(),
@@ -157,6 +158,7 @@ export const DebitNoteCreateRequestSchema = z.object({
   adjustment_amount: MoneySchema.optional(),
   round_off_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(DebitNoteLineInputSchema),
 });
 export type DebitNoteCreateRequest = z.infer<typeof DebitNoteCreateRequestSchema>;
@@ -173,6 +175,7 @@ export const DebitNoteUpdateRequestSchema = z.object({
   adjustment_amount: MoneySchema.nullable().optional(),
   round_off_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(DebitNoteLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -243,6 +246,7 @@ export const DebitNoteFormSchema = z
     adjustment_amount: z.string(),
     round_off_amount: z.string(),
     place_of_supply: z.string(),
+    prices_include_tax: z.boolean(),
     lines: z.array(DebitNoteLineFormSchema),
   })
   .superRefine((values, ctx) => {

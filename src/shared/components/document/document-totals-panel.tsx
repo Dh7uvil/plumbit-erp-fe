@@ -2,7 +2,7 @@
 
 import type { DocumentTotals } from "@/shared/components/document/schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { formatDecimal, formatMoney } from "@/shared/lib/format";
+import { formatMoney, formatRate, formatRawDecimal } from "@/shared/lib/format";
 
 export function DocumentTotalsPanel({
   totals,
@@ -25,7 +25,11 @@ export function DocumentTotalsPanel({
     { label: "Base amount", value: formatMoney(totals.base_amount, baseCode) },
     {
       label: `Exchange rate${code && baseCode ? ` (${code}/${baseCode})` : ""}`,
-      value: totals.exchange_rate ? formatDecimal(totals.exchange_rate) : "—",
+      value: totals.exchange_rate ? (
+        <span title={formatRawDecimal(totals.exchange_rate)}>{formatRate(totals.exchange_rate)}</span>
+      ) : (
+        "—"
+      ),
     },
   ];
 

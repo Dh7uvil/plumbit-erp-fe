@@ -33,6 +33,19 @@ export const TAX_TREATMENTS = ["REGISTERED", "UNREGISTERED", "EXPORT", "GCC", "E
 export const TaxTreatmentSchema = z.enum(TAX_TREATMENTS);
 export type TaxTreatment = z.infer<typeof TaxTreatmentSchema>;
 
+const TRN_PATTERN = /^\d{15}$/;
+
+export function validateTrnDigits(value: string | null | undefined): string | null {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) {
+    return null;
+  }
+  if (!TRN_PATTERN.test(normalized)) {
+    throw new Error("TRN must be exactly 15 digits");
+  }
+  return normalized;
+}
+
 export const TAX_TREATMENT_LABELS: Record<TaxTreatment, string> = {
   REGISTERED: "Registered",
   UNREGISTERED: "Unregistered",
@@ -67,6 +80,7 @@ export const CustomerSchema = z.object({
   default_price_list_id: z.string().uuid().nullable(),
   payment_terms_id: z.string().uuid().nullable(),
   credit_limit: MoneySchema.nullable(),
+  credit_hold: z.boolean(),
   salesperson_id: z.string().uuid().nullable(),
   receivable_account_id: z.string().uuid().nullable().optional().default(null),
   payable_account_id: z.string().uuid().nullable().optional().default(null),
@@ -93,6 +107,7 @@ export const CustomerCreateRequestSchema = z.object({
   default_price_list_id: z.string().uuid().nullable().optional(),
   payment_terms_id: z.string().uuid().nullable().optional(),
   credit_limit: MoneySchema.nullable().optional(),
+  credit_hold: z.boolean().optional(),
   salesperson_id: z.string().uuid().nullable().optional(),
   receivable_account_id: z.string().uuid().nullable().optional(),
   payable_account_id: z.string().uuid().nullable().optional(),
@@ -110,6 +125,7 @@ export const CustomerUpdateRequestSchema = z.object({
   default_price_list_id: z.string().uuid().nullable().optional(),
   payment_terms_id: z.string().uuid().nullable().optional(),
   credit_limit: MoneySchema.nullable().optional(),
+  credit_hold: z.boolean().nullable().optional(),
   salesperson_id: z.string().uuid().nullable().optional(),
   receivable_account_id: z.string().uuid().nullable().optional(),
   payable_account_id: z.string().uuid().nullable().optional(),
@@ -140,6 +156,7 @@ export const CustomerFormSchema = z
     default_price_list_id: z.string(),
     payment_terms_id: z.string(),
     credit_limit: z.string(),
+    credit_hold: z.boolean(),
     salesperson_id: z.string(),
     receivable_account_id: z.string(),
     payable_account_id: z.string(),
@@ -158,6 +175,14 @@ export const CustomerFormSchema = z
         code: "custom",
         path: ["trn"],
         message: "Enter a TRN",
+      });
+    }
+    const trn = values.trn.trim();
+    if (trn && !TRN_PATTERN.test(trn)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["trn"],
+        message: "TRN must be exactly 15 digits",
       });
     }
     refineInitialContact(values, ctx);

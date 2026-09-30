@@ -22,6 +22,7 @@ import {
   VoucherFormSchema,
   emptyVoucherLine,
   isContraVoucher,
+  isJournalVoucher,
   isReceiptVoucher,
   paymentAccountSubtypeFor,
   type Voucher,
@@ -100,13 +101,13 @@ function toFormValues(
   return {
     voucher_type: voucher.voucher_type,
     voucher_date: voucher.voucher_date,
-    payment_account_id: voucher.payment_account_id,
+    payment_account_id: voucher.payment_account_id ?? OPTIONAL_SELECT_NONE,
     counter_account_id: voucher.counter_account_id ?? OPTIONAL_SELECT_NONE,
     total_amount: voucher.total_amount,
     currency_id: voucher.currency_id,
     party_type: voucher.party_type ?? OPTIONAL_SELECT_NONE,
     party_id: voucher.party_id ?? OPTIONAL_SELECT_NONE,
-    payment_method: voucher.payment_method,
+    payment_method: voucher.payment_method ?? (voucher.voucher_type.startsWith("BANK") ? "TT" : "CASH"),
     reference: voucher.reference ?? "",
     branch_id: voucher.branch_id ?? OPTIONAL_SELECT_NONE,
     cost_center_id: voucher.cost_center_id ?? OPTIONAL_SELECT_NONE,
@@ -146,16 +147,17 @@ function toCreateRequest(
   values: VoucherFormValues,
   allocations: VoucherCreateRequest["allocations"],
 ): VoucherCreateRequest {
+  const journal = isJournalVoucher(values.voucher_type);
   return {
     voucher_type: values.voucher_type,
     voucher_date: emptyToNull(values.voucher_date),
-    payment_account_id: values.payment_account_id,
+    payment_account_id: journal ? null : values.payment_account_id,
     counter_account_id: null,
-    total_amount: values.total_amount.trim(),
+    total_amount: journal ? undefined : values.total_amount.trim(),
     currency_id: optionalUuid(values.currency_id),
     party_type: optionalUuid(values.party_type),
     party_id: optionalUuid(values.party_id),
-    payment_method: values.payment_method,
+    payment_method: journal ? null : values.payment_method,
     reference: emptyToNull(values.reference),
     branch_id: optionalUuid(values.branch_id),
     cost_center_id: optionalUuid(values.cost_center_id),
@@ -319,6 +321,7 @@ export function VoucherForm({
                       }
                     }}
                     disabled={disabled || isEdit}
+                    navigateOnChange={false}
                   />
                 </FormControl>
                 <FormMessage />

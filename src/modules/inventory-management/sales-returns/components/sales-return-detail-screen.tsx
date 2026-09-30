@@ -28,6 +28,7 @@ import { RelatedDocumentsCard } from "@/shared/components/document/related-docum
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
+import { printHref } from "@/shared/lib/print";
 
 export function SalesReturnDetailScreen({
   returnId,
@@ -113,6 +114,7 @@ function SalesReturnDetailLoaded({
       title={number ?? "Sales return"}
       listHref="/sales-returns"
       viewHref={viewHref}
+      printHref={printHref("sales-returns", doc.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}

@@ -2,10 +2,7 @@ import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { OrderTrackerRowSchema } from "@/modules/erp/sales-orders/schemas";
-import {
-  QuantityProgressSchema,
-  RelatedDocumentRefSchema,
-} from "@/shared/components/document/schemas";
+import { QuantityProgressSchema, RelatedDocumentRefSchema } from "@/shared/components/document/schemas";
 import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export const PURCHASE_ORDER_STATUSES = [
@@ -130,6 +127,9 @@ export const PurchaseOrderLineSchema = z.object({
   quantity: DecimalStringSchema,
   unit_id: z.string().uuid().nullable(),
   rate: MoneySchema,
+  net_weight: DecimalStringSchema.nullable().optional().default(null),
+  gross_weight: DecimalStringSchema.nullable().optional().default(null),
+  volume: DecimalStringSchema.nullable().optional().default(null),
   discount_type: DiscountTypeSchema.nullable(),
   discount_value: MoneySchema.nullable(),
   discount_amount: MoneySchema,
@@ -180,6 +180,7 @@ export const PurchaseOrderSchema = z.object({
   subtotal: MoneySchema,
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
+  prices_include_tax: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   receipt_status: ReceiptStatusSchema,
@@ -225,9 +226,12 @@ export const PurchaseOrderLineInputSchema = z.object({
   product_id: z.string().uuid().nullable().optional(),
   supplier_product_id: z.string().uuid().nullable().optional(),
   description: z.string().nullable().optional(),
-  quantity: DecimalStringSchema,
+  quantity: DecimalStringSchema.optional(),
   unit_id: z.string().uuid().nullable().optional(),
   rate: MoneySchema.nullable().optional(),
+  net_weight: DecimalStringSchema.nullable().optional(),
+  gross_weight: DecimalStringSchema.nullable().optional(),
+  volume: DecimalStringSchema.nullable().optional(),
   discount_type: DiscountTypeSchema.nullable().optional(),
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
@@ -252,6 +256,7 @@ export const PurchaseOrderCreateRequestSchema = z.object({
   shipping_amount: MoneySchema.optional(),
   adjustment_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(PurchaseOrderLineInputSchema).optional(),
 });
 export type PurchaseOrderCreateRequest = z.infer<typeof PurchaseOrderCreateRequestSchema>;
@@ -272,6 +277,7 @@ export const PurchaseOrderUpdateRequestSchema = z.object({
   shipping_amount: MoneySchema.nullable().optional(),
   adjustment_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(PurchaseOrderLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -285,6 +291,9 @@ export const PurchaseOrderLineFormSchema = z.object({
   quantity: z.string(),
   unit_id: z.string(),
   rate: z.string(),
+  net_weight: z.string().optional(),
+  gross_weight: z.string().optional(),
+  volume: z.string().optional(),
   discount_type: z.string(),
   discount_value: z.string(),
   tax_id: z.string(),
@@ -307,6 +316,10 @@ export function isBlankPurchaseOrderLine(line: PurchaseOrderLineFormValues): boo
     !hasCatalogId(line.supplier_product_id) &&
     !line.description.trim()
   );
+}
+
+function hasId(value: string): boolean {
+  return Boolean(value) && value !== OPTIONAL_SELECT_NONE;
 }
 
 export const PurchaseOrderFormSchema = z
@@ -334,6 +347,7 @@ export const PurchaseOrderFormSchema = z
     tax_treatment: z.string(),
     supplier_address_snapshot: z.string(),
     deliver_to_snapshot: z.string(),
+    prices_include_tax: z.boolean(),
     lines: z.array(PurchaseOrderLineFormSchema),
   })
   .superRefine((values, ctx) => {

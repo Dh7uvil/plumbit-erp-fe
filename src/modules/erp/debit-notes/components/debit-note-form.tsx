@@ -128,6 +128,7 @@ function toFormValues(note: DebitNote | null, defaultCurrencyId?: string): Debit
     adjustment_amount: note?.adjustment_amount ?? "0",
     round_off_amount: note?.round_off_amount ?? "0",
     place_of_supply: note?.place_of_supply ?? OPTIONAL_SELECT_NONE,
+    prices_include_tax: note?.prices_include_tax ?? false,
     lines: toFormLines(note),
   };
 }
@@ -151,6 +152,7 @@ function toCreateRequest(values: DebitNoteFormValues): DebitNoteCreateRequest {
     place_of_supply: PLACES_OF_SUPPLY.includes(values.place_of_supply as PlaceOfSupply)
       ? (values.place_of_supply as PlaceOfSupply)
       : null,
+    prices_include_tax: values.prices_include_tax,
     lines: values.lines.filter((line) => !isBlankDebitNoteLine(line)).map(toLineInput),
   };
 }
@@ -169,6 +171,7 @@ function toUpdateRequest(values: DebitNoteFormValues): DebitNoteUpdateRequest {
     adjustment_amount: created.adjustment_amount,
     round_off_amount: created.round_off_amount,
     place_of_supply: created.place_of_supply,
+    prices_include_tax: created.prices_include_tax,
     lines: created.lines,
   };
 }
@@ -403,7 +406,12 @@ export function DebitNoteForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <DocumentLinesEditor form={form} disabled={disabled || sourced} productSide="purchase" />
+          <DocumentLinesEditor
+            form={form}
+            disabled={disabled || sourced}
+            productSide="purchase"
+            showPricesIncludeTax
+          />
         </div>
         {note ? <DocumentTotalsPanel totals={note} currencies={currencies} /> : null}
         <FormField

@@ -15,6 +15,7 @@ import {
 } from "@/shared/components/ui/tooltip";
 import { useLogout } from "@/modules/users-management/auth/mutations";
 import { useMe } from "@/modules/users-management/auth/queries";
+import { NotificationBell } from "@/modules/users-management/notifications/components/notification-bell";
 import { taskPermissions } from "@/modules/task-management/tasks/permissions";
 import { useOverdueTasksCount } from "@/modules/task-management/tasks/queries";
 import { useCan } from "@/shared/providers/session-provider";
@@ -91,6 +92,7 @@ export function AppHeader({
           <TooltipContent>{themeTooltip}</TooltipContent>
         </Tooltip>
         <HelpTrigger onClick={onHelpOpen} />
+        <NotificationBell />
         {canTasks && overdueTasks > 0 ? (
           <Tooltip>
             <TooltipTrigger asChild>

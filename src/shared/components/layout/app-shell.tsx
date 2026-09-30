@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
+import { AiAssistantMount } from "@/modules/erp/ai-assistant/components/ai-assistant-mount";
 import { AppHeader } from "@/modules/users-management/auth/components/app-header";
 import { TenantSidebarBrand } from "@/modules/users-management/tenants/components/tenant-sidebar-brand";
 import { AppKeyboardShortcuts } from "@/shared/components/layout/app-keyboard-shortcuts";
@@ -75,6 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       />
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      <AiAssistantMount />
     </BreadcrumbRecordProvider>
   );
 }

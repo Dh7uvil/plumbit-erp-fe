@@ -7,7 +7,6 @@ import { ShipmentDeliveryNotesPanel } from "@/modules/inventory-management/shipm
 import { ShipmentForm } from "@/modules/inventory-management/shipments/components/shipment-form";
 import { ShipmentTrackingDialog } from "@/modules/inventory-management/shipments/components/shipment-tracking-dialog";
 import { ShipmentTrackingStrip } from "@/modules/inventory-management/shipments/components/shipment-tracking-strip";
-import { ComposeFromBillsDialog } from "@/modules/erp/landed-costs/components/compose-from-bills-dialog";
 import { useShipmentWorkflow } from "@/modules/inventory-management/shipments/hooks/use-shipment-workflow";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { useShipment } from "@/modules/inventory-management/shipments/queries";
@@ -99,14 +98,9 @@ function ShipmentDetailLoaded({
   const isEdit = mode === "edit";
   const number = shipmentDisplayNumber(shipment);
   const [trackingOpen, setTrackingOpen] = useState(false);
-  const [landedCostOpen, setLandedCostOpen] = useState(false);
   const onAction = useShipmentWorkflow(shipment, { onTracking: () => setTrackingOpen(true) });
 
   async function handleAction(action: ShipmentWorkflowAction) {
-    if (action === "create_landed_cost") {
-      setLandedCostOpen(true);
-      return;
-    }
     if (action === "create_cost_sheet") {
       router.push(`/cost-sheets/new?sheet_type=IMPORT&shipment_id=${shipment.id}`);
       return;
@@ -188,11 +182,6 @@ function ShipmentDetailLoaded({
         shipment={shipment}
         open={trackingOpen}
         onOpenChange={setTrackingOpen}
-      />
-      <ComposeFromBillsDialog
-        open={landedCostOpen}
-        onOpenChange={setLandedCostOpen}
-        shipmentId={shipment.id}
       />
     </>
   );

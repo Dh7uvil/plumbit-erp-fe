@@ -42,6 +42,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { formatMoney } from "@/shared/lib/format";
+import { printHref } from "@/shared/lib/print";
 
 export function VoucherDetailScreen({
   voucherId,
@@ -134,6 +135,7 @@ function VoucherDetailLoaded({
       title={number}
       listHref={listHref}
       viewHref={viewHref}
+      printHref={printHref("vouchers", voucher.id)}
       editHref={canEditDraft ? `${viewHref}/edit` : undefined}
       canUpdate={canEditDraft}
       mode={mode}
@@ -178,7 +180,9 @@ function VoucherDetailLoaded({
             baseAmount={voucher.base_amount}
           />
           <p className="text-muted-foreground text-sm">
-            {PAYMENT_METHOD_LABELS[voucher.payment_method]}
+            {voucher.payment_method
+              ? PAYMENT_METHOD_LABELS[voucher.payment_method]
+              : "Journal entry"}
             {voucher.reference ? ` · ${voucher.reference}` : ""}
             {" · Unapplied "}
             {formatMoney(voucher.amount_unapplied, currencyCode)}

@@ -53,6 +53,11 @@ export function useChequeWorkflow() {
         chequesApi.deposit(id, version),
       onSuccess: (_, { id }) => invalidate(id),
     }),
+    batchDeposit: useMutation({
+      mutationFn: (items: Array<{ id: string; version: number }>) =>
+        chequesApi.batchDeposit(items),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: chequeKeys.all }),
+    }),
     clear: useMutation({
       mutationFn: ({ id, version }: { id: string; version: number }) =>
         chequesApi.clear(id, version),

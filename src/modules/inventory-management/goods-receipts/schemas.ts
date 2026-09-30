@@ -69,6 +69,7 @@ export const GoodsReceiptLineSchema = z.object({
   net_weight: NullableDecimalStringSchema,
   gross_weight: NullableDecimalStringSchema,
   volume: NullableDecimalStringSchema,
+  allocated_charge_amount: MoneySchema.nullable().optional(),
   qty_accepted: DecimalStringSchema,
   qty_rejected: DecimalStringSchema,
   qty_on_hold: DecimalStringSchema,
@@ -76,6 +77,19 @@ export const GoodsReceiptLineSchema = z.object({
   qty_billed: DecimalStringSchema.optional().default("0"),
 });
 export type GoodsReceiptLine = z.infer<typeof GoodsReceiptLineSchema>;
+
+export const GoodsReceiptChargeSchema = z.object({
+  id: z.string().uuid(),
+  line_number: z.number().int(),
+  charge_type_id: z.string().uuid(),
+  description: z.string().nullable().optional().default(null),
+  amount: MoneySchema,
+  base_amount: MoneySchema.optional().default("0"),
+  allocation_basis: z.string().nullable().optional().default(null),
+  supplier_id: z.string().uuid().nullable().optional().default(null),
+  notes: z.string().nullable().optional().default(null),
+});
+export type GoodsReceiptCharge = z.infer<typeof GoodsReceiptChargeSchema>;
 
 export const GoodsReceiptSchema = z.object({
   id: z.string().uuid(),
@@ -114,6 +128,9 @@ export const GoodsReceiptSchema = z.object({
   period_locked: z.boolean().default(false),
   related_documents: z.array(RelatedDocumentRefSchema).optional().default([]),
   journal_entry_id: z.string().uuid().nullable().optional().default(null),
+  charges: z.array(GoodsReceiptChargeSchema).optional().default([]),
+  charges_total: MoneySchema.optional().default("0"),
+  charges_total_base: MoneySchema.optional().default("0"),
   lines: z.array(GoodsReceiptLineSchema).optional().default([]),
   created_at: z.string(),
   updated_at: z.string(),
@@ -140,6 +157,13 @@ export const GoodsReceiptLineInputSchema = z.object({
 });
 export type GoodsReceiptLineInput = z.infer<typeof GoodsReceiptLineInputSchema>;
 
+export const GoodsReceiptChargeInputSchema = z.object({
+  charge_type_id: z.string().uuid(),
+  amount: MoneySchema,
+  notes: z.string().max(500).nullable().optional(),
+});
+export type GoodsReceiptChargeInput = z.infer<typeof GoodsReceiptChargeInputSchema>;
+
 export const GoodsReceiptCreateRequestSchema = z.object({
   supplier_id: z.string().uuid(),
   warehouse_id: z.string().uuid(),
@@ -155,6 +179,7 @@ export const GoodsReceiptCreateRequestSchema = z.object({
   bl_number: z.string().max(80).nullable().optional(),
   notes: z.string().nullable().optional(),
   lines: z.array(GoodsReceiptLineInputSchema).min(1),
+  charges: z.array(GoodsReceiptChargeInputSchema).optional(),
 });
 export type GoodsReceiptCreateRequest = z.infer<typeof GoodsReceiptCreateRequestSchema>;
 
@@ -171,6 +196,7 @@ export const GoodsReceiptUpdateRequestSchema = z.object({
   bl_number: z.string().max(80).nullable().optional(),
   notes: z.string().nullable().optional(),
   lines: z.array(GoodsReceiptLineInputSchema).min(1).nullable().optional(),
+  charges: z.array(GoodsReceiptChargeInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
 export type GoodsReceiptUpdateRequest = z.infer<typeof GoodsReceiptUpdateRequestSchema>;
@@ -180,6 +206,7 @@ export const GoodsReceiptCreateFromPurchaseOrderSchema = z.object({
   warehouse_id: z.string().uuid().nullable().optional(),
   document_date: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  charges: z.array(GoodsReceiptChargeInputSchema).optional(),
 });
 export type GoodsReceiptCreateFromPurchaseOrder = z.infer<
   typeof GoodsReceiptCreateFromPurchaseOrderSchema
@@ -213,6 +240,13 @@ export const GoodsReceiptLineFormSchema = z.object({
   source_purchase_invoice_line_id: z.string(),
 });
 export type GoodsReceiptLineFormValues = z.infer<typeof GoodsReceiptLineFormSchema>;
+
+export const GoodsReceiptChargeFormSchema = z.object({
+  charge_type_id: z.string(),
+  amount: z.string(),
+  notes: z.string(),
+});
+export type GoodsReceiptChargeFormValues = z.infer<typeof GoodsReceiptChargeFormSchema>;
 
 const POSITIVE_DECIMAL = /^(?:0*[1-9]\d*(?:\.\d+)?|0+\.\d*[1-9]\d*)$/;
 
@@ -254,6 +288,7 @@ export const GoodsReceiptFormSchema = z
     bl_number: z.string().max(80),
     notes: z.string(),
     lines: z.array(GoodsReceiptLineFormSchema),
+    charges: z.array(GoodsReceiptChargeFormSchema),
   })
   .superRefine((values, ctx) => {
     const filled = values.lines.filter((line) => !isBlankGoodsReceiptLine(line));
@@ -295,6 +330,7 @@ export const GoodsReceiptFromPoFormSchema = z.object({
   warehouse_id: z.string(),
   document_date: z.string().min(1, "Enter a date"),
   notes: z.string(),
+  charges: z.array(GoodsReceiptChargeFormSchema),
 });
 export type GoodsReceiptFromPoFormValues = z.infer<typeof GoodsReceiptFromPoFormSchema>;
 

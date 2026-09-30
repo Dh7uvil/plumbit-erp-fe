@@ -90,6 +90,7 @@ function toFormValues(customer: Customer | null, defaultCurrencyId: string): Cus
     default_price_list_id: customer?.default_price_list_id ?? OPTIONAL_SELECT_NONE,
     payment_terms_id: customer?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
     credit_limit: customer?.credit_limit ?? "",
+    credit_hold: customer?.credit_hold ?? false,
     salesperson_id: customer?.salesperson_id ?? OPTIONAL_SELECT_NONE,
     receivable_account_id: customer?.receivable_account_id ?? OPTIONAL_SELECT_NONE,
     payable_account_id: customer?.payable_account_id ?? OPTIONAL_SELECT_NONE,
@@ -472,6 +473,22 @@ export function CustomerForm({
                     <DecimalInput kind="money" disabled={disabled} {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="credit_hold"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 space-y-0 sm:col-span-2 lg:col-span-3">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={disabled}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel>Credit hold</FormLabel>
                 </FormItem>
               )}
             />

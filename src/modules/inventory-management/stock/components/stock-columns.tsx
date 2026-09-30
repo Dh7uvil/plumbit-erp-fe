@@ -59,10 +59,10 @@ export function stockBalanceColumnDefs({
         header: "Warehouse",
         cell: (row) => {
           const belowReorder = qtyIsBelowReorder(row.qty_available, row.reorder_level);
+          const label = `${row.warehouse_code}${row.warehouse_name ? ` — ${row.warehouse_name}` : ""}`;
           return (
             <>
-              {row.warehouse_code}
-              {row.warehouse_name ? ` — ${row.warehouse_name}` : ""}
+              <RecordLink href={`/stock?warehouse_id=${row.warehouse_id}`}>{label}</RecordLink>
               {belowReorder ? (
                 <Badge variant="warning" className="ml-2">
                   Below reorder

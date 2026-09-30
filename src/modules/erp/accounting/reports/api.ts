@@ -25,6 +25,8 @@ import {
   VatGlReconSchema,
   OutstandingDocumentsSchema,
   SalesPurchaseAnalysisSchema,
+  RatioAnalysisSchema,
+  PdcRegisterSchema,
   type AccountStatement,
   type AccountStatementParams,
   type Aging,
@@ -67,6 +69,10 @@ import {
   type OutstandingDocuments,
   type SalesPurchaseAnalysis,
   type AnalysisParams,
+  type RatioAnalysis,
+  type RatioAnalysisParams,
+  type PdcRegister,
+  type PdcRegisterParams,
 } from "@/modules/erp/accounting/reports/schemas";
 import { apiClient } from "@/shared/api/client";
 import type { RequestParams } from "@/shared/api/client";
@@ -163,8 +169,12 @@ export const reportsApi = {
         params: {
           party_type: params.party_type,
           party_id: params.party_id,
+          account_id: params.account_id,
           from: params.from,
           to: params.to,
+          include_opening: params.include_opening,
+          include_pdc: params.include_pdc,
+          currency_id: params.currency_id,
         },
       }),
     ),
@@ -286,6 +296,24 @@ export const reportsApi = {
     SalesPurchaseAnalysisSchema.parse(
       await apiClient.get("/reports/purchase-analysis", {
         params: { from: params.from, to: params.to, group_by: params.group_by },
+      }),
+    ),
+  ratioAnalysis: async (params: RatioAnalysisParams): Promise<RatioAnalysis> =>
+    RatioAnalysisSchema.parse(
+      await apiClient.get("/reports/ratio-analysis", {
+        params: { from: params.from, to: params.to, branch_id: params.branch_id },
+      }),
+    ),
+  pdcRegister: async (params: PdcRegisterParams = {}): Promise<PdcRegister> =>
+    PdcRegisterSchema.parse(
+      await apiClient.get("/reports/pdc-register", {
+        params: {
+          due_date_from: params.due_date_from,
+          due_date_to: params.due_date_to,
+          direction: params.direction,
+          status: params.status,
+          bank_account_id: params.bank_account_id,
+        },
       }),
     ),
   threeWayMatch: async (): Promise<ThreeWayMatch> =>

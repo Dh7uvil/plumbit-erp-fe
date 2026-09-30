@@ -16,8 +16,17 @@ import {
   useWinOpportunity,
 } from "@/modules/crm/opportunities/mutations";
 import { opportunityPermissions } from "@/modules/crm/opportunities/permissions";
-import { useOpportunity, useOpportunityQuotations } from "@/modules/crm/opportunities/queries";
+import {
+  useOpportunity,
+  useOpportunityQuotations,
+  useOpportunitySalesOrders,
+} from "@/modules/crm/opportunities/queries";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
+import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
+import {
+  SALES_ORDER_STATUS_LABELS,
+  SALES_ORDER_STATUS_VARIANTS,
+} from "@/modules/erp/sales-orders/schemas";
 import {
   QUOTATION_STATUS_LABELS,
   QUOTATION_STATUS_VARIANTS,
@@ -74,8 +83,13 @@ export function OpportunityDetailScreen({
   const { canUpdate } = useCrudPermissions(opportunityPermissions);
   const can = useCan();
   const canCreateQuotation = can(quotationPermissions.create);
+  const canReadSalesOrders = can(salesOrderPermissions.read);
   const opportunityQuery = useOpportunity(opportunityId);
   const quotationsQuery = useOpportunityQuotations(opportunityId);
+  const salesOrdersQuery = useOpportunitySalesOrders(
+    opportunityId,
+    canReadSalesOrders,
+  );
   const activityQuery = useEntityActivity("opportunity", opportunityId, undefined, {
     pageSize: 50,
   });
@@ -167,6 +181,7 @@ export function OpportunityDetailScreen({
   const activityRows = activityQuery.data?.data ?? [];
   const lostReasons = lostReasonsQuery.data ?? [];
   const quotations = quotationsQuery.data?.data ?? [];
+  const salesOrders = salesOrdersQuery.data?.data ?? [];
   const quotationCurrencyCodeById = currencyCodeById;
 
   return (
@@ -228,6 +243,7 @@ export function OpportunityDetailScreen({
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="quotations">Quotations</TabsTrigger>
+          {canReadSalesOrders ? <TabsTrigger value="sales-orders">Sales orders</TabsTrigger> : null}
           <TabsTrigger value="activities">Activities</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
@@ -318,6 +334,68 @@ export function OpportunityDetailScreen({
             </CardContent>
           </Card>
         </TabsContent>
+        {canReadSalesOrders ? (
+          <TabsContent value="sales-orders" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Sales orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {salesOrdersQuery.isLoading ? (
+                  <Skeleton className="h-32 w-full" />
+                ) : salesOrdersQuery.isError ? (
+                  <DataTableError
+                    message={getErrorMessage(salesOrdersQuery.error)}
+                    onRetry={() => salesOrdersQuery.refetch()}
+                  />
+                ) : salesOrders.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    No sales orders linked to this opportunity yet.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Number</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {salesOrders.map((order) => {
+                        const code = quotationCurrencyCodeById.get(order.currency_id);
+                        return (
+                          <TableRow key={order.id}>
+                            <TableCell>
+                              <Link
+                                href={`/sales-orders/${order.id}`}
+                                className="text-primary font-medium hover:underline"
+                              >
+                                {order.document_number}
+                              </Link>
+                            </TableCell>
+                            <TableCell>{formatDate(order.order_date)}</TableCell>
+                            <TableCell>
+                              <DocumentStatusBadge
+                                status={order.status}
+                                labels={SALES_ORDER_STATUS_LABELS}
+                                variants={SALES_ORDER_STATUS_VARIANTS}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {code ? formatMoney(order.grand_total, code) : order.grand_total}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
         <TabsContent value="activities" className="mt-4">
           <ActivityTimeline entityType="opportunity" entityId={opportunityId} />
         </TabsContent>

@@ -3,7 +3,7 @@
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
-import { formatDecimal, formatMoney } from "@/shared/lib/format";
+import { formatMoney, formatRate, formatRawDecimal } from "@/shared/lib/format";
 
 export function AppliedCommercialTerms({
   currencyId,
@@ -33,9 +33,12 @@ export function AppliedCommercialTerms({
     { label: "Currency", value: currencyCode || null },
     {
       label: "Rate",
-      value: exchangeRate
-        ? `${formatDecimal(exchangeRate)}${isDerivedReciprocal ? " (derived reciprocal)" : ""}`
-        : null,
+      value: exchangeRate ? (
+        <span title={formatRawDecimal(exchangeRate)}>
+          {formatRate(exchangeRate)}
+          {isDerivedReciprocal ? " (derived reciprocal)" : ""}
+        </span>
+      ) : null,
     },
     {
       label: "Base total",

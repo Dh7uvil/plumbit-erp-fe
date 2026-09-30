@@ -23,11 +23,14 @@ import {
   useCreateGoodsReceipt,
   useUpdateGoodsReceipt,
 } from "@/modules/inventory-management/goods-receipts/mutations";
+import { GrnChargesPanel } from "@/modules/inventory-management/goods-receipts/components/grn-charges-panel";
 import {
   emptyGoodsReceiptLine,
   GoodsReceiptFormSchema,
   isBlankGoodsReceiptLine,
   type GoodsReceipt,
+  type GoodsReceiptChargeFormValues,
+  type GoodsReceiptChargeInput,
   type GoodsReceiptCreateRequest,
   type GoodsReceiptFormValues,
   type GoodsReceiptLineFormValues,
@@ -66,7 +69,7 @@ import {
 } from "@/shared/components/ui/table";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
-import { formatQuantity } from "@/shared/lib/format";
+import { formatQuantity, formatReportMoney } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
@@ -81,6 +84,26 @@ function todayIsoDate(): string {
 
 function optionalUuid(value: string): string | null {
   return !value || value === OPTIONAL_SELECT_NONE ? null : value;
+}
+
+function toChargeInput(charge: GoodsReceiptChargeFormValues): GoodsReceiptChargeInput | null {
+  const amount = charge.amount.trim();
+  if (!amount || amount === "0" || amount === "0.00") {
+    return null;
+  }
+  return {
+    charge_type_id: charge.charge_type_id,
+    amount,
+    notes: emptyToNull(charge.notes),
+  };
+}
+
+function toFormCharges(receipt: GoodsReceipt | null): GoodsReceiptChargeFormValues[] {
+  return (receipt?.charges ?? []).map((charge) => ({
+    charge_type_id: charge.charge_type_id,
+    amount: charge.amount,
+    notes: charge.notes ?? "",
+  }));
 }
 
 function toLineInput(line: GoodsReceiptLineFormValues): GoodsReceiptLineInput {
@@ -143,6 +166,7 @@ function toFormValues(
     bl_number: receipt?.bl_number ?? "",
     notes: receipt?.notes ?? "",
     lines: toFormLines(receipt),
+    charges: toFormCharges(receipt),
   };
 }
 
@@ -239,6 +263,9 @@ export function GoodsReceiptForm({
 
   async function onSubmit(values: GoodsReceiptFormValues) {
     const lines = values.lines.filter((line) => !isBlankGoodsReceiptLine(line)).map(toLineInput);
+    const charges = (values.charges ?? [])
+      .map(toChargeInput)
+      .filter((charge): charge is GoodsReceiptChargeInput => charge != null);
     const payload = {
       warehouse_id: values.warehouse_id,
       document_date: values.document_date,
@@ -252,6 +279,7 @@ export function GoodsReceiptForm({
       bl_number: emptyToNull(values.bl_number),
       notes: emptyToNull(values.notes),
       lines,
+      charges: charges.length > 0 ? charges : undefined,
     };
     setWriteError(null);
     try {
@@ -626,6 +654,7 @@ export function GoodsReceiptForm({
             />
           )}
         </div>
+        <GrnChargesPanel form={form} disabled={disabled} />
         {receipt?.is_posted && receipt.lines.length > 0 ? (
           <DocumentViewTableContainer viewMode={disabled} rowCount={receipt.lines.length}>
             <table className="w-full caption-bottom text-sm">
@@ -636,6 +665,7 @@ export function GoodsReceiptForm({
                   <th className="px-3 py-2 text-right font-medium">Accepted</th>
                   <th className="px-3 py-2 text-right font-medium">Rejected</th>
                   <th className="px-3 py-2 text-right font-medium">On hold</th>
+                  <th className="px-3 py-2 text-right font-medium">Allocated charge</th>
                 </tr>
               </thead>
               <tbody>
@@ -653,6 +683,11 @@ export function GoodsReceiptForm({
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {formatQuantity(line.qty_on_hold)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {line.allocated_charge_amount
+                        ? formatReportMoney(line.allocated_charge_amount)
+                        : "—"}
                     </td>
                   </tr>
                 ))}

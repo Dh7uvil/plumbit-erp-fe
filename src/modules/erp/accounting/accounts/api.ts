@@ -3,6 +3,7 @@ import {
   AccountCreateRequestSchema,
   AccountBalanceSchema,
   AccountListSchema,
+  AccountPeriodBalancesSchema,
   AccountSchema,
   AccountTreeSchema,
   AccountUpdateRequestSchema,
@@ -10,6 +11,7 @@ import {
   SystemRoleMappingSchema,
   type Account,
   type AccountBalance,
+  type AccountPeriodBalances,
   type AccountCreateRequest,
   type AccountFormValues,
   type AccountListParams,
@@ -35,6 +37,7 @@ function toCreatePayload(values: AccountFormValues): AccountCreateRequest {
     account_subtype: values.account_subtype,
     parent_id: optionalUuid(values.parent_id),
     is_group: values.is_group,
+    is_blocked: values.is_blocked,
     currency_id: optionalUuid(values.currency_id),
   };
 }
@@ -49,6 +52,7 @@ function toUpdatePayload(values: AccountFormValues, isSystem: boolean): AccountU
     parent_id: optionalUuid(values.parent_id),
     is_group: values.is_group,
     is_active: values.is_active,
+    is_blocked: values.is_blocked,
     currency_id: optionalUuid(values.currency_id),
   };
 }
@@ -79,6 +83,12 @@ export const accountsApi = {
   balance: async (id: string, asOf?: string): Promise<AccountBalance> =>
     AccountBalanceSchema.parse(
       await apiClient.get(`/accounts/${id}/balance`, { params: { as_of: asOf } }),
+    ),
+  periodBalances: async (id: string, fiscalYear?: number): Promise<AccountPeriodBalances> =>
+    AccountPeriodBalancesSchema.parse(
+      await apiClient.get(`/accounts/${id}/period-balances`, {
+        params: { fiscal_year: fiscalYear },
+      }),
     ),
   create: async (values: AccountFormValues): Promise<Account> =>
     AccountSchema.parse(

@@ -28,9 +28,6 @@ describe("document links", () => {
     expect(documentDetailHref("supplier-payment", "11111111-1111-4111-8111-111111111111")).toBe(
       "/supplier-payments/11111111-1111-4111-8111-111111111111",
     );
-    expect(documentDetailHref("LANDED_COST", "11111111-1111-4111-8111-111111111111")).toBe(
-      "/landed-costs/11111111-1111-4111-8111-111111111111",
-    );
     expect(documentDetailHref("PURCHASE_RETURN", "11111111-1111-4111-8111-111111111111")).toBe(
       "/purchase-returns/11111111-1111-4111-8111-111111111111",
     );
@@ -40,8 +37,8 @@ describe("document links", () => {
     expect(documentDetailHref("UNKNOWN", "11111111-1111-4111-8111-111111111111")).toBeNull();
   });
 
-  it("exposes all 21 document types including JOURNAL", () => {
-    expect(DOCUMENT_TYPES).toHaveLength(21);
+  it("exposes all 20 document types including JOURNAL", () => {
+    expect(DOCUMENT_TYPES).toHaveLength(20);
     expect(isDocumentType("JOURNAL")).toBe(true);
     expect(documentTypeDisplayLabel("JOURNAL")).toBe("Journal");
   });

@@ -95,8 +95,6 @@ export const PurchaseInvoiceLineSchema = z.object({
   grn_unit_cost: MoneySchema,
   qty_debited: DecimalStringSchema,
   qty_received: DecimalStringSchema.optional().default("0"),
-  landed_cost_allocated: DecimalStringSchema.optional().default("0"),
-  landed_cost_remaining: z.string().nullable().optional().default(null),
 });
 export type PurchaseInvoiceLine = z.infer<typeof PurchaseInvoiceLineSchema>;
 
@@ -138,6 +136,7 @@ export const PurchaseInvoiceSchema = z.object({
   subtotal: MoneySchema,
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
+  prices_include_tax: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   notes: z.string().nullable(),
@@ -208,6 +207,7 @@ export const PurchaseInvoiceCreateRequestSchema = z.object({
   round_off_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   is_reverse_charge: z.boolean().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(PurchaseInvoiceLineInputSchema),
 });
 export type PurchaseInvoiceCreateRequest = z.infer<typeof PurchaseInvoiceCreateRequestSchema>;
@@ -231,6 +231,7 @@ export const PurchaseInvoiceUpdateRequestSchema = z.object({
   round_off_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   is_reverse_charge: z.boolean().nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(PurchaseInvoiceLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -317,6 +318,7 @@ export const PurchaseInvoiceFormSchema = z
     is_reverse_charge: z.boolean(),
     supplier_trn: z.string(),
     tax_treatment: z.string(),
+    prices_include_tax: z.boolean(),
     lines: z.array(PurchaseInvoiceLineFormSchema),
   })
   .superRefine((values, ctx) => {

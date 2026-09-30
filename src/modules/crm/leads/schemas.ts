@@ -158,12 +158,32 @@ export const LeadConvertContactSchema = z.object({
   is_primary: z.boolean().optional().default(true),
 });
 
-export const LeadConvertCustomerCreateSchema = z.object({
-  name: z.string().min(1).max(200),
-  tax_treatment: z.enum(["REGISTERED", "UNREGISTERED", "EXPORT", "GCC", "EXEMPT"]).optional(),
-  currency_id: z.string().uuid().nullable().optional(),
-  trn: z.string().max(50).nullable().optional(),
-});
+const TRN_PATTERN = /^\d{15}$/;
+
+export const LeadConvertCustomerCreateSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    tax_treatment: z.enum(["REGISTERED", "UNREGISTERED", "EXPORT", "GCC", "EXEMPT"]).optional(),
+    currency_id: z.string().uuid().nullable().optional(),
+    trn: z.string().max(50).nullable().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.tax_treatment === "REGISTERED" && !values.trn?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["trn"],
+        message: "Enter a TRN",
+      });
+    }
+    const trn = values.trn?.trim() ?? "";
+    if (trn && !TRN_PATTERN.test(trn)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["trn"],
+        message: "TRN must be exactly 15 digits",
+      });
+    }
+  });
 
 export const LeadConvertOpportunitySchema = z.object({
   create: z.boolean().optional().default(true),
@@ -181,7 +201,8 @@ export const LeadConvertRequestSchema = z
     version: z.number().int().optional(),
     customer_id: z.string().uuid().optional(),
     new_customer: LeadConvertCustomerCreateSchema.optional(),
-    contact: LeadConvertContactSchema,
+    contact_id: z.string().uuid().optional(),
+    contact: LeadConvertContactSchema.optional(),
     opportunity: LeadConvertOpportunitySchema.optional(),
   })
   .superRefine((values, ctx) => {
@@ -190,6 +211,13 @@ export const LeadConvertRequestSchema = z
         code: "custom",
         message: "Choose an existing customer or enter a new one",
         path: ["customer_id"],
+      });
+    }
+    if ((values.contact_id === undefined) === (values.contact === undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Choose an existing contact or enter a new one",
+        path: ["contact_id"],
       });
     }
   });

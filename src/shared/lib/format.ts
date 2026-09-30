@@ -98,7 +98,13 @@ export function formatFixedDecimal(value: string | null | undefined, fractionDig
   }
 }
 
+export const DISPLAY_SCALE = 2;
+
 export function formatDecimal(value: string | null | undefined): string {
+  return formatFixedDecimal(value, DISPLAY_SCALE);
+}
+
+export function formatRawDecimal(value: string | null | undefined): string {
   if (value == null || value === "") {
     return "—";
   }
@@ -110,8 +116,15 @@ export function formatDecimal(value: string | null | undefined): string {
   }
 }
 
+export function formatRate(value: string | null | undefined): string {
+  return formatFixedDecimal(value, DISPLAY_SCALE);
+}
+
+export const QUANTITY_INPUT_SCALE = 6;
+export const QUANTITY_SCALE = QUANTITY_INPUT_SCALE;
+
 export function formatQuantity(value: string | null | undefined): string {
-  return formatFixedDecimal(value, 2);
+  return formatFixedDecimal(value, DISPLAY_SCALE);
 }
 
 /** Formats embedded qty values in tracker summaries such as "1 lines · qty 2.000000". */
@@ -241,6 +254,14 @@ export function compareDecimals(left: string, right: string): number | null {
   return scaledLeft < scaledRight ? -1 : 1;
 }
 
+function divideScaledHalfUp(numerator: bigint, denominator: bigint): bigint {
+  const negative = (numerator < BigInt(0)) !== (denominator < BigInt(0));
+  const absNumerator = numerator < BigInt(0) ? -numerator : numerator;
+  const absDenominator = denominator < BigInt(0) ? -denominator : denominator;
+  const result = (absNumerator + absDenominator / BigInt(2)) / absDenominator;
+  return negative ? -result : result;
+}
+
 export function proportionDecimal(part: string, whole: string, total: string): string | null {
   const scaledPart = toScaledMoney(part);
   const scaledWhole = toScaledMoney(whole);
@@ -248,12 +269,29 @@ export function proportionDecimal(part: string, whole: string, total: string): s
   if (scaledPart === null || scaledWhole === null || scaledTotal === null || scaledWhole === BigInt(0)) {
     return null;
   }
-  const negative = scaledPart < BigInt(0) !== scaledTotal < BigInt(0);
-  const absPart = scaledPart < BigInt(0) ? -scaledPart : scaledPart;
-  const absWhole = scaledWhole < BigInt(0) ? -scaledWhole : scaledWhole;
-  const absTotal = scaledTotal < BigInt(0) ? -scaledTotal : scaledTotal;
-  const result = (absPart * absTotal) / absWhole;
-  return fromScaledMoney(negative ? -result : result);
+  const result = divideScaledHalfUp(scaledPart * scaledTotal, scaledWhole);
+  return fromScaledMoney(result);
+}
+
+export function minDecimals(
+  left: string,
+  right: string,
+  fractionDigits = MONEY_SCALE,
+): string | null {
+  const comparison = compareDecimals(left, right);
+  if (comparison === null) {
+    return null;
+  }
+  return comparison <= 0 ? left : right;
+}
+
+export function formatBalanceWithSide(
+  value: string | null | undefined,
+  side: string | null | undefined,
+  currencyCode?: string | null,
+): string {
+  const amount = formatReportMoney(value, currencyCode);
+  return side ? `${amount} ${side}` : amount;
 }
 
 export function formatReportMoney(
@@ -301,7 +339,7 @@ export function formatCompactReportMoney(
 export function formatMoney(
   value: string | null | undefined,
   currencyCode: string,
-  fractionDigitsOverride?: number,
+  fractionDigitsOverride: number = DISPLAY_SCALE,
 ): string {
   if (value == null || value === "") {
     return "—";
@@ -312,12 +350,8 @@ export function formatMoney(
     const formatter = new Intl.NumberFormat(undefined, {
       style: "currency",
       currency,
-      ...(fractionDigitsOverride == null
-        ? {}
-        : {
-            minimumFractionDigits: fractionDigitsOverride,
-            maximumFractionDigits: fractionDigitsOverride,
-          }),
+      minimumFractionDigits: fractionDigitsOverride,
+      maximumFractionDigits: fractionDigitsOverride,
     });
     const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
     const rounded = roundHalfUp(whole, fraction, fractionDigits);

@@ -1,11 +1,15 @@
-import { VoucherNewScreen } from "@/modules/erp/accounting/vouchers/components/voucher-new-screen";
-import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { redirect } from "next/navigation";
 
-export default function NewVoucherPage() {
-  return (
-    <PermissionGate permission={voucherPermissions.create}>
-      <VoucherNewScreen />
-    </PermissionGate>
-  );
+import {
+  parseVoucherEntryBook,
+  type VoucherEntryType,
+} from "@/modules/erp/accounting/vouchers/schemas";
+
+export default function NewVoucherPage({
+  searchParams,
+}: {
+  searchParams: { voucher_type?: string };
+}) {
+  const entryBook: VoucherEntryType = parseVoucherEntryBook(searchParams.voucher_type ?? null);
+  redirect(`/vouchers/entry?voucher_type=${entryBook}`);
 }

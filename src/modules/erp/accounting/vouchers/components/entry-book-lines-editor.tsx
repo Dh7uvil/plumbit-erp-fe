@@ -1,0 +1,515 @@
+"use client";
+
+import { Plus, Trash2 } from "lucide-react";
+import { useMemo, useState, type KeyboardEvent } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import { useFieldArray } from "react-hook-form";
+
+import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
+import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
+import { isControlAccount, type Account } from "@/modules/erp/accounting/accounts/schemas";
+import { AccountFormDialog } from "@/modules/erp/accounting/accounts/components/account-form-dialog";
+import { journalBalanceTotals } from "@/modules/erp/accounting/journals/balance";
+import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
+import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
+import { CostCenterFormDialog } from "@/modules/erp/accounting/cost-centers/components/cost-center-form-dialog";
+import {
+  emptyVoucherEntryLine,
+  type VoucherEntryFormValues,
+} from "@/modules/erp/accounting/vouchers/schemas";
+import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
+import { useAllCustomers } from "@/modules/crm/customers/queries";
+import { customerPermissions } from "@/modules/crm/customers/permissions";
+import { CustomerFormDialog } from "@/modules/crm/customers/components/customer-form-dialog";
+import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
+import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
+import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
+import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
+import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
+import { DecimalInput } from "@/shared/components/form/decimal-input";
+import { MasterSelect } from "@/shared/components/form/master-select";
+import { Button } from "@/shared/components/ui/button";
+import { FormControl, FormField, FormItem, FormMessage } from "@/shared/components/ui/form";
+import { Input } from "@/shared/components/ui/input";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
+import { formatReportMoney } from "@/shared/lib/format";
+import { useCan } from "@/shared/providers/session-provider";
+
+function partyTypeFor(account: Account | undefined): "CUSTOMER" | "SUPPLIER" | null {
+  if (!account || !isControlAccount(account)) {
+    return null;
+  }
+  return account.account_subtype === "ACCOUNTS_RECEIVABLE" ? "CUSTOMER" : "SUPPLIER";
+}
+
+export function EntryBookLinesEditor({
+  form,
+  disabled,
+  currencyCode,
+  showVatDetails = false,
+}: {
+  form: UseFormReturn<VoucherEntryFormValues>;
+  disabled: boolean;
+  currencyCode?: string | null;
+  showVatDetails?: boolean;
+}) {
+  const can = useCan();
+  const accountsQuery = useAllAccounts({ is_group: false, is_active: true });
+  const customersQuery = useAllCustomers();
+  const suppliersQuery = useAllSuppliers();
+  const costCentersQuery = useAllCostCenters();
+  const taxesQuery = useAllTaxes();
+  const { fields, append, remove } = useFieldArray({ control: form.control, name: "lines" });
+  const [creatingAccount, setCreatingAccount] = useState<number | null>(null);
+  const [creatingParty, setCreatingParty] = useState<{
+    type: "CUSTOMER" | "SUPPLIER";
+    index: number;
+  } | null>(null);
+  const [creatingCostCenter, setCreatingCostCenter] = useState<number | null>(null);
+  const accounts = (accountsQuery.data ?? []).filter((account) => !account.is_group);
+  const accountsById = useMemo(() => {
+    const map = new Map<string, Account>();
+    for (const account of accounts) {
+      map.set(account.id, account);
+    }
+    return map;
+  }, [accounts]);
+  const customers = customersQuery.data ?? [];
+  const suppliers = suppliersQuery.data ?? [];
+  const costCenters = costCentersQuery.data ?? [];
+  const taxes = taxesQuery.data ?? [];
+  const watchedLines = form.watch("lines");
+  const totals = journalBalanceTotals(watchedLines ?? []);
+  const showPartyColumns = (watchedLines ?? []).some((line) =>
+    Boolean(partyTypeFor(accountsById.get(line.account_id))),
+  );
+
+  function onLastFieldKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
+    if (disabled) {
+      return;
+    }
+    if (event.key === "Enter" && index === fields.length - 1) {
+      event.preventDefault();
+      append(emptyVoucherEntryLine());
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
+        <table className="w-full caption-bottom text-sm">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="min-w-[20ch]">Account</TableHead>
+              <TableHead className="w-32">Dr amount</TableHead>
+              <TableHead className="w-32">Cr amount</TableHead>
+              {showPartyColumns ? <TableHead>Party</TableHead> : null}
+              {showPartyColumns ? <TableHead>Due date</TableHead> : null}
+              {showVatDetails ? <TableHead>Tax</TableHead> : null}
+              <TableHead>Cost center</TableHead>
+              <TableHead>Reference</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {fields.map((field, index) => {
+              const accountId = form.watch(`lines.${index}.account_id`);
+              const account = accountsById.get(accountId);
+              const partyType = partyTypeFor(account);
+              const partyOptions =
+                partyType === "CUSTOMER"
+                  ? customers.map((row) => ({ value: row.id, label: row.name }))
+                  : partyType === "SUPPLIER"
+                    ? suppliers.map((row) => ({ value: row.id, label: row.name }))
+                    : [];
+              return (
+                <TableRow key={field.id}>
+                  <TableCell className="min-w-[20ch] align-top">
+                    <FormField
+                      control={form.control}
+                      name={`lines.${index}.account_id`}
+                      render={({ field: accountField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <MasterSelect
+                              compact
+                              asFormControl={false}
+                              value={accountField.value}
+                              onValueChange={(value) => {
+                                accountField.onChange(value);
+                                const next = accountsById.get(value);
+                                const nextParty = partyTypeFor(next);
+                                form.setValue(
+                                  `lines.${index}.party_type`,
+                                  nextParty ?? OPTIONAL_SELECT_NONE,
+                                );
+                                if (!nextParty) {
+                                  form.setValue(`lines.${index}.party_id`, OPTIONAL_SELECT_NONE);
+                                  form.setValue(`lines.${index}.due_date`, "");
+                                }
+                              }}
+                              disabled={disabled}
+                              placeholder="Account"
+                              searchPlaceholder="Search account…"
+                              aria-label={`Line ${index + 1} account`}
+                              createLabel="Create account"
+                              onCreate={
+                                can(accountPermissions.create)
+                                  ? () => setCreatingAccount(index)
+                                  : undefined
+                              }
+                              options={accounts.map((row) => ({
+                                value: row.id,
+                                label: `${row.code} — ${row.name}`,
+                              }))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TableCell>
+                  <TableCell className="w-32 align-top">
+                    <FormField
+                      control={form.control}
+                      name={`lines.${index}.debit`}
+                      render={({ field: debitField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <DecimalInput
+                              kind="money"
+                              disabled={disabled}
+                              aria-label={`Line ${index + 1} debit`}
+                              {...debitField}
+                              onChange={(event) => {
+                                debitField.onChange(event);
+                                if (event.target.value.trim()) {
+                                  form.setValue(`lines.${index}.credit`, "");
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TableCell>
+                  <TableCell className="w-32 align-top">
+                    <FormField
+                      control={form.control}
+                      name={`lines.${index}.credit`}
+                      render={({ field: creditField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <DecimalInput
+                              kind="money"
+                              disabled={disabled}
+                              aria-label={`Line ${index + 1} credit`}
+                              {...creditField}
+                              onChange={(event) => {
+                                creditField.onChange(event);
+                                if (event.target.value.trim()) {
+                                  form.setValue(`lines.${index}.debit`, "");
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TableCell>
+                  {showPartyColumns ? (
+                    <TableCell className="min-w-52 align-top">
+                      {partyType ? (
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.party_id`}
+                          render={({ field: partyField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <MasterSelect
+                                  compact
+                                  asFormControl={false}
+                                  value={partyField.value}
+                                  onValueChange={partyField.onChange}
+                                  disabled={disabled}
+                                  placeholder={partyType === "CUSTOMER" ? "Customer" : "Supplier"}
+                                  searchPlaceholder="Search party…"
+                                  aria-label={`Line ${index + 1} party`}
+                                  createLabel={
+                                    partyType === "CUSTOMER" ? "Create customer" : "Create supplier"
+                                  }
+                                  onCreate={
+                                    (
+                                      partyType === "CUSTOMER"
+                                        ? can(customerPermissions.create)
+                                        : can(supplierPermissions.create)
+                                    )
+                                      ? () => setCreatingParty({ type: partyType, index })
+                                      : undefined
+                                  }
+                                  options={partyOptions}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                  ) : null}
+                  {showPartyColumns ? (
+                    <TableCell className="min-w-36 align-top">
+                      {partyType ? (
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.due_date`}
+                          render={({ field: dueField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  type="date"
+                                  disabled={disabled}
+                                  aria-label={`Line ${index + 1} due date`}
+                                  {...dueField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                  ) : null}
+                  {showVatDetails ? (
+                    <TableCell className="min-w-44 align-top">
+                      <FormField
+                        control={form.control}
+                        name={`lines.${index}.tax_id`}
+                        render={({ field: taxField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <MasterSelect
+                                compact
+                                asFormControl={false}
+                                value={taxField.value ?? OPTIONAL_SELECT_NONE}
+                                onValueChange={taxField.onChange}
+                                disabled={disabled}
+                                placeholder="Tax"
+                                searchPlaceholder="Search tax…"
+                                aria-label={`Line ${index + 1} tax`}
+                                options={[
+                                  { value: OPTIONAL_SELECT_NONE, label: "None" },
+                                  ...taxes.map((tax) => ({
+                                    value: tax.id,
+                                    label: tax.name,
+                                  })),
+                                ]}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
+                  ) : null}
+                  <TableCell className="min-w-52 align-top">
+                    <FormField
+                      control={form.control}
+                      name={`lines.${index}.cost_center_id`}
+                      render={({ field: costCenterField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <MasterSelect
+                              compact
+                              asFormControl={false}
+                              value={costCenterField.value ?? OPTIONAL_SELECT_NONE}
+                              onValueChange={costCenterField.onChange}
+                              disabled={disabled}
+                              placeholder="Cost center"
+                              searchPlaceholder="Search cost center…"
+                              aria-label={`Line ${index + 1} cost center`}
+                              createLabel="Create cost center"
+                              onCreate={
+                                can(costCenterPermissions.create)
+                                  ? () => setCreatingCostCenter(index)
+                                  : undefined
+                              }
+                              options={costCenters.map((row) => ({
+                                value: row.id,
+                                label: `${row.code} — ${row.name}`,
+                              }))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TableCell>
+                  <TableCell className="min-w-36 align-top">
+                    <FormField
+                      control={form.control}
+                      name={`lines.${index}.external_reference`}
+                      render={({ field: refField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              disabled={disabled}
+                              aria-label={`Line ${index + 1} reference`}
+                              {...refField}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TableCell>
+                  <TableCell className="min-w-[16rem] align-top">
+                    <FormField
+                      control={form.control}
+                      name={`lines.${index}.description`}
+                      render={({ field: descField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              disabled={disabled}
+                              aria-label={`Line ${index + 1} description`}
+                              {...descField}
+                              onKeyDown={(event) => onLastFieldKeyDown(index, event)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TableCell>
+                  <TableCell className="align-top">
+                    {disabled ? null : (
+                      <TableActionTooltip label={`Remove line ${index + 1}`}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          aria-label={`Remove line ${index + 1}`}
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableActionTooltip>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            <TableRow>
+              <TableCell className="font-medium">Total amount</TableCell>
+              <TableCell className="font-medium">
+                {formatReportMoney(totals.totalDebit, currencyCode)}
+              </TableCell>
+              <TableCell className="font-medium">
+                {formatReportMoney(totals.totalCredit, currencyCode)}
+              </TableCell>
+              <TableCell
+                colSpan={
+                  4 + (showPartyColumns ? 2 : 0) + (showVatDetails ? 1 : 0)
+                }
+                className="text-muted-foreground text-xs"
+              >
+                {totals.isBalanced
+                  ? "Balanced"
+                  : `Difference ${formatReportMoney(totals.difference, currencyCode)} (post requires a match)`}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </table>
+      </DocumentViewTableContainer>
+      {disabled ? null : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={() => append(emptyVoucherEntryLine())}
+        >
+          <Plus className="size-3.5" />
+          Add line
+        </Button>
+      )}
+      <AccountFormDialog
+        open={creatingAccount !== null}
+        account={null}
+        nested
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreatingAccount(null);
+          }
+        }}
+        onCreated={(entity) => {
+          if (creatingAccount !== null) {
+            form.setValue(`lines.${creatingAccount}.account_id`, entity.id);
+          }
+        }}
+      />
+      <CustomerFormDialog
+        open={creatingParty?.type === "CUSTOMER"}
+        customer={null}
+        nested
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreatingParty(null);
+          }
+        }}
+        onCreated={(entity) => {
+          if (creatingParty?.type === "CUSTOMER") {
+            form.setValue(`lines.${creatingParty.index}.party_id`, entity.id);
+            form.setValue(`lines.${creatingParty.index}.party_type`, "CUSTOMER");
+          }
+        }}
+      />
+      <CostCenterFormDialog
+        open={creatingCostCenter !== null}
+        nested
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreatingCostCenter(null);
+          }
+        }}
+        onCreated={(entity) => {
+          if (creatingCostCenter !== null) {
+            form.setValue(`lines.${creatingCostCenter}.cost_center_id`, entity.id);
+          }
+        }}
+      />
+      <SupplierFormDialog
+        open={creatingParty?.type === "SUPPLIER"}
+        supplier={null}
+        nested
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreatingParty(null);
+          }
+        }}
+        onCreated={(entity) => {
+          if (creatingParty?.type === "SUPPLIER") {
+            form.setValue(`lines.${creatingParty.index}.party_id`, entity.id);
+            form.setValue(`lines.${creatingParty.index}.party_type`, "SUPPLIER");
+          }
+        }}
+      />
+    </div>
+  );
+}

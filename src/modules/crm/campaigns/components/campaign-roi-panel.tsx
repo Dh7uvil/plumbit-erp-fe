@@ -4,7 +4,7 @@ import { useCampaignRoi } from "@/modules/crm/campaigns/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DataTableError } from "@/shared/components/data-table/states";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatDecimal, formatPercent } from "@/shared/lib/format";
+import { formatMoney, formatPercent } from "@/shared/lib/format";
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
@@ -39,10 +39,10 @@ export function CampaignRoiPanel({ campaignId }: { campaignId: string }) {
         <Metric label="Members" value={String(roi.member_count)} />
         <Metric label="Converted leads" value={String(roi.converted_leads)} />
         <Metric label="Won opportunities" value={String(roi.won_opportunity_count)} />
-        <Metric label="Won opportunity value" value={formatDecimal(roi.won_opportunity_value)} />
-        <Metric label="Budgeted cost" value={formatDecimal(roi.budgeted_cost)} />
-        <Metric label="Actual cost" value={formatDecimal(roi.actual_cost)} />
-        <Metric label="Expected revenue" value={formatDecimal(roi.expected_revenue)} />
+        <Metric label="Won opportunity value" value={formatMoney(roi.won_opportunity_value, "")} />
+        <Metric label="Budgeted cost" value={formatMoney(roi.budgeted_cost, "")} />
+        <Metric label="Actual cost" value={formatMoney(roi.actual_cost, "")} />
+        <Metric label="Expected revenue" value={formatMoney(roi.expected_revenue, "")} />
         <Metric label="ROI" value={formatPercent(roi.roi)} />
       </div>
     </div>

@@ -6,7 +6,10 @@ import { useMemo } from "react";
 
 import { recurringPermissions } from "@/modules/erp/accounting/recurring/permissions";
 import { useRecurringTemplates } from "@/modules/erp/accounting/recurring/queries";
-import type { RecurringTemplate } from "@/modules/erp/accounting/recurring/schemas";
+import {
+  recurringDocumentKindLabel,
+  type RecurringTemplate,
+} from "@/modules/erp/accounting/recurring/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
@@ -50,10 +53,6 @@ const STATUS_VARIANTS = {
   "success" | "warning" | "muted" | "destructive"
 >;
 
-function documentKindLabel(kind: string): string {
-  return kind === "SALES_INVOICE" ? "Sales invoice" : "Purchase bill";
-}
-
 export function RecurringScreen() {
   const can = useCan();
   const { canCreate } = useCrudPermissions(recurringPermissions);
@@ -82,7 +81,7 @@ export function RecurringScreen() {
       {
         id: "document_kind",
         header: "Document",
-        cell: (row) => documentKindLabel(row.document_kind),
+        cell: (row) => recurringDocumentKindLabel(row.document_kind),
       },
       {
         id: "frequency",

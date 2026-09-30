@@ -159,6 +159,7 @@ export const QuotationSchema = z.object({
   subtotal: MoneySchema,
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
+  prices_include_tax: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   converted_at: z.string().nullable(),
@@ -228,6 +229,7 @@ export const QuotationCreateRequestSchema = z.object({
   shipping_amount: MoneySchema.optional(),
   adjustment_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(QuotationLineInputSchema).optional(),
 });
 export type QuotationCreateRequest = z.infer<typeof QuotationCreateRequestSchema>;
@@ -248,6 +250,7 @@ export const QuotationUpdateRequestSchema = z.object({
   shipping_amount: MoneySchema.nullable().optional(),
   adjustment_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(QuotationLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -375,6 +378,7 @@ export const QuotationFormSchema = z
     tax_treatment: z.string(),
     bill_to_snapshot: z.string(),
     ship_to_snapshot: z.string(),
+    prices_include_tax: z.boolean(),
     lines: z.array(QuotationLineFormSchema),
   })
   .superRefine((values, ctx) => {

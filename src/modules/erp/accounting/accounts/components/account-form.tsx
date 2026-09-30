@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -16,6 +16,8 @@ import {
   ACCOUNT_TYPES,
   AccountFormSchema,
   EMPTY_ACCOUNT_FORM,
+  composeAccountCode,
+  splitAccountCode,
   type Account,
   type AccountFormValues,
   type AccountSubtype,
@@ -30,6 +32,7 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -54,8 +57,11 @@ function toFormValues(account: Account | null, defaultCurrencyId?: string): Acco
   if (!account) {
     return EMPTY_ACCOUNT_FORM;
   }
+  const { subAccountNumber, manualCode } = splitAccountCode(account.code, account.parent_code);
   return {
     code: account.code,
+    sub_account_number: subAccountNumber,
+    manual_code: manualCode,
     name: account.name,
     description: account.description ?? "",
     account_type: account.account_type,
@@ -63,6 +69,7 @@ function toFormValues(account: Account | null, defaultCurrencyId?: string): Acco
     parent_id: account.parent_id ?? OPTIONAL_SELECT_NONE,
     is_group: account.is_group,
     is_active: account.is_active,
+    is_blocked: account.is_blocked,
     currency_id: account.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
   };
 }
@@ -101,6 +108,9 @@ export function AccountForm({
   useDirtyFormGuard(form.formState.isDirty && !disabled);
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const accountType = useWatch({ control: form.control, name: "account_type" });
+  const parentId = useWatch({ control: form.control, name: "parent_id" });
+  const subAccountNumber = useWatch({ control: form.control, name: "sub_account_number" });
+  const manualCode = useWatch({ control: form.control, name: "manual_code" });
   const subtypeOptions = ACCOUNT_SUBTYPES_BY_TYPE[accountType] ?? [];
   const groups = useMemo(
     () =>
@@ -109,8 +119,31 @@ export function AccountForm({
       ),
     [account?.id, accountType, groupsQuery.data],
   );
+  const selectedParent = useMemo(
+    () => groups.find((row) => row.id === parentId) ?? null,
+    [groups, parentId],
+  );
+  const mainAccountName = selectedParent?.name ?? account?.parent_name ?? "";
   const currencies = currenciesQuery.data ?? [];
   const pending = createAccount.isPending || updateAccount.isPending;
+  const hasMainAccount = parentId !== OPTIONAL_SELECT_NONE && parentId !== "";
+
+  useEffect(() => {
+    if (manualCode || codeLocked || !hasMainAccount || !selectedParent) {
+      return;
+    }
+    const composed = composeAccountCode(selectedParent.code, subAccountNumber);
+    if (form.getValues("code") !== composed) {
+      form.setValue("code", composed, { shouldDirty: true });
+    }
+  }, [
+    codeLocked,
+    form,
+    hasMainAccount,
+    manualCode,
+    selectedParent,
+    subAccountNumber,
+  ]);
 
   async function onSubmit(values: AccountFormValues) {
     setFormError(null);
@@ -143,13 +176,89 @@ export function AccountForm({
         >
           <FormField
             control={form.control}
+            name="parent_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Main account</FormLabel>
+                <MasterSelect
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    if (value === OPTIONAL_SELECT_NONE) {
+                      form.setValue("sub_account_number", "");
+                      form.setValue("manual_code", true);
+                    } else {
+                      form.setValue("manual_code", false);
+                    }
+                  }}
+                  disabled={disabled}
+                  placeholder="No main account"
+                  searchPlaceholder="Search group…"
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "No main account" },
+                    ...groups.map((row) => ({
+                      value: row.id,
+                      label: `${row.code} — ${row.name}`,
+                    })),
+                  ]}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {hasMainAccount ? (
+            <>
+              <FormItem>
+                <FormLabel>Main account name</FormLabel>
+                <FormControl>
+                  <Input disabled value={mainAccountName} readOnly />
+                </FormControl>
+              </FormItem>
+              <FormField
+                control={form.control}
+                name="sub_account_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sub account number</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={disabled || codeLocked}
+                        maxLength={20}
+                        {...field}
+                        onChange={(event) => {
+                          field.onChange(event);
+                          form.setValue("manual_code", false, { shouldDirty: true });
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          ) : null}
+          <FormField
+            control={form.control}
             name="code"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Code</FormLabel>
                 <FormControl>
-                  <Input disabled={disabled || codeLocked} maxLength={20} {...field} />
+                  <Input
+                    disabled={disabled || codeLocked}
+                    maxLength={20}
+                    {...field}
+                    onChange={(event) => {
+                      field.onChange(event);
+                      form.setValue("manual_code", true, { shouldDirty: true });
+                    }}
+                  />
                 </FormControl>
+                {hasMainAccount ? (
+                  <FormDescription>
+                    Composed from main + sub unless you edit this field directly.
+                  </FormDescription>
+                ) : null}
                 <FormMessage />
               </FormItem>
             )}
@@ -179,6 +288,8 @@ export function AccountForm({
                   onValueChange={(value) => {
                     field.onChange(value);
                     form.setValue("parent_id", OPTIONAL_SELECT_NONE);
+                    form.setValue("sub_account_number", "");
+                    form.setValue("manual_code", true);
                     const allowed = ACCOUNT_SUBTYPES_BY_TYPE[value as Account["account_type"]];
                     const current = form.getValues("account_subtype");
                     if (!allowed.includes(current as AccountSubtype)) {
@@ -208,11 +319,11 @@ export function AccountForm({
             name="account_subtype"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Subtype</FormLabel>
+                <FormLabel>Financial category</FormLabel>
                 <Select value={field.value} disabled={disabled} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Subtype" />
+                      <SelectValue placeholder="Financial category" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -223,30 +334,6 @@ export function AccountForm({
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="parent_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Parent</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={disabled}
-                  placeholder="No parent"
-                  searchPlaceholder="Search group…"
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "No parent" },
-                    ...groups.map((row) => ({
-                      value: row.id,
-                      label: `${row.code} — ${row.name}`,
-                    })),
-                  ]}
-                />
                 <FormMessage />
               </FormItem>
             )}
@@ -316,22 +403,40 @@ export function AccountForm({
             )}
           />
           {isEdit ? (
-            <FormField
-              control={form.control}
-              name="is_active"
-              render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      disabled={disabled}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  </FormControl>
-                  <FormLabel>Active</FormLabel>
-                </FormItem>
-              )}
-            />
+            <>
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        disabled={disabled}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                    </FormControl>
+                    <FormLabel>Active</FormLabel>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="is_blocked"
+                render={({ field }) => (
+                  <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        disabled={disabled}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                    </FormControl>
+                    <FormLabel>Blocked (visible but not postable)</FormLabel>
+                  </FormItem>
+                )}
+              />
+            </>
           ) : null}
         </div>
         {disabled ? null : (

@@ -34,6 +34,7 @@ export const VOUCHER_ENTRY_TYPES = [
   "CASH_PAYMENT",
   "BANK_RECEIPT",
   "BANK_PAYMENT",
+  "JOURNAL",
 ] as const;
 export type VoucherEntryType = (typeof VOUCHER_ENTRY_TYPES)[number];
 
@@ -48,6 +49,7 @@ export const VOUCHER_TYPE_LABELS: Record<VoucherType, string> = {
   CASH_PAYMENT: "Cash payment",
   BANK_RECEIPT: "Bank receipt",
   BANK_PAYMENT: "Bank payment",
+  JOURNAL: "Journal voucher",
   CONTRA: "Contra",
 };
 
@@ -57,6 +59,7 @@ export const VOUCHER_ENTRY_BOOK_LABELS: Record<VoucherEntryType, string> = {
   CASH_PAYMENT: "Cash Payment",
   BANK_RECEIPT: "Bank Receipt",
   BANK_PAYMENT: "Bank Payment",
+  JOURNAL: "Journal Voucher",
 };
 
 export const VOUCHER_ENTRY_BOOK_OPTIONS = VOUCHER_ENTRY_TYPES.map((type) => ({
@@ -64,19 +67,9 @@ export const VOUCHER_ENTRY_BOOK_OPTIONS = VOUCHER_ENTRY_TYPES.map((type) => ({
   label: VOUCHER_ENTRY_BOOK_LABELS[type],
 }));
 
-/** Frontend-only entry book value; journal vouchers use the journals API. */
-export const JOURNAL_ENTRY_BOOK = "JOURNAL" as const;
-export type VoucherEntryBook = VoucherEntryType | typeof JOURNAL_ENTRY_BOOK;
-
-export const VOUCHER_ENTRY_BOOK_ALL_OPTIONS: { value: VoucherEntryBook; label: string }[] = [
-  ...VOUCHER_ENTRY_BOOK_OPTIONS,
-  { value: JOURNAL_ENTRY_BOOK, label: "Journal Voucher" },
-];
+export type VoucherEntryBook = VoucherEntryType;
 
 export function parseVoucherEntryBook(value: string | null): VoucherEntryBook {
-  if (value === JOURNAL_ENTRY_BOOK) {
-    return JOURNAL_ENTRY_BOOK;
-  }
   const parsed = VoucherEntryTypeSchema.safeParse(value);
   return parsed.success ? parsed.data : "CASH_RECEIPT";
 }
@@ -90,11 +83,12 @@ export const VOUCHER_WORKSPACE_TABS = [
 ] as const;
 export type VoucherWorkspaceTab = (typeof VOUCHER_WORKSPACE_TABS)[number];
 
-const TAB_TO_TYPE: Record<string, VoucherEntryType | undefined> = {
+const TAB_TO_TYPE: Record<VoucherWorkspaceTab, VoucherEntryType> = {
   "cash-receipt": "CASH_RECEIPT",
   "cash-payment": "CASH_PAYMENT",
   "bank-receipt": "BANK_RECEIPT",
   "bank-payment": "BANK_PAYMENT",
+  journal: "JOURNAL",
 };
 
 export function parseVoucherWorkspaceTab(value: string | null): VoucherWorkspaceTab {
@@ -106,7 +100,7 @@ export function parseVoucherWorkspaceTab(value: string | null): VoucherWorkspace
     : "cash-receipt";
 }
 
-export function voucherTypeForTab(tab: VoucherWorkspaceTab): VoucherEntryType | undefined {
+export function voucherTypeForTab(tab: VoucherWorkspaceTab): VoucherEntryType {
   return TAB_TO_TYPE[tab];
 }
 
@@ -115,6 +109,7 @@ const VOUCHER_TYPE_TO_TAB: Partial<Record<VoucherType, VoucherWorkspaceTab>> = {
   CASH_PAYMENT: "cash-payment",
   BANK_RECEIPT: "bank-receipt",
   BANK_PAYMENT: "bank-payment",
+  JOURNAL: "journal",
 };
 
 export function vouchersListHref(voucherType?: VoucherType): string {
@@ -133,6 +128,8 @@ export const VoucherLineSchema = z.object({
   line_number: z.number().int(),
   account_id: z.string().uuid(),
   amount: MoneySchema,
+  debit: DecimalStringSchema,
+  credit: DecimalStringSchema,
   party_type: z.string().nullable(),
   party_id: z.string().uuid().nullable(),
   tax_id: z.string().uuid().nullable(),
@@ -153,7 +150,7 @@ export const VoucherSchema = z.object({
   is_posted: z.boolean(),
   voucher_date: z.string(),
   document_date: z.string(),
-  payment_account_id: z.string().uuid(),
+  payment_account_id: z.string().uuid().nullable(),
   counter_account_id: z.string().uuid().nullable(),
   total_amount: MoneySchema,
   amount_unapplied: MoneySchema,
@@ -164,8 +161,12 @@ export const VoucherSchema = z.object({
   base_amount: DecimalStringSchema,
   party_type: z.string().nullable(),
   party_id: z.string().uuid().nullable(),
-  payment_method: PaymentMethodSchema,
+  payment_method: PaymentMethodSchema.nullable(),
+  cheque_number: z.string().nullable().optional(),
+  cheque_date: z.string().nullable().optional(),
+  external_reference: z.string().nullable().optional(),
   reference: z.string().nullable(),
+  period: z.number().int().nullable().optional(),
   branch_id: z.string().uuid().nullable(),
   cost_center_id: z.string().uuid().nullable(),
   narration: z.string().nullable(),
@@ -201,7 +202,9 @@ export type VoucherListParams = {
 
 export const VoucherLineInputSchema = z.object({
   account_id: z.string().uuid(),
-  amount: DecimalStringSchema,
+  amount: DecimalStringSchema.optional(),
+  debit: DecimalStringSchema.optional(),
+  credit: DecimalStringSchema.optional(),
   party_type: z.string().nullable().optional(),
   party_id: z.string().uuid().nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
@@ -213,13 +216,16 @@ export const VoucherLineInputSchema = z.object({
 export const VoucherCreateRequestSchema = z.object({
   voucher_type: VoucherTypeSchema,
   voucher_date: z.string().nullable().optional(),
-  payment_account_id: z.string().uuid(),
+  payment_account_id: z.string().uuid().nullable().optional(),
   counter_account_id: z.string().uuid().nullable().optional(),
-  total_amount: DecimalStringSchema,
+  total_amount: DecimalStringSchema.optional(),
   currency_id: z.string().uuid().nullable().optional(),
   party_type: z.string().nullable().optional(),
   party_id: z.string().uuid().nullable().optional(),
-  payment_method: PaymentMethodSchema.optional(),
+  payment_method: PaymentMethodSchema.nullable().optional(),
+  cheque_number: z.string().nullable().optional(),
+  cheque_date: z.string().nullable().optional(),
+  external_reference: z.string().nullable().optional(),
   reference: z.string().nullable().optional(),
   branch_id: z.string().uuid().nullable().optional(),
   cost_center_id: z.string().uuid().nullable().optional(),
@@ -272,6 +278,10 @@ export function isContraVoucher(voucherType: VoucherType): voucherType is "CONTR
   return voucherType === "CONTRA";
 }
 
+export function isJournalVoucher(voucherType: VoucherType): boolean {
+  return voucherType === "JOURNAL";
+}
+
 export function paymentAccountSubtypeFor(voucherType: VoucherType): "CASH" | "BANK" | null {
   if (voucherType.startsWith("CASH")) {
     return "CASH";
@@ -314,12 +324,14 @@ export const VoucherFormSchema = z
     lines: z.array(VoucherFormLineSchema),
   })
   .superRefine((values, ctx) => {
-    if (values.payment_account_id === OPTIONAL_SELECT_NONE || !values.payment_account_id.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Select a payment account",
-        path: ["payment_account_id"],
-      });
+    if (!isJournalVoucher(values.voucher_type)) {
+      if (values.payment_account_id === OPTIONAL_SELECT_NONE || !values.payment_account_id.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Select a payment account",
+          path: ["payment_account_id"],
+        });
+      }
     }
     if (values.currency_id === OPTIONAL_SELECT_NONE || !values.currency_id.trim()) {
       ctx.addIssue({
@@ -328,7 +340,7 @@ export const VoucherFormSchema = z
         path: ["currency_id"],
       });
     }
-    if (!POSITIVE_DECIMAL.test(values.total_amount.trim())) {
+    if (!POSITIVE_DECIMAL.test(values.total_amount.trim()) && !isJournalVoucher(values.voucher_type)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Enter an amount greater than 0",
@@ -341,3 +353,74 @@ export type VoucherFormValues = z.infer<typeof VoucherFormSchema>;
 export function emptyVoucherLine(): VoucherFormLine {
   return { ...DEFAULT_VOUCHER_LINE };
 }
+
+export const VoucherEntryFormLineSchema = z.object({
+  account_id: z.string(),
+  debit: z.string(),
+  credit: z.string(),
+  party_type: z.string(),
+  party_id: z.string(),
+  tax_id: z.string().optional(),
+  branch_id: z.string().optional(),
+  cost_center_id: z.string().optional(),
+  due_date: z.string().optional(),
+  external_reference: z.string().optional(),
+  description: z.string(),
+});
+export type VoucherEntryFormLine = z.infer<typeof VoucherEntryFormLineSchema>;
+
+export const DEFAULT_VOUCHER_ENTRY_LINE = {
+  account_id: OPTIONAL_SELECT_NONE,
+  debit: "",
+  credit: "",
+  party_type: OPTIONAL_SELECT_NONE,
+  party_id: OPTIONAL_SELECT_NONE,
+  tax_id: OPTIONAL_SELECT_NONE,
+  branch_id: OPTIONAL_SELECT_NONE,
+  cost_center_id: OPTIONAL_SELECT_NONE,
+  due_date: "",
+  external_reference: "",
+  description: "",
+};
+
+export const VoucherEntryFormSchema = z
+  .object({
+    voucher_type: VoucherEntryTypeSchema,
+    voucher_date: z.string().min(1, "Date is required"),
+    payment_account_id: z.string(),
+    currency_id: z.string(),
+    payment_method: PaymentMethodSchema,
+    cheque_number: z.string(),
+    cheque_date: z.string(),
+    external_reference: z.string(),
+    reference: z.string(),
+    branch_id: z.string(),
+    cost_center_id: z.string(),
+    narration: z.string(),
+    enable_vat_details: z.boolean(),
+    lines: z.array(VoucherEntryFormLineSchema),
+  })
+  .superRefine((values, ctx) => {
+    if (values.currency_id === OPTIONAL_SELECT_NONE || !values.currency_id.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select a currency",
+        path: ["currency_id"],
+      });
+    }
+  });
+export type VoucherEntryFormValues = z.infer<typeof VoucherEntryFormSchema>;
+
+export function emptyVoucherEntryLine(): VoucherEntryFormLine {
+  return { ...DEFAULT_VOUCHER_ENTRY_LINE };
+}
+
+export function isBlankVoucherEntryLine(line: VoucherEntryFormLine): boolean {
+  return (
+    (!line.account_id || line.account_id === OPTIONAL_SELECT_NONE) &&
+    !line.debit.trim() &&
+    !line.credit.trim() &&
+    !line.description.trim()
+  );
+}
+

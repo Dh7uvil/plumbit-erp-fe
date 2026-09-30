@@ -44,7 +44,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatMoney } from "@/shared/lib/format";
 
 const SORT_FIELDS = [
   { value: "name", label: "Name" },
@@ -117,7 +117,7 @@ export function CampaignsScreen() {
         id: "actual_cost",
         header: "Actual cost",
         className: "text-right tabular-nums",
-        cell: (campaign) => formatDecimal(campaign.actual_cost),
+        cell: (campaign) => formatMoney(campaign.actual_cost, ""),
       },
       ...auditTimestampColumns<Campaign>(),
       ...auditActorColumns<Campaign>(userNameById),

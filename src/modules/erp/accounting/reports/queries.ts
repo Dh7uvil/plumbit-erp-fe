@@ -20,6 +20,8 @@ import type {
   TaxRegisterParams,
   TrialBalanceParams,
   AnalysisParams,
+  RatioAnalysisParams,
+  PdcRegisterParams,
 } from "@/modules/erp/accounting/reports/schemas";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
@@ -70,6 +72,10 @@ export const reportKeys = {
   salesAnalysis: (params: AnalysisParams) => [...reportKeys.all, "sales-analysis", params] as const,
   purchaseAnalysis: (params: AnalysisParams) =>
     [...reportKeys.all, "purchase-analysis", params] as const,
+  ratioAnalysis: (params: RatioAnalysisParams) =>
+    [...reportKeys.all, "ratio-analysis", params] as const,
+  pdcRegister: (params: PdcRegisterParams) =>
+    [...reportKeys.all, "pdc-register", params] as const,
   threeWayMatch: () => [...reportKeys.all, "three-way-match"] as const,
   receivedNotBilled: () => [...reportKeys.all, "received-not-billed"] as const,
   dashboard: () => [...reportKeys.all, "dashboard"] as const,
@@ -121,11 +127,15 @@ export function useAccountStatement(params: AccountStatementParams | null) {
   return useQuery({
     queryKey: useTenantQueryKey(
       reportKeys.accountStatement(
-        params ?? { party_type: "CUSTOMER", party_id: "", from: "", to: "" },
+        params ?? { from: "", to: "" },
       ),
     ),
     queryFn: () => reportsApi.accountStatement(params!),
-    enabled: Boolean(params?.party_id && params.from && params.to),
+    enabled: Boolean(
+      params?.from &&
+        params.to &&
+        (params.account_id || (params.party_type && params.party_id)),
+    ),
   });
 }
 
@@ -344,5 +354,20 @@ export function usePurchaseAnalysis(params: AnalysisParams | null) {
     ),
     queryFn: () => reportsApi.purchaseAnalysis(params!),
     enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function useRatioAnalysis(params: RatioAnalysisParams | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.ratioAnalysis(params ?? { from: "", to: "" })),
+    queryFn: () => reportsApi.ratioAnalysis(params!),
+    enabled: Boolean(params?.from && params.to),
+  });
+}
+
+export function usePdcRegister(params: PdcRegisterParams = {}) {
+  return useQuery({
+    queryKey: useTenantQueryKey(reportKeys.pdcRegister(params)),
+    queryFn: () => reportsApi.pdcRegister(params),
   });
 }

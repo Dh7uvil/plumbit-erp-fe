@@ -2,11 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
-import { journalPermissions } from "@/modules/erp/accounting/journals/permissions";
+import { ENTRY_BOOKS } from "@/modules/erp/accounting/vouchers/entry-books";
 import {
-  JOURNAL_ENTRY_BOOK,
-  VOUCHER_ENTRY_BOOK_ALL_OPTIONS,
-  VOUCHER_ENTRY_BOOK_OPTIONS,
   type VoucherEntryBook,
   type VoucherEntryType,
 } from "@/modules/erp/accounting/vouchers/schemas";
@@ -17,29 +14,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { useCan } from "@/shared/providers/session-provider";
 
 export function EntryBookSelect({
   value,
   onChange,
   disabled = false,
+  navigateOnChange = true,
 }: {
   value: VoucherEntryBook;
   onChange: (value: VoucherEntryType) => void;
   disabled?: boolean;
+  navigateOnChange?: boolean;
 }) {
   const router = useRouter();
-  const can = useCan();
-  const canCreateJournal = can(journalPermissions.create);
-
-  const options = canCreateJournal
-    ? VOUCHER_ENTRY_BOOK_ALL_OPTIONS
-    : VOUCHER_ENTRY_BOOK_OPTIONS;
 
   function handleValueChange(next: string) {
-    if (next === JOURNAL_ENTRY_BOOK) {
-      router.replace("/vouchers/new?voucher_type=JOURNAL");
-      return;
+    if (navigateOnChange) {
+      const book = ENTRY_BOOKS.find((row) => row.value === next);
+      if (book) {
+        router.replace(book.newEntryHref);
+      }
     }
     onChange(next as VoucherEntryType);
   }
@@ -50,7 +44,7 @@ export function EntryBookSelect({
         <SelectValue placeholder="Select entry book" />
       </SelectTrigger>
       <SelectContent>
-        {options.map((option) => (
+        {ENTRY_BOOKS.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             {option.label}
           </SelectItem>

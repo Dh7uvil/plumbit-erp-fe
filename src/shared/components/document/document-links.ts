@@ -23,7 +23,6 @@ export const DOCUMENT_TYPES = [
   "PURCHASE_RETURN",
   "CUSTOMER_PAYMENT",
   "SUPPLIER_PAYMENT",
-  "LANDED_COST",
   "OPENING_AR",
   "OPENING_AP",
   "JOURNAL",
@@ -48,7 +47,6 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   PURCHASE_RETURN: "Purchase return",
   CUSTOMER_PAYMENT: "Customer receipt",
   SUPPLIER_PAYMENT: "Supplier payment",
-  LANDED_COST: "Landed cost",
   OPENING_AR: "Opening AR",
   OPENING_AP: "Opening AP",
   JOURNAL: "Journal",
@@ -89,7 +87,6 @@ const DOCUMENT_HREF: Record<string, (id: string) => string> = {
   DEBIT_NOTE: (id) => `/debit-notes/${id}`,
   CUSTOMER_PAYMENT: (id) => `/customer-payments/${id}`,
   SUPPLIER_PAYMENT: (id) => `/supplier-payments/${id}`,
-  LANDED_COST: (id) => `/landed-costs/${id}`,
   JOURNAL: (id) => `/journals/${id}`,
   // Opening AR/AP open items are journal lines; surface the go-live screen.
   OPENING_AR: (_id) => `/opening-balances`,

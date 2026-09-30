@@ -53,6 +53,14 @@ export const chequesApi = {
     ChequeSchema.parse(
       await apiClient.post(`/cheques/${id}/deposit`, {}, { headers: postDocumentHeaders(version) }),
     ),
+  batchDeposit: async (items: Array<{ id: string; version: number }>): Promise<Cheque[]> =>
+    z
+      .array(ChequeSchema)
+      .parse(
+        await apiClient.post("/cheques/batch-deposit", {
+          cheques: items,
+        }),
+      ),
   clear: async (id: string, version: number): Promise<Cheque> =>
     ChequeSchema.parse(
       await apiClient.post(`/cheques/${id}/clear`, {}, { headers: postDocumentHeaders(version) }),

@@ -60,11 +60,14 @@ import {
 } from "@/shared/components/ui/table";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MixedDocumentLineRow } from "@/shared/components/document/mixed-document-line-row";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
   formatFixedDecimal,
   formatMoney,
   isZeroDecimal,
+  minDecimals,
   multiplyDecimals,
+  QUANTITY_SCALE,
   subtractDecimals,
 } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
@@ -140,14 +143,18 @@ function emptyMixedProductLine() {
     line_type: "PRODUCT" as const,
     expense_account_id: OPTIONAL_SELECT_NONE,
     expense_category: OPTIONAL_SELECT_NONE,
+    charge_type_id: "",
   };
 }
+
+const IMPORT_METRIC_HEADERS = ["Net wt", "Gross wt", "Volume"] as const;
 
 function lineHeaders(
   showSupplierSku: boolean,
   mode: DocumentLinesMode,
   showPacking: boolean,
   showHsCode: boolean,
+  showImportMetrics: boolean,
 ): readonly string[] {
   let headers: readonly string[];
   if (mode === "mixed") {
@@ -172,6 +179,18 @@ function lineHeaders(
       "Amount",
       "",
     ];
+  }
+  if (mode !== "receive" && mode !== "expense" && showImportMetrics) {
+    const withoutActions = headers.slice(0, -1);
+    const rateIndex = withoutActions.indexOf("Rate");
+    if (rateIndex >= 0) {
+      return [
+        ...withoutActions.slice(0, rateIndex + 1),
+        ...IMPORT_METRIC_HEADERS,
+        ...withoutActions.slice(rateIndex + 1),
+        "",
+      ];
+    }
   }
   if (mode === "standard" && (showPacking || showHsCode)) {
     const withoutActions = headers.slice(0, -1);
@@ -243,7 +262,7 @@ function previewLineAmount(
     return null;
   }
   const qty = quantity.trim() === "" ? "0" : quantity;
-  let net = multiplyDecimals(qty, rate, 4);
+  let net = multiplyDecimals(qty, rate, QUANTITY_SCALE);
   if (net == null) {
     return null;
   }
@@ -255,7 +274,8 @@ function previewLineAmount(
       const reduction = hundredths ? multiplyDecimals(net, hundredths, 4) : null;
       net = reduction ? subtractDecimals(net, reduction, 4) : net;
     } else if (type === "AMOUNT") {
-      net = subtractDecimals(net, disc, 4) ?? net;
+      const capped = minDecimals(disc, net, 4) ?? disc;
+      net = subtractDecimals(net, capped, 4) ?? net;
     }
   }
   return net;
@@ -335,6 +355,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   lineMode = "standard",
   showPacking = false,
   showHsCode = false,
+  showImportMetrics = false,
+  showPricesIncludeTax = false,
 }: {
   form: UseFormReturn<TFieldValues>;
   disabled: boolean;
@@ -343,6 +365,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   lineMode?: DocumentLinesMode;
   showPacking?: boolean;
   showHsCode?: boolean;
+  showImportMetrics?: boolean;
+  showPricesIncludeTax?: boolean;
 }) {
   const can = useCan();
   const productsQuery = useAllProducts();
@@ -375,7 +399,13 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const isExpense = lineMode === "expense";
   const isMixed = lineMode === "mixed";
   const showSupplierSku = Boolean(supplierCatalog) || isReceive;
-  const headers = lineHeaders(showSupplierSku, lineMode, showPacking, showHsCode);
+  const headers = lineHeaders(
+    showSupplierSku,
+    lineMode,
+    showPacking,
+    showHsCode,
+    showImportMetrics,
+  );
   const rawCurrencyId = useWatch({
     control: form.control,
     name: "currency_id" as Path<TFieldValues>,
@@ -454,8 +484,56 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
     supplierCatalog && supplierId ? catalog : [],
   );
 
+  const importMetricCells = (index: number) =>
+    (
+      [
+        ["net_weight", "net weight"],
+        ["gross_weight", "gross weight"],
+        ["volume", "volume"],
+      ] as const
+    ).map(([name, label]) => (
+      <TableCell key={name} className="w-24 min-w-24 align-top">
+        <FormField
+          control={form.control}
+          name={linePath<TFieldValues>(index, name)}
+          render={({ field: metricField }) => (
+            <FormItem>
+              <FormControl>
+                <DecimalInput
+                  kind="quantity"
+                  className="w-full min-w-0 text-right"
+                  disabled={disabled}
+                  aria-label={`Line ${index + 1} ${label}`}
+                  {...metricField}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+    ));
+
   return (
     <div className="flex flex-col gap-2">
+      {showPricesIncludeTax ? (
+        <FormField
+          control={form.control}
+          name={"prices_include_tax" as Path<TFieldValues>}
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center gap-2 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={Boolean(field.value)}
+                  disabled={disabled}
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                />
+              </FormControl>
+              <span className="text-sm font-medium">Prices include VAT</span>
+            </FormItem>
+          )}
+        />
+      ) : null}
       <DocumentViewTableContainer
         viewMode={disabled}
         rowCount={fields.length}
@@ -493,6 +571,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                     catalog={catalog}
                     supplierId={supplierId}
                     showSupplierSku={showSupplierSku}
+                    showImportMetrics={showImportMetrics}
                     onApplyProduct={applyProduct}
                     onApplyCatalogRow={applyCatalogRow}
                     onRemove={remove}
@@ -853,70 +932,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         )}
                       />
                     </TableCell>
-                    {isReceive ? (
-                      <>
-                        <TableCell className="w-24 min-w-24 align-top">
-                          <FormField
-                            control={form.control}
-                            name={linePath<TFieldValues>(index, "net_weight")}
-                            render={({ field: weightField }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <DecimalInput
-                                    kind="quantity"
-                                    className="w-full min-w-0 text-right"
-                                    disabled={disabled}
-                                    aria-label={`Line ${index + 1} net weight`}
-                                    {...weightField}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell className="w-24 min-w-24 align-top">
-                          <FormField
-                            control={form.control}
-                            name={linePath<TFieldValues>(index, "gross_weight")}
-                            render={({ field: weightField }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <DecimalInput
-                                    kind="quantity"
-                                    className="w-full min-w-0 text-right"
-                                    disabled={disabled}
-                                    aria-label={`Line ${index + 1} gross weight`}
-                                    {...weightField}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell className="w-24 min-w-24 align-top">
-                          <FormField
-                            control={form.control}
-                            name={linePath<TFieldValues>(index, "volume")}
-                            render={({ field: volumeField }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <DecimalInput
-                                    kind="quantity"
-                                    className="w-full min-w-0 text-right"
-                                    disabled={disabled}
-                                    aria-label={`Line ${index + 1} volume`}
-                                    {...volumeField}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </TableCell>
-                      </>
-                    ) : (
+                    {isReceive || showImportMetrics ? importMetricCells(index) : null}
+                    {!isReceive ? (
                       <>
                         <TableCell className="min-w-36 align-top">
                           <FormField
@@ -1001,7 +1018,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                           />
                         </TableCell>
                       </>
-                    )}
+                    ) : null}
                     {!isReceive && !isExpense ? (
                       <TableCell className="w-28 min-w-28 align-top">
                         <LineAmountCell form={form} index={index} />

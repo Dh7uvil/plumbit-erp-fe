@@ -17,6 +17,16 @@ export const PrintLetterheadSchema = z.object({
 });
 export type PrintLetterhead = z.infer<typeof PrintLetterheadSchema>;
 
+export const PrintJournalLineSchema = z.object({
+  line_number: z.number().int(),
+  account_code: z.string().nullable().optional().default(null),
+  account_name: z.string(),
+  description: z.string().nullable().optional().default(null),
+  debit: MoneySchema.nullable().optional().default(null),
+  credit: MoneySchema.nullable().optional().default(null),
+});
+export type PrintJournalLine = z.infer<typeof PrintJournalLineSchema>;
+
 export const PrintLineSchema = z.object({
   line_number: z.number().int(),
   item_code: z.string().nullable().optional().default(null),
@@ -41,6 +51,16 @@ export const PrintDocumentSchema = z.object({
   document_number: z.string(),
   document_date: z.string(),
   template_family: z.string().optional().default("uae"),
+  template_kind: z.string().optional().default("commercial"),
+  voucher_type: z.string().nullable().optional().default(null),
+  payment_method: z.string().nullable().optional().default(null),
+  party_name: z.string().nullable().optional().default(null),
+  party_code: z.string().nullable().optional().default(null),
+  cheque_number: z.string().nullable().optional().default(null),
+  cheque_date: z.string().nullable().optional().default(null),
+  due_date: z.string().nullable().optional().default(null),
+  narration: z.string().nullable().optional().default(null),
+  reference: z.string().nullable().optional().default(null),
   customer_code: z.string().nullable().optional().default(null),
   customer_name: z.string().nullable().optional().default(null),
   customer_address: z.string().nullable().optional().default(null),
@@ -61,13 +81,16 @@ export const PrintDocumentSchema = z.object({
   notes: z.string().nullable().optional().default(null),
   letterhead: PrintLetterheadSchema,
   lines: z.array(PrintLineSchema).optional().default([]),
+  journal_lines: z.array(PrintJournalLineSchema).optional().default([]),
 });
 export type PrintDocument = z.infer<typeof PrintDocumentSchema>;
 
 export const PRINTABLE_RESOURCES = [
   "quotations",
   "proforma-invoices",
+  "sales-orders",
   "sales-invoices",
+  "sales-returns",
   "delivery-notes",
   "packages",
   "credit-notes",
@@ -75,6 +98,8 @@ export const PRINTABLE_RESOURCES = [
   "purchase-orders",
   "purchase-invoices",
   "goods-receipts",
+  "vouchers",
+  "cheques",
 ] as const;
 export type PrintableResource = (typeof PRINTABLE_RESOURCES)[number];
 

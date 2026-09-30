@@ -35,7 +35,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatDecimal } from "@/shared/lib/format";
+import { formatDate, formatRate, formatRawDecimal } from "@/shared/lib/format";
 
 const SORT_FIELDS = [
   { value: "effective_date", label: "Effective date" },
@@ -135,12 +135,13 @@ export function ExchangeRatesScreen() {
             <button
               type="button"
               className="cursor-pointer hover:underline"
+              title={formatRawDecimal(rate.rate)}
               onClick={() => openView(rate)}
             >
-              {formatDecimal(rate.rate)}
+              {formatRate(rate.rate)}
             </button>
           ) : (
-            formatDecimal(rate.rate)
+            <span title={formatRawDecimal(rate.rate)}>{formatRate(rate.rate)}</span>
           ),
       },
       {

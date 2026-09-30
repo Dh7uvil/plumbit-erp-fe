@@ -76,6 +76,7 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   purchase_order_requires_approval: false,
   allow_negative_stock: false,
   allow_negative_cash: false,
+  prices_include_tax_default: false,
   costing_method: "FIFO",
   allow_over_receipt: false,
   over_receipt_tolerance_pct: "",
@@ -84,6 +85,7 @@ const EMPTY_FORM: CompanySettingsFormValues = {
   auto_apply_advances_on_invoice: true,
   credit_limit_policy: "WARN",
   credit_limit_include_open_orders: true,
+  overdue_days_threshold: "",
   timezone: "",
   fiscal_year_start_month: 1,
   fiscal_year_start_day: 1,
@@ -113,6 +115,7 @@ type CompanyBooleanFieldPath =
   | "purchase_order_requires_approval"
   | "allow_negative_stock"
   | "allow_negative_cash"
+  | "prices_include_tax_default"
   | "vat_on_advances"
   | "auto_apply_advances_on_invoice"
   | "credit_limit_include_open_orders"
@@ -174,6 +177,7 @@ function toFormValues(
     purchase_order_requires_approval: tenant.purchase_order_requires_approval,
     allow_negative_stock: tenant.allow_negative_stock,
     allow_negative_cash: tenant.allow_negative_cash,
+    prices_include_tax_default: tenant.prices_include_tax_default,
     costing_method: tenant.costing_method,
     allow_over_receipt: tenant.allow_over_receipt,
     over_receipt_tolerance_pct: tenant.over_receipt_tolerance_pct ?? "",
@@ -182,6 +186,8 @@ function toFormValues(
     auto_apply_advances_on_invoice: tenant.auto_apply_advances_on_invoice,
     credit_limit_policy: tenant.credit_limit_policy,
     credit_limit_include_open_orders: tenant.credit_limit_include_open_orders,
+    overdue_days_threshold:
+      tenant.overdue_days_threshold != null ? String(tenant.overdue_days_threshold) : "",
     timezone: tenant.timezone ?? "",
     fiscal_year_start_month: tenant.fiscal_year_start_month,
     fiscal_year_start_day: tenant.fiscal_year_start_day,
@@ -279,6 +285,7 @@ function toRegionalPayload(
     purchase_order_requires_approval: values.purchase_order_requires_approval,
     allow_negative_stock: values.allow_negative_stock,
     allow_negative_cash: values.allow_negative_cash,
+    prices_include_tax_default: values.prices_include_tax_default,
     allow_over_receipt: values.allow_over_receipt,
     over_receipt_tolerance_pct: emptyToNull(values.over_receipt_tolerance_pct),
     qc_required_default: values.qc_required_default,
@@ -286,6 +293,9 @@ function toRegionalPayload(
     auto_apply_advances_on_invoice: values.auto_apply_advances_on_invoice,
     credit_limit_policy: values.credit_limit_policy,
     credit_limit_include_open_orders: values.credit_limit_include_open_orders,
+    overdue_days_threshold: values.overdue_days_threshold.trim()
+      ? Number(values.overdue_days_threshold.trim())
+      : null,
   };
   if (
     values.fiscal_year_start_month !== original.fiscal_year_start_month ||
@@ -500,6 +510,7 @@ export function CompanySettingsForm() {
         purchase_order_requires_approval: original.purchase_order_requires_approval,
         allow_negative_stock: original.allow_negative_stock,
         allow_negative_cash: original.allow_negative_cash,
+        prices_include_tax_default: original.prices_include_tax_default,
         costing_method: original.costing_method,
         allow_over_receipt: original.allow_over_receipt,
         over_receipt_tolerance_pct: original.over_receipt_tolerance_pct,
@@ -508,6 +519,7 @@ export function CompanySettingsForm() {
         auto_apply_advances_on_invoice: original.auto_apply_advances_on_invoice,
         credit_limit_policy: original.credit_limit_policy,
         credit_limit_include_open_orders: original.credit_limit_include_open_orders,
+        overdue_days_threshold: original.overdue_days_threshold,
         timezone: original.timezone,
         fiscal_year_start_month: original.fiscal_year_start_month,
         fiscal_year_start_day: original.fiscal_year_start_day,
@@ -909,6 +921,12 @@ export function CompanySettingsForm() {
             />
             <SettingsSwitchField
               control={form.control}
+              name="prices_include_tax_default"
+              label="Default new commercial documents to VAT-inclusive pricing"
+              disabled={!canUpdate || !isEditingRegional}
+            />
+            <SettingsSwitchField
+              control={form.control}
               name="vat_on_advances"
               label="Charge VAT on standard-rated customer advances"
               disabled={!canUpdate || !isEditingRegional}
@@ -951,6 +969,23 @@ export function CompanySettingsForm() {
               name="credit_limit_include_open_orders"
               label="Include confirmed uninvoiced sales orders in credit exposure"
               disabled={!canUpdate || !isEditingRegional}
+            />
+            <FormField
+              control={form.control}
+              name="overdue_days_threshold"
+              render={({ field }) => (
+                <FormItem className="col-span-full">
+                  <FormLabel className={toolbarLabelClass}>Overdue days threshold</FormLabel>
+                  <FormControl>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="Disabled"
+                      disabled={!canUpdate || !isEditingRegional}
+                      {...field}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
             />
             <FormField
               control={form.control}

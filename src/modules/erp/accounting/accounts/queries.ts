@@ -13,6 +13,8 @@ export const accountKeys = {
   tree: () => [...accountKeys.all, "tree"] as const,
   detail: (id: string) => [...accountKeys.all, "detail", id] as const,
   balance: (id: string, asOf?: string) => [...accountKeys.all, "balance", id, asOf ?? ""] as const,
+  periodBalances: (id: string, fiscalYear?: number) =>
+    [...accountKeys.all, "period-balances", id, fiscalYear ?? "current"] as const,
   systemRoles: () => [...accountKeys.all, "system-roles"] as const,
 };
 
@@ -52,6 +54,18 @@ export function useAccountBalance(id: string | null, asOf?: string, enabled = tr
   return useQuery({
     queryKey: useTenantQueryKey(accountKeys.balance(id ?? "", asOf)),
     queryFn: () => accountsApi.balance(id!, asOf),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useAccountPeriodBalances(
+  id: string | null,
+  fiscalYear?: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: useTenantQueryKey(accountKeys.periodBalances(id ?? "", fiscalYear)),
+    queryFn: () => accountsApi.periodBalances(id!, fiscalYear),
     enabled: Boolean(id) && enabled,
   });
 }

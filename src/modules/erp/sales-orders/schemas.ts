@@ -196,12 +196,14 @@ export const SalesOrderSchema = z.object({
   subtotal: MoneySchema,
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
+  prices_include_tax: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   fulfillment_status: FulfillmentStatusSchema,
   billing_status: BillingStatusSchema,
   source_quotation_id: z.string().uuid().nullable(),
   source_proforma_invoice_id: z.string().uuid().nullable().optional().default(null),
+  opportunity_id: z.string().uuid().nullable().optional().default(null),
   customer_po_number: z.string().nullable().optional().default(null),
   customer_po_date: z.string().nullable().optional().default(null),
   confirmed_at: z.string().nullable(),
@@ -280,6 +282,7 @@ export const SalesOrderCreateRequestSchema = z.object({
   shipping_amount: MoneySchema.optional(),
   adjustment_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(SalesOrderLineInputSchema).optional(),
 });
 export type SalesOrderCreateRequest = z.infer<typeof SalesOrderCreateRequestSchema>;
@@ -304,6 +307,7 @@ export const SalesOrderUpdateRequestSchema = z.object({
   shipping_amount: MoneySchema.nullable().optional(),
   adjustment_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
+  prices_include_tax: z.boolean().nullable().optional(),
   lines: z.array(SalesOrderLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -370,6 +374,7 @@ export const SalesOrderFormSchema = z
     tax_treatment: z.string(),
     bill_to_snapshot: z.string(),
     ship_to_snapshot: z.string(),
+    prices_include_tax: z.boolean(),
     lines: z.array(SalesOrderLineFormSchema),
   })
   .superRefine((values, ctx) => {

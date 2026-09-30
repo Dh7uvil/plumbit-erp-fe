@@ -35,3 +35,11 @@ export function useOpportunityQuotations(opportunityId: string | null, enabled =
     enabled: enabled && Boolean(opportunityId),
   });
 }
+
+export function useOpportunitySalesOrders(opportunityId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...opportunityKeys.detail(opportunityId ?? ""), "sales-orders"]),
+    queryFn: () => opportunitiesApi.listSalesOrders(opportunityId!),
+    enabled: enabled && Boolean(opportunityId),
+  });
+}

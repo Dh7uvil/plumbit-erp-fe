@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { AccountForm } from "@/modules/erp/accounting/accounts/components/account-form";
 import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
-import { useAccount, useAccountBalance } from "@/modules/erp/accounting/accounts/queries";
+import {
+  useAccount,
+  useAccountBalance,
+  useAccountPeriodBalances,
+} from "@/modules/erp/accounting/accounts/queries";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { glHref } from "@/modules/erp/accounting/reports/schemas";
@@ -40,6 +44,11 @@ export function AccountDetailScreen({
   const accountQuery = useAccount(accountId);
   const account = accountQuery.data;
   const balanceQuery = useAccountBalance(accountId, undefined, !accountQuery.isLoading);
+  const periodBalancesQuery = useAccountPeriodBalances(
+    accountId,
+    undefined,
+    !accountQuery.isLoading && !account?.is_group,
+  );
   const isEdit = mode === "edit";
   const viewHref = `/accounts/${accountId}`;
 
@@ -81,6 +90,7 @@ export function AccountDetailScreen({
           <>
             {account.is_group ? <Badge variant="secondary">Group</Badge> : null}
             {account.is_system ? <Badge variant="info">System</Badge> : null}
+            {account.is_blocked ? <Badge variant="destructive">Blocked</Badge> : null}
             {account.system_role ? <Badge variant="outline">{account.system_role}</Badge> : null}
           </>
         }
@@ -129,6 +139,83 @@ export function AccountDetailScreen({
                 )}
                 .
               </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      )}
+      {isEdit || account.is_group ? null : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Period balances
+              {periodBalancesQuery.data
+                ? ` — FY ${periodBalancesQuery.data.fiscal_year}`
+                : null}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {periodBalancesQuery.isLoading ? <Skeleton className="h-48 w-full" /> : null}
+            {periodBalancesQuery.isError ? (
+              <p className="text-destructive text-sm">
+                {getErrorMessage(periodBalancesQuery.error)}
+              </p>
+            ) : null}
+            {periodBalancesQuery.data ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="py-2 pr-3 font-medium">Period</th>
+                      <th className="py-2 pr-3 font-medium text-right">Debit</th>
+                      <th className="py-2 pr-3 font-medium text-right">Credit</th>
+                      <th className="py-2 font-medium text-right">Cur. balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="py-2 pr-3 font-medium">OP. Balance</td>
+                      <td className="py-2 pr-3" />
+                      <td className="py-2 pr-3" />
+                      <td className="py-2 text-right tabular-nums">
+                        {formatReportMoney(
+                          periodBalancesQuery.data.opening,
+                          periodBalancesQuery.data.currency_code,
+                        )}
+                      </td>
+                    </tr>
+                    {periodBalancesQuery.data.periods.map((row) => (
+                      <tr key={row.period} className="border-b">
+                        <td className="py-2 pr-3 tabular-nums">
+                          {String(row.period).padStart(2, "0")}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">
+                          {formatReportMoney(row.debit, periodBalancesQuery.data.currency_code)}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">
+                          {formatReportMoney(row.credit, periodBalancesQuery.data.currency_code)}
+                        </td>
+                        <td className="py-2 text-right tabular-nums">
+                          {formatReportMoney(
+                            row.closing,
+                            periodBalancesQuery.data.currency_code,
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="py-2 pr-3 font-medium">Cur. Balance</td>
+                      <td className="py-2 pr-3" />
+                      <td className="py-2 pr-3" />
+                      <td className="py-2 text-right tabular-nums font-medium">
+                        {formatReportMoney(
+                          periodBalancesQuery.data.closing,
+                          periodBalancesQuery.data.currency_code,
+                        )}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             ) : null}
           </CardContent>
         </Card>

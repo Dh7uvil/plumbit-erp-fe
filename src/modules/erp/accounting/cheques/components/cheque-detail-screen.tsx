@@ -9,6 +9,7 @@ import {
   CHEQUE_STATUS_LABELS,
   CHEQUE_STATUS_VARIANTS,
 } from "@/modules/erp/accounting/cheques/components/cheque-columns";
+import { ChequeHistoryPanel } from "@/modules/erp/accounting/cheques/components/cheque-history-panel";
 import { useChequeWorkflow, useDeleteCheque } from "@/modules/erp/accounting/cheques/mutations";
 import { chequePermissions } from "@/modules/erp/accounting/cheques/permissions";
 import { useCheque } from "@/modules/erp/accounting/cheques/queries";
@@ -17,6 +18,7 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableError } from "@/shared/components/data-table/states";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
+import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { RecordPageHeader } from "@/shared/components/layout/record-page-header";
 import { MoneyWithBase } from "@/shared/components/money";
@@ -36,6 +38,8 @@ import {
 } from "@/shared/components/ui/table";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { formatDate, formatMoney, humanizeEnum } from "@/shared/lib/format";
+import { historyHref } from "@/shared/lib/history";
+import { printHref } from "@/shared/lib/print";
 
 const ACTION_LABELS: Record<string, string> = {
   issue: "Issue",
@@ -151,6 +155,12 @@ export function ChequeDetailScreen({ id }: { id: string }) {
         }
         extraActions={
           <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" asChild>
+              <Link href={printHref("cheques", cheque.id)}>Print</Link>
+            </Button>
+            <HistoryHeaderButton
+              href={historyHref("cheques", cheque.id, cheque.document_number)}
+            />
             {cheque.status === "DRAFT" && canDelete ? (
               <Button variant="outline" onClick={() => setConfirmDelete(true)}>
                 Delete
@@ -239,6 +249,7 @@ export function ChequeDetailScreen({ id }: { id: string }) {
           </CardContent>
         </Card>
       ) : null}
+      <ChequeHistoryPanel chequeId={cheque.id} />
       <ConfirmActionDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
