@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { CommunicationProviders } from "@/modules/communication/providers/communication-providers";
 import { SessionProvider } from "@/modules/users-management/auth/components/session-provider";
 import { AppShell } from "@/shared/components/layout/app-shell";
 import { requireSession } from "@/shared/auth/guards";
@@ -9,7 +10,9 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider initialMe={me}>
-      <AppShell>{children}</AppShell>
+      <CommunicationProviders>
+        <AppShell>{children}</AppShell>
+      </CommunicationProviders>
     </SessionProvider>
   );
 }

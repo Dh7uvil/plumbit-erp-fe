@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
+import { CommunicationLinks } from "@/modules/communication/components/CommunicationLinks";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
@@ -336,6 +337,11 @@ export function SupplierDetailScreen({
             </CardContent>
           </Card>
           <ContactsPanel customerId={supplier.id} />
+          <CommunicationLinks
+            contextEntityType="SUPPLIER"
+            contextEntityId={supplier.id}
+            conversationName={supplier.name}
+          />
           <PartyDocumentsCard
             title="Related documents"
             links={[

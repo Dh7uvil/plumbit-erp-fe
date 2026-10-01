@@ -44,6 +44,9 @@ import {
   CalendarClock,
   Megaphone,
   ListChecks,
+  MessageSquare,
+  Video,
+  Calendar,
   type LucideIcon,
 } from "lucide-react";
 
@@ -52,6 +55,8 @@ import { docsSearchGroups } from "@/config/docs-catalog";
 import { activityPermissions } from "@/modules/crm/activities/permissions";
 import { taskLabelPermissions } from "@/modules/task-management/task-labels/permissions";
 import { taskPermissions } from "@/modules/task-management/tasks/permissions";
+import { callPermissions } from "@/modules/communication/calls/permissions";
+import { conversationPermissions } from "@/modules/communication/conversations/permissions";
 import { campaignPermissions } from "@/modules/crm/campaigns/permissions";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
@@ -553,6 +558,29 @@ export const navigation: NavigationGroup[] = [
         href: "/settings/notifications",
         permission: null,
         icon: Bell,
+      },
+    ],
+  },
+  {
+    label: "Communication",
+    items: [
+      {
+        label: "Chat",
+        href: "/chat",
+        permission: conversationPermissions.read,
+        icon: MessageSquare,
+      },
+      {
+        label: "Video Calls",
+        href: "/video-calls",
+        permission: callPermissions.read,
+        icon: Video,
+      },
+      {
+        label: "Meetings",
+        href: "/meetings",
+        permission: conversationPermissions.read,
+        icon: Calendar,
       },
     ],
   },

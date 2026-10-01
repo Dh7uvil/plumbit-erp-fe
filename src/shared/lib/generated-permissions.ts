@@ -76,6 +76,19 @@ export const catalogPermissions = [
   "accounting.write_off.reverse",
   "accounting.year_end.manage",
   "ai.assistant.use",
+  "communication.call.create",
+  "communication.call.end",
+  "communication.call.join",
+  "communication.call.read",
+  "communication.conversation.create",
+  "communication.conversation.delete",
+  "communication.conversation.read",
+  "communication.conversation.update",
+  "communication.message.create",
+  "communication.message.delete",
+  "communication.message.read",
+  "communication.message.update",
+  "communication.presence.read",
   "crm.activity.create",
   "crm.activity.delete",
   "crm.activity.read",
@@ -529,6 +542,29 @@ export const permissionsByModule = {
   ai: {
     assistant: {
       use: "ai.assistant.use",
+    },
+  },
+  communication: {
+    call: {
+      create: "communication.call.create",
+      end: "communication.call.end",
+      join: "communication.call.join",
+      read: "communication.call.read",
+    },
+    conversation: {
+      create: "communication.conversation.create",
+      delete: "communication.conversation.delete",
+      read: "communication.conversation.read",
+      update: "communication.conversation.update",
+    },
+    message: {
+      create: "communication.message.create",
+      delete: "communication.message.delete",
+      read: "communication.message.read",
+      update: "communication.message.update",
+    },
+    presence: {
+      read: "communication.presence.read",
     },
   },
   crm: {

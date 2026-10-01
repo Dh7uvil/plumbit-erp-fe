@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import { AiAssistantMount } from "@/modules/erp/ai-assistant/components/ai-assistant-mount";
@@ -12,10 +13,20 @@ import { HelpDialog } from "@/shared/components/layout/help-dialog";
 import { MainScrollManager } from "@/shared/components/layout/main-scroll-manager";
 import { AppSidebar } from "@/shared/components/layout/app-sidebar";
 import { useIsClient } from "@/shared/hooks/use-is-client";
+import { cn } from "@/shared/lib/cn";
 
 const SIDEBAR_KEY = "plumbit-sidebar-collapsed";
 
+function isFullHeightRoute(pathname: string): boolean {
+  if (pathname === "/chat/settings") {
+    return false;
+  }
+  return pathname === "/chat" || pathname.startsWith("/chat/");
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const fullHeightRoute = isFullHeightRoute(pathname);
   const isClient = useIsClient();
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarLoaded, setSidebarLoaded] = useState(false);
@@ -60,10 +71,24 @@ export function AppShell({ children }: { children: ReactNode }) {
           />
           <main
             id="main-content"
-            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 md:p-6 [scroll-padding-top:6rem] [scroll-padding-bottom:2rem]"
+            className={cn(
+              "min-h-0 flex-1 overscroll-y-contain",
+              fullHeightRoute
+                ? "flex flex-col overflow-hidden p-0"
+                : "overflow-y-auto p-4 md:p-6 [scroll-padding-top:6rem] [scroll-padding-bottom:2rem]",
+            )}
           >
-            <div className="w-full min-h-min">{children}</div>
-            <MainScrollManager />
+            <div
+              className={cn(
+                "w-full",
+                fullHeightRoute
+                  ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+                  : "min-h-min",
+              )}
+            >
+              {children}
+            </div>
+            {!fullHeightRoute ? <MainScrollManager /> : null}
           </main>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { CreateBillFromPurchaseOrderDialog } from "@/modules/erp/purchase-invoices/components/create-from-purchase-order-dialog";
+import { CommunicationLinks } from "@/modules/communication/components/CommunicationLinks";
 import { PurchaseOrderCycleCard } from "@/modules/erp/purchase-orders/components/purchase-order-cycle-card";
 import { PurchaseOrderForm } from "@/modules/erp/purchase-orders/components/purchase-order-form";
 import { usePurchaseOrderWorkflow } from "@/modules/erp/purchase-orders/hooks/use-purchase-order-workflow";
@@ -238,6 +239,11 @@ function PurchaseOrderDetailLoaded({
       formTitle={isEdit ? "Edit purchase order" : "Purchase order"}
       panels={
         <>
+          <CommunicationLinks
+            contextEntityType="PURCHASE_ORDER"
+            contextEntityId={purchaseOrder.id}
+            conversationName={number ?? "Purchase order"}
+          />
           <PurchaseOrderCycleCard purchaseOrderId={purchaseOrder.id} />
           <RelatedDocumentsCard documents={purchaseOrder.related_documents} />
         </>

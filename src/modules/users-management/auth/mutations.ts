@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
+import { clearCommunicationSessionStorage } from "@/modules/communication/realtime/transport";
+import { clearOutbox } from "@/modules/communication/reliability/outbox";
 import { authApi } from "@/modules/users-management/auth/api";
 import { authKeys } from "@/modules/users-management/auth/queries";
 
@@ -31,6 +33,12 @@ export function useLogout() {
   return useMutation({
     mutationFn: authApi.logout,
     onSettled: async () => {
+      try {
+        await clearOutbox();
+      } catch {
+        // ignore storage errors during logout
+      }
+      clearCommunicationSessionStorage();
       queryClient.clear();
       router.replace("/login");
       router.refresh();

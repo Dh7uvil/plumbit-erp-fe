@@ -74,6 +74,19 @@
     "accounting.write_off.reverse",
     "accounting.year_end.manage",
     "ai.assistant.use",
+    "communication.call.create",
+    "communication.call.end",
+    "communication.call.join",
+    "communication.call.read",
+    "communication.conversation.create",
+    "communication.conversation.delete",
+    "communication.conversation.read",
+    "communication.conversation.update",
+    "communication.message.create",
+    "communication.message.delete",
+    "communication.message.read",
+    "communication.message.update",
+    "communication.presence.read",
     "crm.activity.create",
     "crm.activity.delete",
     "crm.activity.read",
@@ -405,28 +418,129 @@
   ],
   "modules": {
     "identity": {
-      "user": ["create", "read", "update", "delete"],
-      "role": ["create", "read", "update", "delete"],
-      "permission": ["read"],
-      "organization": ["read", "update"],
-      "department": ["create", "read", "update", "delete"],
-      "branch": ["create", "read", "update", "delete"],
-      "employee": ["create", "read", "update", "delete"],
-      "audit_log": ["read"],
-      "attachment": ["create", "read", "update", "delete"],
-      "outbox_event": ["read", "retry"]
+      "user": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "role": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "permission": [
+        "read"
+      ],
+      "organization": [
+        "read",
+        "update"
+      ],
+      "department": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "branch": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "employee": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "audit_log": [
+        "read"
+      ],
+      "attachment": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "outbox_event": [
+        "read",
+        "retry"
+      ]
     },
     "crm": {
-      "customer": ["create", "read", "update", "delete", "history", "import", "export"],
-      "contact": ["create", "read", "update", "delete", "import", "export"],
-      "pipeline": ["create", "read", "update", "delete"],
-      "lead_source": ["create", "read", "update", "delete"],
-      "lost_reason": ["create", "read", "update", "delete"],
-      "lead": ["create", "read", "update", "delete", "assign", "convert", "import", "export"],
-      "opportunity": ["create", "read", "update", "delete", "import", "export"],
-      "activity": ["create", "read", "update", "delete"],
-      "note": ["create", "read", "update", "delete"],
-      "campaign": ["create", "read", "update", "delete"]
+      "customer": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "history",
+        "import",
+        "export"
+      ],
+      "contact": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "import",
+        "export"
+      ],
+      "pipeline": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "lead_source": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "lost_reason": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "lead": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "assign",
+        "convert",
+        "import",
+        "export"
+      ],
+      "opportunity": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "import",
+        "export"
+      ],
+      "activity": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "note": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "campaign": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ]
     },
     "sales": {
       "quotation": [
@@ -462,9 +576,35 @@
         "import",
         "export"
       ],
-      "delivery_note": ["create", "read", "update", "delete", "post", "import", "export"],
-      "sales_invoice": ["create", "read", "update", "delete", "post", "cancel", "import", "export"],
-      "credit_note": ["create", "read", "update", "delete", "post", "cancel", "import", "export"],
+      "delivery_note": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post",
+        "import",
+        "export"
+      ],
+      "sales_invoice": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post",
+        "cancel",
+        "import",
+        "export"
+      ],
+      "credit_note": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post",
+        "cancel",
+        "import",
+        "export"
+      ],
       "customer_payment": [
         "create",
         "read",
@@ -475,11 +615,35 @@
         "import",
         "export"
       ],
-      "sales_return": ["create", "read", "update", "delete", "post", "import", "export"]
+      "sales_return": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post",
+        "import",
+        "export"
+      ]
     },
     "purchase": {
-      "supplier": ["create", "read", "update", "delete", "history", "import", "export"],
-      "supplier_product": ["create", "read", "update", "delete", "link", "import", "export"],
+      "supplier": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "history",
+        "import",
+        "export"
+      ],
+      "supplier_product": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "link",
+        "import",
+        "export"
+      ],
       "purchase_order": [
         "create",
         "read",
@@ -491,8 +655,21 @@
         "import",
         "export"
       ],
-      "goods_receipt": ["create", "read", "update", "delete", "post", "import", "export"],
-      "quality_inspection": ["create", "read", "update", "approve"],
+      "goods_receipt": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post",
+        "import",
+        "export"
+      ],
+      "quality_inspection": [
+        "create",
+        "read",
+        "update",
+        "approve"
+      ],
       "purchase_invoice": [
         "create",
         "read",
@@ -503,7 +680,16 @@
         "import",
         "export"
       ],
-      "debit_note": ["create", "read", "update", "delete", "post", "cancel", "import", "export"],
+      "debit_note": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post",
+        "cancel",
+        "import",
+        "export"
+      ],
       "supplier_payment": [
         "create",
         "read",
@@ -526,35 +712,162 @@
       ]
     },
     "logistics": {
-      "package": ["create", "read", "update", "delete", "import", "export"],
-      "shipment": ["create", "read", "update", "delete", "dispatch", "close", "import", "export"]
+      "package": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "import",
+        "export"
+      ],
+      "shipment": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "dispatch",
+        "close",
+        "import",
+        "export"
+      ]
     },
     "inventory": {
-      "unit": ["create", "read", "update", "delete", "import", "export"],
-      "category": ["create", "read", "update", "delete", "import", "export"],
-      "product": ["create", "read", "update", "delete", "history", "import", "export"],
-      "price_list": ["create", "read", "update", "delete"],
-      "warehouse": ["create", "read", "update", "delete"],
-      "stock": ["read", "update"],
-      "cost": ["read"],
-      "stock_transfer": ["create", "read", "update", "delete", "post"],
-      "stock_adjustment": ["create", "read", "update", "delete", "post"],
-      "grn_charge_adjustment": ["create", "read", "update", "delete", "post"]
+      "unit": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "import",
+        "export"
+      ],
+      "category": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "import",
+        "export"
+      ],
+      "product": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "history",
+        "import",
+        "export"
+      ],
+      "price_list": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "warehouse": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "stock": [
+        "read",
+        "update"
+      ],
+      "cost": [
+        "read"
+      ],
+      "stock_transfer": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post"
+      ],
+      "stock_adjustment": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post"
+      ],
+      "grn_charge_adjustment": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post"
+      ]
     },
     "accounting": {
-      "account": ["create", "read", "update", "delete"],
-      "journal_entry": ["create", "read", "update", "delete", "post", "reverse"],
-      "journal": ["post_control"],
-      "opening_balance": ["manage"],
-      "year_end": ["manage"],
-      "period": ["lock", "override"],
-      "credit_control": ["override"],
-      "write_off": ["create", "reverse"],
-      "dunning": ["read", "manage", "send"],
-      "charge_type": ["create", "read", "update", "delete"],
-      "cost_sheet": ["create", "read", "update", "delete", "confirm", "close", "import", "export"],
-      "voucher": ["create", "read", "update", "delete", "post", "cancel"],
-      "bank_account": ["create", "read", "update", "delete"],
+      "account": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "journal_entry": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post",
+        "reverse"
+      ],
+      "journal": [
+        "post_control"
+      ],
+      "opening_balance": [
+        "manage"
+      ],
+      "year_end": [
+        "manage"
+      ],
+      "period": [
+        "lock",
+        "override"
+      ],
+      "credit_control": [
+        "override"
+      ],
+      "write_off": [
+        "create",
+        "reverse"
+      ],
+      "dunning": [
+        "read",
+        "manage",
+        "send"
+      ],
+      "charge_type": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "cost_sheet": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "confirm",
+        "close",
+        "import",
+        "export"
+      ],
+      "voucher": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "post",
+        "cancel"
+      ],
+      "bank_account": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
       "bank_reconciliation": [
         "create",
         "read",
@@ -575,31 +888,143 @@
         "bounce",
         "cancel"
       ],
-      "budget": ["create", "read", "update", "delete", "activate", "close"],
-      "recurring": ["create", "read", "update", "delete", "generate"],
-      "fx_revaluation": ["read", "run", "reverse"]
+      "budget": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "activate",
+        "close"
+      ],
+      "recurring": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "generate"
+      ],
+      "fx_revaluation": [
+        "read",
+        "run",
+        "reverse"
+      ]
     },
     "reports": {
-      "report": ["ledger", "tax", "ar_ap", "inventory", "financial", "export", "crm", "day_book"]
+      "report": [
+        "ledger",
+        "tax",
+        "ar_ap",
+        "inventory",
+        "financial",
+        "export",
+        "crm",
+        "day_book"
+      ]
     },
     "masters": {
-      "currency": ["create", "read", "update", "delete"],
-      "exchange_rate": ["create", "read", "update", "delete"],
-      "tax": ["create", "read", "update", "delete"],
-      "payment_term": ["create", "read", "update", "delete"],
-      "terms_template": ["create", "read", "update", "delete"],
-      "document_sequence": ["create", "read", "update", "delete"],
-      "cost_center": ["create", "read", "update", "delete"]
+      "currency": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "exchange_rate": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "tax": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "payment_term": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "terms_template": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "document_sequence": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "cost_center": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ]
     },
     "tasks": {
-      "task": ["create", "read", "update", "delete", "assign", "move"],
-      "checklist": ["create", "read", "update", "delete"],
-      "comment": ["create", "read", "update", "delete"],
-      "label": ["create", "read", "update", "delete"],
-      "watcher": ["create", "read", "delete"]
+      "task": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "assign",
+        "move"
+      ],
+      "checklist": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "comment": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "label": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "watcher": [
+        "create",
+        "read",
+        "delete"
+      ]
     },
     "ai": {
-      "assistant": ["use"]
+      "assistant": [
+        "use"
+      ]
+    },
+    "communication": {
+      "conversation": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "message": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "call": [
+        "create",
+        "read",
+        "join",
+        "end"
+      ],
+      "presence": [
+        "read"
+      ]
     }
   }
 }

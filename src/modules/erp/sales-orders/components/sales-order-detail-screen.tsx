@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
+import { CommunicationLinks } from "@/modules/communication/components/CommunicationLinks";
 import { CreateInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-invoices/components/create-from-sales-order-dialog";
 import { CreateProformaInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-orders/components/create-proforma-invoice-dialog";
 import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sales-order-coverage-card";
@@ -282,6 +283,11 @@ function SalesOrderDetailLoaded({
       formTitle={isEdit ? "Edit sales order" : "Sales order"}
       panels={
         <>
+          <CommunicationLinks
+            contextEntityType="SALES_ORDER"
+            contextEntityId={salesOrder.id}
+            conversationName={number ?? "Sales order"}
+          />
           <RelatedDocumentsCard documents={salesOrder.related_documents} />
           <SalesOrderCoverageCard salesOrder={salesOrder} />
           <SalesOrderTrackerCard salesOrderId={salesOrder.id} />

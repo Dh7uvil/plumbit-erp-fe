@@ -110,7 +110,29 @@ function shouldReport(error: ApiError): boolean {
   if (error.code === "VALIDATION_ERROR") {
     return false;
   }
+  if (error.code === "RESOURCE_NOT_FOUND") {
+    return false;
+  }
   return error.status >= 500 || error.code === "NETWORK_ERROR";
+}
+
+function apiErrorFromNonJsonBody(rawText: string, status: number): ApiError {
+  const trimmed = rawText.trimStart();
+  if (trimmed.startsWith("<!") || trimmed.startsWith("<html")) {
+    if (status === 404) {
+      return new ApiError(
+        "RESOURCE_NOT_FOUND",
+        "API route not found. Restart the dev server if this persists.",
+        status,
+      );
+    }
+    return new ApiError(
+      "INTERNAL_ERROR",
+      "The server returned an unexpected HTML response.",
+      status,
+    );
+  }
+  return new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), status);
 }
 
 async function request<T>(path: string, config: InternalConfig, hasRetried = false): Promise<T> {
@@ -167,8 +189,10 @@ async function request<T>(path: string, config: InternalConfig, hasRetried = fal
     try {
       payload = JSON.parse(rawText) as unknown;
     } catch (error) {
-      const apiError = new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), response.status);
-      reportError(error, { path, method: config.method, http_status: response.status });
+      const apiError = apiErrorFromNonJsonBody(rawText, response.status);
+      if (apiError.code === "UNKNOWN") {
+        reportError(error, { path, method: config.method, http_status: response.status });
+      }
       throw apiError;
     }
   }
@@ -251,8 +275,10 @@ async function requestList<T>(
     try {
       payload = JSON.parse(rawText) as unknown;
     } catch (error) {
-      const apiError = new ApiError("UNKNOWN", getErrorMessage("UNKNOWN"), response.status);
-      reportError(error, { path, method: config.method, http_status: response.status });
+      const apiError = apiErrorFromNonJsonBody(rawText, response.status);
+      if (apiError.code === "UNKNOWN") {
+        reportError(error, { path, method: config.method, http_status: response.status });
+      }
       throw apiError;
     }
   }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { TaskChecklistPanel } from "@/modules/task-management/tasks/components/task-checklist-panel";
+import { CommunicationLinks } from "@/modules/communication/components/CommunicationLinks";
 import { TaskCommentsPanel } from "@/modules/task-management/tasks/components/task-comments-panel";
 import { TaskSubtasksPanel } from "@/modules/task-management/tasks/components/task-subtasks-panel";
 import { useSetTaskLabels, useSetTaskWatchers } from "@/modules/task-management/tasks/mutations";
@@ -123,6 +124,11 @@ export function TaskDetailContent({
       {onOpenTask ? (
         <TaskSubtasksPanel task={task} canCreate={canCreateSubtask} onOpenTask={onOpenTask} />
       ) : null}
+      <CommunicationLinks
+        contextEntityType="TASK"
+        contextEntityId={task.id}
+        conversationName={task.title}
+      />
       <EntityAttachmentsPanel entityType="TASK" entityId={task.id} />
       <Tabs defaultValue="checklist">
         <TabsList>

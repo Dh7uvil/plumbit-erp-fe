@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { ActivityTimeline } from "@/modules/crm/activities/components/activity-timeline";
+import { CommunicationLinks } from "@/modules/communication/components/CommunicationLinks";
 import { TasksPanel } from "@/modules/task-management/tasks/components/tasks-panel";
 import { ContactsPanel } from "@/modules/crm/contacts/components/contacts-panel";
 import { CustomerForm } from "@/modules/crm/customers/components/customer-form";
@@ -362,6 +363,11 @@ export function CustomerDetailScreen({
             </CardContent>
           </Card>
           <ContactsPanel customerId={customer.id} />
+          <CommunicationLinks
+            contextEntityType="CUSTOMER"
+            contextEntityId={customer.id}
+            conversationName={customer.name}
+          />
           <PartyDocumentsCard
             title="Related documents"
             links={[

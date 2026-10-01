@@ -35,7 +35,19 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   ["img-src 'self' data: blob: https: http:", ...logoImgSrc()].join(" "),
   "font-src 'self'",
-  "connect-src 'self'",
+  [
+    "connect-src 'self' ws: wss:",
+    "https://*.agora.io",
+    "wss://*.agora.io",
+    "https://*.agora.io:*",
+    "wss://*.agora.io:*",
+    "https://*.sd-rtn.com",
+    "wss://*.sd-rtn.com",
+    "https://*.sd-rtn.com:*",
+    "wss://*.sd-rtn.com:*",
+  ].join(" "),
+  "media-src 'self' blob:",
+  "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -45,7 +57,10 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(self), microphone=(self), display-capture=(self), geolocation=()",
+  },
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
   ...(isProduction
     ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]

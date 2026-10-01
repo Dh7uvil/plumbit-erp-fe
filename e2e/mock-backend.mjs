@@ -77,6 +77,66 @@ const EMPTY_LIST_PATHS = new Set([
 const leads = new Map();
 let leadSequence = 1;
 
+const conversations = new Map();
+const messagesByConversation = new Map();
+let conversationSequence = 1;
+let messageSequence = 1;
+
+const COMM_CONVERSATION_ID = "c1111111-1111-4111-8111-111111111111";
+const COMM_OTHER_USER_ID = "c2222222-2222-4222-8222-222222222222";
+
+function seedCommunication() {
+  if (conversations.size > 0) {
+    return;
+  }
+  const conversation = {
+    id: COMM_CONVERSATION_ID,
+    kind: "DIRECT",
+    name: null,
+    description: null,
+    channel_name: "t-demo-conv",
+    message_seq: 1,
+    last_message_at: NOW,
+    only_admins_can_post: false,
+    is_locked: false,
+    unread_count: 0,
+    participants: [
+      {
+        user_id: USER_ID,
+        role: "MEMBER",
+        joined_at: NOW,
+        is_muted: false,
+        is_pinned: false,
+      },
+      {
+        user_id: COMM_OTHER_USER_ID,
+        role: "MEMBER",
+        joined_at: NOW,
+        is_muted: false,
+        is_pinned: false,
+      },
+    ],
+    created_at: NOW,
+    updated_at: NOW,
+  };
+  conversations.set(COMM_CONVERSATION_ID, conversation);
+  messagesByConversation.set(COMM_CONVERSATION_ID, [
+    {
+      id: "m1111111-1111-4111-8111-111111111111",
+      conversation_id: COMM_CONVERSATION_ID,
+      seq: 1,
+      sender_id: COMM_OTHER_USER_ID,
+      kind: "TEXT",
+      body: "Welcome to chat",
+      reply_to_message_id: null,
+      client_message_id: null,
+      edited_at: null,
+      deleted_at: null,
+      created_at: NOW,
+    },
+  ]);
+}
+
 let currentPassword = PASSWORD;
 let currentSessionKind = "superadmin";
 let profileName = null;
@@ -3437,6 +3497,19 @@ function me() {
       "identity.role.read",
       "identity.role.update",
       "identity.user.read",
+      "communication.conversation.read",
+      "communication.conversation.create",
+      "communication.conversation.update",
+      "communication.conversation.delete",
+      "communication.message.read",
+      "communication.message.create",
+      "communication.message.update",
+      "communication.message.delete",
+      "communication.call.read",
+      "communication.call.create",
+      "communication.call.join",
+      "communication.call.end",
+      "communication.presence.read",
     ],
   };
 }
@@ -6763,6 +6836,213 @@ const server = http.createServer(async (req, res) => {
       }
       listOk(res, mockActivity());
       return;
+    }
+
+    if (url.pathname.startsWith("/api/v1/communication/")) {
+      if (unauthorized(req, res)) {
+        return;
+      }
+      seedCommunication();
+
+      if (req.method === "GET" && url.pathname === "/api/v1/communication/colleagues") {
+        ok(res, [
+          {
+            id: COMM_OTHER_USER_ID,
+            name: "Colleague User",
+            email: "colleague@plumbit.com",
+          },
+        ]);
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/v1/communication/conversations") {
+        listOk(res, [...conversations.values()]);
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/v1/communication/conversations/unread-summary") {
+        ok(res, { total_unread: 0, conversations: [] });
+        return;
+      }
+
+      const conversationMatch = url.pathname.match(
+        /^\/api\/v1\/communication\/conversations\/([^/]+)(?:\/(messages|read|typing|attachments|participants|leave))?$/,
+      );
+      if (conversationMatch) {
+        const conversationId = conversationMatch[1];
+        const action = conversationMatch[2];
+        const conversation = conversations.get(conversationId);
+        if (!conversation) {
+          fail(res, 404, "RESOURCE_NOT_FOUND", "Conversation not found");
+          return;
+        }
+
+        if (req.method === "GET" && !action) {
+          ok(res, conversation);
+          return;
+        }
+
+        if (req.method === "GET" && action === "messages") {
+          ok(res, messagesByConversation.get(conversationId) ?? []);
+          return;
+        }
+
+        if (req.method === "POST" && action === "messages") {
+          const body = await readBody(req);
+          const rows = messagesByConversation.get(conversationId) ?? [];
+          const nextSeq = conversation.message_seq + 1;
+          const message = {
+            id: `m${String(messageSequence++).padStart(7, "0")}-1111-4111-8111-111111111111`,
+            conversation_id: conversationId,
+            seq: nextSeq,
+            sender_id: USER_ID,
+            kind: body.kind ?? "TEXT",
+            body: body.body,
+            reply_to_message_id: body.reply_to_message_id ?? null,
+            client_message_id: body.client_message_id ?? null,
+            edited_at: null,
+            deleted_at: null,
+            created_at: NOW,
+          };
+          rows.push(message);
+          messagesByConversation.set(conversationId, rows);
+          conversation.message_seq = nextSeq;
+          conversation.last_message_at = NOW;
+          conversations.set(conversationId, conversation);
+          ok(res, message, 201);
+          return;
+        }
+
+        if (req.method === "POST" && action === "read") {
+          ok(res, null);
+          return;
+        }
+
+        if (req.method === "POST" && action === "typing") {
+          ok(res, null);
+          return;
+        }
+
+        if (req.method === "GET" && action === "attachments") {
+          ok(res, []);
+          return;
+        }
+
+        if (req.method === "GET" && action === "participants") {
+          ok(res, conversation.participants);
+          return;
+        }
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/v1/communication/conversations") {
+        const body = await readBody(req);
+        if (body.kind === "DIRECT" && body.other_user_id) {
+          const existing = [...conversations.values()].find(
+            (row) =>
+              row.kind === "DIRECT" &&
+              row.participants.some((p) => p.user_id === USER_ID) &&
+              row.participants.some((p) => p.user_id === body.other_user_id),
+          );
+          if (existing) {
+            ok(res, existing, 201);
+            return;
+          }
+        }
+        const id = `c${String(conversationSequence++).padStart(7, "0")}-1111-4111-8111-111111111111`;
+        const participants = [
+          {
+            user_id: USER_ID,
+            role: "OWNER",
+            joined_at: NOW,
+            is_muted: false,
+            is_pinned: false,
+          },
+        ];
+        if (body.kind === "DIRECT" && body.other_user_id) {
+          participants.push({
+            user_id: body.other_user_id,
+            role: "MEMBER",
+            joined_at: NOW,
+            is_muted: false,
+            is_pinned: false,
+          });
+        }
+        const conversation = {
+          id,
+          kind: body.kind,
+          name: body.name ?? null,
+          description: body.description ?? null,
+          channel_name: `t-demo-${id.slice(0, 8)}`,
+          message_seq: 0,
+          last_message_at: null,
+          only_admins_can_post: false,
+          is_locked: false,
+          unread_count: 0,
+          participants,
+          created_at: NOW,
+          updated_at: NOW,
+        };
+        conversations.set(id, conversation);
+        messagesByConversation.set(id, []);
+        ok(res, conversation, 201);
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/v1/communication/ws/ticket") {
+        ok(res, {
+          ticket: "mock-ws-ticket",
+          expires_in_seconds: 60,
+        });
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/v1/communication/presence") {
+        ok(res, []);
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/v1/communication/presence/heartbeat") {
+        ok(res, {
+          user_id: USER_ID,
+          status: "ONLINE",
+          custom_status: null,
+          last_seen_at: NOW,
+          last_heartbeat_at: NOW,
+        });
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/v1/communication/calls") {
+        listOk(res, []);
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/v1/communication/calls") {
+        const body = await readBody(req);
+        ok(
+          res,
+          {
+            id: "call1111-1111-4111-8111-111111111111",
+            conversation_id: body.conversation_id ?? COMM_CONVERSATION_ID,
+            channel_name: "call-demo",
+            kind: body.kind ?? "VIDEO",
+            scope: "DIRECT",
+            status: "RINGING",
+            initiated_by: USER_ID,
+            started_at: NOW,
+            answered_at: null,
+            ended_at: null,
+            end_reason: null,
+            duration_seconds: null,
+            participants: [],
+            rtc_token: "mock-rtc-token",
+            rtc_uid: 10001,
+            token_expires_at: NOW,
+          },
+          201,
+        );
+        return;
+      }
     }
 
     if (req.method === "GET" && EMPTY_LIST_PATHS.has(url.pathname)) {
