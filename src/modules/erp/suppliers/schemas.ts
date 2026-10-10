@@ -7,7 +7,11 @@ import {
   TAX_TREATMENT_LABELS,
   TAX_TREATMENTS,
   TaxTreatmentSchema,
+  SupplierOriginSchema,
+  SUPPLIER_ORIGIN_LABELS,
+  SUPPLIER_ORIGINS,
   type CompanyType,
+  type SupplierOrigin,
   type TaxTreatment,
 } from "@/modules/crm/customers/schemas";
 import {
@@ -16,8 +20,8 @@ import {
 } from "@/modules/users-management/tenants/schemas";
 import { MoneySchema } from "@/shared/lib/money";
 
-export { COMPANY_TYPE_LABELS, TAX_TREATMENT_LABELS, TAX_TREATMENTS };
-export type { CompanyType, TaxTreatment };
+export { COMPANY_TYPE_LABELS, SUPPLIER_ORIGIN_LABELS, SUPPLIER_ORIGINS, TAX_TREATMENT_LABELS, TAX_TREATMENTS };
+export type { CompanyType, SupplierOrigin, TaxTreatment };
 
 export const SUPPLIER_COMPANY_TYPES = ["SUPPLIER", "BOTH"] as const;
 export const SupplierCompanyTypeSchema = z.enum(SUPPLIER_COMPANY_TYPES);
@@ -61,6 +65,10 @@ export const SupplierSchema = z.object({
   shipping_address: SupplierAddressSchema.nullable().optional().default(null),
   extra_addresses: z.array(SupplierExtraAddressSchema).optional().default([]),
   notes: z.string().nullable(),
+  fax: z.string().nullable().optional().default(null),
+  email: z.string().nullable().optional().default(null),
+  phone: z.string().nullable().optional().default(null),
+  supplier_origin: SupplierOriginSchema.optional().default("LOCAL"),
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -86,6 +94,10 @@ export const SupplierCreateRequestSchema = z.object({
   billing_address: AddressPayloadSchema.nullable().optional(),
   shipping_address: AddressPayloadSchema.nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
+  fax: z.string().max(40).nullable().optional(),
+  email: z.string().max(200).nullable().optional(),
+  phone: z.string().max(40).nullable().optional(),
+  supplier_origin: SupplierOriginSchema.optional(),
 });
 export type SupplierCreateRequest = z.infer<typeof SupplierCreateRequestSchema>;
 
@@ -104,6 +116,10 @@ export const SupplierUpdateRequestSchema = z.object({
   billing_address: AddressPayloadSchema.nullable().optional(),
   shipping_address: AddressPayloadSchema.nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
+  fax: z.string().max(40).nullable().optional(),
+  email: z.string().max(200).nullable().optional(),
+  phone: z.string().max(40).nullable().optional(),
+  supplier_origin: SupplierOriginSchema.nullable().optional(),
   is_active: z.boolean().nullable().optional(),
 });
 export type SupplierUpdateRequest = z.infer<typeof SupplierUpdateRequestSchema>;
@@ -135,6 +151,10 @@ export const SupplierFormSchema = z
     shipping_address: AddressFormSchema,
     same_as_billing: z.boolean(),
     notes: z.string().max(2000),
+    fax: z.string().max(40),
+    email: z.string().max(200),
+    phone: z.string().max(40),
+    supplier_origin: SupplierOriginSchema,
     is_active: z.boolean(),
     initial_contact_name: z.string().max(200),
     initial_contact_email: OptionalEmailSchema,

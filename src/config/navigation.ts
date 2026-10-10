@@ -105,6 +105,7 @@ import { packagePermissions } from "@/modules/inventory-management/packages/perm
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
 import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
+import { salesmanPermissions } from "@/modules/erp/salesmen/permissions";
 import { shipmentPermissions } from "@/modules/inventory-management/shipments/permissions";
 import { stockAdjustmentPermissions } from "@/modules/inventory-management/stock-adjustments/permissions";
 import { stockTransferPermissions } from "@/modules/inventory-management/stock-transfers/permissions";
@@ -267,6 +268,12 @@ export const navigation: NavigationGroup[] = [
         permission: salesReturnPermissions.read,
         icon: RotateCcw,
       },
+      {
+        label: "Salesmen",
+        href: "/salesmen",
+        permission: salesmanPermissions.read,
+        icon: Users,
+      },
     ],
   },
   {
@@ -354,6 +361,12 @@ export const navigation: NavigationGroup[] = [
         href: "/products",
         permission: productPermissions.read,
         icon: Package,
+      },
+      {
+        label: "Price master",
+        href: "/price-master",
+        permission: productPermissions.update,
+        icon: CircleDollarSign,
       },
       {
         label: "Price lists",

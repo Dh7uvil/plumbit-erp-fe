@@ -28,7 +28,10 @@ import {
   useCustomer,
   useCustomerCreditExposure,
   useCustomerOutstandingSummary,
+  useCustomerPdcBalance,
+  useCustomerPeriodBalances,
 } from "@/modules/crm/customers/queries";
+import type { PartyCurrencyMode } from "@/modules/crm/customers/schemas";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { quotationPermissions } from "@/modules/erp/quotations/permissions";
@@ -56,6 +59,10 @@ import { PartyDocumentsCard } from "@/shared/components/document/party-documents
 import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
 import { historyHref } from "@/shared/lib/history";
 import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
+import {
+  PartyPdcBalanceCard,
+  PartyPeriodBalancesCard,
+} from "@/shared/components/document/party-pdc-period-cards";
 import { PartyPaymentHistoryCard } from "@/shared/components/document/party-payment-history-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { TableActionTooltip, tableHeaders } from "@/shared/components/data-table/row-actions";
@@ -107,6 +114,7 @@ function formatAddress(address: AddressPayload | null | undefined): string {
   const parts = [
     address.address_line_1,
     address.address_line_2,
+    address.address_line_3,
     address.city,
     address.state,
     address.country,
@@ -125,9 +133,16 @@ export function CustomerDetailScreen({
   const can = useCan();
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(customerPermissions);
+  const [periodCurrencyMode, setPeriodCurrencyMode] = useState<PartyCurrencyMode>("home");
   const customerQuery = useCustomer(customerId);
   const outstandingQuery = useCustomerOutstandingSummary(customerId, mode !== "edit");
   const exposureQuery = useCustomerCreditExposure(customerId, mode !== "edit");
+  const pdcQuery = useCustomerPdcBalance(customerId, mode !== "edit");
+  const periodBalancesQuery = useCustomerPeriodBalances(
+    customerId,
+    periodCurrencyMode,
+    mode !== "edit",
+  );
   const currenciesQuery = useAllCurrencies();
   const { baseCurrencyCode } = useBaseCurrency();
   const addAddress = useAddCustomerAddress();
@@ -273,6 +288,20 @@ export function CustomerDetailScreen({
             statementHref={`/reports/customer-statement?customer_id=${customer.id}`}
             agingHref="/reports/ar-aging"
             reportPermission={reportPermissions.arAp}
+          />
+          <PartyPdcBalanceCard
+            data={pdcQuery.data}
+            isLoading={pdcQuery.isLoading}
+            error={pdcQuery.error}
+          />
+          <PartyPeriodBalancesCard
+            data={periodBalancesQuery.data}
+            isLoading={periodBalancesQuery.isLoading}
+            error={periodBalancesQuery.error}
+            currencyMode={periodCurrencyMode}
+            onCurrencyModeChange={setPeriodCurrencyMode}
+            homeCurrencyCode={baseCurrencyCode ?? ""}
+            partyCurrencyCode={currencyCode}
           />
           {can(customerPaymentPermissions.read) ? (
             <PartyPaymentHistoryCard kind="customer" partyId={customer.id} />

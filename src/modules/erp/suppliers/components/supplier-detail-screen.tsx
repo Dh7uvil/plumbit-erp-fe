@@ -23,7 +23,13 @@ import { SupplierProductsPanel } from "@/modules/erp/supplier-products/component
 import { SupplierForm } from "@/modules/erp/suppliers/components/supplier-form";
 import { useAddSupplierAddress, useDeleteSupplierAddress } from "@/modules/erp/suppliers/mutations";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
-import { useSupplier, useSupplierOutstandingSummary } from "@/modules/erp/suppliers/queries";
+import type { PartyCurrencyMode } from "@/modules/crm/customers/schemas";
+import {
+  useSupplier,
+  useSupplierOutstandingSummary,
+  useSupplierPdcBalance,
+  useSupplierPeriodBalances,
+} from "@/modules/erp/suppliers/queries";
 import {
   ExtraAddressFormSchema,
   type ExtraAddressFormValues,
@@ -42,6 +48,10 @@ import { PartyDocumentsCard } from "@/shared/components/document/party-documents
 import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
 import { historyHref } from "@/shared/lib/history";
 import { PartyOutstandingCard } from "@/shared/components/document/party-outstanding-card";
+import {
+  PartyPdcBalanceCard,
+  PartyPeriodBalancesCard,
+} from "@/shared/components/document/party-pdc-period-cards";
 import { PartyPaymentHistoryCard } from "@/shared/components/document/party-payment-history-card";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { TableActionTooltip, tableHeaders } from "@/shared/components/data-table/row-actions";
@@ -92,6 +102,7 @@ function formatAddress(address: AddressPayload | null | undefined): string {
   const parts = [
     address.address_line_1,
     address.address_line_2,
+    address.address_line_3,
     address.city,
     address.state,
     address.country,
@@ -110,8 +121,15 @@ export function SupplierDetailScreen({
   const can = useCan();
   const router = useRouter();
   const { canUpdate } = useCrudPermissions(supplierPermissions);
+  const [periodCurrencyMode, setPeriodCurrencyMode] = useState<PartyCurrencyMode>("home");
   const supplierQuery = useSupplier(supplierId);
   const outstandingQuery = useSupplierOutstandingSummary(supplierId, mode !== "edit");
+  const pdcQuery = useSupplierPdcBalance(supplierId, mode !== "edit");
+  const periodBalancesQuery = useSupplierPeriodBalances(
+    supplierId,
+    periodCurrencyMode,
+    mode !== "edit",
+  );
   const currenciesQuery = useAllCurrencies();
   const { baseCurrencyCode } = useBaseCurrency();
   const addAddress = useAddSupplierAddress();
@@ -247,6 +265,20 @@ export function SupplierDetailScreen({
             statementHref={`/reports/supplier-statement?supplier_id=${supplier.id}`}
             agingHref="/reports/ap-aging"
             reportPermission={reportPermissions.arAp}
+          />
+          <PartyPdcBalanceCard
+            data={pdcQuery.data}
+            isLoading={pdcQuery.isLoading}
+            error={pdcQuery.error}
+          />
+          <PartyPeriodBalancesCard
+            data={periodBalancesQuery.data}
+            isLoading={periodBalancesQuery.isLoading}
+            error={periodBalancesQuery.error}
+            currencyMode={periodCurrencyMode}
+            onCurrencyModeChange={setPeriodCurrencyMode}
+            homeCurrencyCode={baseCurrencyCode ?? ""}
+            partyCurrencyCode={currencyCode}
           />
           {can(supplierPaymentPermissions.read) ? (
             <PartyPaymentHistoryCard kind="supplier" partyId={supplier.id} />

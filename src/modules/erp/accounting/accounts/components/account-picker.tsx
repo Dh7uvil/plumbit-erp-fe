@@ -37,7 +37,9 @@ export function AccountPicker({
     },
     canRead,
   );
-  const accounts = (accountsQuery.data ?? []).filter((account) => !account.is_group);
+  const accounts = (accountsQuery.data ?? []).filter(
+    (account) => !account.is_group && !account.is_blocked,
+  );
 
   return (
     <MasterSelect

@@ -1,16 +1,19 @@
 "use client";
 
 import type { ComponentProps } from "react";
+import { useState } from "react";
 
 import { Input } from "@/shared/components/ui/input";
-import { normalizeDecimalInput } from "@/shared/lib/format";
+import { DISPLAY_SCALE, normalizeDecimalInput } from "@/shared/lib/format";
 
-export type DecimalInputKind = "money" | "quantity" | "percent";
+export type DecimalInputKind = "money" | "quantity" | "percent" | "rate";
 
-const KIND_DIGITS: Record<DecimalInputKind, number> = {
-  money: 2,
+/** Max precision kept in form state on blur. */
+const STORAGE_DIGITS: Record<DecimalInputKind, number> = {
+  money: 4,
   quantity: 6,
   percent: 2,
+  rate: 6,
 };
 
 export function DecimalInput({
@@ -18,6 +21,7 @@ export function DecimalInput({
   precision,
   onBlur,
   onChange,
+  onFocus,
   value,
   disabled,
   readOnly,
@@ -26,12 +30,18 @@ export function DecimalInput({
   kind: DecimalInputKind;
   precision?: number;
 }) {
-  const digits = precision ?? KIND_DIGITS[kind];
+  const [focused, setFocused] = useState(false);
+  const storageDigits = precision ?? STORAGE_DIGITS[kind];
   const raw = value == null ? "" : String(value);
-  const fraction = raw.includes(".") ? (raw.split(".")[1] ?? "") : "";
-  const shouldNormalizeDisplay =
-    raw !== "" && (Boolean(disabled || readOnly) || fraction.length > digits);
-  const displayValue = shouldNormalizeDisplay ? normalizeDecimalInput(raw, digits) || value : value;
+
+  let displayValue: string | number | readonly string[] | undefined = value;
+  if (raw !== "") {
+    if (disabled || readOnly || !focused) {
+      displayValue = normalizeDecimalInput(raw, DISPLAY_SCALE) || raw;
+    } else {
+      displayValue = raw;
+    }
+  }
 
   return (
     <Input
@@ -42,9 +52,14 @@ export function DecimalInput({
       type="text"
       inputMode="decimal"
       onChange={onChange}
+      onFocus={(event) => {
+        setFocused(true);
+        onFocus?.(event);
+      }}
       onBlur={(event) => {
+        setFocused(false);
         const current = event.target.value;
-        const normalized = normalizeDecimalInput(current, digits);
+        const normalized = normalizeDecimalInput(current, storageDigits);
         if (normalized !== current && onChange) {
           event.target.value = normalized;
           onChange(event);

@@ -26,7 +26,7 @@ import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
-import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import {
   useCreatePurchaseOrder,
   useUpdatePurchaseOrder,
@@ -835,8 +835,12 @@ export function PurchaseOrderForm({
             </table>
           </DocumentViewTableContainer>
         ) : null}
-        {purchaseOrder ? (
-          <DocumentTotalsPanel totals={purchaseOrder} currencies={currencies} />
+        {currencies.length > 0 ? (
+          <LiveDocumentTotalsPanel
+            form={form}
+            currencies={currencies}
+            savedTotals={purchaseOrder}
+          />
         ) : null}
         <div className="grid grid-cols-1 gap-3">
           <FormField

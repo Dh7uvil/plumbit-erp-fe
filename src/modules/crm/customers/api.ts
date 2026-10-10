@@ -8,6 +8,8 @@ import {
   CustomerSchema,
   CustomerUpdateRequestSchema,
   OutstandingSummarySchema,
+  PartyPdcBalanceSchema,
+  PartyPeriodBalancesSchema,
   type CreditExposure,
   type Customer,
   type CustomerCreateRequest,
@@ -17,6 +19,9 @@ import {
   type CustomerListParams,
   type CustomerUpdateRequest,
   type OutstandingSummary,
+  type PartyCurrencyMode,
+  type PartyPdcBalance,
+  type PartyPeriodBalances,
 } from "@/modules/crm/customers/schemas";
 import {
   OpenItemRowListSchema,
@@ -56,6 +61,10 @@ function toCreatePayload(values: CustomerFormValues): CustomerCreateRequest {
     billing_address: toAddressPayload(values.billing_address),
     shipping_address: toAddressPayload(values.shipping_address),
     notes: emptyToNull(values.notes),
+    fax: emptyToNull(values.fax),
+    email: emptyToNull(values.email),
+    phone: emptyToNull(values.phone),
+    invoice_type: values.invoice_type,
   };
 }
 
@@ -75,6 +84,10 @@ function toUpdatePayload(values: CustomerFormValues): CustomerUpdateRequest {
     billing_address: toAddressPayload(values.billing_address),
     shipping_address: toAddressPayload(values.shipping_address),
     notes: emptyToNull(values.notes),
+    fax: emptyToNull(values.fax),
+    email: emptyToNull(values.email),
+    phone: emptyToNull(values.phone),
+    invoice_type: values.invoice_type,
     is_active: values.is_active,
   };
 }
@@ -173,6 +186,17 @@ export const customersApi = {
     CreditExposureSchema.parse(await apiClient.get(`/customers/${id}/credit-exposure`)),
   outstandingSummary: async (id: string): Promise<OutstandingSummary> =>
     OutstandingSummarySchema.parse(await apiClient.get(`/customers/${id}/outstanding-summary`)),
+  pdcBalance: async (id: string): Promise<PartyPdcBalance> =>
+    PartyPdcBalanceSchema.parse(await apiClient.get(`/customers/${id}/pdc-balance`)),
+  periodBalances: async (
+    id: string,
+    currencyMode: PartyCurrencyMode = "home",
+  ): Promise<PartyPeriodBalances> =>
+    PartyPeriodBalancesSchema.parse(
+      await apiClient.get(`/customers/${id}/period-balances`, {
+        params: { currency_mode: currencyMode },
+      }),
+    ),
   paymentHistory: async (id: string) => {
     const result = await apiClient.getList<unknown>(`/customers/${id}/payment-history`, {
       params: { page: 1, page_size: 20 },

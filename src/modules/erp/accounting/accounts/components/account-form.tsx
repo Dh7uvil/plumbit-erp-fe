@@ -25,6 +25,8 @@ import {
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
+import { useAllFinancialCategories } from "@/modules/erp/accounting/financial-categories/queries";
+import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
@@ -71,6 +73,8 @@ function toFormValues(account: Account | null, defaultCurrencyId?: string): Acco
     is_active: account.is_active,
     is_blocked: account.is_blocked,
     currency_id: account.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
+    default_tax_id: account.default_tax_id ?? OPTIONAL_SELECT_NONE,
+    financial_category_id: account.financial_category_id ?? OPTIONAL_SELECT_NONE,
   };
 }
 
@@ -95,6 +99,8 @@ export function AccountForm({
   const updateAccount = useUpdateAccount();
   const groupsQuery = useAllAccounts({ is_group: true });
   const currenciesQuery = useAllCurrencies();
+  const taxesQuery = useAllTaxes();
+  const categoriesQuery = useAllFinancialCategories();
   const [formError, setFormError] = useState<string | null>(null);
   const [creatingCurrency, setCreatingCurrency] = useState(false);
   const isEdit = Boolean(account);
@@ -111,6 +117,11 @@ export function AccountForm({
   const parentId = useWatch({ control: form.control, name: "parent_id" });
   const subAccountNumber = useWatch({ control: form.control, name: "sub_account_number" });
   const manualCode = useWatch({ control: form.control, name: "manual_code" });
+  const selectedTaxId = useWatch({ control: form.control, name: "default_tax_id" });
+  const selectedTaxRate =
+    taxesQuery.data?.find((tax) => tax.id === selectedTaxId)?.rate ??
+    account?.default_tax_rate ??
+    null;
   const subtypeOptions = ACCOUNT_SUBTYPES_BY_TYPE[accountType] ?? [];
   const groups = useMemo(
     () =>
@@ -375,6 +386,57 @@ export function AccountForm({
                 <FormControl>
                   <Textarea disabled={disabled} {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="financial_category_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Financial category</FormLabel>
+                <MasterSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled || categoriesQuery.isLoading}
+                  placeholder="None"
+                  searchPlaceholder="Search category…"
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...(categoriesQuery.data ?? []).map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    })),
+                  ]}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="default_tax_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Default tax</FormLabel>
+                <MasterSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled || taxesQuery.isLoading}
+                  placeholder="None"
+                  searchPlaceholder="Search tax…"
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...(taxesQuery.data ?? []).map((tax) => ({
+                      value: tax.id,
+                      label: `${tax.name} (${tax.rate}%)`,
+                    })),
+                  ]}
+                />
+                {selectedTaxRate ? (
+                  <FormDescription>Rate: {selectedTaxRate}% (read-only)</FormDescription>
+                ) : null}
                 <FormMessage />
               </FormItem>
             )}

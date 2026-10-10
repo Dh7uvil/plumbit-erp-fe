@@ -18,6 +18,7 @@ import { SearchableSelect } from "@/shared/components/form/searchable-select";
 const LINE_FIELDS = [
   { key: "address_line_1", label: "Address line 1" },
   { key: "address_line_2", label: "Address line 2" },
+  { key: "address_line_3", label: "Address line 3" },
 ] as const;
 
 const LOCALITY_FIELDS = [

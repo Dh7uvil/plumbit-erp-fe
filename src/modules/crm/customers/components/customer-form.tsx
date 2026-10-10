@@ -16,6 +16,8 @@ import { useCreateCustomer, useUpdateCustomer } from "@/modules/crm/customers/mu
 import {
   CUSTOMER_COMPANY_TYPE_LABELS,
   CUSTOMER_COMPANY_TYPES,
+  CUSTOMER_INVOICE_TYPE_LABELS,
+  CUSTOMER_INVOICE_TYPES,
   CustomerFormSchema,
   TAX_TREATMENT_LABELS,
   TAX_TREATMENTS,
@@ -98,6 +100,10 @@ function toFormValues(customer: Customer | null, defaultCurrencyId: string): Cus
     shipping_address,
     same_as_billing: Boolean(customer) && addressesMatch(billing_address, shipping_address),
     notes: customer?.notes ?? "",
+    fax: customer?.fax ?? "",
+    email: customer?.email ?? "",
+    phone: customer?.phone ?? "",
+    invoice_type: customer?.invoice_type ?? "ALL",
     is_active: customer?.is_active ?? true,
     initial_contact_name: "",
     initial_contact_email: "",
@@ -541,6 +547,77 @@ export function CustomerForm({
                 />
               </>
             ) : null}
+          </div>
+        </section>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium">More details</h3>
+          <div
+            data-slot="form-grid"
+            className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            <FormField
+              control={form.control}
+              name="fax"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fax</FormLabel>
+                  <FormControl>
+                    <Input maxLength={40} disabled={disabled} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input maxLength={40} disabled={disabled} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" maxLength={200} disabled={disabled} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="invoice_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Invoice type</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CUSTOMER_INVOICE_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {CUSTOMER_INVOICE_TYPE_LABELS[type]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </section>
         <FormField

@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatReportMoney, humanizeEnum } from "@/shared/lib/format";
+import { formatDecimal, formatReportMoney, humanizeEnum } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function BudgetDetailScreen({ budgetId }: { budgetId: string }) {
@@ -161,7 +161,7 @@ export function BudgetDetailScreen({ budgetId }: { budgetId: string }) {
                         </RecordLink>
                       </TableCell>
                       <TableCell>{line.period_start}</TableCell>
-                      <TableCell className="tabular-nums">{line.amount}</TableCell>
+                      <TableCell className="tabular-nums">{formatDecimal(line.amount)}</TableCell>
                     </TableRow>
                   );
                 })

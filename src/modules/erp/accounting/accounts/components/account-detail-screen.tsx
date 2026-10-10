@@ -25,7 +25,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatReportMoney } from "@/shared/lib/format";
+import { formatReportMoney, formatSignedLedgerBalance } from "@/shared/lib/format";
 import { historyHref } from "@/shared/lib/history";
 import { HistoryHeaderButton } from "@/shared/components/document/history-header-button";
 import { useCan } from "@/shared/providers/session-provider";
@@ -177,9 +177,10 @@ export function AccountDetailScreen({
                       <td className="py-2 pr-3" />
                       <td className="py-2 pr-3" />
                       <td className="py-2 text-right tabular-nums">
-                        {formatReportMoney(
+                        {formatSignedLedgerBalance(
                           periodBalancesQuery.data.opening,
                           periodBalancesQuery.data.currency_code,
+                          account.account_type,
                         )}
                       </td>
                     </tr>
@@ -195,9 +196,10 @@ export function AccountDetailScreen({
                           {formatReportMoney(row.credit, periodBalancesQuery.data.currency_code)}
                         </td>
                         <td className="py-2 text-right tabular-nums">
-                          {formatReportMoney(
+                          {formatSignedLedgerBalance(
                             row.closing,
                             periodBalancesQuery.data.currency_code,
+                            account.account_type,
                           )}
                         </td>
                       </tr>
@@ -207,9 +209,10 @@ export function AccountDetailScreen({
                       <td className="py-2 pr-3" />
                       <td className="py-2 pr-3" />
                       <td className="py-2 text-right tabular-nums font-medium">
-                        {formatReportMoney(
+                        {formatSignedLedgerBalance(
                           periodBalancesQuery.data.closing,
                           periodBalancesQuery.data.currency_code,
+                          account.account_type,
                         )}
                       </td>
                     </tr>

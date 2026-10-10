@@ -5,6 +5,13 @@ import {
   type TradingHistoryListParams,
 } from "@/modules/inventory-management/history/schemas";
 import {
+  PartyPdcBalanceSchema,
+  PartyPeriodBalancesSchema,
+  type PartyCurrencyMode,
+  type PartyPdcBalance,
+  type PartyPeriodBalances,
+} from "@/modules/crm/customers/schemas";
+import {
   OutstandingSummarySchema,
   SupplierCreateRequestSchema,
   SupplierExtraAddressCreateRequestSchema,
@@ -50,6 +57,10 @@ function toCreatePayload(values: SupplierFormValues): SupplierCreateRequest {
     billing_address: toAddressPayload(values.billing_address),
     shipping_address: toAddressPayload(values.shipping_address),
     notes: emptyToNull(values.notes),
+    fax: emptyToNull(values.fax),
+    email: emptyToNull(values.email),
+    phone: emptyToNull(values.phone),
+    supplier_origin: values.supplier_origin,
   };
 }
 
@@ -69,6 +80,10 @@ function toUpdatePayload(values: SupplierFormValues): SupplierUpdateRequest {
     billing_address: toAddressPayload(values.billing_address),
     shipping_address: toAddressPayload(values.shipping_address),
     notes: emptyToNull(values.notes),
+    fax: emptyToNull(values.fax),
+    email: emptyToNull(values.email),
+    phone: emptyToNull(values.phone),
+    supplier_origin: values.supplier_origin,
     is_active: values.is_active,
   };
 }
@@ -149,6 +164,17 @@ export const suppliersApi = {
   },
   outstandingSummary: async (id: string): Promise<OutstandingSummary> =>
     OutstandingSummarySchema.parse(await apiClient.get(`/suppliers/${id}/outstanding-summary`)),
+  pdcBalance: async (id: string): Promise<PartyPdcBalance> =>
+    PartyPdcBalanceSchema.parse(await apiClient.get(`/suppliers/${id}/pdc-balance`)),
+  periodBalances: async (
+    id: string,
+    currencyMode: PartyCurrencyMode = "home",
+  ): Promise<PartyPeriodBalances> =>
+    PartyPeriodBalancesSchema.parse(
+      await apiClient.get(`/suppliers/${id}/period-balances`, {
+        params: { currency_mode: currencyMode },
+      }),
+    ),
   paymentHistory: async (id: string) => {
     const result = await apiClient.getList<unknown>(`/suppliers/${id}/payment-history`, {
       params: { page: 1, page_size: 20 },

@@ -41,7 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDate, formatReportMoney } from "@/shared/lib/format";
+import { formatDate, formatPercent, formatQuantity, formatReportMoney } from "@/shared/lib/format";
 
 type Props = {
   id: string;
@@ -215,7 +215,7 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
                   <TableCell>
                     {productById.get(line.product_id) ?? line.product_id.slice(0, 8)}
                   </TableCell>
-                  <TableCell>{line.quantity}</TableCell>
+                  <TableCell className="tabular-nums">{formatQuantity(line.quantity)}</TableCell>
                   <TableCell>{formatReportMoney(line.base_rate)}</TableCell>
                   <TableCell>{formatReportMoney(line.estimated_landed_unit_cost)}</TableCell>
                   <TableCell>
@@ -223,7 +223,11 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
                       ? formatReportMoney(line.actual_landed_unit_cost)
                       : "—"}
                   </TableCell>
-                  <TableCell>{line.expected_margin_pct ?? "—"}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {line.expected_margin_pct != null && line.expected_margin_pct !== ""
+                      ? formatPercent(line.expected_margin_pct)
+                      : "—"}
+                  </TableCell>
                   <TableCell>
                     {line.goods_receipt_line_id
                       ? line.goods_receipt_line_id.slice(0, 8) + "…"

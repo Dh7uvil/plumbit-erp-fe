@@ -87,6 +87,18 @@ export const productsApi = {
     });
     return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
   },
+  bulkUpdatePrices: async (
+    items: Array<{
+      id: string;
+      selling_rate?: string;
+      price_1?: string;
+      price_2?: string;
+      purchase_rate?: string;
+    }>,
+  ): Promise<Product[]> => {
+    const result = await apiClient.patch<unknown>("/products/prices", { items });
+    return ProductListSchema.parse(result);
+  },
   listPurchaseHistory: async (
     id: string,
     params: TradingHistoryListParams = {},

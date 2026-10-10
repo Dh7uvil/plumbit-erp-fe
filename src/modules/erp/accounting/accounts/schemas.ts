@@ -166,6 +166,10 @@ export const AccountSchema = z.object({
   is_system: z.boolean(),
   system_role: AccountSystemRoleSchema.nullable(),
   currency_id: z.string().uuid().nullable(),
+  default_tax_id: z.string().uuid().nullable().optional().default(null),
+  financial_category_id: z.string().uuid().nullable().optional().default(null),
+  default_tax_rate: MoneySchema.nullable().optional().default(null),
+  financial_category_name: z.string().nullable().optional().default(null),
   is_active: z.boolean(),
   is_blocked: z.boolean().optional().default(false),
   created_at: z.string(),
@@ -205,6 +209,8 @@ export const AccountCreateRequestSchema = z.object({
   is_group: z.boolean().optional(),
   is_blocked: z.boolean().optional(),
   currency_id: z.string().uuid().nullable().optional(),
+  default_tax_id: z.string().uuid().nullable().optional(),
+  financial_category_id: z.string().uuid().nullable().optional(),
 });
 export type AccountCreateRequest = z.infer<typeof AccountCreateRequestSchema>;
 
@@ -219,6 +225,8 @@ export const AccountUpdateRequestSchema = z.object({
   is_active: z.boolean().nullable().optional(),
   is_blocked: z.boolean().nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
+  default_tax_id: z.string().uuid().nullable().optional(),
+  financial_category_id: z.string().uuid().nullable().optional(),
 });
 export type AccountUpdateRequest = z.infer<typeof AccountUpdateRequestSchema>;
 
@@ -235,6 +243,8 @@ export const AccountFormSchema = z.object({
   is_active: z.boolean(),
   is_blocked: z.boolean(),
   currency_id: z.string(),
+  default_tax_id: z.string(),
+  financial_category_id: z.string(),
 });
 export type AccountFormValues = z.infer<typeof AccountFormSchema>;
 
@@ -251,6 +261,8 @@ export const EMPTY_ACCOUNT_FORM: AccountFormValues = {
   is_active: true,
   is_blocked: false,
   currency_id: OPTIONAL_SELECT_NONE,
+  default_tax_id: OPTIONAL_SELECT_NONE,
+  financial_category_id: OPTIONAL_SELECT_NONE,
 };
 
 export const AccountBalanceSchema = z.object({

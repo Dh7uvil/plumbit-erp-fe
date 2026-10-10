@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { customersApi } from "@/modules/crm/customers/api";
-import type { CustomerListParams } from "@/modules/crm/customers/schemas";
+import type { CustomerListParams, PartyCurrencyMode } from "@/modules/crm/customers/schemas";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const customerKeys = {
@@ -57,6 +57,30 @@ export function useCustomerOutstandingSummary(id: string | null, enabled = true)
   return useQuery({
     queryKey: useTenantQueryKey([...customerKeys.detail(id ?? ""), "outstanding-summary"]),
     queryFn: () => customersApi.outstandingSummary(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useCustomerPdcBalance(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...customerKeys.detail(id ?? ""), "pdc-balance"]),
+    queryFn: () => customersApi.pdcBalance(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useCustomerPeriodBalances(
+  id: string | null,
+  currencyMode: PartyCurrencyMode,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: useTenantQueryKey([
+      ...customerKeys.detail(id ?? ""),
+      "period-balances",
+      currencyMode,
+    ]),
+    queryFn: () => customersApi.periodBalances(id!, currencyMode),
     enabled: Boolean(id) && enabled,
   });
 }

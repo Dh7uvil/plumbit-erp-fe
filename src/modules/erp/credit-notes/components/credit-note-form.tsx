@@ -34,7 +34,7 @@ import {
 } from "@/modules/erp/credit-notes/schemas";
 import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
-import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -424,7 +424,9 @@ export function CreditNoteForm({
             showPricesIncludeTax
           />
         </div>
-        {note ? <DocumentTotalsPanel totals={note} currencies={currencies} /> : null}
+        {currencies.length > 0 ? (
+          <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={note} />
+        ) : null}
         <FormField
           control={form.control}
           name="notes"

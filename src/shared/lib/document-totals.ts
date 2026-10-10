@@ -125,3 +125,100 @@ export function computeHeaderTotals(input: {
   const grandTotal = quantizeMoney(toNumber(preAdjustment) + toNumber(adjustment));
   return { subtotal, docDiscount, taxTotal, grandTotal, adjustment };
 }
+
+export type RoundOffRule = "NONE" | "0.05" | "0.25" | "1.00";
+
+export function applyRoundOff(
+  grandTotal: string,
+  rule: RoundOffRule,
+): { roundOff: string; netTotal: string } {
+  const total = toNumber(grandTotal);
+  if (rule === "NONE") {
+    return { roundOff: quantizeMoney(0), netTotal: grandTotal };
+  }
+  const step = toNumber(rule);
+  const rounded = Math.round(total / step) * step;
+  const roundOff = quantizeMoney(rounded - total);
+  return { roundOff, netTotal: quantizeMoney(rounded) };
+}
+
+export type LiveTotalsLineInput = {
+  quantity: string | number;
+  rate: string | number;
+  discount_type?: DiscountType | string | null;
+  discount_value?: string | number | null;
+  tax_rate: string | number;
+};
+
+export type LiveDocumentTotalsResult = {
+  subtotal: string;
+  discount_amount: string;
+  taxable_amount: string;
+  tax_amount: string;
+  shipping_amount: string;
+  adjustment_amount: string;
+  grand_total: string;
+  round_off_amount: string;
+  net_total: string;
+  foreign_amount: string;
+  base_amount: string;
+};
+
+export function computeLiveDocumentTotals(input: {
+  lines: readonly LiveTotalsLineInput[];
+  discountType?: DiscountType;
+  discountValue?: string | number | null;
+  shippingAmount?: string | number;
+  adjustmentAmount?: string | number;
+  pricesIncludeTax?: boolean;
+  roundOffRule?: RoundOffRule;
+  exchangeRate?: string | number;
+}): LiveDocumentTotalsResult {
+  const lineNets: string[] = [];
+  const lineTaxes: string[] = [];
+  for (const line of input.lines) {
+    const amounts = computeLineAmounts({
+      quantity: line.quantity,
+      rate: line.rate,
+      discountType:
+        line.discount_type === "PERCENTAGE" || line.discount_type === "AMOUNT"
+          ? line.discount_type
+          : undefined,
+      discountValue: line.discount_value,
+      taxRate: line.tax_rate,
+      pricesIncludeTax: input.pricesIncludeTax,
+    });
+    lineNets.push(amounts.netAmount);
+    lineTaxes.push(amounts.taxAmount);
+  }
+  const header = computeHeaderTotals({
+    lineNets,
+    lineTaxes,
+    discountType: input.discountType,
+    discountValue: input.discountValue,
+    shippingAmount: input.shippingAmount,
+    adjustmentAmount: input.adjustmentAmount,
+  });
+  const shipping = quantizeMoney(toNumber(input.shippingAmount ?? 0));
+  const taxable = quantizeMoney(toNumber(header.subtotal) - toNumber(header.docDiscount));
+  const { roundOff, netTotal } = applyRoundOff(
+    header.grandTotal,
+    input.roundOffRule ?? "NONE",
+  );
+  const rate = toNumber(input.exchangeRate ?? 1);
+  const foreign = netTotal;
+  const base = quantizeMoney(toNumber(netTotal) * rate);
+  return {
+    subtotal: header.subtotal,
+    discount_amount: header.docDiscount,
+    taxable_amount: taxable,
+    tax_amount: header.taxTotal,
+    shipping_amount: shipping,
+    adjustment_amount: header.adjustment,
+    grand_total: header.grandTotal,
+    round_off_amount: roundOff,
+    net_total: netTotal,
+    foreign_amount: foreign,
+    base_amount: base,
+  };
+}

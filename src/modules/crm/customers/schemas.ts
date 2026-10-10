@@ -46,6 +46,25 @@ export function validateTrnDigits(value: string | null | undefined): string | nu
   return normalized;
 }
 
+export const CUSTOMER_INVOICE_TYPES = ["ALL", "CASH", "CREDIT"] as const;
+export const CustomerInvoiceTypeSchema = z.enum(CUSTOMER_INVOICE_TYPES);
+export type CustomerInvoiceType = z.infer<typeof CustomerInvoiceTypeSchema>;
+
+export const CUSTOMER_INVOICE_TYPE_LABELS: Record<CustomerInvoiceType, string> = {
+  ALL: "All invoices",
+  CASH: "Cash only",
+  CREDIT: "Credit only",
+};
+
+export const SUPPLIER_ORIGINS = ["LOCAL", "IMPORT"] as const;
+export const SupplierOriginSchema = z.enum(SUPPLIER_ORIGINS);
+export type SupplierOrigin = z.infer<typeof SupplierOriginSchema>;
+
+export const SUPPLIER_ORIGIN_LABELS: Record<SupplierOrigin, string> = {
+  LOCAL: "Local",
+  IMPORT: "Import",
+};
+
 export const TAX_TREATMENT_LABELS: Record<TaxTreatment, string> = {
   REGISTERED: "Registered",
   UNREGISTERED: "Unregistered",
@@ -88,6 +107,11 @@ export const CustomerSchema = z.object({
   shipping_address: CustomerAddressSchema.nullable().optional().default(null),
   extra_addresses: z.array(CustomerExtraAddressSchema).optional().default([]),
   notes: z.string().nullable(),
+  fax: z.string().nullable().optional().default(null),
+  email: z.string().nullable().optional().default(null),
+  phone: z.string().nullable().optional().default(null),
+  invoice_type: CustomerInvoiceTypeSchema.optional().default("ALL"),
+  supplier_origin: SupplierOriginSchema.optional().default("LOCAL"),
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -114,6 +138,11 @@ export const CustomerCreateRequestSchema = z.object({
   billing_address: AddressPayloadSchema.nullable().optional(),
   shipping_address: AddressPayloadSchema.nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
+  fax: z.string().max(40).nullable().optional(),
+  email: z.string().max(200).nullable().optional(),
+  phone: z.string().max(40).nullable().optional(),
+  invoice_type: CustomerInvoiceTypeSchema.optional(),
+  supplier_origin: SupplierOriginSchema.optional(),
 });
 export type CustomerCreateRequest = z.infer<typeof CustomerCreateRequestSchema>;
 
@@ -132,6 +161,11 @@ export const CustomerUpdateRequestSchema = z.object({
   billing_address: AddressPayloadSchema.nullable().optional(),
   shipping_address: AddressPayloadSchema.nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
+  fax: z.string().max(40).nullable().optional(),
+  email: z.string().max(200).nullable().optional(),
+  phone: z.string().max(40).nullable().optional(),
+  invoice_type: CustomerInvoiceTypeSchema.nullable().optional(),
+  supplier_origin: SupplierOriginSchema.nullable().optional(),
   is_active: z.boolean().nullable().optional(),
 });
 export type CustomerUpdateRequest = z.infer<typeof CustomerUpdateRequestSchema>;
@@ -164,6 +198,10 @@ export const CustomerFormSchema = z
     shipping_address: AddressFormSchema,
     same_as_billing: z.boolean(),
     notes: z.string().max(2000),
+    fax: z.string().max(40),
+    email: z.string().max(200),
+    phone: z.string().max(40),
+    invoice_type: CustomerInvoiceTypeSchema,
     is_active: z.boolean(),
     initial_contact_name: z.string().max(200),
     initial_contact_email: OptionalEmailSchema,
@@ -238,3 +276,37 @@ export const CreditExposureSchema = z.object({
   warnings: z.array(DocumentWarningSchema).optional().default([]),
 });
 export type CreditExposure = z.infer<typeof CreditExposureSchema>;
+
+export const PartyPdcBalanceSchema = z.object({
+  party_id: z.string().uuid(),
+  cheque_count: z.number(),
+  amount: MoneySchema,
+  base_amount: MoneySchema,
+  currency_code: z.string(),
+  base_currency_code: z.string(),
+});
+export type PartyPdcBalance = z.infer<typeof PartyPdcBalanceSchema>;
+
+export const PartyPeriodBalanceSchema = z.object({
+  period: z.number(),
+  from_date: z.string(),
+  to_date: z.string(),
+  debit: MoneySchema,
+  credit: MoneySchema,
+  closing: MoneySchema,
+});
+export type PartyPeriodBalance = z.infer<typeof PartyPeriodBalanceSchema>;
+
+export const PartyPeriodBalancesSchema = z.object({
+  party_id: z.string().uuid(),
+  account_id: z.string().uuid(),
+  fiscal_year: z.number(),
+  currency_code: z.string(),
+  currency_mode: z.enum(["home", "party"]),
+  opening: MoneySchema,
+  periods: z.array(PartyPeriodBalanceSchema),
+  closing: MoneySchema,
+});
+export type PartyPeriodBalances = z.infer<typeof PartyPeriodBalancesSchema>;
+
+export type PartyCurrencyMode = "home" | "party";

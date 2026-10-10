@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { suppliersApi } from "@/modules/erp/suppliers/api";
+import type { PartyCurrencyMode } from "@/modules/crm/customers/schemas";
 import type { SupplierListParams } from "@/modules/erp/suppliers/schemas";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
@@ -49,6 +50,30 @@ export function useSupplierOutstandingSummary(id: string | null, enabled = true)
   return useQuery({
     queryKey: useTenantQueryKey([...supplierKeys.detail(id ?? ""), "outstanding-summary"]),
     queryFn: () => suppliersApi.outstandingSummary(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useSupplierPdcBalance(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey([...supplierKeys.detail(id ?? ""), "pdc-balance"]),
+    queryFn: () => suppliersApi.pdcBalance(id!),
+    enabled: Boolean(id) && enabled,
+  });
+}
+
+export function useSupplierPeriodBalances(
+  id: string | null,
+  currencyMode: PartyCurrencyMode,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: useTenantQueryKey([
+      ...supplierKeys.detail(id ?? ""),
+      "period-balances",
+      currencyMode,
+    ]),
+    queryFn: () => suppliersApi.periodBalances(id!, currencyMode),
     enabled: Boolean(id) && enabled,
   });
 }

@@ -29,7 +29,7 @@ import {
   packingLineInput,
 } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
-import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { useCreateQuotation, useUpdateQuotation } from "@/modules/erp/quotations/mutations";
 import { useQuotationComposeDefaults } from "@/modules/erp/quotations/queries";
 import {
@@ -775,7 +775,9 @@ export function QuotationForm({
             showPricesIncludeTax
           />
         </div>
-        {quotation ? <DocumentTotalsPanel totals={quotation} currencies={currencies} /> : null}
+        {currencies.length > 0 ? (
+          <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={quotation} />
+        ) : null}
         <div className="grid grid-cols-1 gap-3">
           <FormField
             control={form.control}

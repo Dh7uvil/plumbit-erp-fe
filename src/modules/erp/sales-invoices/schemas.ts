@@ -70,6 +70,16 @@ export const PLACES_OF_SUPPLY = [
 export const PlaceOfSupplySchema = z.enum(PLACES_OF_SUPPLY);
 export type PlaceOfSupply = z.infer<typeof PlaceOfSupplySchema>;
 
+export const PAYMENT_MODES = ["CASH", "CREDIT", "BANK"] as const;
+export const PaymentModeSchema = z.enum(PAYMENT_MODES);
+export type PaymentMode = z.infer<typeof PaymentModeSchema>;
+
+export const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
+  CASH: "Cash",
+  CREDIT: "Credit",
+  BANK: "Bank",
+};
+
 export const PLACE_OF_SUPPLY_LABELS: Record<PlaceOfSupply, string> = {
   ABU_DHABI: "Abu Dhabi",
   DUBAI: "Dubai",
@@ -191,6 +201,15 @@ export const SalesInvoiceSchema = z.object({
   cancelled_at: z.string().nullable(),
   cancelled_by: z.string().uuid().nullable(),
   cancel_reason: z.string().nullable(),
+  payment_mode: PaymentModeSchema.optional().default("CREDIT"),
+  supply_date: z.string().nullable().optional().default(null),
+  reference_number: z.string().nullable().optional().default(null),
+  reference_date: z.string().nullable().optional().default(null),
+  marks: z.string().nullable().optional().default(null),
+  discount_account_id: z.string().uuid().nullable().optional().default(null),
+  freight_account_id: z.string().uuid().nullable().optional().default(null),
+  auto_stock_document: z.boolean().optional().default(false),
+  is_printed: z.boolean().optional().default(false),
   is_overdue: z.boolean().optional().default(false),
   is_partially_credited: z.boolean().optional().default(false),
   is_fully_credited: z.boolean().optional().default(false),
@@ -243,6 +262,14 @@ export const SalesInvoiceCreateRequestSchema = z.object({
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   prices_include_tax: z.boolean().nullable().optional(),
   country_of_origin: z.string().max(2).nullable().optional(),
+  payment_mode: PaymentModeSchema.optional(),
+  supply_date: z.string().nullable().optional(),
+  reference_number: z.string().max(80).nullable().optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().max(500).nullable().optional(),
+  discount_account_id: z.string().uuid().nullable().optional(),
+  freight_account_id: z.string().uuid().nullable().optional(),
+  auto_stock_document: z.boolean().optional(),
   lines: z.array(SalesInvoiceLineInputSchema),
 });
 export type SalesInvoiceCreateRequest = z.infer<typeof SalesInvoiceCreateRequestSchema>;
@@ -265,6 +292,14 @@ export const SalesInvoiceUpdateRequestSchema = z.object({
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   prices_include_tax: z.boolean().nullable().optional(),
   country_of_origin: z.string().max(2).nullable().optional(),
+  payment_mode: PaymentModeSchema.nullable().optional(),
+  supply_date: z.string().nullable().optional(),
+  reference_number: z.string().max(80).nullable().optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().max(500).nullable().optional(),
+  discount_account_id: z.string().uuid().nullable().optional(),
+  freight_account_id: z.string().uuid().nullable().optional(),
+  auto_stock_document: z.boolean().nullable().optional(),
   lines: z.array(SalesInvoiceLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -366,6 +401,12 @@ export const SalesInvoiceFormSchema = z
     ship_to_snapshot: z.string(),
     country_of_origin: z.string(),
     prices_include_tax: z.boolean(),
+    payment_mode: PaymentModeSchema,
+    supply_date: z.string(),
+    reference_number: z.string(),
+    reference_date: z.string(),
+    marks: z.string(),
+    auto_stock_document: z.boolean(),
     lines: z.array(SalesInvoiceLineFormSchema),
   })
   .superRefine((values, ctx) => {

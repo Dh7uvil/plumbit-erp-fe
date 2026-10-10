@@ -55,7 +55,7 @@ import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { DocumentChargesPanel } from "@/shared/components/document/document-charges-panel";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
-import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { BaseEquivalentPreview } from "@/shared/components/money";
 import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -743,16 +743,18 @@ export function PurchaseInvoiceForm({
             appliesTo={billType === "IMPORT" ? "IMPORT" : "BOTH"}
           />
         ) : null}
-        {invoice ? (
+        {currencies.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <DocumentTotalsPanel totals={invoice} currencies={currencies} />
-            <BaseEquivalentPreview
-              amount={invoice.grand_total}
-              currencyId={invoice.currency_id}
-              baseCurrencyId={baseCurrencyId}
-              baseCurrencyCode={baseCurrencyCode}
-              documentDate={invoice.invoice_date}
-            />
+            <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={invoice} />
+            {invoice ? (
+              <BaseEquivalentPreview
+                amount={invoice.grand_total}
+                currencyId={invoice.currency_id}
+                baseCurrencyId={baseCurrencyId}
+                baseCurrencyCode={baseCurrencyCode}
+                documentDate={invoice.invoice_date}
+              />
+            ) : null}
           </div>
         ) : null}
         <FormField

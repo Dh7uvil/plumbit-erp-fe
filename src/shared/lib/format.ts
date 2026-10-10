@@ -294,6 +294,25 @@ export function formatBalanceWithSide(
   return side ? `${amount} ${side}` : amount;
 }
 
+/** Signed GL balance with Dr/Cr suffix (legacy ledger style). */
+export function formatSignedLedgerBalance(
+  signed: string | null | undefined,
+  currencyCode: string | null | undefined,
+  accountType: "ASSET" | "LIABILITY" | "EQUITY" | "INCOME" | "EXPENSE",
+): string {
+  if (signed == null || signed === "") {
+    return "—";
+  }
+  const numeric = Number(formatFixedDecimal(signed, 4).replace(/,/g, ""));
+  if (!Number.isFinite(numeric) || numeric === 0) {
+    return formatReportMoney("0", currencyCode);
+  }
+  const debitNatural = accountType === "ASSET" || accountType === "EXPENSE";
+  const side = (numeric >= 0) === debitNatural ? "Dr" : "Cr";
+  const abs = formatReportMoney(String(Math.abs(numeric)), currencyCode);
+  return `${abs} ${side}`;
+}
+
 export function formatReportMoney(
   value: string | null | undefined,
   currencyCode?: string | null,
@@ -329,7 +348,8 @@ export function formatCompactReportMoney(
       style: "currency",
       currency,
       notation: "compact",
-      maximumFractionDigits: 1,
+      maximumFractionDigits: DISPLAY_SCALE,
+      minimumFractionDigits: DISPLAY_SCALE,
     }).format(numeric);
   } catch {
     return formatReportMoney(value, currencyCode);

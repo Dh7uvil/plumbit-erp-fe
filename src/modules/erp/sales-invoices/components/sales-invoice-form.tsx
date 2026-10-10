@@ -31,6 +31,8 @@ import {
   DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
   isBlankSalesInvoiceLine,
+  PAYMENT_MODE_LABELS,
+  PAYMENT_MODES,
   PLACE_OF_SUPPLY_LABELS,
   PLACES_OF_SUPPLY,
   SalesInvoiceFormSchema,
@@ -50,7 +52,9 @@ import {
   packingLineInput,
 } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
-import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
+import { PartyBalanceChip } from "@/shared/components/document/party-balance-chip";
+import { PeriodBadge } from "@/shared/components/document/period-badge";
 import { BaseEquivalentPreview } from "@/shared/components/money";
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
@@ -60,6 +64,7 @@ import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -187,6 +192,12 @@ function toFormValues(
     ship_to_snapshot: invoice?.ship_to_snapshot ?? "",
     country_of_origin: invoice?.country_of_origin ?? "",
     prices_include_tax: invoice?.prices_include_tax ?? false,
+    payment_mode: invoice?.payment_mode ?? "CREDIT",
+    supply_date: invoice?.supply_date ?? "",
+    reference_number: invoice?.reference_number ?? "",
+    reference_date: invoice?.reference_date ?? "",
+    marks: invoice?.marks ?? "",
+    auto_stock_document: invoice?.auto_stock_document ?? false,
     lines: toFormLines(invoice),
   };
 }
@@ -212,6 +223,12 @@ function toCreateRequest(values: SalesInvoiceFormValues): SalesInvoiceCreateRequ
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
     prices_include_tax: values.prices_include_tax,
     country_of_origin: emptyToNull(values.country_of_origin)?.toUpperCase() ?? null,
+    payment_mode: values.payment_mode,
+    supply_date: emptyToNull(values.supply_date),
+    reference_number: emptyToNull(values.reference_number),
+    reference_date: emptyToNull(values.reference_date),
+    marks: emptyToNull(values.marks),
+    auto_stock_document: values.auto_stock_document,
     lines: values.lines.filter((line) => !isBlankSalesInvoiceLine(line)).map(toLineInput),
   };
 }
@@ -236,6 +253,12 @@ function toUpdateRequest(values: SalesInvoiceFormValues): SalesInvoiceUpdateRequ
     place_of_supply: created.place_of_supply,
     prices_include_tax: created.prices_include_tax,
     country_of_origin: created.country_of_origin,
+    payment_mode: created.payment_mode,
+    supply_date: created.supply_date,
+    reference_number: created.reference_number,
+    reference_date: created.reference_date,
+    marks: created.marks,
+    auto_stock_document: created.auto_stock_document,
     lines: created.lines,
   };
 }
@@ -277,6 +300,8 @@ export function SalesInvoiceForm({
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const customerId = useWatch({ control: form.control, name: "customer_id" });
+  const invoiceDate = useWatch({ control: form.control, name: "invoice_date" });
+  const currencyId = useWatch({ control: form.control, name: "currency_id" });
   const selectedCustomerId = optionalUuid(customerId);
   const customerQuery = useCustomer(isEdit ? null : selectedCustomerId);
   const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
@@ -288,6 +313,9 @@ export function SalesInvoiceForm({
     (contact) => contact.customer_id === selectedCustomerId,
   );
   const currencies = currenciesQuery.data ?? [];
+  const customerCurrencyCode =
+    currencies.find((item) => item.id === currencyId)?.code ??
+    currencies.find((item) => item.id === invoice?.currency_id)?.code;
   const paymentTerms = paymentTermsQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
   const templates = useMemo(() => termsTemplatesQuery.data ?? [], [termsTemplatesQuery.data]);
@@ -392,6 +420,14 @@ export function SalesInvoiceForm({
                     })),
                   ]}
                 />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <PartyBalanceChip
+                    customerId={
+                      customerId && customerId !== OPTIONAL_SELECT_NONE ? customerId : null
+                    }
+                    currencyCode={customerCurrencyCode}
+                  />
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -434,11 +470,93 @@ export function SalesInvoiceForm({
             name="invoice_date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Invoice date</FormLabel>
+                <div className="flex flex-wrap items-center gap-2">
+                  <FormLabel>Invoice date</FormLabel>
+                  <PeriodBadge documentDate={invoiceDate} />
+                </div>
                 <FormControl>
                   <Input type="date" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="payment_mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment mode</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PAYMENT_MODES.map((mode) => (
+                      <SelectItem key={mode} value={mode}>
+                        {PAYMENT_MODE_LABELS[mode]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="supply_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Supply date</FormLabel>
+                <FormControl>
+                  <Input type="date" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="reference_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reference no.</FormLabel>
+                <FormControl>
+                  <Input maxLength={80} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="reference_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reference date</FormLabel>
+                <FormControl>
+                  <Input type="date" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="auto_stock_document"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    disabled={disabled}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                </FormControl>
+                <FormLabel>Update stock on post</FormLabel>
               </FormItem>
             )}
           />
@@ -738,16 +856,18 @@ export function SalesInvoiceForm({
             showPricesIncludeTax
           />
         </div>
-        {invoice ? (
+        {currencies.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <DocumentTotalsPanel totals={invoice} currencies={currencies} />
-            <BaseEquivalentPreview
-              amount={invoice.grand_total}
-              currencyId={invoice.currency_id}
-              baseCurrencyId={baseCurrencyId}
-              baseCurrencyCode={baseCurrencyCode}
-              documentDate={invoice.invoice_date}
-            />
+            <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={invoice} />
+            {invoice ? (
+              <BaseEquivalentPreview
+                amount={invoice.grand_total}
+                currencyId={invoice.currency_id}
+                baseCurrencyId={baseCurrencyId}
+                baseCurrencyCode={baseCurrencyCode}
+                documentDate={invoice.invoice_date}
+              />
+            ) : null}
           </div>
         ) : null}
         <div className="grid grid-cols-1 gap-3">

@@ -24,6 +24,8 @@ import { useCreateSupplier, useUpdateSupplier } from "@/modules/erp/suppliers/mu
 import {
   SUPPLIER_COMPANY_TYPE_LABELS,
   SUPPLIER_COMPANY_TYPES,
+  SUPPLIER_ORIGIN_LABELS,
+  SUPPLIER_ORIGINS,
   SupplierFormSchema,
   TAX_TREATMENT_LABELS,
   TAX_TREATMENTS,
@@ -94,6 +96,10 @@ function toFormValues(supplier: Supplier | null, defaultCurrencyId: string): Sup
     shipping_address,
     same_as_billing: Boolean(supplier) && addressesMatch(billing_address, shipping_address),
     notes: supplier?.notes ?? "",
+    fax: supplier?.fax ?? "",
+    email: supplier?.email ?? "",
+    phone: supplier?.phone ?? "",
+    supplier_origin: supplier?.supplier_origin ?? "LOCAL",
     is_active: supplier?.is_active ?? true,
     initial_contact_name: "",
     initial_contact_email: "",
@@ -516,6 +522,77 @@ export function SupplierForm({
                 />
               </>
             ) : null}
+          </div>
+        </section>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium">More details</h3>
+          <div
+            data-slot="form-grid"
+            className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            <FormField
+              control={form.control}
+              name="fax"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fax</FormLabel>
+                  <FormControl>
+                    <Input maxLength={40} disabled={disabled} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input maxLength={40} disabled={disabled} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" maxLength={200} disabled={disabled} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="supplier_origin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Origin</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SUPPLIER_ORIGINS.map((origin) => (
+                        <SelectItem key={origin} value={origin}>
+                          {SUPPLIER_ORIGIN_LABELS[origin]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </section>
         <FormField

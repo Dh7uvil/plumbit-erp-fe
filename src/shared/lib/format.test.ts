@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   compareDecimals,
   formatBalanceWithSide,
+  formatCompactReportMoney,
   formatDecimal,
   formatFixedDecimal,
   formatMoney,
@@ -209,6 +210,13 @@ describe("formatRawDecimal", () => {
   it("preserves extra FX digits without padding", () => {
     expect(formatRawDecimal("1.234567")).toMatch(/1\.234567/);
     expect(formatRawDecimal("3.672500")).toMatch(/3\.672500/);
+  });
+});
+
+describe("formatCompactReportMoney", () => {
+  it("uses two fraction digits for compact currency", () => {
+    const formatted = formatCompactReportMoney("1234567.891", "AED");
+    expect(formatted).toMatch(/\d+\.\d{2}/);
   });
 });
 

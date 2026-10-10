@@ -39,6 +39,8 @@ function toCreatePayload(values: AccountFormValues): AccountCreateRequest {
     is_group: values.is_group,
     is_blocked: values.is_blocked,
     currency_id: optionalUuid(values.currency_id),
+    default_tax_id: optionalUuid(values.default_tax_id),
+    financial_category_id: optionalUuid(values.financial_category_id),
   };
 }
 
@@ -54,6 +56,8 @@ function toUpdatePayload(values: AccountFormValues, isSystem: boolean): AccountU
     is_active: values.is_active,
     is_blocked: values.is_blocked,
     currency_id: optionalUuid(values.currency_id),
+    default_tax_id: optionalUuid(values.default_tax_id),
+    financial_category_id: optionalUuid(values.financial_category_id),
   };
 }
 

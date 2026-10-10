@@ -29,7 +29,7 @@ import {
   packingLineInput,
 } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
-import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { MilestonesEditor } from "@/modules/erp/proforma-invoices/components/milestones-editor";
 import {
   useCreateProformaInvoice,
@@ -844,7 +844,9 @@ export function ProformaInvoiceForm({
             showPricesIncludeTax
           />
         </div>
-        {invoice ? <DocumentTotalsPanel totals={invoice} currencies={currencies} /> : null}
+        {currencies.length > 0 ? (
+          <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={invoice} />
+        ) : null}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Export details</CardTitle>

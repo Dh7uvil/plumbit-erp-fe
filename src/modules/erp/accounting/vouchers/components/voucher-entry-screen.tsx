@@ -185,9 +185,9 @@ function cashBankLinePayload(
     });
   }
 
-  const totalAmount = counterLines
-    .reduce((sum, line) => sum + Number(line.amount ?? 0), 0)
-    .toFixed(4);
+  const totalAmount = journalBalanceTotals(
+    counterLines.map((line) => ({ debit: line.amount ?? "0", credit: "0" })),
+  ).totalDebit;
 
   return { paymentAccountId, lines: counterLines, totalAmount };
 }

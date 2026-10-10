@@ -25,7 +25,7 @@ import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { emptyDocumentLine } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
-import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
+import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { useCreateSalesOrder, useUpdateSalesOrder } from "@/modules/erp/sales-orders/mutations";
 import {
   useCustomerPoDuplicates,
@@ -868,7 +868,9 @@ export function SalesOrderForm({
             showPricesIncludeTax
           />
         </div>
-        {salesOrder ? <DocumentTotalsPanel totals={salesOrder} currencies={currencies} /> : null}
+        {currencies.length > 0 ? (
+          <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={salesOrder} />
+        ) : null}
         <div className="grid grid-cols-1 gap-3">
           <FormField
             control={form.control}

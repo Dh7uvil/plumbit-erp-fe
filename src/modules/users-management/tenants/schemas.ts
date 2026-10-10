@@ -15,6 +15,7 @@ export const TenantListSchema = z.array(TenantPublicSchema);
 export const AddressPayloadSchema = z.object({
   address_line_1: z.string().max(250).nullable().optional(),
   address_line_2: z.string().max(250).nullable().optional(),
+  address_line_3: z.string().max(250).nullable().optional(),
   city: z.string().max(100).nullable().optional(),
   state: z.string().max(100).nullable().optional(),
   country: z.string().max(100).nullable().optional(),
@@ -26,6 +27,7 @@ export type AddressPayload = z.infer<typeof AddressPayloadSchema>;
 export const AddressFormSchema = z.object({
   address_line_1: z.string().max(250),
   address_line_2: z.string().max(250),
+  address_line_3: z.string().max(250),
   city: z.string().max(100),
   state: z.string().max(100),
   country: z.string().max(100),
@@ -37,6 +39,7 @@ export type AddressFormValues = z.infer<typeof AddressFormSchema>;
 export const EMPTY_ADDRESS_FORM: AddressFormValues = {
   address_line_1: "",
   address_line_2: "",
+  address_line_3: "",
   city: "",
   state: "",
   country: "",
@@ -53,6 +56,7 @@ export function addressToFormValues(address: AddressPayload | null | undefined):
   return {
     address_line_1: address?.address_line_1 ?? "",
     address_line_2: address?.address_line_2 ?? "",
+    address_line_3: address?.address_line_3 ?? "",
     city: address?.city ?? "",
     state: address?.state ?? "",
     country: address?.country ?? "",
@@ -65,6 +69,7 @@ export function addressesMatch(a: AddressFormValues, b: AddressFormValues): bool
   return (
     a.address_line_1 === b.address_line_1 &&
     a.address_line_2 === b.address_line_2 &&
+    a.address_line_3 === b.address_line_3 &&
     a.city === b.city &&
     a.state === b.state &&
     a.country === b.country &&
@@ -77,6 +82,7 @@ export function toAddressPayload(address: AddressFormValues): AddressPayload | n
   const payload: AddressPayload = {
     address_line_1: emptyToNull(address.address_line_1),
     address_line_2: emptyToNull(address.address_line_2),
+    address_line_3: emptyToNull(address.address_line_3),
     city: emptyToNull(address.city),
     state: emptyToNull(address.state),
     country: emptyToNull(address.country),
