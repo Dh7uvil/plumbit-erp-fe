@@ -35,11 +35,14 @@ export const VOUCHER_ENTRY_TYPES = [
   "BANK_RECEIPT",
   "BANK_PAYMENT",
   "JOURNAL",
+  "GENERAL_PURCHASE",
+  "PAYMENT_VOUCHER",
 ] as const;
 export type VoucherEntryType = (typeof VOUCHER_ENTRY_TYPES)[number];
 
 /** Includes legacy CONTRA values returned by the API for older records. */
 export const VOUCHER_TYPES = [...VOUCHER_ENTRY_TYPES, "CONTRA"] as const;
+// API may return legacy CRV-style types; map via VoucherTypeSchema on responses separately.
 export const VoucherTypeSchema = z.enum(VOUCHER_TYPES);
 export type VoucherType = z.infer<typeof VoucherTypeSchema>;
 export const VoucherEntryTypeSchema = z.enum(VOUCHER_ENTRY_TYPES);
@@ -50,6 +53,8 @@ export const VOUCHER_TYPE_LABELS: Record<VoucherType, string> = {
   BANK_RECEIPT: "Bank receipt",
   BANK_PAYMENT: "Bank payment",
   JOURNAL: "Journal voucher",
+  GENERAL_PURCHASE: "General purchase",
+  PAYMENT_VOUCHER: "Payment voucher",
   CONTRA: "Contra",
 };
 
@@ -60,6 +65,8 @@ export const VOUCHER_ENTRY_BOOK_LABELS: Record<VoucherEntryType, string> = {
   BANK_RECEIPT: "Bank Receipt",
   BANK_PAYMENT: "Bank Payment",
   JOURNAL: "Journal Voucher",
+  GENERAL_PURCHASE: "General Purchase",
+  PAYMENT_VOUCHER: "Payment Voucher",
 };
 
 export const VOUCHER_ENTRY_BOOK_OPTIONS = VOUCHER_ENTRY_TYPES.map((type) => ({
@@ -80,6 +87,8 @@ export const VOUCHER_WORKSPACE_TABS = [
   "bank-receipt",
   "bank-payment",
   "journal",
+  "general-purchase",
+  "payment-voucher",
 ] as const;
 export type VoucherWorkspaceTab = (typeof VOUCHER_WORKSPACE_TABS)[number];
 
@@ -89,6 +98,8 @@ const TAB_TO_TYPE: Record<VoucherWorkspaceTab, VoucherEntryType> = {
   "bank-receipt": "BANK_RECEIPT",
   "bank-payment": "BANK_PAYMENT",
   journal: "JOURNAL",
+  "general-purchase": "GENERAL_PURCHASE",
+  "payment-voucher": "PAYMENT_VOUCHER",
 };
 
 export function parseVoucherWorkspaceTab(value: string | null): VoucherWorkspaceTab {
@@ -110,6 +121,8 @@ const VOUCHER_TYPE_TO_TAB: Partial<Record<VoucherType, VoucherWorkspaceTab>> = {
   BANK_RECEIPT: "bank-receipt",
   BANK_PAYMENT: "bank-payment",
   JOURNAL: "journal",
+  GENERAL_PURCHASE: "general-purchase",
+  PAYMENT_VOUCHER: "payment-voucher",
 };
 
 export function vouchersListHref(voucherType?: VoucherType): string {
@@ -282,11 +295,16 @@ export function isJournalVoucher(voucherType: VoucherType): boolean {
   return voucherType === "JOURNAL";
 }
 
+/** Dr/Cr grid entry books (journal-like posting on the vouchers API). */
+export function isDrCrEntryBook(voucherType: VoucherEntryType): boolean {
+  return voucherType === "JOURNAL" || voucherType === "GENERAL_PURCHASE";
+}
+
 export function paymentAccountSubtypeFor(voucherType: VoucherType): "CASH" | "BANK" | null {
   if (voucherType.startsWith("CASH")) {
     return "CASH";
   }
-  if (voucherType.startsWith("BANK")) {
+  if (voucherType.startsWith("BANK") || voucherType === "PAYMENT_VOUCHER") {
     return "BANK";
   }
   return null;

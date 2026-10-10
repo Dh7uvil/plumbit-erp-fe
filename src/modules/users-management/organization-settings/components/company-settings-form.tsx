@@ -164,6 +164,7 @@ function toFormValues(
     headquarters: {
       address_line_1: tenant.headquarters?.address_line_1 ?? "",
       address_line_2: tenant.headquarters?.address_line_2 ?? "",
+      address_line_3: tenant.headquarters?.address_line_3 ?? "",
       city: tenant.headquarters?.city ?? "",
       state: tenant.headquarters?.state ?? "",
       country: tenant.headquarters?.country ?? "",

@@ -423,6 +423,12 @@ export const navigation: NavigationGroup[] = [
         icon: ArrowLeftRight,
       },
       {
+        label: "Entry books",
+        href: "/entry-books",
+        permission: voucherPermissions.read,
+        icon: NotebookPen,
+      },
+      {
         label: "Bank accounts",
         href: "/bank-accounts",
         permission: bankAccountPermissions.read,

@@ -48,6 +48,10 @@ export const catalogPermissions = [
   "accounting.dunning.manage",
   "accounting.dunning.read",
   "accounting.dunning.send",
+  "accounting.financial_category.create",
+  "accounting.financial_category.delete",
+  "accounting.financial_category.read",
+  "accounting.financial_category.update",
   "accounting.fx_revaluation.read",
   "accounting.fx_revaluation.reverse",
   "accounting.fx_revaluation.run",
@@ -383,6 +387,8 @@ export const catalogPermissions = [
   "sales.sales_return.post",
   "sales.sales_return.read",
   "sales.sales_return.update",
+  "sales.salesman.read",
+  "sales.salesman.update",
   "tasks.checklist.create",
   "tasks.checklist.delete",
   "tasks.checklist.read",
@@ -479,6 +485,12 @@ export const permissionsByModule = {
       manage: "accounting.dunning.manage",
       read: "accounting.dunning.read",
       send: "accounting.dunning.send",
+    },
+    financial_category: {
+      create: "accounting.financial_category.create",
+      delete: "accounting.financial_category.delete",
+      read: "accounting.financial_category.read",
+      update: "accounting.financial_category.update",
     },
     fx_revaluation: {
       read: "accounting.fx_revaluation.read",
@@ -966,6 +978,10 @@ export const permissionsByModule = {
       post: "sales.sales_return.post",
       read: "sales.sales_return.read",
       update: "sales.sales_return.update",
+    },
+    salesman: {
+      read: "sales.salesman.read",
+      update: "sales.salesman.update",
     },
   },
   tasks: {

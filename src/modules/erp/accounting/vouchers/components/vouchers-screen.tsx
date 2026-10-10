@@ -70,7 +70,11 @@ function isReceiptVoucherType(voucherType: VoucherEntryType | undefined): boolea
 }
 
 function isPaymentVoucherType(voucherType: VoucherEntryType | undefined): boolean {
-  return voucherType === "CASH_PAYMENT" || voucherType === "BANK_PAYMENT";
+  return (
+    voucherType === "CASH_PAYMENT" ||
+    voucherType === "BANK_PAYMENT" ||
+    voucherType === "PAYMENT_VOUCHER"
+  );
 }
 
 export function VouchersScreen({

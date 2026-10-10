@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
-import { DecimalStringSchema } from "@/shared/lib/money";
+import { DecimalStringSchema, MoneySchema } from "@/shared/lib/money";
 
 export const ACCOUNT_TYPES = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"] as const;
 export const AccountTypeSchema = z.enum(ACCOUNT_TYPES);

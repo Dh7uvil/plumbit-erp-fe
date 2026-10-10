@@ -9,6 +9,7 @@ import { productPermissions } from "@/modules/inventory-management/products/perm
 import { getErrorMessage } from "@/shared/api/errors";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { ListPage } from "@/shared/components/layout/list-page";
+import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -77,17 +78,21 @@ export function PriceMasterScreen() {
   }
 
   return (
-    <ListPage
-      title="Price master"
-      subtitle="Bulk edit default, price 1, price 2, and cost."
-      actions={
-        can(productPermissions.update) ? (
-          <Button disabled={saving || Object.keys(draft).length === 0} onClick={() => void saveAll()}>
-            Save changes
-          </Button>
-        ) : null
-      }
-    >
+    <ListPage>
+      <PageHeader
+        title="Price master"
+        subtitle="Bulk edit default, price 1, price 2, and cost."
+        actions={
+          can(productPermissions.update) ? (
+            <Button
+              disabled={saving || Object.keys(draft).length === 0}
+              onClick={() => void saveAll()}
+            >
+              Save changes
+            </Button>
+          ) : null
+        }
+      />
       <Input
         placeholder="Search by item code or name"
         value={search}

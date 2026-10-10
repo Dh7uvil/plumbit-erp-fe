@@ -1,34 +1,45 @@
 "use client";
 
-import { useMemo } from "react";
+import { Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
-import { useUpdateChargeType } from "@/modules/erp/accounting/charge-types/mutations";
+import { ChargeTypeFormDialog } from "@/modules/erp/accounting/charge-types/components/charge-type-form-dialog";
+import {
+  useDeleteChargeType,
+  useUpdateChargeType,
+} from "@/modules/erp/accounting/charge-types/mutations";
 import { chargeTypePermissions } from "@/modules/erp/accounting/charge-types/permissions";
 import { useChargeTypes } from "@/modules/erp/accounting/charge-types/queries";
-import type { ChargeType } from "@/modules/erp/accounting/charge-types/schemas";
+import {
+  CHARGE_APPLIES_TO_LABELS,
+  type ChargeType,
+} from "@/modules/erp/accounting/charge-types/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
-import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
+import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import { type DataTableColumn } from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
-import { MasterSelect } from "@/shared/components/form/master-select";
+import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ListPage, ListPageContent } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
+import { MasterSelect } from "@/shared/components/form/master-select";
+import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 
 export function ChargeTypesScreen() {
-  const { canUpdate } = useCrudPermissions(chargeTypePermissions);
+  const { canCreate, canUpdate, canDelete } = useCrudPermissions(chargeTypePermissions);
   const { page, page_size, search, sort_by, sort_order, setParams, setPage } = useTableParams();
   const chargeTypesQuery = useChargeTypes({
     page,
@@ -39,6 +50,11 @@ export function ChargeTypesScreen() {
   });
   const accountsQuery = useAllAccounts({ is_active: true });
   const updateChargeType = useUpdateChargeType();
+  const deleteChargeType = useDeleteChargeType();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<ChargeType | null>(null);
+  const [deleting, setDeleting] = useState<ChargeType | null>(null);
+  const showActions = hasRowActions(canUpdate, canDelete);
 
   const accountNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -89,7 +105,7 @@ export function ChargeTypesScreen() {
   );
 
   const columnDefs = useMemo((): Array<DataTableColumn<ChargeType>> => {
-    return [
+    const cols: Array<DataTableColumn<ChargeType>> = [
       {
         id: "name",
         header: "Charge",
@@ -100,6 +116,11 @@ export function ChargeTypesScreen() {
             <div className="text-muted-foreground font-mono text-xs">{row.code}</div>
           </div>
         ),
+      },
+      {
+        id: "applies_to",
+        header: "Applies to",
+        cell: (row) => CHARGE_APPLIES_TO_LABELS[row.applies_to],
       },
       {
         id: "is_inventoriable",
@@ -144,21 +165,66 @@ export function ChargeTypesScreen() {
         cell: (row) => <ActiveBadge active={row.is_active} />,
       },
     ];
+    cols.push(
+      ...actionsColumn<ChargeType>(showActions, (row) => (
+        <DataTableRowActions
+          entityName={row.name}
+          onEdit={
+            canUpdate
+              ? () => {
+                  setEditing(row);
+                  setFormOpen(true);
+                }
+              : undefined
+          }
+          onDelete={canDelete ? () => setDeleting(row) : undefined}
+        />
+      )),
+    );
+    return cols;
   }, [
     accountNameById,
     accountOptions,
     accountsQuery.isLoading,
+    canDelete,
     canUpdate,
+    showActions,
     updateChargeType.isPending,
   ]);
 
   const { columns, colSpan } = useTableColumns("erp.charge_types", columnDefs);
+
+  function openCreate() {
+    setEditing(null);
+    setFormOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!deleting) {
+      return;
+    }
+    try {
+      await deleteChargeType.mutateAsync(deleting.id);
+      toast.success("Charge type deleted");
+      setDeleting(null);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  }
 
   return (
     <ListPage>
       <PageHeader
         title="Charge types"
         subtitle="Import and export charge taxonomy, GL defaults, and inventoriable treatment."
+        actions={
+          canCreate ? (
+            <Button type="button" size="sm" onClick={openCreate}>
+              <Plus className="size-3.5" />
+              New charge type
+            </Button>
+          ) : undefined
+        }
       />
       <ListPageContent>
         <DataTableToolbar className="shrink-0">
@@ -169,53 +235,72 @@ export function ChargeTypesScreen() {
           />
         </DataTableToolbar>
         <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
-        <TableHeader>
-          <TableRow>
-            <DataTableColumnHeads
-              columns={columns}
-              sortBy={sort_by}
-              sortOrder={sort_order}
-              onSort={setParams}
-            />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {chargeTypesQuery.isLoading ? (
-            Array.from({ length: 6 }).map((_, index) => (
-              <TableRow key={index}>
+          <TableHeader>
+            <TableRow>
+              <DataTableColumnHeads
+                columns={columns}
+                sortBy={sort_by}
+                sortOrder={sort_order}
+                onSort={setParams}
+              />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {chargeTypesQuery.isLoading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell colSpan={colSpan}>
+                    <Skeleton className="h-6 w-full" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : chargeTypesQuery.isError ? (
+              <TableRow>
                 <TableCell colSpan={colSpan}>
-                  <Skeleton className="h-6 w-full" />
+                  <DataTableError
+                    message={getErrorMessage(chargeTypesQuery.error)}
+                    onRetry={() => chargeTypesQuery.refetch()}
+                  />
                 </TableCell>
               </TableRow>
-            ))
-          ) : chargeTypesQuery.isError ? (
-            <TableRow>
-              <TableCell colSpan={colSpan}>
-                <DataTableError
-                  message={getErrorMessage(chargeTypesQuery.error)}
-                  onRetry={() => chargeTypesQuery.refetch()}
-                />
-              </TableCell>
-            </TableRow>
-          ) : rows.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={colSpan}>
-                <DataTableEmpty
-                  title="No charge types"
-                  message="Seeded charges appear after tenant provisioning."
-                />
-              </TableCell>
-            </TableRow>
-          ) : (
-            rows.map((row) => (
-              <TableRow key={row.id}>
-                <DataTableCells columns={columns} row={row} />
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={colSpan}>
+                  <DataTableEmpty
+                    title="No charge types"
+                    message={emptyListMessage(canCreate, "charge type")}
+                  />
+                </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
+            ) : (
+              rows.map((row) => (
+                <TableRow key={row.id}>
+                  <DataTableCells columns={columns} row={row} />
+                </TableRow>
+              ))
+            )}
+          </TableBody>
         </DataTable>
       </ListPageContent>
+      <ChargeTypeFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        chargeType={editing}
+        onSaved={() => setEditing(null)}
+      />
+      <ConfirmActionDialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title="Delete charge type"
+        description={
+          deleting
+            ? `Delete "${deleting.name}" (${deleting.code})? Existing GRN or cost sheet lines that reference it may be affected.`
+            : ""
+        }
+        confirmLabel="Delete"
+        pending={deleteChargeType.isPending}
+        onConfirm={() => void confirmDelete()}
+      />
     </ListPage>
   );
 }

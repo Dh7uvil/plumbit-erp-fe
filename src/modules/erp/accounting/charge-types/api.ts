@@ -4,10 +4,12 @@ import type { ListResponse } from "@/shared/api/envelope";
 import { fetchAllPages } from "@/shared/api/paginate";
 
 import {
+  ChargeTypeCreateRequestSchema,
   ChargeTypeListSchema,
   ChargeTypeSchema,
   ChargeTypeUpdateRequestSchema,
   type ChargeType,
+  type ChargeTypeCreateRequest,
   type ChargeTypeListParams,
   type ChargeTypeUpdateRequest,
 } from "./schemas";
@@ -30,8 +32,16 @@ export const chargeTypesApi = {
     fetchAllPages((page, pageSize) =>
       chargeTypesApi.list({ page, page_size: pageSize, is_active: true, sort_by: "sort_order" }),
     ),
+  get: async (id: string): Promise<ChargeType> =>
+    ChargeTypeSchema.parse(await apiClient.get(`/charge-types/${id}`)),
+  create: async (values: ChargeTypeCreateRequest): Promise<ChargeType> =>
+    ChargeTypeSchema.parse(
+      await apiClient.post("/charge-types", ChargeTypeCreateRequestSchema.parse(values)),
+    ),
   update: async (id: string, values: ChargeTypeUpdateRequest): Promise<ChargeType> =>
     ChargeTypeSchema.parse(
       await apiClient.patch(`/charge-types/${id}`, ChargeTypeUpdateRequestSchema.parse(values)),
     ),
+  delete: async (id: string): Promise<ChargeType> =>
+    ChargeTypeSchema.parse(await apiClient.delete(`/charge-types/${id}`)),
 };

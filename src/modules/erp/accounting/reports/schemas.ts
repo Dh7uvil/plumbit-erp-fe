@@ -298,6 +298,7 @@ export type AgingParams = {
 
 export const PartyStatementLineSchema = z.object({
   document_type: z.string(),
+  type_code: z.string().nullable().optional(),
   document_id: z.string().uuid(),
   document_number: z.string(),
   document_date: z.string(),
@@ -307,7 +308,10 @@ export const PartyStatementLineSchema = z.object({
   debit: DecimalStringSchema,
   credit: DecimalStringSchema,
   running_balance: DecimalStringSchema,
+  balance_side: z.string().nullable().optional(),
   description: z.string().nullable().optional().default(null),
+  cheque_number: z.string().nullable().optional(),
+  cheque_date: z.string().nullable().optional(),
 });
 export type PartyStatementLine = z.infer<typeof PartyStatementLineSchema>;
 
@@ -319,7 +323,9 @@ export const PartyStatementSchema = z.object({
   from_date: z.string(),
   to_date: z.string(),
   opening_balance: DecimalStringSchema,
+  opening_balance_side: z.string().nullable().optional(),
   closing_balance: DecimalStringSchema,
+  closing_balance_side: z.string().nullable().optional(),
   lines: z.array(PartyStatementLineSchema).default([]),
 });
 export type PartyStatement = z.infer<typeof PartyStatementSchema>;

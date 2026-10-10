@@ -3,7 +3,7 @@
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -229,7 +229,7 @@ export function CostSheetForm({ sheet }: Props) {
   const disabled = sheet?.status !== "DRAFT" && sheet !== null;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
       sheet_mode: initialSheetMode,
       sheet_type: initialSheetMode === "JOURNAL" && !sheet ? "IMPORT" : initialSheetType,

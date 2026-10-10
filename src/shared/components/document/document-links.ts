@@ -94,7 +94,11 @@ const DOCUMENT_HREF: Record<string, (id: string) => string> = {
 };
 
 export function documentDetailHref(documentType: string, documentId: string): string | null {
-  const builder = DOCUMENT_HREF[normalizeDocumentType(documentType)];
+  const normalized = normalizeDocumentType(documentType);
+  if (normalized.startsWith("VOUCHER_")) {
+    return `/vouchers/${documentId}`;
+  }
+  const builder = DOCUMENT_HREF[normalized];
   return builder ? builder(documentId) : null;
 }
 

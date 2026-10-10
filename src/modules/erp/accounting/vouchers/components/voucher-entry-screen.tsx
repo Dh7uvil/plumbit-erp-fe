@@ -15,7 +15,11 @@ import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries
 import { journalBalanceTotals } from "@/modules/erp/accounting/journals/balance";
 import { EntryBookLinesEditor } from "@/modules/erp/accounting/vouchers/components/entry-book-lines-editor";
 import { EntryBookSelect } from "@/modules/erp/accounting/vouchers/components/entry-book-select";
-import { entryBookFor } from "@/modules/erp/accounting/vouchers/entry-books";
+import { useEntryBooks } from "@/modules/erp/accounting/entry-books/queries";
+import {
+  resolveEntryBook,
+  type EntryBookApiRow,
+} from "@/modules/erp/accounting/vouchers/entry-books";
 import { useCreateVoucher, useUpdateVoucher } from "@/modules/erp/accounting/vouchers/mutations";
 import {
   PAYMENT_METHOD_LABELS,
@@ -24,7 +28,7 @@ import {
   VoucherEntryFormSchema,
   emptyVoucherEntryLine,
   isBlankVoucherEntryLine,
-  isJournalVoucher,
+  isDrCrEntryBook,
   parseVoucherEntryBook,
   vouchersListHref,
   type Voucher,
@@ -195,8 +199,9 @@ function cashBankLinePayload(
 function toCreateRequest(
   values: VoucherEntryFormValues,
   accountsById: Map<string, { account_subtype: string }>,
+  entryBookRows?: EntryBookApiRow[] | null,
 ): VoucherCreateRequest {
-  const book = entryBookFor(values.voucher_type);
+  const book = resolveEntryBook(values.voucher_type, entryBookRows);
   const base = {
     voucher_type: values.voucher_type,
     voucher_date: emptyToNull(values.voucher_date),
@@ -211,7 +216,7 @@ function toCreateRequest(
     allocations: [],
   };
 
-  if (isJournalVoucher(values.voucher_type)) {
+  if (isDrCrEntryBook(values.voucher_type)) {
     return {
       ...base,
       payment_account_id: null,
@@ -238,8 +243,9 @@ function toCreateRequest(
 function toUpdateRequest(
   values: VoucherEntryFormValues,
   accountsById: Map<string, { account_subtype: string }>,
+  entryBookRows?: EntryBookApiRow[] | null,
 ): VoucherUpdateRequest {
-  const created = toCreateRequest(values, accountsById);
+  const created = toCreateRequest(values, accountsById, entryBookRows);
   return {
     voucher_date: created.voucher_date,
     payment_account_id: created.payment_account_id,
@@ -267,7 +273,8 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
   const entryBook = parseVoucherEntryBook(
     voucher?.voucher_type ?? searchParams.get("voucher_type"),
   );
-  const book = entryBookFor(entryBook);
+  const entryBooksQuery = useEntryBooks();
+  const entryBookRows = entryBooksQuery.data;
   const createVoucher = useCreateVoucher();
   const updateVoucher = useUpdateVoucher(voucher?.id ?? "");
   const accountsQuery = useAllAccounts({ is_group: false, is_active: true });
@@ -293,7 +300,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
   }, [baseCurrencyId, entryBook, form, voucher]);
 
   const selectedType = useWatch({ control: form.control, name: "voucher_type" }) ?? entryBook;
-  const selectedBook = entryBookFor(selectedType);
+  const selectedBook = resolveEntryBook(selectedType, entryBookRows);
   const enableVatDetails = useWatch({ control: form.control, name: "enable_vat_details" }) ?? false;
   const currencyId = useWatch({ control: form.control, name: "currency_id" });
   const watchedLines = useWatch({ control: form.control, name: "lines" });
@@ -311,8 +318,8 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
 
   async function onSubmit(values: VoucherEntryFormValues) {
     setFormError(null);
-    if (!isJournalVoucher(values.voucher_type)) {
-      const book = entryBookFor(values.voucher_type);
+    if (!isDrCrEntryBook(values.voucher_type)) {
+      const book = resolveEntryBook(values.voucher_type, entryBookRows);
       const { paymentAccountId } = cashBankLinePayload(values, accountsById, book.paymentSubtype!);
       if (!paymentAccountId || paymentAccountId === OPTIONAL_SELECT_NONE) {
         setFormError("Add a cash or bank account line for the payment account.");
@@ -322,13 +329,15 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
     try {
       if (voucher) {
         await updateVoucher.mutateAsync({
-          ...toUpdateRequest(values, accountsById),
+          ...toUpdateRequest(values, accountsById, entryBookRows),
           version: voucher.version,
         });
         toast.success("Voucher saved");
         router.push(`/vouchers/${voucher.id}`);
       } else {
-        const created = await createVoucher.mutateAsync(toCreateRequest(values, accountsById));
+        const created = await createVoucher.mutateAsync(
+          toCreateRequest(values, accountsById, entryBookRows),
+        );
         toast.success("Voucher created");
         router.push(`/vouchers/${created.id}`);
       }
@@ -496,7 +505,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     </FormItem>
                   )}
                 />
-                {!isJournalVoucher(selectedType) ? (
+                {!isDrCrEntryBook(selectedType) ? (
                   <FormField
                     control={form.control}
                     name="payment_method"
@@ -606,13 +615,14 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                 disabled={false}
                 currencyCode={currencyCode}
                 showVatDetails={enableVatDetails}
+                applyAccountDefaultTax={selectedType === "GENERAL_PURCHASE"}
               />
 
               <div className="text-muted-foreground flex flex-wrap gap-4 text-xs">
                 <span>
                   Debit total {totals.totalDebit || "0"} · Credit total {totals.totalCredit || "0"}
                 </span>
-                {!totals.isBalanced && isJournalVoucher(selectedType) ? (
+                {!totals.isBalanced && isDrCrEntryBook(selectedType) ? (
                   <span>Difference {totals.difference}</span>
                 ) : null}
               </div>

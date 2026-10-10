@@ -19,7 +19,8 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { formatDate, formatMoney } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 
 type Props = {
   id: string;
@@ -27,6 +28,7 @@ type Props = {
 
 export function GrnChargeAdjustmentDetailScreen({ id }: Props) {
   const router = useRouter();
+  const { baseCurrencyCode } = useBaseCurrency();
   const { data: adjustment, isLoading, refetch } = useGrnChargeAdjustment(id);
   const postMutation = usePostGrnChargeAdjustment(id);
   const deleteMutation = useDeleteGrnChargeAdjustment();
@@ -48,8 +50,9 @@ export function GrnChargeAdjustmentDetailScreen({ id }: Props) {
           <p className="text-sm text-muted-foreground">{formatDate(adjustment.document_date)}</p>
         </div>
         <DocumentStatusBadge
-          label={STOCK_DOCUMENT_STATUS_LABELS[adjustment.status]}
-          variant={STOCK_DOCUMENT_STATUS_VARIANTS[adjustment.status]}
+          status={adjustment.status}
+          labels={STOCK_DOCUMENT_STATUS_LABELS}
+          variants={STOCK_DOCUMENT_STATUS_VARIANTS}
         />
       </div>
 
@@ -76,8 +79,10 @@ export function GrnChargeAdjustmentDetailScreen({ id }: Props) {
           {adjustment.lines.map((line) => (
             <div key={line.id} className="rounded-md border p-3 text-sm">
               <p>Charge line: {line.goods_receipt_charge_id}</p>
-              <p>Adjustment: {formatMoney(line.adjustment_amount)}</p>
-              <p>Base adjustment: {formatMoney(line.base_adjustment_amount)}</p>
+              <p>Adjustment: {formatReportMoney(line.adjustment_amount, baseCurrencyCode)}</p>
+              <p>
+                Base adjustment: {formatReportMoney(line.base_adjustment_amount, baseCurrencyCode)}
+              </p>
             </div>
           ))}
         </CardContent>

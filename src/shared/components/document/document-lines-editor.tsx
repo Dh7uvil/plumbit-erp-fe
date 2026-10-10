@@ -340,7 +340,7 @@ function ProductInquiryCostHint<TFieldValues extends FieldValues>({
   if (!id || !inquiry) {
     return null;
   }
-  const currency = inquiry.lc_currency_code ?? baseCurrencyCode ?? undefined;
+  const currency = inquiry.lc_currency_code ?? baseCurrencyCode ?? "";
   const parts: string[] = [];
   if (inquiry.lc_price?.trim()) {
     parts.push(`LP ${formatMoney(inquiry.lc_price, currency)}`);
@@ -1035,7 +1035,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                               <ProductInquiryCostHint
                                 form={form}
                                 index={index}
-                                baseCurrencyCode={baseCurrencyCode}
+                                baseCurrencyCode={baseCurrencyCode ?? null}
                               />
                             ) : null}
                             <FormMessage />

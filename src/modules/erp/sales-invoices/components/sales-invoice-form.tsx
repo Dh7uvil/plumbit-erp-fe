@@ -208,7 +208,10 @@ function toFormValues(
   };
 }
 
-function toCreateRequest(values: SalesInvoiceFormValues): SalesInvoiceCreateRequest {
+function toCreateRequest(
+  values: SalesInvoiceFormValues,
+  exportPreset = false,
+): SalesInvoiceCreateRequest {
   return {
     customer_id: values.customer_id,
     contact_id: optionalUuid(values.contact_id),
@@ -242,8 +245,11 @@ function toCreateRequest(values: SalesInvoiceFormValues): SalesInvoiceCreateRequ
   };
 }
 
-function toUpdateRequest(values: SalesInvoiceFormValues): SalesInvoiceUpdateRequest {
-  const created = toCreateRequest(values);
+function toUpdateRequest(
+  values: SalesInvoiceFormValues,
+  exportPreset = false,
+): SalesInvoiceUpdateRequest {
+  const created = toCreateRequest(values, exportPreset);
   return {
     contact_id: created.contact_id,
     branch_id: created.branch_id,
@@ -400,13 +406,13 @@ export function SalesInvoiceForm({
       if (invoice) {
         await updateInvoice.mutateAsync({
           id: invoice.id,
-          values: toUpdateRequest(values),
+          values: toUpdateRequest(values, exportPreset),
           version: invoice.version,
         });
         toast.success("Sales invoice saved");
         onSuccess?.();
       } else {
-        const created = await createInvoice.mutateAsync(toCreateRequest(values));
+        const created = await createInvoice.mutateAsync(toCreateRequest(values, exportPreset));
         toast.success("Sales invoice created");
         router.push(`/sales-invoices/${created.id}`);
       }

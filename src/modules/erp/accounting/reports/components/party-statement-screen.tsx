@@ -29,10 +29,10 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatReportMoney } from "@/shared/lib/format";
+import { formatBalanceWithSide, formatDate, formatReportMoney, isZeroDecimal } from "@/shared/lib/format";
 
 const ALL = "all";
-const COLUMN_COUNT = 7;
+const COLUMN_COUNT = 10;
 
 export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }) {
   const { filters, setParams } = useTableParams();
@@ -132,20 +132,33 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
       {report ? (
         <p className="text-muted-foreground text-sm">
           {report.party_name}. Opening{" "}
-          {formatReportMoney(report.opening_balance, report.currency_code)}. Closing{" "}
-          {formatReportMoney(report.closing_balance, report.currency_code)}.
+          {formatBalanceWithSide(
+            report.opening_balance,
+            report.opening_balance_side,
+            report.currency_code,
+          )}
+          . Closing{" "}
+          {formatBalanceWithSide(
+            report.closing_balance,
+            report.closing_balance_side ?? report.lines.at(-1)?.balance_side,
+            report.currency_code,
+          )}
+          .
         </p>
       ) : null}
       <DataTable>
         <TableHeader>
           <TableRow>
             <TableHead>Date</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Document</TableHead>
             <TableHead>Due</TableHead>
+            <TableHead>Chq no</TableHead>
+            <TableHead>Chq date</TableHead>
             <TableHead>Description</TableHead>
-            <TableHead>Debit</TableHead>
-            <TableHead>Credit</TableHead>
-            <TableHead>Running</TableHead>
+            <TableHead className="text-right">Debit</TableHead>
+            <TableHead className="text-right">Credit</TableHead>
+            <TableHead className="text-right">Running</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -182,11 +195,33 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
               </TableCell>
             </TableRow>
           ) : (
-            report.lines.map((line) => {
+            <>
+              {report && !isZeroDecimal(report.opening_balance) ? (
+                <TableRow className="bg-muted/40">
+                  <TableCell>{formatDate(report.from_date)}</TableCell>
+                  <TableCell className="font-mono text-xs">OP</TableCell>
+                  <TableCell>—</TableCell>
+                  <TableCell>—</TableCell>
+                  <TableCell>—</TableCell>
+                  <TableCell>—</TableCell>
+                  <TableCell>Previous balance</TableCell>
+                  <TableCell className="text-right tabular-nums">—</TableCell>
+                  <TableCell className="text-right tabular-nums">—</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatBalanceWithSide(
+                      report.opening_balance,
+                      report.opening_balance_side,
+                      report.currency_code,
+                    )}
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {report.lines.map((line) => {
               const href = documentDetailHref(line.document_type, line.document_id);
               return (
                 <TableRow key={`${line.document_type}-${line.document_id}-${line.document_date}`}>
                   <TableCell>{formatDate(line.document_date)}</TableCell>
+                  <TableCell className="font-mono text-xs">{line.type_code ?? "—"}</TableCell>
                   <TableCell className="font-mono text-sm">
                     {href ? (
                       <RecordLink href={href}>{line.document_number}</RecordLink>
@@ -195,19 +230,28 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
                     )}
                   </TableCell>
                   <TableCell>{line.due_date ? formatDate(line.due_date) : "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{line.cheque_number ?? "—"}</TableCell>
+                  <TableCell>
+                    {line.cheque_date ? formatDate(line.cheque_date) : "—"}
+                  </TableCell>
                   <TableCell className="max-w-xs truncate">{line.description ?? "—"}</TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell className="text-right tabular-nums">
                     {formatReportMoney(line.debit, report.currency_code)}
                   </TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell className="text-right tabular-nums">
                     {formatReportMoney(line.credit, report.currency_code)}
                   </TableCell>
-                  <TableCell className="tabular-nums">
-                    {formatReportMoney(line.running_balance, report.currency_code)}
+                  <TableCell className="text-right tabular-nums">
+                    {formatBalanceWithSide(
+                      line.running_balance,
+                      line.balance_side,
+                      report.currency_code,
+                    )}
                   </TableCell>
                 </TableRow>
               );
-            })
+            })}
+            </>
           )}
         </TableBody>
       </DataTable>

@@ -39,7 +39,7 @@ const LINE_KINDS = [
   { value: "C", label: "Customer (C)" },
 ] as const;
 
-function emptyJournalLine() {
+function emptyJournalLine(): CostSheetFormValues["journal_lines"][number] {
   return {
     line_kind: "G",
     account_id: OPTIONAL_SELECT_NONE,
@@ -65,7 +65,7 @@ export function CostSheetJournalLinesEditor({
   const lines = useWatch({ control: form.control, name: "journal_lines" }) ?? [];
   const customers = useAllCustomers().data ?? [];
   const suppliers = useAllSuppliers().data ?? [];
-  const { debit, credit, difference } = journalBalanceTotals(
+  const { totalDebit, totalCredit, difference } = journalBalanceTotals(
     lines.map((line) => ({
       debit: line.debit ?? "0",
       credit: line.credit ?? "0",
@@ -246,7 +246,7 @@ export function CostSheetJournalLinesEditor({
         </TableBody>
       </Table>
       <p className="text-muted-foreground text-xs tabular-nums">
-        Dr {formatReportMoney(debit)} · Cr {formatReportMoney(credit)} · Diff{" "}
+        Dr {formatReportMoney(totalDebit)} · Cr {formatReportMoney(totalCredit)} · Diff{" "}
         {formatReportMoney(difference)}
       </p>
     </div>

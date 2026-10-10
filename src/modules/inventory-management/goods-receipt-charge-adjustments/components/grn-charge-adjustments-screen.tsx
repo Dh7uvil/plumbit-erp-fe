@@ -29,7 +29,7 @@ export function GrnChargeAdjustmentsScreen() {
     <ListPage>
       <PageHeader
         title="GRN charge adjustments"
-        description="Adjust inventoriable import charges on posted goods receipts."
+        subtitle="Adjust inventoriable import charges on posted goods receipts."
         actions={
           permissions.canCreate ? (
             <Button asChild>
@@ -62,9 +62,17 @@ export function GrnChargeAdjustmentsScreen() {
               </TableRow>
             ))
           ) : isError ? (
-            <DataTableError colSpan={4} onRetry={() => void refetch()} />
+            <TableRow>
+              <TableCell colSpan={4}>
+                <DataTableError onRetry={() => void refetch()} />
+              </TableCell>
+            </TableRow>
           ) : !data?.data.length ? (
-            <DataTableEmpty colSpan={4} message="No GRN charge adjustments yet." />
+            <TableRow>
+              <TableCell colSpan={4}>
+                <DataTableEmpty message="No GRN charge adjustments yet." />
+              </TableCell>
+            </TableRow>
           ) : (
             data.data.map((row) => (
               <TableRow key={row.id}>
@@ -79,8 +87,9 @@ export function GrnChargeAdjustmentsScreen() {
                 <TableCell>{formatDate(row.document_date)}</TableCell>
                 <TableCell>
                   <DocumentStatusBadge
-                    label={STOCK_DOCUMENT_STATUS_LABELS[row.status]}
-                    variant={STOCK_DOCUMENT_STATUS_VARIANTS[row.status]}
+                    status={row.status}
+                    labels={STOCK_DOCUMENT_STATUS_LABELS}
+                    variants={STOCK_DOCUMENT_STATUS_VARIANTS}
                   />
                 </TableCell>
                 <TableCell>

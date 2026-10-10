@@ -53,7 +53,7 @@ export function VouchersWorkspaceScreen() {
     <ListPage>
       <PageHeader
         title="Vouchers"
-        subtitle="Cash and bank receipts, payments, and journal vouchers"
+        subtitle="Cash and bank receipts and payments, journal, general purchase, and payment vouchers"
         actions={actions}
       />
       <Tabs value={tab} onValueChange={(value) => setTab(value as VoucherWorkspaceTab)}>
@@ -63,6 +63,8 @@ export function VouchersWorkspaceScreen() {
           <TabsTrigger value="bank-receipt">Bank receipt</TabsTrigger>
           <TabsTrigger value="bank-payment">Bank payment</TabsTrigger>
           {canRead ? <TabsTrigger value="journal">Journal voucher</TabsTrigger> : null}
+          {canRead ? <TabsTrigger value="general-purchase">General purchase</TabsTrigger> : null}
+          {canRead ? <TabsTrigger value="payment-voucher">Payment voucher</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="cash-receipt" className="mt-4">
           <VouchersScreen embedded voucherType="CASH_RECEIPT" />
@@ -79,6 +81,16 @@ export function VouchersWorkspaceScreen() {
         {canRead ? (
           <TabsContent value="journal" className="mt-4">
             <VouchersScreen embedded voucherType="JOURNAL" />
+          </TabsContent>
+        ) : null}
+        {canRead ? (
+          <TabsContent value="general-purchase" className="mt-4">
+            <VouchersScreen embedded voucherType="GENERAL_PURCHASE" />
+          </TabsContent>
+        ) : null}
+        {canRead ? (
+          <TabsContent value="payment-voucher" className="mt-4">
+            <VouchersScreen embedded voucherType="PAYMENT_VOUCHER" />
           </TabsContent>
         ) : null}
       </Tabs>

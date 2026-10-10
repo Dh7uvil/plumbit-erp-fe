@@ -15,6 +15,7 @@ export function AccountPicker({
   accountSubtype,
   placeholder = "System default",
   searchPlaceholder = "Search account…",
+  asFormControl = true,
   "aria-label": ariaLabel,
 }: {
   value: string;
@@ -24,6 +25,8 @@ export function AccountPicker({
   accountSubtype?: AccountSubtype;
   placeholder?: string;
   searchPlaceholder?: string;
+  /** Set false when used outside `<FormField>` (e.g. inline grid editors). */
+  asFormControl?: boolean;
   "aria-label"?: string;
 }) {
   const can = useCan();
@@ -46,6 +49,7 @@ export function AccountPicker({
       value={value}
       onValueChange={onValueChange}
       disabled={disabled || !canRead || accountsQuery.isLoading}
+      asFormControl={asFormControl}
       placeholder={placeholder}
       searchPlaceholder={searchPlaceholder}
       aria-label={ariaLabel}

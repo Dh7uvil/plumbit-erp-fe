@@ -7,6 +7,7 @@ import { salesmenApi } from "@/modules/erp/salesmen/api";
 import type { SalesmanOverviewRow } from "@/modules/erp/salesmen/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { ListPage } from "@/shared/components/layout/list-page";
+import { PageHeader } from "@/shared/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -28,7 +29,8 @@ export function SalesmenScreen() {
   );
 
   return (
-    <ListPage title="Salesmen" subtitle={`Target vs actual — FY ${fiscalYear}`}>
+    <ListPage>
+      <PageHeader title="Salesmen" subtitle={`Target vs actual — FY ${fiscalYear}`} />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Performance by period</CardTitle>

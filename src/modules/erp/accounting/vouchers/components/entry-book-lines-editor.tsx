@@ -54,11 +54,13 @@ export function EntryBookLinesEditor({
   disabled,
   currencyCode,
   showVatDetails = false,
+  applyAccountDefaultTax = false,
 }: {
   form: UseFormReturn<VoucherEntryFormValues>;
   disabled: boolean;
   currencyCode?: string | null;
   showVatDetails?: boolean;
+  applyAccountDefaultTax?: boolean;
 }) {
   const can = useCan();
   const accountsQuery = useAllAccounts({ is_group: false, is_active: true });
@@ -154,6 +156,13 @@ export function EntryBookLinesEditor({
                                 if (!nextParty) {
                                   form.setValue(`lines.${index}.party_id`, OPTIONAL_SELECT_NONE);
                                   form.setValue(`lines.${index}.due_date`, "");
+                                }
+                                if (
+                                  (applyAccountDefaultTax || showVatDetails) &&
+                                  next?.default_tax_id
+                                ) {
+                                  form.setValue(`lines.${index}.tax_id`, next.default_tax_id);
+                                  form.setValue("enable_vat_details", true);
                                 }
                               }}
                               disabled={disabled}
