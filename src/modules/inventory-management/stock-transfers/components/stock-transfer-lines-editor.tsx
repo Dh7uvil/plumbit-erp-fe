@@ -39,6 +39,7 @@ export function emptyTransferLine(): StockTransferLineFormValues {
     product_id: OPTIONAL_SELECT_NONE,
     unit_id: OPTIONAL_SELECT_NONE,
     qty: "",
+    reservation_number: "",
     notes: "",
   };
 }
@@ -95,6 +96,7 @@ export function StockTransferLinesEditor({
               <TableHead>Qty</TableHead>
               {showLive ? <TableHead>Source stock</TableHead> : null}
               {showLive ? <TableHead>Dest. stock</TableHead> : null}
+              <TableHead>Reservation #</TableHead>
               <TableHead>Notes</TableHead>
               <TableHead />
             </TableRow>
@@ -102,7 +104,7 @@ export function StockTransferLinesEditor({
           <TableBody>
             {fields.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showLive ? 7 : 5} className="text-muted-foreground">
+                <TableCell colSpan={showLive ? 8 : 6} className="text-muted-foreground">
                   No lines yet.
                 </TableCell>
               </TableRow>
@@ -213,6 +215,25 @@ export function StockTransferLinesEditor({
                         {formatQuantity(destQty ?? null)}
                       </TableCell>
                     ) : null}
+                    <TableCell className="min-w-28 align-top">
+                      <FormField
+                        control={form.control}
+                        name={`lines.${index}.reservation_number`}
+                        render={({ field: reservationField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                disabled={disabled}
+                                maxLength={80}
+                                aria-label={`Line ${index + 1} reservation`}
+                                {...reservationField}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TableCell>
                     <TableCell className="min-w-32 align-top">
                       <FormField
                         control={form.control}

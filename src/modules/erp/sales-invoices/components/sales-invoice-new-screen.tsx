@@ -7,11 +7,16 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 
-export function SalesInvoiceNewScreen() {
+export function SalesInvoiceNewScreen({ exportPreset = false }: { exportPreset?: boolean }) {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="New sales invoice"
+        title={exportPreset ? "New export invoice" : "New sales invoice"}
+        subtitle={
+          exportPreset
+            ? "Export preset: EXP numbering, export VAT treatment, FCY totals with base (LCY) equivalent."
+            : undefined
+        }
         actions={
           <Button type="button" variant="outline" size="sm" asChild>
             <Link href="/sales-invoices">Back</Link>
@@ -20,10 +25,12 @@ export function SalesInvoiceNewScreen() {
       />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Sales invoice</CardTitle>
+          <CardTitle className="text-base">
+            {exportPreset ? "Export invoice" : "Sales invoice"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <SalesInvoiceForm invoice={null} />
+          <SalesInvoiceForm invoice={null} exportPreset={exportPreset} />
         </CardContent>
       </Card>
     </div>

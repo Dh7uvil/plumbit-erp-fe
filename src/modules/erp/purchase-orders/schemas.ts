@@ -27,6 +27,15 @@ export const PURCHASE_ORDER_STATUS_LABELS: Record<PurchaseOrderStatus, string> =
   CANCELLED: "Cancelled",
 };
 
+export const PURCHASE_ORDER_TYPES = ["LOCAL", "IMPORT"] as const;
+export const PurchaseOrderTypeSchema = z.enum(PURCHASE_ORDER_TYPES);
+export type PurchaseOrderType = z.infer<typeof PurchaseOrderTypeSchema>;
+
+export const PURCHASE_ORDER_TYPE_LABELS: Record<PurchaseOrderType, string> = {
+  LOCAL: "Local",
+  IMPORT: "Import",
+};
+
 export const PURCHASE_ORDER_STATUS_VARIANTS: Record<
   PurchaseOrderStatus,
   "muted" | "warning" | "info" | "success" | "destructive" | "secondary"
@@ -157,6 +166,8 @@ export const PurchaseOrderSchema = z.object({
   order_date: z.string(),
   document_date: z.string(),
   expected_delivery_date: z.string().nullable(),
+  ship_date: z.string().nullable().optional(),
+  order_type: PurchaseOrderTypeSchema.optional().default("LOCAL"),
   branch_id: z.string().uuid().nullable(),
   warehouse_id: z.string().uuid().nullable(),
   supplier_id: z.string().uuid(),
@@ -245,6 +256,8 @@ export const PurchaseOrderCreateRequestSchema = z.object({
   warehouse_id: z.string().uuid().nullable().optional(),
   order_date: z.string().nullable().optional(),
   expected_delivery_date: z.string().nullable().optional(),
+  ship_date: z.string().nullable().optional(),
+  order_type: PurchaseOrderTypeSchema.optional(),
   reference_number: z.string().max(60).nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
   payment_terms_id: z.string().uuid().nullable().optional(),
@@ -267,6 +280,8 @@ export const PurchaseOrderUpdateRequestSchema = z.object({
   warehouse_id: z.string().uuid().nullable().optional(),
   order_date: z.string().nullable().optional(),
   expected_delivery_date: z.string().nullable().optional(),
+  ship_date: z.string().nullable().optional(),
+  order_type: PurchaseOrderTypeSchema.nullable().optional(),
   reference_number: z.string().max(60).nullable().optional(),
   currency_id: z.string().uuid().nullable().optional(),
   payment_terms_id: z.string().uuid().nullable().optional(),
@@ -332,6 +347,8 @@ export const PurchaseOrderFormSchema = z
     warehouse_id: z.string(),
     order_date: z.string(),
     expected_delivery_date: z.string(),
+    ship_date: z.string(),
+    order_type: PurchaseOrderTypeSchema,
     reference_number: z.string().max(60),
     currency_id: z.string(),
     payment_terms_id: z.string(),

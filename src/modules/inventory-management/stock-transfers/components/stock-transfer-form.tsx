@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -52,6 +53,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { formatQuantity } from "@/shared/lib/format";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -71,6 +73,7 @@ function toLineInput(line: StockTransferLineFormValues): StockTransferLineInput 
     product_id: line.product_id,
     unit_id: optionalUuid(line.unit_id),
     qty: line.qty.trim(),
+    reservation_number: emptyToNull(line.reservation_number),
     notes: emptyToNull(line.notes),
   };
 }
@@ -91,6 +94,7 @@ function toFormLines(
     product_id: line.product_id,
     unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
     qty: line.qty,
+    reservation_number: line.reservation_number ?? "",
     notes: line.notes ?? "",
   }));
 }
@@ -106,6 +110,7 @@ function toFormValues(
     branch_id: transfer?.branch_id ?? OPTIONAL_SELECT_NONE,
     reason: transfer?.reason ?? "",
     reference: transfer?.reference ?? "",
+    reference_date: transfer?.reference_date ?? "",
     notes: transfer?.notes ?? "",
     lines: toFormLines(transfer, defaults),
   };
@@ -147,6 +152,17 @@ export function StockTransferForm({
     resolver: zodResolver(StockTransferFormSchema),
     defaultValues: toFormValues(transfer, defaults),
   });
+  const watchedLines = useWatch({ control: form.control, name: "lines" }) ?? [];
+  const totalTransferQty = useMemo(() => {
+    let sum = 0;
+    for (const line of watchedLines) {
+      const parsed = Number.parseFloat(line.qty.trim());
+      if (!Number.isNaN(parsed)) {
+        sum += parsed;
+      }
+    }
+    return String(sum);
+  }, [watchedLines]);
   const fromWarehouseId = useWatch({ control: form.control, name: "from_warehouse_id" });
   const toWarehouseId = useWatch({ control: form.control, name: "to_warehouse_id" });
   const fromStockQuery = useStock(
@@ -193,6 +209,7 @@ export function StockTransferForm({
       branch_id: optionalUuid(values.branch_id),
       reason: emptyToNull(values.reason),
       reference: emptyToNull(values.reference),
+      reference_date: emptyToNull(values.reference_date),
       notes: emptyToNull(values.notes),
       lines,
     };
@@ -236,6 +253,17 @@ export function StockTransferForm({
     <Form {...form}>
       <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
         <StockWriteAlert periodLocked={Boolean(transfer?.period_locked)} error={writeError} />
+        {transfer?.reference_stock_transfer_id ? (
+          <p className="text-muted-foreground text-sm">
+            Reverses{" "}
+            <Link
+              className="text-foreground underline-offset-2 hover:underline"
+              href={`/stock-transfers/${transfer.reference_stock_transfer_id}`}
+            >
+              original transfer
+            </Link>
+          </p>
+        ) : null}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <FormField
             control={form.control}
@@ -324,6 +352,19 @@ export function StockTransferForm({
           />
           <FormField
             control={form.control}
+            name="reference_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reference date</FormLabel>
+                <FormControl>
+                  <Input type="date" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="branch_id"
             render={({ field }) => (
               <FormItem>
@@ -365,6 +406,9 @@ export function StockTransferForm({
           sourceQtyByProductId={sourceQtyByProductId}
           destQtyByProductId={destQtyByProductId}
         />
+        <p className="text-muted-foreground text-xs tabular-nums">
+          Total quantity: {formatQuantity(totalTransferQty)}
+        </p>
         {!disabled ? (
           <div className="flex justify-end">
             <Button type="submit" disabled={pending}>

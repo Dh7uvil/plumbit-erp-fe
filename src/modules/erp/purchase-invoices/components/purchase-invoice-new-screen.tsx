@@ -7,11 +7,16 @@ import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 
-export function PurchaseInvoiceNewScreen() {
+export function PurchaseInvoiceNewScreen({ importPreset = false }: { importPreset?: boolean }) {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="New purchase invoice"
+        title={importPreset ? "New import purchase" : "New purchase invoice"}
+        subtitle={
+          importPreset
+            ? "Import preset: LC numbering, IMPORT bill type, and import document fields."
+            : undefined
+        }
         actions={
           <Button type="button" variant="outline" size="sm" asChild>
             <Link href="/purchase-invoices">Back</Link>
@@ -20,10 +25,12 @@ export function PurchaseInvoiceNewScreen() {
       />
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Purchase invoice</CardTitle>
+          <CardTitle className="text-base">
+            {importPreset ? "Import purchase invoice" : "Purchase invoice"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <PurchaseInvoiceForm invoice={null} />
+          <PurchaseInvoiceForm invoice={null} importPreset={importPreset} />
         </CardContent>
       </Card>
     </div>

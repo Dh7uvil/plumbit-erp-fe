@@ -26,8 +26,10 @@ import { useSalesInvoice } from "@/modules/erp/sales-invoices/queries";
 import {
   INVOICE_DOCUMENT_STATUS_LABELS,
   INVOICE_DOCUMENT_STATUS_VARIANTS,
+  PAYMENT_MODE_LABELS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_VARIANTS,
+  PLACE_OF_SUPPLY_LABELS,
   TAX_TREATMENT_LABELS,
   salesInvoiceDisplayNumber,
   type SalesInvoice,
@@ -192,6 +194,22 @@ function SalesInvoiceDetailLoaded({
               variants={{ PARTIALLY_CREDITED: "warning" }}
             />
           ) : null}
+          {invoice.is_export ? (
+            <DocumentStatusBadge
+              kind="Export"
+              status="EXPORT"
+              labels={{ EXPORT: "Export" }}
+              variants={{ EXPORT: "secondary" }}
+            />
+          ) : null}
+          {invoice.is_printed ? (
+            <DocumentStatusBadge
+              kind="Print"
+              status="PRINTED"
+              labels={{ PRINTED: "Printed" }}
+              variants={{ PRINTED: "muted" }}
+            />
+          ) : null}
         </>
       }
       workflow={
@@ -255,6 +273,39 @@ function SalesInvoiceDetailLoaded({
             paymentTermsId={invoice.payment_terms_id}
             baseAmount={invoice.base_amount}
           />
+          {invoice.payment_mode ||
+          invoice.reference_number ||
+          invoice.supply_date ||
+          invoice.place_of_supply ? (
+            <dl className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              {invoice.payment_mode ? (
+                <div className="flex gap-1">
+                  <dt>Payment mode</dt>
+                  <dd className="text-foreground">{PAYMENT_MODE_LABELS[invoice.payment_mode]}</dd>
+                </div>
+              ) : null}
+              {invoice.reference_number ? (
+                <div className="flex gap-1">
+                  <dt>Reference</dt>
+                  <dd className="text-foreground font-mono">{invoice.reference_number}</dd>
+                </div>
+              ) : null}
+              {invoice.supply_date ? (
+                <div className="flex gap-1">
+                  <dt>Supply date</dt>
+                  <dd className="text-foreground">{formatDate(invoice.supply_date)}</dd>
+                </div>
+              ) : null}
+              {invoice.place_of_supply ? (
+                <div className="flex gap-1">
+                  <dt>Place of supply</dt>
+                  <dd className="text-foreground">
+                    {PLACE_OF_SUPPLY_LABELS[invoice.place_of_supply]}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
           {missingExportEvidence ? (
             <Alert>
               <AlertDescription>

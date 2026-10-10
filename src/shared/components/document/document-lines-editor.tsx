@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type ArrayPath,
   type FieldArray,
@@ -24,7 +24,7 @@ import { useAllSupplierProducts } from "@/modules/erp/supplier-products/queries"
 import type { SupplierProduct } from "@/modules/erp/supplier-products/schemas";
 import { ProductFormDialog } from "@/modules/inventory-management/products/components/product-form-dialog";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
-import { useAllProducts } from "@/modules/inventory-management/products/queries";
+import { useAllProducts, useProductInquiry } from "@/modules/inventory-management/products/queries";
 import type { Product } from "@/modules/inventory-management/products/schemas";
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
@@ -59,7 +59,9 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
+import { InventoryHelpDialog } from "@/shared/components/document/inventory-help-dialog";
 import { MixedDocumentLineRow } from "@/shared/components/document/mixed-document-line-row";
+import { isEditableTarget } from "@/shared/lib/keyboard-shortcuts";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
   formatFixedDecimal,
@@ -70,6 +72,7 @@ import {
   QUANTITY_SCALE,
   subtractDecimals,
 } from "@/shared/lib/format";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 const BASE_LINE_HEADERS = [
@@ -317,6 +320,40 @@ function LineAmountCell<TFieldValues extends FieldValues>({
   );
 }
 
+function ProductInquiryCostHint<TFieldValues extends FieldValues>({
+  form,
+  index,
+  baseCurrencyCode,
+}: {
+  form: UseFormReturn<TFieldValues>;
+  index: number;
+  baseCurrencyCode: string | null;
+}) {
+  const productId = useWatch({
+    control: form.control,
+    name: linePath<TFieldValues>(index, "product_id"),
+  });
+  const id =
+    productId && String(productId) !== OPTIONAL_SELECT_NONE ? String(productId) : null;
+  const inquiryQuery = useProductInquiry(id);
+  const inquiry = inquiryQuery.data;
+  if (!id || !inquiry) {
+    return null;
+  }
+  const currency = inquiry.lc_currency_code ?? baseCurrencyCode ?? undefined;
+  const parts: string[] = [];
+  if (inquiry.lc_price?.trim()) {
+    parts.push(`LP ${formatMoney(inquiry.lc_price, currency)}`);
+  }
+  if (inquiry.avg_cost?.trim()) {
+    parts.push(`Avg ${formatMoney(inquiry.avg_cost, currency)}`);
+  }
+  if (parts.length === 0) {
+    return null;
+  }
+  return <p className="text-muted-foreground mt-1 text-xs">{parts.join(" · ")}</p>;
+}
+
 function CatalogRateHint<TFieldValues extends FieldValues>({
   form,
   index,
@@ -357,6 +394,8 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   showHsCode = false,
   showImportMetrics = false,
   showPricesIncludeTax = false,
+  enableInventoryHelp = false,
+  enablePurchaseCostHints = false,
 }: {
   form: UseFormReturn<TFieldValues>;
   disabled: boolean;
@@ -367,8 +406,13 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   showHsCode?: boolean;
   showImportMetrics?: boolean;
   showPricesIncludeTax?: boolean;
+  /** F7 inventory help sheet (sales documents). */
+  enableInventoryHelp?: boolean;
+  /** LP / average cost strip under rate (purchase documents). */
+  enablePurchaseCostHints?: boolean;
 }) {
   const can = useCan();
+  const { baseCurrencyCode } = useBaseCurrency();
   const productsQuery = useAllProducts();
   const unitsQuery = useAllUnits();
   const taxesQuery = useAllTaxes();
@@ -385,6 +429,43 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
     control: form.control,
     name: "lines" as ArrayPath<TFieldValues>,
   });
+  const activeLineIndex = useRef(0);
+  const [inventoryHelpOpen, setInventoryHelpOpen] = useState(false);
+  const [inventoryHelpProductId, setInventoryHelpProductId] = useState<string | null>(null);
+  const watchedLines = useWatch({ control: form.control, name: "lines" as Path<TFieldValues> });
+
+  const openInventoryHelp = useCallback(
+    (lineIndex: number) => {
+      const lines = watchedLines as Array<{ product_id?: string }> | undefined;
+      const productId = lines?.[lineIndex]?.product_id;
+      if (!productId || productId === OPTIONAL_SELECT_NONE) {
+        setInventoryHelpProductId(null);
+      } else {
+        setInventoryHelpProductId(productId);
+      }
+      setInventoryHelpOpen(true);
+    },
+    [watchedLines],
+  );
+
+  useEffect(() => {
+    if (!enableInventoryHelp || disabled) {
+      return;
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "F7" || event.defaultPrevented) {
+        return;
+      }
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      openInventoryHelp(activeLineIndex.current);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [disabled, enableInventoryHelp, openInventoryHelp]);
+
   const [lineCreate, setLineCreate] = useState<{
     type: "product" | "unit" | "tax";
     index: number;
@@ -533,6 +614,21 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
             </FormItem>
           )}
         />
+      ) : null}
+      {enableInventoryHelp && !disabled ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => openInventoryHelp(activeLineIndex.current)}
+          >
+            Inventory help (F7)
+          </Button>
+          <span className="text-muted-foreground text-xs">
+            Focus a line product, then press F7 for stock and cost inquiry.
+          </span>
+        </div>
       ) : null}
       <DocumentViewTableContainer
         viewMode={disabled}
@@ -743,7 +839,15 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         control={form.control}
                         name={linePath<TFieldValues>(index, "product_id")}
                         render={({ field: productField }) => (
-                          <FormItem>
+                          <FormItem
+                            onFocusCapture={
+                              enableInventoryHelp
+                                ? () => {
+                                    activeLineIndex.current = index;
+                                  }
+                                : undefined
+                            }
+                          >
                             <MasterSelect
                               compact
                               value={String(productField.value ?? OPTIONAL_SELECT_NONE)}
@@ -925,6 +1029,13 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                                 index={index}
                                 catalog={catalog}
                                 documentCurrencyId={documentCurrencyId}
+                              />
+                            ) : null}
+                            {enablePurchaseCostHints && productSide === "purchase" ? (
+                              <ProductInquiryCostHint
+                                form={form}
+                                index={index}
+                                baseCurrencyCode={baseCurrencyCode}
                               />
                             ) : null}
                             <FormMessage />
@@ -1194,6 +1305,13 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
           }
         }}
       />
+      {enableInventoryHelp ? (
+        <InventoryHelpDialog
+          productId={inventoryHelpProductId}
+          open={inventoryHelpOpen}
+          onOpenChange={setInventoryHelpOpen}
+        />
+      ) : null}
     </div>
   );
 }

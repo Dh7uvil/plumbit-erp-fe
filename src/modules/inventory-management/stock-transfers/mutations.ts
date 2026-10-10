@@ -102,6 +102,16 @@ export function useCloneStockTransfer() {
   });
 }
 
+export function useReverseStockTransfer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: stockTransfersApi.reverse,
+    onSuccess: async () => {
+      await invalidateTransfers(queryClient);
+    },
+  });
+}
+
 export function useDeleteStockTransfer() {
   const queryClient = useQueryClient();
   return useMutation({

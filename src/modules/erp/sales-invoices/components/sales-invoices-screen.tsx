@@ -23,10 +23,14 @@ import {
   INVOICE_DOCUMENT_STATUS_LABELS,
   INVOICE_DOCUMENT_STATUS_VARIANTS,
   INVOICE_DOCUMENT_STATUSES,
+  PAYMENT_MODE_LABELS,
+  PAYMENT_MODE_SHORT,
+  PAYMENT_MODES,
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_VARIANTS,
   PAYMENT_STATUSES,
   isSalesInvoiceOverdue,
+  type PaymentMode,
   salesInvoiceDisplayNumber,
   type InvoiceDocumentStatus,
   type PaymentStatus,
@@ -73,6 +77,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -107,6 +112,20 @@ function parsePaymentStatus(value: string | undefined): PaymentStatus | undefine
   return PAYMENT_STATUSES.includes(value as PaymentStatus) ? (value as PaymentStatus) : undefined;
 }
 
+function parsePaymentMode(value: string | undefined): PaymentMode | undefined {
+  return PAYMENT_MODES.includes(value as PaymentMode) ? (value as PaymentMode) : undefined;
+}
+
+function parseBoolFilter(value: string | undefined): boolean | undefined {
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return undefined;
+}
+
 export function SalesInvoicesScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(salesInvoicePermissions);
   const can = useCan();
@@ -118,6 +137,9 @@ export function SalesInvoicesScreen() {
     currencyId: filters.currency_id ?? ALL,
     invoiceDateFrom: filters.invoice_date_from ?? "",
     invoiceDateTo: filters.invoice_date_to ?? "",
+    isPrinted: filters.is_printed ?? ALL,
+    referenceNumber: filters.reference_number ?? "",
+    isExport: filters.is_export ?? ALL,
   };
   const extraCount = [
     extraFilters.paymentStatus !== ALL,
@@ -125,6 +147,9 @@ export function SalesInvoicesScreen() {
     extraFilters.currencyId !== ALL,
     Boolean(extraFilters.invoiceDateFrom),
     Boolean(extraFilters.invoiceDateTo),
+    extraFilters.isPrinted !== ALL,
+    Boolean(extraFilters.referenceNumber.trim()),
+    extraFilters.isExport !== ALL,
   ].filter(Boolean).length;
   const [draftExtra, setDraftExtra] = useState(extraFilters);
   const [fromQuotation, setFromQuotation] = useState(false);
@@ -140,6 +165,10 @@ export function SalesInvoicesScreen() {
     status: parseStatus(filters.status),
     customer_id: filters.customer_id,
     payment_status: parsePaymentStatus(filters.payment_status),
+    payment_mode: parsePaymentMode(filters.payment_mode),
+    is_printed: parseBoolFilter(filters.is_printed),
+    reference_number: filters.reference_number,
+    is_export: parseBoolFilter(filters.is_export),
     branch_id: filters.branch_id,
     currency_id: filters.currency_id,
     invoice_date_from: filters.invoice_date_from,
@@ -265,6 +294,29 @@ export function SalesInvoicesScreen() {
             variants={PAYMENT_STATUS_VARIANTS}
           />
         ),
+      },
+      {
+        id: "payment_mode",
+        header: "C/C",
+        defaultVisible: true,
+        cell: (invoice) => (
+          <span title={PAYMENT_MODE_LABELS[invoice.payment_mode]}>
+            {PAYMENT_MODE_SHORT[invoice.payment_mode]}
+          </span>
+        ),
+      },
+      {
+        id: "reference_number",
+        header: "Ref no.",
+        defaultVisible: false,
+        className: "font-mono text-sm",
+        cell: (invoice) => invoice.reference_number ?? "—",
+      },
+      {
+        id: "is_printed",
+        header: "Printed",
+        defaultVisible: false,
+        cell: (invoice) => (invoice.is_printed ? "Yes" : "—"),
       },
       {
         id: "grand_total",
@@ -442,6 +494,9 @@ export function SalesInvoicesScreen() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href="/sales-invoices/new/export">New export invoice</Link>
+                </Button>
                 <Button type="button" size="sm" asChild>
                   <Link href="/sales-invoices/new">
                     <Plus className="size-3.5" />
@@ -503,6 +558,22 @@ export function SalesInvoicesScreen() {
             ...customers.map((customer) => ({ value: customer.id, label: customer.name })),
           ]}
         />
+        <FilterSelect
+          label="Cash / credit"
+          className="w-36"
+          placeholder="Mode"
+          value={filters.payment_mode ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { payment_mode: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All modes" },
+            ...PAYMENT_MODES.map((mode) => ({
+              value: mode,
+              label: PAYMENT_MODE_LABELS[mode],
+            })),
+          ]}
+        />
         <MoreFiltersDialog
           extraCount={extraCount}
           draftCount={
@@ -512,9 +583,12 @@ export function SalesInvoicesScreen() {
               draftExtra.currencyId !== ALL,
               Boolean(draftExtra.invoiceDateFrom),
               Boolean(draftExtra.invoiceDateTo),
+              draftExtra.isPrinted !== ALL,
+              Boolean(draftExtra.referenceNumber.trim()),
+              draftExtra.isExport !== ALL,
             ].filter(Boolean).length
           }
-          description="Filter by payment status, branch, currency, and invoice date."
+          description="Filter by payment status, branch, currency, export, printed flag, reference, and invoice date."
           onOpen={() => setDraftExtra(extraFilters)}
           onApply={() =>
             setParams({
@@ -524,6 +598,9 @@ export function SalesInvoicesScreen() {
                 currency_id: draftExtra.currencyId === ALL ? null : draftExtra.currencyId,
                 invoice_date_from: draftExtra.invoiceDateFrom || null,
                 invoice_date_to: draftExtra.invoiceDateTo || null,
+                is_printed: draftExtra.isPrinted === ALL ? null : draftExtra.isPrinted,
+                reference_number: draftExtra.referenceNumber.trim() || null,
+                is_export: draftExtra.isExport === ALL ? null : draftExtra.isExport,
               },
             })
           }
@@ -534,6 +611,9 @@ export function SalesInvoicesScreen() {
               currencyId: ALL,
               invoiceDateFrom: "",
               invoiceDateTo: "",
+              isPrinted: ALL,
+              referenceNumber: "",
+              isExport: ALL,
             })
           }
         >
@@ -599,6 +679,49 @@ export function SalesInvoicesScreen() {
               setDraftExtra((current) => ({ ...current, invoiceDateTo: value }))
             }
           />
+          <FilterField label="Export invoice" htmlFor="si-filter-export">
+            <FilterSelect
+              id="si-filter-export"
+              className="w-full"
+              placeholder="Export"
+              value={draftExtra.isExport}
+              onValueChange={(value) =>
+                setDraftExtra((current) => ({ ...current, isExport: value }))
+              }
+              options={[
+                { value: ALL, label: "Any" },
+                { value: "true", label: "Export only" },
+                { value: "false", label: "Non-export" },
+              ]}
+            />
+          </FilterField>
+          <FilterField label="Printed" htmlFor="si-filter-printed">
+            <FilterSelect
+              id="si-filter-printed"
+              className="w-full"
+              placeholder="Printed"
+              value={draftExtra.isPrinted}
+              onValueChange={(value) =>
+                setDraftExtra((current) => ({ ...current, isPrinted: value }))
+              }
+              options={[
+                { value: ALL, label: "Any" },
+                { value: "true", label: "Printed only" },
+                { value: "false", label: "Not printed" },
+              ]}
+            />
+          </FilterField>
+          <FilterField label="Reference no." htmlFor="si-filter-ref">
+            <Input
+              id="si-filter-ref"
+              value={draftExtra.referenceNumber}
+              maxLength={80}
+              placeholder="Exact reference"
+              onChange={(event) =>
+                setDraftExtra((current) => ({ ...current, referenceNumber: event.target.value }))
+              }
+            />
+          </FilterField>
         </MoreFiltersDialog>
         <SortDialog
           fields={[...SORT_FIELDS]}

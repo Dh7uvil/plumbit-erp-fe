@@ -38,6 +38,7 @@ export const purchaseInvoicesApi = {
         purchase_order_id: params.purchase_order_id,
         goods_receipt_id: params.goods_receipt_id,
         bill_type: params.bill_type,
+        payment_mode: params.payment_mode,
         payment_status: params.payment_status,
         invoice_date_from: params.invoice_date_from,
         invoice_date_to: params.invoice_date_to,

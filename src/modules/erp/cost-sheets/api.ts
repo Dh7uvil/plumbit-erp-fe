@@ -87,4 +87,20 @@ export const costSheetsApi = {
         { headers: ifMatchHeaders(options.version) },
       ),
     ),
+  postJournal: async (id: string, options: CostSheetWriteOptions): Promise<CostSheet> =>
+    CostSheetSchema.parse(
+      await apiClient.post(
+        `/cost-sheets/${id}/post`,
+        { version: options.version },
+        { headers: ifMatchHeaders(options.version) },
+      ),
+    ),
+  cancelJournal: async (id: string, options: CostSheetWriteOptions): Promise<CostSheet> =>
+    CostSheetSchema.parse(
+      await apiClient.post(
+        `/cost-sheets/${id}/cancel-journal`,
+        { version: options.version },
+        { headers: ifMatchHeaders(options.version) },
+      ),
+    ),
 };

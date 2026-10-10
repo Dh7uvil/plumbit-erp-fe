@@ -80,6 +80,13 @@ export const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
   BANK: "Bank",
 };
 
+/** Legacy list column: cash vs credit (and bank). */
+export const PAYMENT_MODE_SHORT: Record<PaymentMode, string> = {
+  CASH: "Ca",
+  CREDIT: "Cr",
+  BANK: "Bk",
+};
+
 export const PLACE_OF_SUPPLY_LABELS: Record<PlaceOfSupply, string> = {
   ABU_DHABI: "Abu Dhabi",
   DUBAI: "Dubai",
@@ -270,6 +277,7 @@ export const SalesInvoiceCreateRequestSchema = z.object({
   discount_account_id: z.string().uuid().nullable().optional(),
   freight_account_id: z.string().uuid().nullable().optional(),
   auto_stock_document: z.boolean().optional(),
+  document_series: z.enum(["INV", "EXP"]).nullable().optional(),
   lines: z.array(SalesInvoiceLineInputSchema),
 });
 export type SalesInvoiceCreateRequest = z.infer<typeof SalesInvoiceCreateRequestSchema>;
@@ -406,6 +414,8 @@ export const SalesInvoiceFormSchema = z
     reference_number: z.string(),
     reference_date: z.string(),
     marks: z.string(),
+    discount_account_id: z.string(),
+    freight_account_id: z.string(),
     auto_stock_document: z.boolean(),
     lines: z.array(SalesInvoiceLineFormSchema),
   })
@@ -444,6 +454,10 @@ export type SalesInvoiceListParams = {
   branch_id?: string;
   currency_id?: string;
   payment_status?: PaymentStatus;
+  payment_mode?: PaymentMode;
+  is_printed?: boolean;
+  reference_number?: string;
+  is_export?: boolean;
   invoice_date_from?: string;
   invoice_date_to?: string;
 };

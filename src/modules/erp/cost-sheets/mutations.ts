@@ -83,3 +83,25 @@ export function usePullCostSheetActuals(id: string) {
     },
   });
 }
+
+export function usePostCostSheetJournal(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (options: CostSheetWriteOptions) => costSheetsApi.postJournal(id, options),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: costSheetKeys.all });
+      queryClient.setQueryData(costSheetKeys.detail(id), data);
+    },
+  });
+}
+
+export function useCancelCostSheetJournal(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (options: CostSheetWriteOptions) => costSheetsApi.cancelJournal(id, options),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: costSheetKeys.all });
+      queryClient.setQueryData(costSheetKeys.detail(id), data);
+    },
+  });
+}

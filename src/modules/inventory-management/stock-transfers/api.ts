@@ -74,6 +74,8 @@ export const stockTransfersApi = {
     ),
   clone: async (id: string): Promise<StockTransfer> =>
     StockTransferSchema.parse(await apiClient.post(`/stock-transfers/${id}/clone`)),
+  reverse: async (id: string): Promise<StockTransfer> =>
+    StockTransferSchema.parse(await apiClient.post(`/stock-transfers/${id}/reverse`)),
   delete: async (id: string, options: StockTransferWriteOptions): Promise<StockTransfer> =>
     StockTransferSchema.parse(
       await apiClient.delete(`/stock-transfers/${id}`, {

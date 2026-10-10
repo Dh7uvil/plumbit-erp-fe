@@ -22,6 +22,7 @@ import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/perm
 import { usePurchaseInvoice } from "@/modules/erp/purchase-invoices/queries";
 import {
   BILL_TYPE_LABELS,
+  PAYMENT_MODE_LABELS,
   INVOICE_DOCUMENT_STATUS_LABELS,
   INVOICE_DOCUMENT_STATUS_VARIANTS,
   PAYMENT_STATUS_LABELS,
@@ -42,7 +43,7 @@ import { DocumentStatusBadge } from "@/shared/components/document/document-statu
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
-import { formatDate } from "@/shared/lib/format";
+import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
 export function PurchaseInvoiceDetailScreen({
   invoiceId,
@@ -212,6 +213,12 @@ function PurchaseInvoiceDetailLoaded({
               setGrnOpen(true);
               return;
             }
+            if (action === "create_cost_sheet") {
+              router.push(
+                `/cost-sheets/new?sheet_mode=JOURNAL&sheet_type=IMPORT&purchase_invoice_id=${invoice.id}`,
+              );
+              return;
+            }
             if (action === "write_off") {
               setWriteOffOpen(true);
               return;
@@ -230,7 +237,17 @@ function PurchaseInvoiceDetailLoaded({
             baseAmount={invoice.base_amount}
           />
           <p className="text-muted-foreground text-sm">
-            {BILL_TYPE_LABELS[invoice.bill_type]} bill
+            {BILL_TYPE_LABELS[invoice.bill_type]} bill · {PAYMENT_MODE_LABELS[invoice.payment_mode]}
+            {invoice.auto_stock_document ? " · Update stock on post" : ""}
+            {invoice.reference_number ? ` · Ref ${invoice.reference_number}` : ""}
+            {invoice.bill_type === "IMPORT" && invoice.boe_number
+              ? ` · BOE ${invoice.boe_number}`
+              : ""}
+            {invoice.bill_type === "IMPORT" &&
+            invoice.import_expense_lcy != null &&
+            invoice.import_expense_lcy !== "0"
+              ? ` · Expense (LCY) ${formatReportMoney(invoice.import_expense_lcy)}`
+              : ""}
             {invoice.purchase_order_id ? (
               <>
                 {" · "}

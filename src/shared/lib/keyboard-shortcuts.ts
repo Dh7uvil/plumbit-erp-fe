@@ -16,6 +16,7 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
   { id: "sidebar", keys: "⌘B / Ctrl+B", action: "Collapse or expand sidebar" },
   { id: "new", keys: "N", action: "New record on this page" },
   { id: "edit", keys: "E", action: "Edit the open record" },
+  { id: "inventory-help", keys: "F7", action: "Inventory help on document lines (sales)" },
   { id: "palette-move", keys: "↑ ↓ Enter", action: "Move and open a search result" },
   { id: "board-open", keys: "Enter / O", action: "Open focused task on the board" },
   { id: "board-assign", keys: "I", action: "Assign focused task to me on the board" },

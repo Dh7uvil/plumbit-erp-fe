@@ -124,3 +124,33 @@ export type ProductListParams = {
   tax_id?: string;
   is_active?: boolean;
 };
+
+export const ProductWarehouseQtySchema = z.object({
+  warehouse_id: z.string().uuid(),
+  warehouse_name: z.string(),
+  qty_on_hand: z.string(),
+  qty_reserved: z.string(),
+  qty_available: z.string(),
+});
+export type ProductWarehouseQty = z.infer<typeof ProductWarehouseQtySchema>;
+
+export const ProductInquirySchema = z.object({
+  product_id: z.string().uuid(),
+  packing_label: z.string().nullable(),
+  qty_on_hand: z.string(),
+  qty_reserved: z.string(),
+  qty_available: z.string(),
+  qty_incoming: z.string(),
+  unit2_breakdown: z.string().nullable(),
+  warehouses: z.array(ProductWarehouseQtySchema),
+  avg_cost: z.string().nullable(),
+  lc_price: z.string().nullable(),
+  lc_currency_code: z.string().nullable(),
+  last_sale_date: z.string().nullable(),
+  last_sale_price: z.string().nullable(),
+  last_sale_quantity: z.string().nullable(),
+  last_purchase_date: z.string().nullable(),
+  last_purchase_price: z.string().nullable(),
+  last_purchase_quantity: z.string().nullable(),
+});
+export type ProductInquiry = z.infer<typeof ProductInquirySchema>;

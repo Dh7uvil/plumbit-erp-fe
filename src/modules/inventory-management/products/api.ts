@@ -9,10 +9,12 @@ import {
 } from "@/modules/inventory-management/history/schemas";
 import {
   ProductCreateRequestSchema,
+  ProductInquirySchema,
   ProductListSchema,
   ProductSchema,
   ProductUpdateRequestSchema,
   type Product,
+  type ProductInquiry,
   type ProductCreateRequest,
   type ProductListParams,
   type ProductUpdateRequest,
@@ -43,6 +45,8 @@ export const productsApi = {
     fetchAllPages((page, pageSize) => productsApi.list({ page, page_size: pageSize })),
   get: async (id: string): Promise<Product> =>
     ProductSchema.parse(await apiClient.get(`/products/${id}`)),
+  inquiry: async (id: string): Promise<ProductInquiry> =>
+    ProductInquirySchema.parse(await apiClient.get(`/products/${id}/inquiry`)),
   create: async (values: ProductCreateRequest): Promise<Product> =>
     ProductSchema.parse(
       await apiClient.post("/products", ProductCreateRequestSchema.parse(values)),

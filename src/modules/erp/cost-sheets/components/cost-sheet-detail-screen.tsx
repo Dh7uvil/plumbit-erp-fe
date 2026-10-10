@@ -9,6 +9,7 @@ import { CostSheetForm } from "@/modules/erp/cost-sheets/components/cost-sheet-f
 import { useCostSheetWorkflow } from "@/modules/erp/cost-sheets/hooks/use-cost-sheet-workflow";
 import { useCostSheet } from "@/modules/erp/cost-sheets/queries";
 import {
+  COST_SHEET_MODE_LABELS,
   COST_SHEET_STATUS_LABELS,
   COST_SHEET_TYPE_LABELS,
   type CostSheet,
@@ -100,9 +101,9 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
     <div className="flex flex-col gap-5">
       <PageHeader
         title={sheet.document_number}
-        subtitle={`${COST_SHEET_TYPE_LABELS[sheet.sheet_type]} cost sheet · ${formatDate(
-          sheet.document_date,
-        )}${currencyCode ? ` · ${currencyCode}` : ""}`}
+        subtitle={`${COST_SHEET_MODE_LABELS[sheet.sheet_mode]} · ${
+          COST_SHEET_TYPE_LABELS[sheet.sheet_type]
+        } · ${formatDate(sheet.document_date)}${currencyCode ? ` · ${currencyCode}` : ""}`}
         actions={
           <>
             <Button variant="outline" size="sm" asChild>
@@ -120,6 +121,15 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
       />
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline">{COST_SHEET_STATUS_LABELS[sheet.status]}</Badge>
+        <Badge variant="secondary">{COST_SHEET_MODE_LABELS[sheet.sheet_mode]}</Badge>
+        {sheet.journal_entry_id ? (
+          <Badge variant="outline" asChild>
+            <Link href={`/journals/${sheet.journal_entry_id}`}>Posted journal</Link>
+          </Badge>
+        ) : null}
+        {sheet.goods_receipt_charge_adjustment_id ? (
+          <Badge variant="outline">Landed cost adjustment posted</Badge>
+        ) : null}
       </div>
       <Card>
         <CardHeader>
@@ -161,6 +171,18 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
               </Link>
             </div>
           ) : null}
+          {sheet.purchase_invoice_id ? (
+            <div>
+              Import bill:{" "}
+              <Link
+                className="underline-offset-2 hover:underline"
+                href={`/purchase-invoices/${sheet.purchase_invoice_id}`}
+              >
+                {sheet.purchase_invoice_number ?? sheet.purchase_invoice_id.slice(0, 8)}
+              </Link>
+            </div>
+          ) : null}
+          {sheet.imp_reference ? <div>Import ref: {sheet.imp_reference}</div> : null}
           <div>Allocation: {CHARGE_ALLOCATION_METHOD_LABELS[sheet.allocation_method]}</div>
           {sheet.incoterm ? <div>Incoterm: {sheet.incoterm}</div> : null}
           {sheet.port_of_loading ? <div>Port of loading: {sheet.port_of_loading}</div> : null}
@@ -168,77 +190,120 @@ function CostSheetDetailContent({ sheet }: { sheet: CostSheet }) {
           {sheet.notes ? <div className="md:col-span-3">Notes: {sheet.notes}</div> : null}
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Totals (from server)</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-2 text-sm md:grid-cols-3">
-          <div>Goods value: {formatReportMoney(sheet.totals.goods_value_estimated)}</div>
-          <div>
-            Inventoriable charges (est.):{" "}
-            {formatReportMoney(sheet.totals.inventoriable_charges_estimated)}
-          </div>
-          <div>
-            Weighted landed unit (est.):{" "}
-            {sheet.totals.weighted_landed_unit_cost_estimated
-              ? formatReportMoney(sheet.totals.weighted_landed_unit_cost_estimated)
-              : "—"}
-          </div>
-          {sheet.totals.cif_total ? (
-            <div>CIF total: {formatReportMoney(sheet.totals.cif_total)}</div>
-          ) : null}
-          {sheet.totals.sheet_expected_margin_pct ? (
-            <div>Sheet margin: {sheet.totals.sheet_expected_margin_pct}%</div>
-          ) : null}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Lines</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>Base rate</TableHead>
-                <TableHead>Est. landed unit</TableHead>
-                <TableHead>Actual landed unit</TableHead>
-                <TableHead>Margin %</TableHead>
-                <TableHead>GRN line</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sheet.lines.map((line) => (
-                <TableRow key={line.id}>
-                  <TableCell>
-                    {productById.get(line.product_id) ?? line.product_id.slice(0, 8)}
-                  </TableCell>
-                  <TableCell className="tabular-nums">{formatQuantity(line.quantity)}</TableCell>
-                  <TableCell>{formatReportMoney(line.base_rate)}</TableCell>
-                  <TableCell>{formatReportMoney(line.estimated_landed_unit_cost)}</TableCell>
-                  <TableCell>
-                    {line.actual_landed_unit_cost
-                      ? formatReportMoney(line.actual_landed_unit_cost)
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {line.expected_margin_pct != null && line.expected_margin_pct !== ""
-                      ? formatPercent(line.expected_margin_pct)
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {line.goods_receipt_line_id
-                      ? line.goods_receipt_line_id.slice(0, 8) + "…"
-                      : "—"}
-                  </TableCell>
+      {sheet.sheet_mode === "PLANNING" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Totals (from server)</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm md:grid-cols-3">
+            <div>Goods value: {formatReportMoney(sheet.totals.goods_value_estimated)}</div>
+            <div>
+              Inventoriable charges (est.):{" "}
+              {formatReportMoney(sheet.totals.inventoriable_charges_estimated)}
+            </div>
+            <div>
+              Weighted landed unit (est.):{" "}
+              {sheet.totals.weighted_landed_unit_cost_estimated
+                ? formatReportMoney(sheet.totals.weighted_landed_unit_cost_estimated)
+                : "—"}
+            </div>
+            {sheet.totals.cif_total ? (
+              <div>CIF total: {formatReportMoney(sheet.totals.cif_total)}</div>
+            ) : null}
+            {sheet.totals.sheet_expected_margin_pct ? (
+              <div>Sheet margin: {sheet.totals.sheet_expected_margin_pct}%</div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+      {sheet.sheet_mode === "JOURNAL" && sheet.journal_lines.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Journal lines</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Kind</TableHead>
+                  <TableHead>Account / party</TableHead>
+                  <TableHead className="text-right">Debit</TableHead>
+                  <TableHead className="text-right">Credit</TableHead>
+                  <TableHead>Description</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {sheet.journal_lines.map((line) => (
+                  <TableRow key={line.id}>
+                    <TableCell>{line.line_kind}</TableCell>
+                    <TableCell>
+                      {line.line_kind === "G"
+                        ? (line.account_id?.slice(0, 8) ?? "—")
+                        : (line.party_id?.slice(0, 8) ?? "—")}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatReportMoney(line.debit)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatReportMoney(line.credit)}
+                    </TableCell>
+                    <TableCell>{line.description ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : null}
+      {sheet.sheet_mode === "PLANNING" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Lines</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead>Base rate</TableHead>
+                  <TableHead>Est. landed unit</TableHead>
+                  <TableHead>Actual landed unit</TableHead>
+                  <TableHead>Margin %</TableHead>
+                  <TableHead>GRN line</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sheet.lines.map((line) => (
+                  <TableRow key={line.id}>
+                    <TableCell>
+                      {productById.get(line.product_id) ?? line.product_id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="tabular-nums">{formatQuantity(line.quantity)}</TableCell>
+                    <TableCell>{formatReportMoney(line.base_rate)}</TableCell>
+                    <TableCell>{formatReportMoney(line.estimated_landed_unit_cost)}</TableCell>
+                    <TableCell>
+                      {line.actual_landed_unit_cost
+                        ? formatReportMoney(line.actual_landed_unit_cost)
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {line.expected_margin_pct != null && line.expected_margin_pct !== ""
+                        ? formatPercent(line.expected_margin_pct)
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {line.goods_receipt_line_id
+                        ? line.goods_receipt_line_id.slice(0, 8) + "…"
+                        : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : null}
       {sheet.charges.length > 0 ? (
         <Card>
           <CardHeader>

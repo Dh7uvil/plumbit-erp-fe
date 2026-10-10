@@ -16,6 +16,9 @@ import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissi
 import {
   BILL_TYPE_LABELS,
   BILL_TYPES,
+  PAYMENT_MODE_LABELS,
+  PAYMENT_MODE_SHORT,
+  PAYMENT_MODES,
   INVOICE_DOCUMENT_STATUS_LABELS,
   INVOICE_DOCUMENT_STATUS_VARIANTS,
   INVOICE_DOCUMENT_STATUSES,
@@ -26,6 +29,7 @@ import {
   purchaseInvoiceDisplayNumber,
   type BillType,
   type InvoiceDocumentStatus,
+  type PaymentMode,
   type PaymentStatus,
   type PurchaseInvoice,
 } from "@/modules/erp/purchase-invoices/schemas";
@@ -104,6 +108,10 @@ function parseBillType(value: string | undefined): BillType | undefined {
   return BILL_TYPES.includes(value as BillType) ? (value as BillType) : undefined;
 }
 
+function parsePaymentMode(value: string | undefined): PaymentMode | undefined {
+  return PAYMENT_MODES.includes(value as PaymentMode) ? (value as PaymentMode) : undefined;
+}
+
 export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(
     purchaseInvoicePermissions,
@@ -136,6 +144,7 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
     supplier_id: filters.supplier_id,
     payment_status: parsePaymentStatus(filters.payment_status),
     bill_type: parseBillType(filters.bill_type),
+    payment_mode: parsePaymentMode(filters.payment_mode),
     invoice_date_from: filters.invoice_date_from,
     invoice_date_to: filters.invoice_date_to,
   });
@@ -221,6 +230,16 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
         id: "invoice_type",
         header: "Type",
         cell: (invoice) => BILL_TYPE_LABELS[invoice.bill_type],
+      },
+      {
+        id: "payment_mode",
+        header: "C/C",
+        defaultVisible: false,
+        cell: (invoice) => (
+          <span title={PAYMENT_MODE_LABELS[invoice.payment_mode]}>
+            {PAYMENT_MODE_SHORT[invoice.payment_mode]}
+          </span>
+        ),
       },
       {
         id: "status",
@@ -417,12 +436,22 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button type="button" size="sm" asChild>
-          <Link href="/purchase-invoices/new">
-            <Plus className="size-3.5" />
-            New purchase invoice
-          </Link>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" size="sm">
+              <Plus className="size-3.5" />
+              New bill
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href="/purchase-invoices/new">Purchase invoice</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/purchase-invoices/new/import">Import purchase</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     ) : undefined;
 
@@ -447,6 +476,22 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
             ...INVOICE_DOCUMENT_STATUSES.map((status) => ({
               value: status,
               label: INVOICE_DOCUMENT_STATUS_LABELS[status],
+            })),
+          ]}
+        />
+        <FilterSelect
+          label="Pay mode"
+          className="w-36"
+          placeholder="Pay mode"
+          value={filters.payment_mode ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { payment_mode: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All modes" },
+            ...PAYMENT_MODES.map((mode) => ({
+              value: mode,
+              label: PAYMENT_MODE_LABELS[mode],
             })),
           ]}
         />

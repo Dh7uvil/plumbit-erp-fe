@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import {
+  useCancelCostSheetJournal,
   useCloseCostSheet,
   useConfirmCostSheet,
   useDeleteCostSheet,
+  usePostCostSheetJournal,
   usePullCostSheetActuals,
   useReopenCostSheet,
 } from "@/modules/erp/cost-sheets/mutations";
@@ -16,6 +18,8 @@ import type { DocumentWorkflowExtras } from "@/shared/components/document/docume
 
 export function useCostSheetWorkflow(document: CostSheet) {
   const router = useRouter();
+  const postJournal = usePostCostSheetJournal(document.id);
+  const cancelJournal = useCancelCostSheetJournal(document.id);
   const confirm = useConfirmCostSheet(document.id);
   const close = useCloseCostSheet(document.id);
   const reopen = useReopenCostSheet(document.id);
@@ -25,7 +29,13 @@ export function useCostSheetWorkflow(document: CostSheet) {
 
   return async function onAction(action: CostSheetWorkflowAction, extras: DocumentWorkflowExtras) {
     void extras;
-    if (action === "confirm") {
+    if (action === "post") {
+      await postJournal.mutateAsync(write);
+      toast.success("Cost sheet journal posted");
+    } else if (action === "cancel_journal") {
+      await cancelJournal.mutateAsync(write);
+      toast.success("Cost sheet journal cancelled");
+    } else if (action === "confirm") {
       await confirm.mutateAsync(write);
       toast.success("Cost sheet confirmed");
     } else if (action === "close") {

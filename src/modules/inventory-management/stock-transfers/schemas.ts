@@ -32,6 +32,7 @@ export const StockTransferLineSchema = z.object({
   qty_source_before: NullableDecimalStringSchema,
   qty_dest_before: NullableDecimalStringSchema,
   notes: z.string().nullable(),
+  reservation_number: z.string().nullable().optional(),
 });
 export type StockTransferLine = z.infer<typeof StockTransferLineSchema>;
 
@@ -48,6 +49,8 @@ export const StockTransferSchema = z.object({
   branch_id: z.string().uuid().nullable(),
   reason: z.string().nullable(),
   reference: z.string().nullable(),
+  reference_date: z.string().nullable().optional(),
+  reference_stock_transfer_id: z.string().uuid().nullable().optional(),
   notes: z.string().nullable(),
   posted_at: z.string().nullable(),
   posted_by: z.string().uuid().nullable(),
@@ -70,6 +73,7 @@ export const StockTransferLineInputSchema = z.object({
   product_id: z.string().uuid(),
   unit_id: z.string().uuid().nullable().optional(),
   qty: DecimalStringSchema,
+  reservation_number: z.string().max(80).nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 export type StockTransferLineInput = z.infer<typeof StockTransferLineInputSchema>;
@@ -81,6 +85,7 @@ export const StockTransferCreateRequestSchema = z.object({
   branch_id: z.string().uuid().nullable().optional(),
   reason: z.string().max(200).nullable().optional(),
   reference: z.string().max(100).nullable().optional(),
+  reference_date: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   lines: z.array(StockTransferLineInputSchema).min(1),
 });
@@ -93,6 +98,7 @@ export const StockTransferUpdateRequestSchema = z.object({
   branch_id: z.string().uuid().nullable().optional(),
   reason: z.string().max(200).nullable().optional(),
   reference: z.string().max(100).nullable().optional(),
+  reference_date: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   lines: z.array(StockTransferLineInputSchema).min(1).nullable().optional(),
   version: z.number().int().optional(),
@@ -103,6 +109,7 @@ export const StockTransferLineFormSchema = z.object({
   product_id: z.string(),
   unit_id: z.string(),
   qty: z.string(),
+  reservation_number: z.string(),
   notes: z.string(),
 });
 export type StockTransferLineFormValues = z.infer<typeof StockTransferLineFormSchema>;
@@ -114,7 +121,12 @@ function hasProductId(value: string): boolean {
 }
 
 export function isBlankTransferLine(line: StockTransferLineFormValues): boolean {
-  return !hasProductId(line.product_id) && !line.qty.trim() && !line.notes.trim();
+  return (
+    !hasProductId(line.product_id) &&
+    !line.qty.trim() &&
+    !line.reservation_number.trim() &&
+    !line.notes.trim()
+  );
 }
 
 export const StockTransferFormSchema = z
@@ -129,6 +141,7 @@ export const StockTransferFormSchema = z
     branch_id: z.string(),
     reason: z.string().max(200),
     reference: z.string().max(100),
+    reference_date: z.string(),
     notes: z.string(),
     lines: z.array(StockTransferLineFormSchema),
   })

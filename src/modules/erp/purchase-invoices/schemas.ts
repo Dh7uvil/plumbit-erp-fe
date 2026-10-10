@@ -13,6 +13,10 @@ import {
   PAYMENT_STATUS_VARIANTS,
   PAYMENT_STATUSES,
   PaymentStatusSchema,
+  PAYMENT_MODE_LABELS,
+  PAYMENT_MODE_SHORT,
+  PAYMENT_MODES,
+  PaymentModeSchema,
   PLACE_OF_SUPPLY_LABELS,
   PLACES_OF_SUPPLY,
   PlaceOfSupplySchema,
@@ -21,6 +25,7 @@ import {
   TaxTreatmentSchema,
   type DiscountType,
   type InvoiceDocumentStatus,
+  type PaymentMode,
   type PaymentStatus,
   type PlaceOfSupply,
 } from "@/modules/erp/sales-invoices/schemas";
@@ -41,6 +46,9 @@ export {
   INVOICE_DOCUMENT_STATUS_LABELS,
   INVOICE_DOCUMENT_STATUS_VARIANTS,
   INVOICE_DOCUMENT_STATUSES,
+  PAYMENT_MODE_LABELS,
+  PAYMENT_MODE_SHORT,
+  PAYMENT_MODES,
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_VARIANTS,
   PAYMENT_STATUSES,
@@ -49,7 +57,14 @@ export {
   TAX_TREATMENT_LABELS,
   TAX_TREATMENTS,
 };
-export type { DiscountType, ExpenseCategory, InvoiceDocumentStatus, PaymentStatus, PlaceOfSupply };
+export type {
+  DiscountType,
+  ExpenseCategory,
+  InvoiceDocumentStatus,
+  PaymentMode,
+  PaymentStatus,
+  PlaceOfSupply,
+};
 
 export const BILL_TYPES = ["GOODS", "EXPENSE", "IMPORT"] as const;
 export const BillTypeSchema = z.enum(BILL_TYPES);
@@ -140,6 +155,21 @@ export const PurchaseInvoiceSchema = z.object({
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   notes: z.string().nullable(),
+  payment_mode: PaymentModeSchema.optional().default("CREDIT"),
+  reference_number: z.string().nullable().optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  discount_account_id: z.string().uuid().nullable().optional(),
+  freight_account_id: z.string().uuid().nullable().optional(),
+  credit_account_id: z.string().uuid().nullable().optional(),
+  auto_stock_document: z.boolean().optional().default(false),
+  is_printed: z.boolean().optional().default(false),
+  source_of_supply_country: z.string().nullable().optional(),
+  import_doc_number: z.string().nullable().optional(),
+  import_doc_date: z.string().nullable().optional(),
+  boe_number: z.string().nullable().optional(),
+  cargo_permit_number: z.string().nullable().optional(),
+  import_expense_lcy: MoneySchema.nullable().optional(),
   amount_paid: MoneySchema,
   amount_debited: MoneySchema,
   amount_written_off: MoneySchema.optional().default("0"),
@@ -208,6 +238,20 @@ export const PurchaseInvoiceCreateRequestSchema = z.object({
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   is_reverse_charge: z.boolean().optional(),
   prices_include_tax: z.boolean().nullable().optional(),
+  payment_mode: PaymentModeSchema.optional(),
+  reference_number: z.string().nullable().optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  discount_account_id: z.string().uuid().nullable().optional(),
+  freight_account_id: z.string().uuid().nullable().optional(),
+  credit_account_id: z.string().uuid().nullable().optional(),
+  auto_stock_document: z.boolean().optional(),
+  source_of_supply_country: z.string().nullable().optional(),
+  import_doc_number: z.string().nullable().optional(),
+  import_doc_date: z.string().nullable().optional(),
+  boe_number: z.string().nullable().optional(),
+  cargo_permit_number: z.string().nullable().optional(),
+  document_series: z.enum(["BILL", "LC"]).nullable().optional(),
   lines: z.array(PurchaseInvoiceLineInputSchema),
 });
 export type PurchaseInvoiceCreateRequest = z.infer<typeof PurchaseInvoiceCreateRequestSchema>;
@@ -232,6 +276,19 @@ export const PurchaseInvoiceUpdateRequestSchema = z.object({
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   is_reverse_charge: z.boolean().nullable().optional(),
   prices_include_tax: z.boolean().nullable().optional(),
+  payment_mode: PaymentModeSchema.nullable().optional(),
+  reference_number: z.string().nullable().optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  discount_account_id: z.string().uuid().nullable().optional(),
+  freight_account_id: z.string().uuid().nullable().optional(),
+  credit_account_id: z.string().uuid().nullable().optional(),
+  auto_stock_document: z.boolean().nullable().optional(),
+  source_of_supply_country: z.string().nullable().optional(),
+  import_doc_number: z.string().nullable().optional(),
+  import_doc_date: z.string().nullable().optional(),
+  boe_number: z.string().nullable().optional(),
+  cargo_permit_number: z.string().nullable().optional(),
   lines: z.array(PurchaseInvoiceLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -319,6 +376,19 @@ export const PurchaseInvoiceFormSchema = z
     supplier_trn: z.string(),
     tax_treatment: z.string(),
     prices_include_tax: z.boolean(),
+    payment_mode: PaymentModeSchema,
+    reference_number: z.string(),
+    reference_date: z.string(),
+    marks: z.string(),
+    discount_account_id: z.string(),
+    freight_account_id: z.string(),
+    credit_account_id: z.string(),
+    auto_stock_document: z.boolean(),
+    source_of_supply_country: z.string(),
+    import_doc_number: z.string(),
+    import_doc_date: z.string(),
+    boe_number: z.string(),
+    cargo_permit_number: z.string(),
     lines: z.array(PurchaseInvoiceLineFormSchema),
   })
   .superRefine((values, ctx) => {
@@ -372,6 +442,7 @@ export type PurchaseInvoiceListParams = {
   purchase_order_id?: string;
   goods_receipt_id?: string;
   bill_type?: BillType;
+  payment_mode?: PaymentMode;
   payment_status?: PaymentStatus;
   invoice_date_from?: string;
   invoice_date_to?: string;

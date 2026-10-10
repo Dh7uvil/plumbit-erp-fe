@@ -14,6 +14,7 @@ import { useAllContacts } from "@/modules/crm/contacts/queries";
 import { CustomerFormDialog } from "@/modules/crm/customers/components/customer-form-dialog";
 import { customerPermissions } from "@/modules/crm/customers/permissions";
 import { useAllCustomers, useCustomer } from "@/modules/crm/customers/queries";
+import { AccountPicker } from "@/modules/erp/accounting/accounts/components/account-picker";
 import { PaymentTermFormDialog } from "@/modules/erp/accounting/payment-terms/components/payment-term-form-dialog";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
@@ -37,7 +38,9 @@ import {
   PLACES_OF_SUPPLY,
   SalesInvoiceFormSchema,
   TAX_TREATMENT_LABELS,
+  TAX_TREATMENTS,
   type DiscountType,
+  type TaxTreatment,
   type PlaceOfSupply,
   type SalesInvoice,
   type SalesInvoiceCreateRequest,
@@ -51,6 +54,7 @@ import {
   packingFromLine,
   packingLineInput,
 } from "@/shared/components/document/schemas";
+import { BuyerDetailDialog } from "@/shared/components/document/buyer-detail-dialog";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { PartyBalanceChip } from "@/shared/components/document/party-balance-chip";
@@ -197,6 +201,8 @@ function toFormValues(
     reference_number: invoice?.reference_number ?? "",
     reference_date: invoice?.reference_date ?? "",
     marks: invoice?.marks ?? "",
+    discount_account_id: invoice?.discount_account_id ?? OPTIONAL_SELECT_NONE,
+    freight_account_id: invoice?.freight_account_id ?? OPTIONAL_SELECT_NONE,
     auto_stock_document: invoice?.auto_stock_document ?? false,
     lines: toFormLines(invoice),
   };
@@ -228,7 +234,10 @@ function toCreateRequest(values: SalesInvoiceFormValues): SalesInvoiceCreateRequ
     reference_number: emptyToNull(values.reference_number),
     reference_date: emptyToNull(values.reference_date),
     marks: emptyToNull(values.marks),
+    discount_account_id: optionalUuid(values.discount_account_id),
+    freight_account_id: optionalUuid(values.freight_account_id),
     auto_stock_document: values.auto_stock_document,
+    document_series: exportPreset ? "EXP" : undefined,
     lines: values.lines.filter((line) => !isBlankSalesInvoiceLine(line)).map(toLineInput),
   };
 }
@@ -258,6 +267,8 @@ function toUpdateRequest(values: SalesInvoiceFormValues): SalesInvoiceUpdateRequ
     reference_number: created.reference_number,
     reference_date: created.reference_date,
     marks: created.marks,
+    discount_account_id: created.discount_account_id,
+    freight_account_id: created.freight_account_id,
     auto_stock_document: created.auto_stock_document,
     lines: created.lines,
   };
@@ -267,10 +278,13 @@ export function SalesInvoiceForm({
   invoice,
   disabled = false,
   onSuccess,
+  exportPreset = false,
 }: {
   invoice: SalesInvoice | null;
   disabled?: boolean;
   onSuccess?: () => void;
+  /** Export invoice preset (EXP series, export tax treatment). */
+  exportPreset?: boolean;
 }) {
   const router = useRouter();
   const can = useCan();
@@ -286,6 +300,7 @@ export function SalesInvoiceForm({
   const [creating, setCreating] = useState<
     "customer" | "contact" | "branch" | "currency" | "paymentTerms" | "termsTemplate" | null
   >(null);
+  const [buyerDialogOpen, setBuyerDialogOpen] = useState(false);
   const dirtyCompose = useRef(new Set<ComposeField>());
   const isEdit = Boolean(invoice);
   const { baseCurrencyId, baseCurrencyCode } = useBaseCurrency();
@@ -307,8 +322,28 @@ export function SalesInvoiceForm({
   const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
   const taxTreatment = useWatch({ control: form.control, name: "tax_treatment" });
   const customerTrn = useWatch({ control: form.control, name: "customer_trn" });
+  const paymentTermsId = useWatch({ control: form.control, name: "payment_terms_id" });
 
   const customers = customersQuery.data ?? [];
+  const selectedCustomerName = useMemo(() => {
+    const id = optionalUuid(customerId);
+    if (!id) {
+      return null;
+    }
+    return customers.find((customer) => customer.id === id)?.name ?? null;
+  }, [customerId, customers]);
+  const selectedPaymentTermDays = useMemo(() => {
+    const id = optionalUuid(paymentTermsId);
+    if (!id) {
+      return null;
+    }
+    return paymentTermsQuery.data?.find((term) => term.id === id)?.days ?? null;
+  }, [paymentTermsId, paymentTermsQuery.data]);
+  const taxTreatmentLabel =
+    taxTreatment && TAX_TREATMENTS.includes(taxTreatment as TaxTreatment)
+      ? TAX_TREATMENT_LABELS[taxTreatment as TaxTreatment]
+      : taxTreatment || null;
+
   const contacts = (contactsQuery.data ?? []).filter(
     (contact) => contact.customer_id === selectedCustomerId,
   );
@@ -401,7 +436,19 @@ export function SalesInvoiceForm({
             name="customer_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Customer</FormLabel>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <FormLabel>Customer</FormLabel>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto px-0"
+                    disabled={disabled || !selectedCustomerId}
+                    onClick={() => setBuyerDialogOpen(true)}
+                  >
+                    Buyer details
+                  </Button>
+                </div>
                 <MasterSelect
                   value={field.value}
                   onValueChange={field.onChange}
@@ -546,6 +593,19 @@ export function SalesInvoiceForm({
           />
           <FormField
             control={form.control}
+            name="marks"
+            render={({ field }) => (
+              <FormItem className="col-span-full">
+                <FormLabel>Marks</FormLabel>
+                <FormControl>
+                  <Textarea maxLength={500} disabled={disabled} rows={2} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="auto_stock_document"
             render={({ field }) => (
               <FormItem className="flex flex-row items-center gap-2 space-y-0">
@@ -643,6 +703,9 @@ export function SalesInvoiceForm({
                     })),
                   ]}
                 />
+                {selectedPaymentTermDays != null ? (
+                  <p className="text-muted-foreground text-xs">{selectedPaymentTermDays} days</p>
+                ) : null}
                 <FormMessage />
               </FormItem>
             )}
@@ -740,6 +803,40 @@ export function SalesInvoiceForm({
                 <FormControl>
                   <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="discount_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Discount account</FormLabel>
+                <AccountPicker
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled}
+                  accountType="EXPENSE"
+                  placeholder="None"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="freight_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Freight account</FormLabel>
+                <AccountPicker
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled}
+                  accountType="EXPENSE"
+                  placeholder="None"
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -854,6 +951,7 @@ export function SalesInvoiceForm({
             showPacking
             showHsCode
             showPricesIncludeTax
+            enableInventoryHelp
           />
         </div>
         {currencies.length > 0 ? (
@@ -997,6 +1095,17 @@ export function SalesInvoiceForm({
         nested
         onCreated={(entity) => form.setValue("terms_template_id", entity.id)}
         onOpenChange={(open) => setCreating(open ? "termsTemplate" : null)}
+      />
+      <BuyerDetailDialog
+        open={buyerDialogOpen}
+        onOpenChange={setBuyerDialogOpen}
+        control={form.control}
+        disabled={disabled}
+        customerName={selectedCustomerName}
+        customerTrn={customerTrn || null}
+        taxTreatmentLabel={taxTreatmentLabel}
+        supplyDateName="supply_date"
+        placeOfSupplyName="place_of_supply"
       />
     </Form>
   );

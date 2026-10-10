@@ -11,6 +11,7 @@ export const productKeys = {
   list: (params: ProductListParams) => [...productKeys.all, "list", params] as const,
   allItems: () => [...productKeys.all, "all"] as const,
   detail: (id: string) => [...productKeys.all, "detail", id] as const,
+  inquiry: (id: string) => [...productKeys.all, "inquiry", id] as const,
 };
 
 export function useProducts(params: ProductListParams) {
@@ -33,6 +34,14 @@ export function useProduct(id: string | null) {
   return useQuery({
     queryKey: useTenantQueryKey(productKeys.detail(id ?? "")),
     queryFn: () => productsApi.get(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useProductInquiry(id: string | null) {
+  return useQuery({
+    queryKey: useTenantQueryKey(productKeys.inquiry(id ?? "")),
+    queryFn: () => productsApi.inquiry(id!),
     enabled: Boolean(id),
   });
 }

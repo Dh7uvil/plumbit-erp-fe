@@ -13,6 +13,7 @@ import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { ContactFormDialog } from "@/modules/crm/contacts/components/contact-form-dialog";
 import { contactPermissions } from "@/modules/crm/contacts/permissions";
 import { useAllContacts } from "@/modules/crm/contacts/queries";
+import { AccountPicker } from "@/modules/erp/accounting/accounts/components/account-picker";
 import { PaymentTermFormDialog } from "@/modules/erp/accounting/payment-terms/components/payment-term-form-dialog";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
@@ -29,6 +30,8 @@ import {
   DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
   EXPENSE_CATEGORIES,
+  PAYMENT_MODE_LABELS,
+  PAYMENT_MODES,
   PLACE_OF_SUPPLY_LABELS,
   PLACES_OF_SUPPLY,
   PurchaseInvoiceFormSchema,
@@ -37,6 +40,7 @@ import {
   type BillType,
   type DiscountType,
   type ExpenseCategory,
+  type PaymentMode,
   type PlaceOfSupply,
   type PurchaseInvoice,
   type PurchaseInvoiceCreateRequest,
@@ -101,6 +105,10 @@ function optionalDiscountType(value: string): DiscountType | null {
 
 function optionalPlaceOfSupply(value: string): PlaceOfSupply | null {
   return PLACES_OF_SUPPLY.includes(value as PlaceOfSupply) ? (value as PlaceOfSupply) : null;
+}
+
+function optionalPaymentMode(value: string): PaymentMode {
+  return PAYMENT_MODES.includes(value as PaymentMode) ? (value as PaymentMode) : "CREDIT";
 }
 
 function optionalExpenseCategory(value: string): ExpenseCategory | null {
@@ -172,8 +180,9 @@ function toFormLines(invoice: PurchaseInvoice | null): PurchaseInvoiceLineFormVa
 function toFormValues(
   invoice: PurchaseInvoice | null,
   defaultCurrencyId?: string,
+  importPreset = false,
 ): PurchaseInvoiceFormValues {
-  const billType = invoice?.bill_type ?? "GOODS";
+  const billType = invoice?.bill_type ?? (importPreset ? "IMPORT" : "GOODS");
   return {
     supplier_id: invoice?.supplier_id ?? OPTIONAL_SELECT_NONE,
     bill_type: billType,
@@ -197,11 +206,27 @@ function toFormValues(
     supplier_trn: invoice?.supplier_trn ?? "",
     tax_treatment: invoice?.tax_treatment ?? "",
     prices_include_tax: invoice?.prices_include_tax ?? false,
+    payment_mode: invoice?.payment_mode ?? "CREDIT",
+    reference_number: invoice?.reference_number ?? "",
+    reference_date: invoice?.reference_date ?? "",
+    marks: invoice?.marks ?? "",
+    discount_account_id: invoice?.discount_account_id ?? OPTIONAL_SELECT_NONE,
+    freight_account_id: invoice?.freight_account_id ?? OPTIONAL_SELECT_NONE,
+    credit_account_id: invoice?.credit_account_id ?? OPTIONAL_SELECT_NONE,
+    auto_stock_document: invoice?.auto_stock_document ?? false,
+    source_of_supply_country: invoice?.source_of_supply_country ?? "",
+    import_doc_number: invoice?.import_doc_number ?? "",
+    import_doc_date: invoice?.import_doc_date ?? "",
+    boe_number: invoice?.boe_number ?? "",
+    cargo_permit_number: invoice?.cargo_permit_number ?? "",
     lines: toFormLines(invoice),
   };
 }
 
-function toCreateRequest(values: PurchaseInvoiceFormValues): PurchaseInvoiceCreateRequest {
+function toCreateRequest(
+  values: PurchaseInvoiceFormValues,
+  importPreset = false,
+): PurchaseInvoiceCreateRequest {
   return {
     supplier_id: values.supplier_id,
     bill_type: values.bill_type,
@@ -223,6 +248,20 @@ function toCreateRequest(values: PurchaseInvoiceFormValues): PurchaseInvoiceCrea
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
     is_reverse_charge: values.is_reverse_charge,
     prices_include_tax: values.prices_include_tax,
+    payment_mode: optionalPaymentMode(values.payment_mode),
+    reference_number: emptyToNull(values.reference_number),
+    reference_date: emptyToNull(values.reference_date),
+    marks: emptyToNull(values.marks),
+    discount_account_id: optionalUuid(values.discount_account_id),
+    freight_account_id: optionalUuid(values.freight_account_id),
+    credit_account_id: optionalUuid(values.credit_account_id),
+    auto_stock_document: values.auto_stock_document,
+    source_of_supply_country: emptyToNull(values.source_of_supply_country)?.toUpperCase() ?? null,
+    import_doc_number: emptyToNull(values.import_doc_number),
+    import_doc_date: emptyToNull(values.import_doc_date),
+    boe_number: emptyToNull(values.boe_number),
+    cargo_permit_number: emptyToNull(values.cargo_permit_number),
+    document_series: importPreset ? "LC" : undefined,
     lines: values.lines.filter((line) => !isBlankPurchaseInvoiceLine(line)).map(toLineInput),
   };
 }
@@ -249,6 +288,19 @@ function toUpdateRequest(values: PurchaseInvoiceFormValues): PurchaseInvoiceUpda
     place_of_supply: created.place_of_supply,
     is_reverse_charge: created.is_reverse_charge,
     prices_include_tax: created.prices_include_tax,
+    payment_mode: created.payment_mode,
+    reference_number: created.reference_number,
+    reference_date: created.reference_date,
+    marks: created.marks,
+    discount_account_id: created.discount_account_id,
+    freight_account_id: created.freight_account_id,
+    credit_account_id: created.credit_account_id,
+    auto_stock_document: created.auto_stock_document,
+    source_of_supply_country: created.source_of_supply_country,
+    import_doc_number: created.import_doc_number,
+    import_doc_date: created.import_doc_date,
+    boe_number: created.boe_number,
+    cargo_permit_number: created.cargo_permit_number,
     lines: created.lines,
   };
 }
@@ -257,10 +309,13 @@ export function PurchaseInvoiceForm({
   invoice,
   disabled = false,
   onSuccess,
+  importPreset = false,
 }: {
   invoice: PurchaseInvoice | null;
   disabled?: boolean;
   onSuccess?: () => void;
+  /** Import purchase preset (LC series, IMPORT bill type). */
+  importPreset?: boolean;
 }) {
   const router = useRouter();
   const can = useCan();
@@ -284,8 +339,8 @@ export function PurchaseInvoiceForm({
 
   const form = useForm<PurchaseInvoiceFormValues>({
     resolver: zodResolver(PurchaseInvoiceFormSchema),
-    defaultValues: toFormValues(invoice, baseCurrencyId),
-    values: invoice ? toFormValues(invoice, baseCurrencyId) : undefined,
+    defaultValues: toFormValues(invoice, baseCurrencyId, importPreset),
+    values: invoice ? toFormValues(invoice, baseCurrencyId, importPreset) : undefined,
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
@@ -333,7 +388,7 @@ export function PurchaseInvoiceForm({
         toast.success("Purchase invoice saved");
         onSuccess?.();
       } else {
-        const created = await createInvoice.mutateAsync(toCreateRequest(values));
+        const created = await createInvoice.mutateAsync(toCreateRequest(values, importPreset));
         toast.success("Purchase invoice created");
         router.push(`/purchase-invoices/${created.id}`);
       }
@@ -482,6 +537,204 @@ export function PurchaseInvoiceForm({
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="payment_mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment mode</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PAYMENT_MODES.map((mode) => (
+                      <SelectItem key={mode} value={mode}>
+                        {PAYMENT_MODE_LABELS[mode]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="reference_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reference no.</FormLabel>
+                <FormControl>
+                  <Input maxLength={80} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="reference_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reference date</FormLabel>
+                <FormControl>
+                  <Input type="date" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="marks"
+            render={({ field }) => (
+              <FormItem className="col-span-full">
+                <FormLabel>Marks</FormLabel>
+                <FormControl>
+                  <Textarea maxLength={500} disabled={disabled} rows={2} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="auto_stock_document"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    disabled={disabled}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                </FormControl>
+                <FormLabel>Update stock on post</FormLabel>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="discount_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Discount account</FormLabel>
+                <AccountPicker
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled}
+                  accountType="EXPENSE"
+                  placeholder="None"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="freight_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Freight account</FormLabel>
+                <AccountPicker
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled}
+                  accountType="EXPENSE"
+                  placeholder="None"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="credit_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Supplier / credit account</FormLabel>
+                <AccountPicker
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled}
+                  placeholder="None"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {billType === "IMPORT" ? (
+            <>
+              <FormField
+                control={form.control}
+                name="source_of_supply_country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Source country (ISO)</FormLabel>
+                    <FormControl>
+                      <Input maxLength={2} disabled={disabled} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="import_doc_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Import document no.</FormLabel>
+                    <FormControl>
+                      <Input maxLength={80} disabled={disabled} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="import_doc_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Import document date</FormLabel>
+                    <FormControl>
+                      <Input type="date" disabled={disabled} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="boe_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>BOE number</FormLabel>
+                    <FormControl>
+                      <Input maxLength={80} disabled={disabled} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="cargo_permit_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cargo permit no.</FormLabel>
+                    <FormControl>
+                      <Input maxLength={80} disabled={disabled} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          ) : null}
           <FormField
             control={form.control}
             name="supplier_invoice_number"
@@ -733,6 +986,8 @@ export function PurchaseInvoiceForm({
             productSide="purchase"
             lineMode="mixed"
             showPricesIncludeTax
+            showImportMetrics={billType === "IMPORT"}
+            enablePurchaseCostHints
             supplierCatalog={selectedSupplierId ? { supplierId: selectedSupplierId } : undefined}
           />
         </div>

@@ -1,3 +1,4 @@
+import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
 import { writeOffPermissions } from "@/modules/erp/accounting/write-offs/permissions";
 import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
@@ -13,6 +14,7 @@ export const PURCHASE_INVOICE_WORKFLOW_ACTIONS = [
   "apply_debits",
   "create_debit_note",
   "create_goods_receipt",
+  "create_cost_sheet",
   "write_off",
 ] as const;
 export type PurchaseInvoiceWorkflowAction = (typeof PURCHASE_INVOICE_WORKFLOW_ACTIONS)[number];
@@ -47,6 +49,14 @@ export const PURCHASE_INVOICE_ACTION_REGISTRY: DocumentActionSpec<PurchaseInvoic
       label: "Create goods receipt",
       permission: goodsReceiptPermissions.create,
       variant: "outline",
+    },
+    {
+      action: "create_cost_sheet",
+      label: "Cost sheet (journal)",
+      permission: costSheetPermissions.create,
+      variant: "outline",
+      confirmCopy: (documentNumber) =>
+        `Open a new import cost sheet in journal mode linked to ${documentNumber}.`,
     },
     {
       action: "write_off",

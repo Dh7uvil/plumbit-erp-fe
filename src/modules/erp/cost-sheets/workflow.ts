@@ -2,6 +2,8 @@ import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
 export const COST_SHEET_WORKFLOW_ACTIONS = [
+  "post",
+  "cancel_journal",
   "confirm",
   "close",
   "reopen",
@@ -11,6 +13,21 @@ export const COST_SHEET_WORKFLOW_ACTIONS = [
 export type CostSheetWorkflowAction = (typeof COST_SHEET_WORKFLOW_ACTIONS)[number];
 
 export const COST_SHEET_ACTION_REGISTRY: DocumentActionSpec<CostSheetWorkflowAction>[] = [
+  {
+    action: "post",
+    label: "Post journal",
+    permission: costSheetPermissions.confirm,
+    confirmCopy: (documentNumber) =>
+      `${documentNumber}: balanced journal lines will post to the general ledger and the sheet will be confirmed.`,
+  },
+  {
+    action: "cancel_journal",
+    label: "Cancel journal",
+    permission: costSheetPermissions.update,
+    variant: "destructive",
+    confirmCopy: (documentNumber) =>
+      `${documentNumber}: the posted journal will be reversed and the sheet will return to draft.`,
+  },
   {
     action: "confirm",
     label: "Confirm",

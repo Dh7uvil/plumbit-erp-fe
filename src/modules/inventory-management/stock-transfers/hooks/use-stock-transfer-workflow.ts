@@ -8,6 +8,7 @@ import {
   useCloneStockTransfer,
   useDeleteStockTransfer,
   usePostStockTransfer,
+  useReverseStockTransfer,
 } from "@/modules/inventory-management/stock-transfers/mutations";
 import type { StockTransfer } from "@/modules/inventory-management/stock-transfers/schemas";
 import type { StockTransferWorkflowAction } from "@/modules/inventory-management/stock-transfers/workflow";
@@ -18,6 +19,7 @@ export function useStockTransferWorkflow(transfer: StockTransfer) {
   const postTransfer = usePostStockTransfer();
   const cancelTransfer = useCancelStockTransfer();
   const cloneTransfer = useCloneStockTransfer();
+  const reverseTransfer = useReverseStockTransfer();
   const deleteTransfer = useDeleteStockTransfer();
   const write = { id: transfer.id, version: transfer.version };
 
@@ -31,6 +33,10 @@ export function useStockTransferWorkflow(transfer: StockTransfer) {
     } else if (action === "cancel") {
       await cancelTransfer.mutateAsync({ ...write, reason: extras.reason });
       toast.success("Stock transfer cancelled");
+    } else if (action === "reverse") {
+      const reversed = await reverseTransfer.mutateAsync(transfer.id);
+      toast.success("Reverse transfer draft created");
+      router.push(`/stock-transfers/${reversed.id}`);
     } else if (action === "clone") {
       const cloned = await cloneTransfer.mutateAsync(transfer.id);
       toast.success("Stock transfer cloned");

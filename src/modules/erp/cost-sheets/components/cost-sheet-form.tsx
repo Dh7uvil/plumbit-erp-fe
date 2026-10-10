@@ -10,13 +10,21 @@ import { z } from "zod";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { useActiveChargeTypes } from "@/modules/erp/accounting/charge-types/queries";
 import {
+  CostSheetJournalLinesEditor,
+  emptyJournalLine,
+} from "@/modules/erp/cost-sheets/components/cost-sheet-journal-lines-editor";
+import {
   CostSheetLinesEditor,
   emptyCostSheetLine,
 } from "@/modules/erp/cost-sheets/components/cost-sheet-lines-editor";
 import { useCreateCostSheet, useUpdateCostSheet } from "@/modules/erp/cost-sheets/mutations";
+import { usePurchaseInvoices } from "@/modules/erp/purchase-invoices/queries";
+import { purchaseInvoiceDisplayNumber } from "@/modules/erp/purchase-invoices/schemas";
 import {
+  COST_SHEET_MODES,
   COST_SHEET_TYPES,
   type CostSheet,
+  type CostSheetMode,
   type CostSheetType,
 } from "@/modules/erp/cost-sheets/schemas";
 import { CustomerFormDialog } from "@/modules/crm/customers/components/customer-form-dialog";
@@ -71,9 +79,22 @@ const selectedMaster = (message: string) =>
     .min(1)
     .refine((value) => value !== OPTIONAL_SELECT_NONE, message);
 
+const journalLineSchema = z.object({
+  line_kind: z.enum(["G", "S", "C"]),
+  account_id: z.string().min(1),
+  party_id: z.string().min(1),
+  debit: z.string(),
+  credit: z.string(),
+  description: z.string().optional(),
+  capitalize: z.boolean(),
+});
+
 const formSchema = z
   .object({
+    sheet_mode: z.enum(COST_SHEET_MODES),
     sheet_type: z.enum(COST_SHEET_TYPES),
+    purchase_invoice_id: z.string().min(1),
+    imp_reference: z.string().optional(),
     document_date: z.string().min(1, "Date is required"),
     currency_id: selectedMaster("Select a currency"),
     supplier_id: z.string().min(1),
@@ -86,20 +107,52 @@ const formSchema = z
     port_of_loading: z.string().optional(),
     port_of_discharge: z.string().optional(),
     notes: z.string().optional(),
-    lines: z
-      .array(
-        z.object({
-          product_id: selectedMaster("Select a product"),
-          unit_id: selectedMaster("Select a unit"),
-          quantity: z.string().min(1, "Quantity is required"),
-          base_rate: z.string().min(1, "Base rate is required"),
-          target_selling_price: z.string().optional(),
-          goods_receipt_line_id: z.string().optional(),
-        }),
-      )
-      .min(1, "Add at least one line"),
+    lines: z.array(
+      z.object({
+        product_id: selectedMaster("Select a product"),
+        unit_id: selectedMaster("Select a unit"),
+        quantity: z.string().min(1, "Quantity is required"),
+        base_rate: z.string().min(1, "Base rate is required"),
+        target_selling_price: z.string().optional(),
+        goods_receipt_line_id: z.string().optional(),
+      }),
+    ),
+    journal_lines: z.array(journalLineSchema),
   })
   .superRefine((values, ctx) => {
+    if (values.sheet_mode === "JOURNAL") {
+      if (values.journal_lines.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["journal_lines"],
+          message: "Add at least one journal line",
+        });
+      }
+      values.journal_lines.forEach((line, index) => {
+        if (line.line_kind === "G" && line.account_id === OPTIONAL_SELECT_NONE) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["journal_lines", index, "account_id"],
+            message: "Select an account",
+          });
+        }
+        if (line.line_kind !== "G" && line.party_id === OPTIONAL_SELECT_NONE) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["journal_lines", index, "party_id"],
+            message: "Select a party",
+          });
+        }
+      });
+      return;
+    }
+    if (values.lines.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lines"],
+        message: "Add at least one line",
+      });
+    }
     if (values.sheet_type === "IMPORT" && values.supplier_id === OPTIONAL_SELECT_NONE) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -140,6 +193,10 @@ function parseSheetType(value: string | null): CostSheetType {
   return COST_SHEET_TYPES.includes(value as CostSheetType) ? (value as CostSheetType) : "IMPORT";
 }
 
+function parseSheetMode(value: string | null): CostSheetMode {
+  return COST_SHEET_MODES.includes(value as CostSheetMode) ? (value as CostSheetMode) : "PLANNING";
+}
+
 function optionalUuid(value: string): string | undefined {
   return !value || value === OPTIONAL_SELECT_NONE ? undefined : value;
 }
@@ -166,13 +223,21 @@ export function CostSheetForm({ sheet }: Props) {
 
   const initialSheetType =
     sheet?.sheet_type ?? parseSheetType(searchParams.get("sheet_type")) ?? "IMPORT";
+  const initialSheetMode =
+    sheet?.sheet_mode ?? parseSheetMode(searchParams.get("sheet_mode")) ?? "PLANNING";
   const isEdit = Boolean(sheet);
   const disabled = sheet?.status !== "DRAFT" && sheet !== null;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      sheet_type: initialSheetType,
+      sheet_mode: initialSheetMode,
+      sheet_type: initialSheetMode === "JOURNAL" && !sheet ? "IMPORT" : initialSheetType,
+      purchase_invoice_id:
+        sheet?.purchase_invoice_id ??
+        searchParams.get("purchase_invoice_id") ??
+        OPTIONAL_SELECT_NONE,
+      imp_reference: sheet?.imp_reference ?? "",
       document_date: sheet?.document_date ?? new Date().toISOString().slice(0, 10),
       currency_id: sheet?.currency_id ?? baseCurrencyId ?? OPTIONAL_SELECT_NONE,
       supplier_id: sheet?.supplier_id ?? OPTIONAL_SELECT_NONE,
@@ -200,12 +265,30 @@ export function CostSheetForm({ sheet }: Props) {
             goods_receipt_line_id: line.goods_receipt_line_id ?? OPTIONAL_SELECT_NONE,
           }))
         : [emptyCostSheetLine()],
+      journal_lines: sheet?.journal_lines.length
+        ? sheet.journal_lines.map((line) => ({
+            line_kind: line.line_kind,
+            account_id: line.account_id ?? OPTIONAL_SELECT_NONE,
+            party_id: line.party_id ?? OPTIONAL_SELECT_NONE,
+            debit: line.debit,
+            credit: line.credit,
+            description: line.description ?? "",
+            capitalize: line.capitalize,
+          }))
+        : [emptyJournalLine()],
     },
   });
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   useDirtyFormGuard(form.formState.isDirty && !disabled);
 
+  const sheetMode = form.watch("sheet_mode");
   const sheetType = form.watch("sheet_type");
+  const isJournalMode = sheetMode === "JOURNAL";
+  const importInvoicesQuery = usePurchaseInvoices(
+    { page_size: 100, bill_type: "IMPORT", status: "POSTED" },
+    isJournalMode,
+  );
+  const importInvoices = importInvoicesQuery.data?.data ?? [];
   const supplierId = optionalUuid(form.watch("supplier_id"));
   const customerId = optionalUuid(form.watch("customer_id"));
   const purchaseOrdersQuery = usePurchaseOrders(
@@ -262,6 +345,9 @@ export function CostSheetForm({ sheet }: Props) {
     }
     const payload = {
       sheet_type: values.sheet_type,
+      sheet_mode: values.sheet_mode,
+      purchase_invoice_id: optionalUuid(values.purchase_invoice_id),
+      imp_reference: emptyToUndefined(values.imp_reference),
       document_date: values.document_date,
       currency_id: currencyId,
       supplier_id: optionalUuid(values.supplier_id),
@@ -274,20 +360,38 @@ export function CostSheetForm({ sheet }: Props) {
       port_of_loading: emptyToUndefined(values.port_of_loading),
       port_of_discharge: emptyToUndefined(values.port_of_discharge),
       notes: emptyToUndefined(values.notes),
-      lines: values.lines.map((line) => ({
-        product_id: line.product_id,
-        unit_id: line.unit_id,
-        quantity: line.quantity,
-        base_rate: line.base_rate,
-        target_selling_price: emptyToUndefined(line.target_selling_price),
-        goods_receipt_line_id: optionalUuid(line.goods_receipt_line_id ?? OPTIONAL_SELECT_NONE),
-      })),
-      charges: chargeTypes
-        .map((charge) => ({
-          charge_type_id: charge.id,
-          estimated_amount: chargeEdits[charge.id] ?? baseChargeAmounts[charge.id] ?? "0",
-        }))
-        .filter((row) => row.estimated_amount && row.estimated_amount !== "0"),
+      ...(values.sheet_mode === "JOURNAL"
+        ? {
+            journal_lines: values.journal_lines.map((line) => ({
+              line_kind: line.line_kind,
+              account_id:
+                line.line_kind === "G" ? optionalUuid(line.account_id) : undefined,
+              party_id:
+                line.line_kind !== "G" ? optionalUuid(line.party_id) : undefined,
+              debit: line.debit || "0",
+              credit: line.credit || "0",
+              description: emptyToUndefined(line.description),
+              capitalize: line.capitalize,
+            })),
+            lines: [],
+            charges: [],
+          }
+        : {
+            lines: values.lines.map((line) => ({
+              product_id: line.product_id,
+              unit_id: line.unit_id,
+              quantity: line.quantity,
+              base_rate: line.base_rate,
+              target_selling_price: emptyToUndefined(line.target_selling_price),
+              goods_receipt_line_id: optionalUuid(line.goods_receipt_line_id ?? OPTIONAL_SELECT_NONE),
+            })),
+            charges: chargeTypes
+              .map((charge) => ({
+                charge_type_id: charge.id,
+                estimated_amount: chargeEdits[charge.id] ?? baseChargeAmounts[charge.id] ?? "0",
+              }))
+              .filter((row) => row.estimated_amount && row.estimated_amount !== "0"),
+          }),
     };
     try {
       if (sheet) {
@@ -317,12 +421,42 @@ export function CostSheetForm({ sheet }: Props) {
         <div className="grid gap-4 md:grid-cols-3">
           <FormField
             control={form.control}
+            name="sheet_mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mode</FormLabel>
+                <Select
+                  disabled={disabled || isEdit}
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    if (value === "JOURNAL") {
+                      form.setValue("sheet_type", "IMPORT");
+                    }
+                  }}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="PLANNING">Planning</SelectItem>
+                    <SelectItem value="JOURNAL">Journal voucher</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="sheet_type"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Sheet type</FormLabel>
                 <Select
-                  disabled={disabled || sheet !== null}
+                  disabled={disabled || sheet !== null || isJournalMode}
                   value={field.value}
                   onValueChange={field.onChange}
                 >
@@ -492,6 +626,48 @@ export function CostSheetForm({ sheet }: Props) {
               )}
             />
           ) : null}
+          {isJournalMode ? (
+            <>
+              <FormField
+                control={form.control}
+                name="purchase_invoice_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Import purchase invoice</FormLabel>
+                    <MasterSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={disabled || importInvoicesQuery.isLoading}
+                      placeholder="Optional"
+                      searchPlaceholder="Search import bill…"
+                      options={[
+                        { value: OPTIONAL_SELECT_NONE, label: "None" },
+                        ...importInvoices.map((invoice) => ({
+                          value: invoice.id,
+                          label:
+                            purchaseInvoiceDisplayNumber(invoice) ?? invoice.document_number,
+                        })),
+                      ]}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="imp_reference"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Import reference</FormLabel>
+                    <FormControl>
+                      <Input disabled={disabled} maxLength={80} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          ) : null}
           {showProforma ? (
             <FormField
               control={form.control}
@@ -582,39 +758,45 @@ export function CostSheetForm({ sheet }: Props) {
             )}
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">Lines</p>
-          <CostSheetLinesEditor
-            form={form}
-            disabled={disabled}
-            showTargetSellingPrice={sheetType === "EXPORT" || sheetType === "OTHER"}
-            showGrnLink={showGrnLink}
-            supplierId={supplierId ?? null}
-          />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Charges (estimated)</h3>
-          <div className="grid gap-2 md:grid-cols-2">
-            {chargeTypes.map((charge) => (
-              <FormItem key={charge.id}>
-                <FormLabel>{charge.name}</FormLabel>
-                <FormControl>
-                  <DecimalInput
-                    kind="money"
-                    disabled={disabled}
-                    value={chargeEdits[charge.id] ?? baseChargeAmounts[charge.id] ?? "0"}
-                    onChange={(event) =>
-                      setChargeEdits((current) => ({
-                        ...current,
-                        [charge.id]: event.target.value,
-                      }))
-                    }
-                  />
-                </FormControl>
-              </FormItem>
-            ))}
-          </div>
-        </div>
+        {isJournalMode ? (
+          <CostSheetJournalLinesEditor form={form} disabled={disabled} />
+        ) : (
+          <>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">Lines</p>
+              <CostSheetLinesEditor
+                form={form}
+                disabled={disabled}
+                showTargetSellingPrice={sheetType === "EXPORT" || sheetType === "OTHER"}
+                showGrnLink={showGrnLink}
+                supplierId={supplierId ?? null}
+              />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Charges (estimated)</h3>
+              <div className="grid gap-2 md:grid-cols-2">
+                {chargeTypes.map((charge) => (
+                  <FormItem key={charge.id}>
+                    <FormLabel>{charge.name}</FormLabel>
+                    <FormControl>
+                      <DecimalInput
+                        kind="money"
+                        disabled={disabled}
+                        value={chargeEdits[charge.id] ?? baseChargeAmounts[charge.id] ?? "0"}
+                        onChange={(event) =>
+                          setChargeEdits((current) => ({
+                            ...current,
+                            [charge.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </FormControl>
+                  </FormItem>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
         <FormField
           control={form.control}
           name="notes"

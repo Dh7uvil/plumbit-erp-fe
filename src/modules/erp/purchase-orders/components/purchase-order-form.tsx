@@ -38,10 +38,13 @@ import {
   isBlankPurchaseOrderLine,
   PLACE_OF_SUPPLY_LABELS,
   PLACES_OF_SUPPLY,
+  PURCHASE_ORDER_TYPE_LABELS,
+  PURCHASE_ORDER_TYPES,
   PurchaseOrderFormSchema,
   TAX_TREATMENT_LABELS,
   type DiscountType,
   type PlaceOfSupply,
+  type PurchaseOrderType,
   type PurchaseOrder,
   type PurchaseOrderCreateRequest,
   type PurchaseOrderFormValues,
@@ -173,6 +176,8 @@ function toFormValues(
     warehouse_id: purchaseOrder?.warehouse_id ?? OPTIONAL_SELECT_NONE,
     order_date: purchaseOrder?.order_date ?? todayIsoDate(),
     expected_delivery_date: purchaseOrder?.expected_delivery_date ?? "",
+    ship_date: purchaseOrder?.ship_date ?? "",
+    order_type: purchaseOrder?.order_type ?? "LOCAL",
     reference_number: purchaseOrder?.reference_number ?? "",
     currency_id: purchaseOrder?.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     payment_terms_id: purchaseOrder?.payment_terms_id ?? OPTIONAL_SELECT_NONE,
@@ -218,6 +223,8 @@ function toCreateRequest(values: PurchaseOrderFormValues): PurchaseOrderCreateRe
     warehouse_id: optionalUuid(values.warehouse_id),
     order_date: emptyToNull(values.order_date),
     expected_delivery_date: emptyToNull(values.expected_delivery_date),
+    ship_date: emptyToNull(values.ship_date),
+    order_type: values.order_type,
     reference_number: emptyToNull(values.reference_number),
     currency_id: optionalUuid(values.currency_id),
     payment_terms_id: optionalUuid(values.payment_terms_id),
@@ -242,6 +249,8 @@ function toUpdateRequest(values: PurchaseOrderFormValues): PurchaseOrderUpdateRe
     warehouse_id: created.warehouse_id,
     order_date: created.order_date,
     expected_delivery_date: created.expected_delivery_date,
+    ship_date: created.ship_date,
+    order_type: created.order_type,
     reference_number: created.reference_number,
     currency_id: created.currency_id,
     payment_terms_id: created.payment_terms_id,
@@ -536,6 +545,47 @@ export function PurchaseOrderForm({
                 <FormControl>
                   <Input type="date" disabled={disabled} {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="ship_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ship date</FormLabel>
+                <FormControl>
+                  <Input type="date" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="order_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Order type</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => field.onChange(value as PurchaseOrderType)}
+                  disabled={disabled}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PURCHASE_ORDER_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {PURCHASE_ORDER_TYPE_LABELS[type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
