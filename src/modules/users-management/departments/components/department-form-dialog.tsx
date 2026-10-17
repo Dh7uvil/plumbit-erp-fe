@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -113,6 +113,16 @@ export function DepartmentFormDialog({
     values: toFormValues(department, defaultBranchId),
   });
   useDirtyFormGuard(open && canSubmit && form.formState.isDirty);
+
+  useEffect(() => {
+    if (!open || hasRecord || defaultBranchId) {
+      return;
+    }
+    const branches = branchesQuery.data ?? [];
+    if (branches.length === 1 && !form.getValues("branch_id")) {
+      form.setValue("branch_id", branches[0].id);
+    }
+  }, [branchesQuery.data, defaultBranchId, form, hasRecord, open]);
 
   function handleOpenChange(next: boolean) {
     if (!next) {

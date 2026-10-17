@@ -334,12 +334,14 @@ export type CustomerStatementParams = {
   customer_id: string;
   from: string;
   to: string;
+  include_pdc?: boolean;
 };
 
 export type SupplierStatementParams = {
   supplier_id: string;
   from: string;
   to: string;
+  include_pdc?: boolean;
 };
 
 const SOURCE_HREFS: Record<string, (id: string) => string> = {

@@ -204,7 +204,7 @@ export function SearchableSelect({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-(--radix-dropdown-menu-trigger-width) overflow-hidden p-0"
+        className="min-w-(--radix-dropdown-menu-trigger-width) w-max max-w-[min(36rem,calc(100vw-2rem))] overflow-hidden p-0"
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         {showSearch ? (
@@ -251,7 +251,9 @@ export function SearchableSelect({
                 onSelect={() => onValueChange(option.value)}
                 className="justify-between gap-2"
               >
-                <span className="min-w-0 truncate">{option.label}</span>
+                <span className="min-w-0 whitespace-normal break-words" title={option.label}>
+                  {option.label}
+                </span>
                 {option.value === value ? <CheckIcon className="size-4 shrink-0" /> : null}
               </DropdownMenuItem>
             ))

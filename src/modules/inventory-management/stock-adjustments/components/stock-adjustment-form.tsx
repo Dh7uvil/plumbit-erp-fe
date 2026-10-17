@@ -157,6 +157,7 @@ export function StockAdjustmentForm({
     defaultValues: toFormValues(adjustment, defaults),
   });
   const reason = useWatch({ control: form.control, name: "reason" });
+  const warehouseId = useWatch({ control: form.control, name: "warehouse_id" });
   const isCount = reason === "COUNT";
   const pending = createAdjustment.isPending || updateAdjustment.isPending;
   useDirtyFormGuard(!disabled && form.formState.isDirty);
@@ -339,6 +340,7 @@ export function StockAdjustmentForm({
           disabled={disabled}
           isCount={isCount}
           bookedByProductId={bookedByProductId}
+          warehouseId={warehouseId !== OPTIONAL_SELECT_NONE ? warehouseId : null}
         />
         {!disabled ? (
           <div className="flex justify-end">

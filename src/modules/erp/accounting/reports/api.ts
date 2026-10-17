@@ -199,13 +199,23 @@ export const reportsApi = {
   customerStatement: async (params: CustomerStatementParams): Promise<PartyStatement> =>
     PartyStatementSchema.parse(
       await apiClient.get("/reports/customer-statement", {
-        params: { customer_id: params.customer_id, from: params.from, to: params.to },
+        params: {
+          customer_id: params.customer_id,
+          from: params.from,
+          to: params.to,
+          include_pdc: params.include_pdc,
+        },
       }),
     ),
   supplierStatement: async (params: SupplierStatementParams): Promise<PartyStatement> =>
     PartyStatementSchema.parse(
       await apiClient.get("/reports/supplier-statement", {
-        params: { supplier_id: params.supplier_id, from: params.from, to: params.to },
+        params: {
+          supplier_id: params.supplier_id,
+          from: params.from,
+          to: params.to,
+          include_pdc: params.include_pdc,
+        },
       }),
     ),
   stockValuation: async (params: InventoryAsOfParams = {}): Promise<StockValuation> =>

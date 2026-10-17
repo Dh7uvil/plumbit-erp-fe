@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { ProductInquiryPanel } from "@/modules/inventory-management/products/components/product-inquiry-panel";
 import { useProduct } from "@/modules/inventory-management/products/queries";
 import { stockBalanceColumnDefs } from "@/modules/inventory-management/stock/components/stock-columns";
 import {
@@ -581,11 +582,22 @@ export function StockDetailScreen({ productId }: { productId: string }) {
               </Button>
             ) : null}
             <Button type="button" variant="outline" size="sm" asChild>
+              <Link href={`/products/${product.id}`}>Product master</Link>
+            </Button>
+            <Button type="button" variant="outline" size="sm" asChild>
               <Link href="/stock">Back</Link>
             </Button>
           </div>
         }
       />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Inventory summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ProductInquiryPanel product={product} showStockLink={false} />
+        </CardContent>
+      </Card>
       <WarehouseStockTable
         productId={product.id}
         canReadCost={canReadCost}

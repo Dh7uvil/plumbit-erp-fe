@@ -88,9 +88,11 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useApplyComposeDefaults } from "@/shared/hooks/use-apply-compose-defaults";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
+import { useSalesInvoiceComposeDefaults } from "@/shared/queries/party-compose-queries";
 import { useCan } from "@/shared/providers/session-provider";
 
 type ComposeField =
@@ -99,7 +101,9 @@ type ComposeField =
   | "salesperson_id"
   | "contact_id"
   | "place_of_supply"
-  | "terms_and_conditions";
+  | "terms_and_conditions"
+  | "bill_to_snapshot"
+  | "ship_to_snapshot";
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -324,7 +328,16 @@ export function SalesInvoiceForm({
   const invoiceDate = useWatch({ control: form.control, name: "invoice_date" });
   const currencyId = useWatch({ control: form.control, name: "currency_id" });
   const selectedCustomerId = optionalUuid(customerId);
+  const lineAutofillContext = useMemo(
+    () => ({
+      currencyId: optionalUuid(currencyId),
+      priceListId: null,
+      warehouseId: null,
+    }),
+    [currencyId],
+  );
   const customerQuery = useCustomer(isEdit ? null : selectedCustomerId);
+  const composeQuery = useSalesInvoiceComposeDefaults(isEdit ? null : selectedCustomerId);
   const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
   const taxTreatment = useWatch({ control: form.control, name: "tax_treatment" });
   const customerTrn = useWatch({ control: form.control, name: "customer_trn" });
@@ -379,6 +392,32 @@ export function SalesInvoiceForm({
     form.setValue("customer_trn", customer.trn ?? "");
     form.setValue("tax_treatment", customer.tax_treatment);
   }, [customerQuery.data, form, isEdit]);
+
+  useApplyComposeDefaults({
+    form,
+    defaults: composeQuery.data,
+    isEdit,
+    disabled,
+    dirtyFieldsRef: dirtyCompose,
+    fieldMap: {
+      contact_id: { field: "contact_id", optional: true },
+      place_of_supply: { field: "place_of_supply" },
+      terms_and_conditions: {
+        field: "terms_and_conditions",
+        transform: (value) => value ?? "",
+      },
+      bill_to_snapshot: {
+        field: "bill_to_snapshot",
+        alwaysRefresh: true,
+        transform: (value) => value ?? "",
+      },
+      ship_to_snapshot: {
+        field: "ship_to_snapshot",
+        alwaysRefresh: true,
+        transform: (value) => value ?? "",
+      },
+    },
+  });
 
   useEffect(() => {
     if (isEdit) {
@@ -958,11 +997,17 @@ export function SalesInvoiceForm({
             showHsCode
             showPricesIncludeTax
             enableInventoryHelp
+            lineAutofillContext={lineAutofillContext}
           />
         </div>
         {currencies.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={invoice} />
+            <LiveDocumentTotalsPanel
+              form={form}
+              currencies={currencies}
+              savedTotals={invoice}
+              documentDate={invoiceDate}
+            />
             {invoice ? (
               <BaseEquivalentPreview
                 amount={invoice.grand_total}

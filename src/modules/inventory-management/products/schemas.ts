@@ -19,6 +19,7 @@ export const ProductSchema = z.object({
   name: z.string(),
   sales_description: z.string().nullable(),
   unit_id: z.string().uuid().nullable(),
+  pieces_per_unit: z.string().nullable().optional().default(null),
   category_id: z.string().uuid().nullable(),
   selling_rate: MoneySchema,
   purchase_rate: MoneySchema,
@@ -57,6 +58,7 @@ export const ProductCreateRequestSchema = z.object({
   item_type: ItemTypeSchema.optional(),
   sales_description: z.string().nullable().optional(),
   unit_id: z.string().uuid().nullable().optional(),
+  pieces_per_unit: z.string().nullable().optional(),
   category_id: z.string().uuid().nullable().optional(),
   selling_rate: MoneySchema.optional(),
   purchase_rate: MoneySchema.optional(),
@@ -76,6 +78,7 @@ export const ProductUpdateRequestSchema = z.object({
   name: z.string().min(1).max(200).nullable().optional(),
   sales_description: z.string().nullable().optional(),
   unit_id: z.string().uuid().nullable().optional(),
+  pieces_per_unit: z.string().nullable().optional(),
   category_id: z.string().uuid().nullable().optional(),
   selling_rate: MoneySchema.nullable().optional(),
   purchase_rate: MoneySchema.nullable().optional(),
@@ -97,6 +100,16 @@ export const ProductFormSchema = z.object({
   item_type: ItemTypeSchema,
   sales_description: z.string(),
   unit_id: z.string(),
+  pieces_per_unit: z
+    .string()
+    .refine((value) => {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return true;
+      }
+      const n = Number(trimmed);
+      return Number.isFinite(n) && n > 0;
+    }, "Enter a quantity greater than 0"),
   category_id: z.string(),
   selling_rate: z.string(),
   purchase_rate: z.string(),
@@ -111,6 +124,26 @@ export const ProductFormSchema = z.object({
   is_active: z.boolean(),
 });
 export type ProductFormValues = z.infer<typeof ProductFormSchema>;
+
+/** Read-only label such as "10 ( pieces ) / Box" from pieces per unit and unit name. */
+export function formatPacking(
+  piecesPerUnit: string | null | undefined,
+  unitName: string | null | undefined,
+): string | null {
+  const qtyRaw = piecesPerUnit?.trim();
+  const unit = unitName?.trim();
+  if (!qtyRaw || !unit) {
+    return null;
+  }
+  const n = Number(qtyRaw);
+  if (!Number.isFinite(n) || n <= 0) {
+    return null;
+  }
+  const qty = qtyRaw.includes(".")
+    ? qtyRaw.replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "").replace(/\.$/, "")
+    : qtyRaw;
+  return `${qty} ( pieces ) / ${unit}`;
+}
 
 export type ProductListParams = {
   page?: number;

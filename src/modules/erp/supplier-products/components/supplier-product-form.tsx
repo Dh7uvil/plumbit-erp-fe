@@ -115,6 +115,7 @@ export function SupplierProductForm({
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
+  const productId = useWatch({ control: form.control, name: "product_id" });
   const suppliers = suppliersQuery.data ?? [];
   const products = productsQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
@@ -129,6 +130,32 @@ export function SupplierProductForm({
       form.setValue("currency_id", selectedSupplier.currency_id);
     }
   }, [disabled, form, isEdit, selectedSupplier]);
+
+  useEffect(() => {
+    if (isEdit || disabled || !productId || productId === OPTIONAL_SELECT_NONE) {
+      return;
+    }
+    const product = products.find((item) => item.id === productId);
+    if (!product) {
+      return;
+    }
+    const dirty = form.formState.dirtyFields;
+    if (!dirty.supplier_sku && !form.getValues("supplier_sku").trim()) {
+      form.setValue("supplier_sku", product.sku);
+    }
+    if (!dirty.supplier_item_name && !form.getValues("supplier_item_name").trim()) {
+      form.setValue("supplier_item_name", product.name);
+    }
+    if (!dirty.price && !form.getValues("price").trim()) {
+      form.setValue("price", product.purchase_rate ?? "");
+    }
+    if (!dirty.supplier_description && !form.getValues("supplier_description").trim()) {
+      form.setValue(
+        "supplier_description",
+        product.purchase_description?.trim() || product.sales_description?.trim() || "",
+      );
+    }
+  }, [disabled, form, isEdit, productId, products]);
 
   async function onSubmit(values: SupplierProductFormValues) {
     setFormError(null);

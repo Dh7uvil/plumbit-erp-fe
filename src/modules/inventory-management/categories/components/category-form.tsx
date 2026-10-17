@@ -2,8 +2,8 @@
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
@@ -87,7 +87,23 @@ export function CategoryForm({
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
 
+  const parentId = useWatch({ control: form.control, name: "parent_id" });
   const parentOptions = (categoriesQuery.data ?? []).filter((item) => item.id !== category?.id);
+  const selectedParent = useMemo(
+    () => parentOptions.find((item) => item.id === parentId) ?? null,
+    [parentId, parentOptions],
+  );
+
+  useEffect(() => {
+    if (isEdit || !selectedParent || form.formState.dirtyFields.code) {
+      return;
+    }
+    const currentCode = form.getValues("code").trim();
+    if (currentCode) {
+      return;
+    }
+    form.setValue("code", `${selectedParent.code}-`);
+  }, [form, isEdit, selectedParent]);
 
   async function onSubmit(values: CategoryFormValues) {
     setFormError(null);

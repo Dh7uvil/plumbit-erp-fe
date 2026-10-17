@@ -12,6 +12,7 @@ import { useDeleteProduct } from "@/modules/inventory-management/products/mutati
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useProducts } from "@/modules/inventory-management/products/queries";
 import {
+  formatPacking,
   ITEM_TYPE_LABELS,
   ITEM_TYPES,
   type ItemType,
@@ -19,6 +20,7 @@ import {
 } from "@/modules/inventory-management/products/schemas";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { formatQuantity } from "@/shared/lib/format";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
@@ -174,6 +176,23 @@ export function ProductsScreen() {
         defaultVisible: false,
         cell: (product) =>
           (unitsQuery.data ?? []).find((unit) => unit.id === product.unit_id)?.name ?? "—",
+      },
+      {
+        id: "pieces_per_unit",
+        header: "Pieces / unit",
+        defaultVisible: false,
+        cell: (product) =>
+          product.pieces_per_unit ? formatQuantity(product.pieces_per_unit) : "—",
+      },
+      {
+        id: "packing",
+        header: "Packing",
+        defaultVisible: false,
+        cell: (product) => {
+          const unitName = (unitsQuery.data ?? []).find((unit) => unit.id === product.unit_id)
+            ?.name;
+          return formatPacking(product.pieces_per_unit, unitName) ?? "—";
+        },
       },
       {
         id: "hs_code",

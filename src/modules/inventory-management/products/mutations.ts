@@ -36,6 +36,18 @@ export function useUpdateProduct() {
   });
 }
 
+export function useRenameProductSku() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, sku }: { id: string; sku: string }) => productsApi.renameSku(id, sku),
+    onSuccess: async (data, { id }) => {
+      await invalidateProducts(queryClient);
+      await queryClient.invalidateQueries({ queryKey: productKeys.detail(id) });
+      await queryClient.setQueryData(productKeys.detail(data.id), data);
+    },
+  });
+}
+
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
   return useMutation({

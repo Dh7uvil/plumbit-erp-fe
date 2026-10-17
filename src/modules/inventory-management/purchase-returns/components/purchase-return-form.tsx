@@ -12,10 +12,12 @@ import {
   StockWriteAlert,
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
+import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import {
   useGoodsReceipt,
   useGoodsReceipts,
 } from "@/modules/inventory-management/goods-receipts/queries";
+import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { goodsReceiptDisplayNumber } from "@/modules/inventory-management/goods-receipts/schemas";
 import {
   useCreatePurchaseReturn,
@@ -23,6 +25,8 @@ import {
 } from "@/modules/inventory-management/purchase-returns/mutations";
 import {
   PURCHASE_RETURN_DISPOSITION_HELP,
+  PURCHASE_RETURN_DISPOSITION_LABELS,
+  PURCHASE_RETURN_DISPOSITIONS,
   PURCHASE_RETURN_REASON_LABELS,
   PURCHASE_RETURN_REASONS,
   PurchaseReturnFormSchema,
@@ -139,6 +143,18 @@ export function PurchaseReturnForm({
   const receiptQuery = useGoodsReceipt(selectedReceiptId);
   const receipt = receiptQuery.data;
   const postedReceipts = receiptsQuery.data?.data ?? [];
+  const suppliersQuery = useAllSuppliers();
+  const warehousesQuery = useAllWarehouses();
+  const supplierLabelById = useMemo(
+    () => new Map((suppliersQuery.data ?? []).map((row) => [row.id, row.name])),
+    [suppliersQuery.data],
+  );
+  const warehouseLabelById = useMemo(
+    () => new Map((warehousesQuery.data ?? []).map((row) => [row.id, row.name])),
+    [warehousesQuery.data],
+  );
+  const contextSupplierId = doc?.supplier_id ?? receipt?.supplier_id ?? null;
+  const contextWarehouseId = doc?.warehouse_id ?? receipt?.warehouse_id ?? null;
 
   useEffect(() => {
     form.reset(toFormValues(doc, defaultGoodsReceiptId));
@@ -282,6 +298,34 @@ export function PurchaseReturnForm({
               </FormItem>
             )}
           />
+          <FormItem>
+            <FormLabel>Supplier</FormLabel>
+            <FormControl>
+              <Input
+                readOnly
+                disabled
+                value={
+                  contextSupplierId
+                    ? (supplierLabelById.get(contextSupplierId) ?? contextSupplierId)
+                    : "Select a goods receipt"
+                }
+              />
+            </FormControl>
+          </FormItem>
+          <FormItem>
+            <FormLabel>Warehouse</FormLabel>
+            <FormControl>
+              <Input
+                readOnly
+                disabled
+                value={
+                  contextWarehouseId
+                    ? (warehouseLabelById.get(contextWarehouseId) ?? contextWarehouseId)
+                    : "Select a goods receipt"
+                }
+              />
+            </FormControl>
+          </FormItem>
         </div>
         <FormField
           control={form.control}
@@ -298,14 +342,20 @@ export function PurchaseReturnForm({
         />
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
-          <FormDescription>
-            Quantity defaults to the goods receipt line. The server enforces what is still
-            returnable. Posting consumes the original GRN cost layers.
-          </FormDescription>
           <p className="text-muted-foreground text-xs">
-            <span className="text-foreground font-medium">Return to supplier:</span>{" "}
-            {PURCHASE_RETURN_DISPOSITION_HELP.RETURN_TO_SUPPLIER}
+            Quantity defaults to the goods receipt line. The server enforces what is still
+            returnable. Each line needs a disposition (legacy Winsoft return type).
           </p>
+          <ul className="text-muted-foreground list-disc pl-5 text-xs">
+            {PURCHASE_RETURN_DISPOSITIONS.map((disposition) => (
+              <li key={disposition}>
+                <span className="text-foreground font-medium">
+                  {PURCHASE_RETURN_DISPOSITION_LABELS[disposition]}:
+                </span>{" "}
+                {PURCHASE_RETURN_DISPOSITION_HELP[disposition]}
+              </li>
+            ))}
+          </ul>
           <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
             <table className="w-full caption-bottom text-sm">
               <thead>
@@ -313,6 +363,7 @@ export function PurchaseReturnForm({
                   <th className="px-3 py-2 text-left font-medium">Line</th>
                   <th className="px-3 py-2 text-right font-medium">Received</th>
                   <th className="px-3 py-2 text-right font-medium">Return qty</th>
+                  <th className="px-3 py-2 text-left font-medium">Disposition</th>
                   <th className="px-3 py-2 text-left font-medium">Notes</th>
                 </tr>
               </thead>
@@ -320,7 +371,7 @@ export function PurchaseReturnForm({
                 {fields.length === 0 ||
                 (fields.length === 1 && !fields[0]?.goods_receipt_line_id) ? (
                   <tr>
-                    <td className="text-muted-foreground px-3 py-4" colSpan={4}>
+                    <td className="text-muted-foreground px-3 py-4" colSpan={5}>
                       Select a posted goods receipt to load returnable lines.
                     </td>
                   </tr>
@@ -354,6 +405,49 @@ export function PurchaseReturnForm({
                                     {...qtyField}
                                   />
                                 </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </td>
+                        <td className="min-w-44 px-3 py-2 align-top">
+                          <FormField
+                            control={form.control}
+                            name={`lines.${index}.disposition`}
+                            render={({ field: dispositionField }) => (
+                              <FormItem>
+                                <Select
+                                  value={dispositionField.value || OPTIONAL_SELECT_NONE}
+                                  onValueChange={(value) =>
+                                    dispositionField.onChange(
+                                      value === OPTIONAL_SELECT_NONE ? "" : value,
+                                    )
+                                  }
+                                  disabled={disabled}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger aria-label={`Line ${index + 1} disposition`}>
+                                      <SelectValue placeholder="Select" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value={OPTIONAL_SELECT_NONE}>Select</SelectItem>
+                                    {PURCHASE_RETURN_DISPOSITIONS.map((disposition) => (
+                                      <SelectItem key={disposition} value={disposition}>
+                                        {PURCHASE_RETURN_DISPOSITION_LABELS[disposition]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormDescription className="text-xs">
+                                  {PURCHASE_RETURN_DISPOSITIONS.includes(
+                                    dispositionField.value as PurchaseReturnDisposition,
+                                  )
+                                    ? PURCHASE_RETURN_DISPOSITION_HELP[
+                                        dispositionField.value as PurchaseReturnDisposition
+                                      ]
+                                    : null}
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}

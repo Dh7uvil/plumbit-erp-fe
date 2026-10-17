@@ -15,7 +15,11 @@ import {
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { useSalesInvoice } from "@/modules/erp/sales-invoices/queries";
-import { useSalesOrderDeliverableLines, useSalesOrders } from "@/modules/erp/sales-orders/queries";
+import {
+  useSalesOrder,
+  useSalesOrderDeliverableLines,
+  useSalesOrders,
+} from "@/modules/erp/sales-orders/queries";
 import { salesOrderDisplayNumber } from "@/modules/erp/sales-orders/schemas";
 import {
   useCreateDeliveryNote,
@@ -40,6 +44,7 @@ import { branchPermissions } from "@/modules/users-management/branches/permissio
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { applySourceHeaderToForm } from "@/shared/components/document/apply-source-header-to-form";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
@@ -172,6 +177,8 @@ export function DeliveryNoteForm({
   useDirtyFormGuard(!disabled && form.formState.isDirty);
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const salesOrderId = useWatch({ control: form.control, name: "sales_order_id" });
+  const selectedSalesOrderId = optionalUuid(salesOrderId);
+  const salesOrderQuery = useSalesOrder(note ? null : selectedSalesOrderId);
   const deliverableQuery = useSalesOrderDeliverableLines(
     optionalUuid(salesOrderId),
     !note && Boolean(optionalUuid(salesOrderId)),
@@ -204,6 +211,20 @@ export function DeliveryNoteForm({
           })),
     );
   }, [deliverableQuery.data, form, invoiceOnly, note]);
+
+  useEffect(() => {
+    const order = salesOrderQuery.data;
+    if (note || !order) {
+      return;
+    }
+    applySourceHeaderToForm(form, {
+      currencyId: order.currency_id,
+      warehouseId: order.warehouse_id,
+    });
+    if (order.branch_id) {
+      form.setValue("branch_id", order.branch_id);
+    }
+  }, [form, note, salesOrderQuery.data]);
 
   useEffect(() => {
     if (!invoiceOnly || !note || !invoiceQuery.data) {

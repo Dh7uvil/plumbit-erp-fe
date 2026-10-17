@@ -8,7 +8,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
-import { useDeliveryNotes } from "@/modules/inventory-management/delivery-notes/queries";
+import { useDeliveryNote, useDeliveryNotes } from "@/modules/inventory-management/delivery-notes/queries";
 import { deliveryNoteDisplayNumber } from "@/modules/inventory-management/delivery-notes/schemas";
 import { useSalesOrderPackableLines, useSalesOrders } from "@/modules/erp/sales-orders/queries";
 import { salesOrderDisplayNumber } from "@/modules/erp/sales-orders/schemas";
@@ -131,6 +131,10 @@ export function PackageForm({
   const pending = createPackage.isPending || updatePackage.isPending;
   useDirtyFormGuard(!disabled && form.formState.isDirty);
   const watchedOrderId = useWatch({ control: form.control, name: "sales_order_id" });
+  const watchedDeliveryNoteId = useWatch({ control: form.control, name: "delivery_note_id" });
+  const deliveryNoteQuery = useDeliveryNote(
+    !pkg && optionalUuid(watchedDeliveryNoteId) ? optionalUuid(watchedDeliveryNoteId) : null,
+  );
   const packableQuery = useSalesOrderPackableLines(
     optionalUuid(watchedOrderId),
     !pkg && Boolean(optionalUuid(watchedOrderId)),
@@ -153,7 +157,41 @@ export function PackageForm({
   }, [deliveryNoteId, form, pkg, salesOrderId]);
 
   useEffect(() => {
-    if (pkg || !packableQuery.data) {
+    if (pkg || deliveryNoteId) {
+      return;
+    }
+    const notes = notesQuery.data?.data ?? [];
+    const posted = notes.filter((row) => row.status === "POSTED");
+    if (posted.length === 1 && form.getValues("delivery_note_id") === OPTIONAL_SELECT_NONE) {
+      form.setValue("delivery_note_id", posted[0].id);
+    }
+  }, [deliveryNoteId, form, notesQuery.data, pkg]);
+
+  useEffect(() => {
+    if (pkg || !deliveryNoteQuery.data) {
+      return;
+    }
+    const note = deliveryNoteQuery.data;
+    const outstanding = note.lines.filter((line) => Number(line.quantity) > 0);
+    if (outstanding.length === 0) {
+      return;
+    }
+    form.setValue(
+      "lines",
+      outstanding.map((line) => ({
+        ...emptyPackageLine(),
+        sales_order_line_id: line.sales_order_line_id ?? "",
+        product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
+        description: line.description,
+        quantity: line.quantity,
+        outstanding: line.quantity,
+        unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
+      })),
+    );
+  }, [deliveryNoteQuery.data, form, pkg]);
+
+  useEffect(() => {
+    if (pkg || !packableQuery.data || optionalUuid(watchedDeliveryNoteId)) {
       return;
     }
     const outstanding = packableQuery.data.filter((line) => Number(line.outstanding) > 0);
@@ -171,7 +209,7 @@ export function PackageForm({
             unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
           })),
     );
-  }, [form, packableQuery.data, pkg]);
+  }, [form, packableQuery.data, pkg, watchedDeliveryNoteId]);
 
   async function onSubmit(values: PackageFormValues) {
     const lines = values.lines.filter((line) => !isBlankPackageLine(line)).map(toLineInput);

@@ -4,7 +4,7 @@ import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ import {
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { usePurchaseInvoice } from "@/modules/erp/purchase-invoices/queries";
-import { usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
+import { usePurchaseOrder, usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
@@ -68,9 +68,13 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { applySourceHeaderToForm } from "@/shared/components/document/apply-source-header-to-form";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { formatQuantity, formatReportMoney } from "@/shared/lib/format";
+import { useApplyComposeDefaults } from "@/shared/hooks/use-apply-compose-defaults";
+import { useDocumentLineAutofillContext } from "@/shared/hooks/use-document-line-autofill-context";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useGoodsReceiptComposeDefaults } from "@/shared/queries/party-compose-queries";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
@@ -201,6 +205,25 @@ export function GoodsReceiptForm({
   useDirtyFormGuard(!disabled && form.formState.isDirty);
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
+  const selectedSupplierId = optionalUuid(supplierId);
+  const composeQuery = useGoodsReceiptComposeDefaults(isEdit ? null : selectedSupplierId);
+  const dirtyCompose = useRef(new Set<"currency_id" | "warehouse_id">());
+  useApplyComposeDefaults({
+    form,
+    defaults: composeQuery.data,
+    isEdit,
+    disabled,
+    dirtyFieldsRef: dirtyCompose,
+    fieldMap: {
+      currency_id: { field: "currency_id" },
+      warehouse_id: { field: "warehouse_id", optional: true },
+    },
+  });
+  const lineAutofillContext = useDocumentLineAutofillContext({ control: form.control });
+  const purchaseOrderId = useWatch({ control: form.control, name: "purchase_order_id" });
+  const selectedPurchaseOrderId = optionalUuid(purchaseOrderId);
+  const purchaseOrderQuery = usePurchaseOrder(!isEdit && !receipt ? selectedPurchaseOrderId : null);
+  const poAutofillDirty = useRef(new Set<string>());
   const { fields } = useFieldArray({ control: form.control, name: "lines" });
   const watchedLines = useWatch({ control: form.control, name: "lines" });
   const invoiceQuery = usePurchaseInvoice(
@@ -215,6 +238,46 @@ export function GoodsReceiptForm({
   useEffect(() => {
     form.reset(toFormValues(receipt, baseCurrencyId));
   }, [baseCurrencyId, form, receipt]);
+
+  useEffect(() => {
+    const order = purchaseOrderQuery.data;
+    if (isEdit || receipt || !order) {
+      return;
+    }
+    applySourceHeaderToForm(
+      form,
+      {
+        partyIdField: "supplier_id",
+        partyId: order.supplier_id,
+        currencyId: order.currency_id,
+        warehouseId: order.warehouse_id,
+      },
+      poAutofillDirty.current,
+    );
+    if (order.branch_id && !poAutofillDirty.current.has("branch_id")) {
+      form.setValue("branch_id", order.branch_id);
+    }
+    if (!poAutofillDirty.current.has("supplier_id")) {
+      form.setValue("supplier_id", order.supplier_id);
+    }
+    const openLines = order.lines.filter(
+      (line) => Math.max(Number(line.quantity) - Number(line.qty_received), 0) > 0,
+    );
+    form.setValue(
+      "lines",
+      openLines.length === 0
+        ? [emptyGoodsReceiptLine()]
+        : openLines.map((line) => ({
+            ...emptyGoodsReceiptLine(),
+            purchase_order_line_id: line.id,
+            product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
+            description: line.description,
+            quantity: String(Math.max(Number(line.quantity) - Number(line.qty_received), 0)),
+            unit_id: line.unit_id ?? OPTIONAL_SELECT_NONE,
+            rate: line.rate,
+          })),
+    );
+  }, [form, isEdit, purchaseOrderQuery.data, receipt]);
 
   useEffect(() => {
     if (!invoiceOnly || !receipt || !invoiceQuery.data) {
@@ -426,7 +489,10 @@ export function GoodsReceiptForm({
                 <FormLabel>Purchase order</FormLabel>
                 <MasterSelect
                   value={field.value}
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => {
+                    poAutofillDirty.current.clear();
+                    field.onChange(value);
+                  }}
                   disabled={disabled || isEdit || issuedOrdersQuery.isLoading}
                   placeholder="Direct receive"
                   searchPlaceholder="Search purchase order…"
@@ -651,6 +717,7 @@ export function GoodsReceiptForm({
               productSide="purchase"
               lineMode="receive"
               supplierCatalog={{ supplierId: optionalUuid(supplierId) }}
+              lineAutofillContext={lineAutofillContext}
             />
           )}
         </div>

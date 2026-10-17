@@ -11,6 +11,7 @@ import {
   searchableNavigation,
   visibleNavigation,
   type NavigationGroup,
+  type NavigationItem,
 } from "@/config/navigation";
 import {
   filterCommandItems,
@@ -34,6 +35,23 @@ function filterNavigationGroups(query: string, groups: NavigationGroup[]): Navig
     label: section.group,
     items: section.items.map((row) => row.item),
   }));
+}
+
+type SidebarNavRow =
+  | { kind: "subsection"; label: string }
+  | { kind: "item"; item: NavigationItem };
+
+function sidebarNavRows(items: NavigationItem[]): SidebarNavRow[] {
+  const rows: SidebarNavRow[] = [];
+  let lastSubsection: string | undefined;
+  for (const item of items) {
+    if (item.subsection && item.subsection !== lastSubsection) {
+      rows.push({ kind: "subsection", label: item.subsection });
+      lastSubsection = item.subsection;
+    }
+    rows.push({ kind: "item", item });
+  }
+  return rows;
 }
 
 function SidebarSearch({
@@ -242,8 +260,17 @@ function SidebarNav({
               <div className="border-sidebar-border mx-2 my-1 border-t" />
             )}
             {isOpen
-              ? group.items.map((item) =>
-                  renderNavLink(item, active?.item.href === item.href),
+              ? sidebarNavRows(group.items).map((row) =>
+                  row.kind === "subsection" ? (
+                    <p
+                      key={`${group.label}-${row.label}`}
+                      className="text-muted-foreground/70 mt-2 mb-0.5 px-3 text-[10px] font-semibold tracking-wide uppercase first:mt-0"
+                    >
+                      {row.label}
+                    </p>
+                  ) : (
+                    renderNavLink(row.item, active?.item.href === row.item.href)
+                  ),
                 )
               : null}
           </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
 import { PrintDocumentView } from "@/shared/components/document/print-document-view";
 import { DataTableError } from "@/shared/components/data-table/states";
@@ -13,12 +12,10 @@ import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 import { useQuery } from "@tanstack/react-query";
 
 export function PrintDocumentScreen({ resource, id }: { resource: string; id: string }) {
-  const searchParams = useSearchParams();
-  const family = searchParams.get("family") || "uae";
   const printable = isPrintableResource(resource);
   const printQuery = useQuery({
-    queryKey: useTenantQueryKey(["print", resource, id, family]),
-    queryFn: () => printApi.get(resource as PrintableResource, id, family),
+    queryKey: useTenantQueryKey(["print", resource, id]),
+    queryFn: () => printApi.get(resource as PrintableResource, id),
     enabled: printable,
   });
 
@@ -51,11 +48,6 @@ export function PrintDocumentScreen({ resource, id }: { resource: string; id: st
   return (
     <div className="bg-muted min-h-screen print:bg-white">
       <div className="flex justify-end gap-2 p-4 print:hidden">
-        <Button type="button" variant="outline" asChild>
-          <Link href={printHrefWithFamily(resource, id, family === "china" ? "uae" : "china")}>
-            Print as {family === "china" ? "UAE" : "China"}
-          </Link>
-        </Button>
         <Button type="button" onClick={() => window.print()}>
           Print
         </Button>
@@ -66,8 +58,4 @@ export function PrintDocumentScreen({ resource, id }: { resource: string; id: st
       <PrintDocumentView document={printQuery.data} />
     </div>
   );
-}
-
-function printHrefWithFamily(resource: string, id: string, family: string): string {
-  return `/print/${resource}/${id}?family=${encodeURIComponent(family)}`;
 }

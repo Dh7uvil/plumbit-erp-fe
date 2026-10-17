@@ -3,7 +3,7 @@
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -55,8 +55,11 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { applySourceHeaderToForm } from "@/shared/components/document/apply-source-header-to-form";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useApplyComposeDefaults } from "@/shared/hooks/use-apply-compose-defaults";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useDebitNoteComposeDefaults } from "@/shared/queries/party-compose-queries";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 
@@ -205,6 +208,20 @@ export function DebitNoteForm({
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const purchaseInvoiceId = useWatch({ control: form.control, name: "purchase_invoice_id" });
+  const supplierId = useWatch({ control: form.control, name: "supplier_id" });
+  const currencyId = useWatch({ control: form.control, name: "currency_id" });
+  const debitNoteDate = useWatch({ control: form.control, name: "debit_note_date" });
+  const selectedSupplierId = optionalUuid(supplierId);
+  const lineAutofillContext = useMemo(
+    () => ({
+      currencyId: optionalUuid(currencyId),
+      priceListId: null,
+      warehouseId: null,
+    }),
+    [currencyId],
+  );
+  const composeQuery = useDebitNoteComposeDefaults(isEdit ? null : selectedSupplierId);
+  const dirtyCompose = useRef(new Set<"currency_id" | "place_of_supply">());
   const selectedBillId = optionalUuid(purchaseInvoiceId);
   const billQuery = usePurchaseInvoice(!note ? selectedBillId : null);
   const suppliers = suppliersQuery.data ?? [];
@@ -216,8 +233,14 @@ export function DebitNoteForm({
     if (!bill || note) {
       return;
     }
-    form.setValue("supplier_id", bill.supplier_id);
-    form.setValue("currency_id", bill.currency_id);
+    applySourceHeaderToForm(form, {
+      partyIdField: "supplier_id",
+      partyId: bill.supplier_id,
+      currencyId: bill.currency_id,
+      placeOfSupply: bill.place_of_supply,
+      taxTreatment: bill.tax_treatment,
+      partyTrn: bill.supplier_trn,
+    });
     form.setValue(
       "lines",
       bill.lines.length === 0
@@ -236,6 +259,18 @@ export function DebitNoteForm({
           })),
     );
   }, [billQuery.data, form, note]);
+
+  useApplyComposeDefaults({
+    form,
+    defaults: composeQuery.data,
+    isEdit,
+    disabled,
+    dirtyFieldsRef: dirtyCompose,
+    fieldMap: {
+      currency_id: { field: "currency_id" },
+      place_of_supply: { field: "place_of_supply" },
+    },
+  });
 
   async function onSubmit(values: DebitNoteFormValues) {
     setFormError(null);
@@ -411,10 +446,16 @@ export function DebitNoteForm({
             disabled={disabled || sourced}
             productSide="purchase"
             showPricesIncludeTax
+            lineAutofillContext={lineAutofillContext}
           />
         </div>
         {currencies.length > 0 ? (
-          <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={note} />
+          <LiveDocumentTotalsPanel
+            form={form}
+            currencies={currencies}
+            savedTotals={note}
+            documentDate={debitNoteDate}
+          />
         ) : null}
         <FormField
           control={form.control}

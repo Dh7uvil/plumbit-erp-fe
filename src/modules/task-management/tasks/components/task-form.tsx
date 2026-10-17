@@ -2,8 +2,8 @@
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { TaskParentSelect } from "@/modules/task-management/tasks/components/task-parent-select";
@@ -29,6 +29,7 @@ import {
   type TaskStatus,
 } from "@/modules/task-management/tasks/schemas";
 import { useAllTaskLabels } from "@/modules/task-management/task-labels/queries";
+import { useTask } from "@/modules/task-management/tasks/queries";
 import { useAllUsers } from "@/modules/users-management/users/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { SearchableSelect } from "@/shared/components/form/searchable-select";
@@ -105,8 +106,35 @@ export function TaskForm({
       : { defaultValues: toFormValues(null, initialValues) }),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
+  const isEdit = Boolean(task);
+  const parentId = useWatch({ control: form.control, name: "parent_id" });
+  const parentTaskId = parentId && parentId !== NONE ? parentId : null;
+  const parentTaskQuery = useTask(!isEdit ? parentTaskId : null);
   const relatedEntityType = form.watch("related_entity_type");
   const taskType = form.watch("task_type");
+
+  useEffect(() => {
+    const parentTask = parentTaskQuery.data;
+    if (isEdit || !parentTask) {
+      return;
+    }
+    const dirty = form.formState.dirtyFields;
+    if (!dirty.task_type) {
+      form.setValue("task_type", parentTask.task_type);
+    }
+    if (!dirty.priority) {
+      form.setValue("priority", parentTask.priority);
+    }
+    if (
+      !dirty.related_entity_type &&
+      !dirty.related_entity_id &&
+      parentTask.related_entity_type &&
+      parentTask.related_entity_id
+    ) {
+      form.setValue("related_entity_type", parentTask.related_entity_type);
+      form.setValue("related_entity_id", parentTask.related_entity_id);
+    }
+  }, [form, isEdit, parentTaskQuery.data, parentId]);
 
   const userOptions = (usersQuery.data ?? []).map((user) => ({
     value: user.id,

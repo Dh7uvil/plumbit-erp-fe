@@ -58,6 +58,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
+import {
+  mergeProductLineDefaults,
+  productLineAutofillValues,
+} from "@/shared/components/document/line-autofill";
+import { partyComposeApi } from "@/shared/api/party-compose-api";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { InventoryHelpDialog } from "@/shared/components/document/inventory-help-dialog";
 import { MixedDocumentLineRow } from "@/shared/components/document/mixed-document-line-row";
@@ -396,6 +401,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   showPricesIncludeTax = false,
   enableInventoryHelp = false,
   enablePurchaseCostHints = false,
+  lineAutofillContext,
 }: {
   form: UseFormReturn<TFieldValues>;
   disabled: boolean;
@@ -410,9 +416,15 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   enableInventoryHelp?: boolean;
   /** LP / average cost strip under rate (purchase documents). */
   enablePurchaseCostHints?: boolean;
+  /** When set, product selection may fetch server line defaults (price list / stock). */
+  lineAutofillContext?: {
+    priceListId?: string | null;
+    currencyId?: string | null;
+    warehouseId?: string | null;
+  };
 }) {
   const can = useCan();
-  const { baseCurrencyCode } = useBaseCurrency();
+  const { baseCurrencyCode, baseCurrencyId } = useBaseCurrency();
   const productsQuery = useAllProducts();
   const unitsQuery = useAllUnits();
   const taxesQuery = useAllTaxes();
@@ -515,15 +527,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
       | "tax_id"
     >,
   ) {
-    const description =
-      productSide === "purchase"
-        ? product.purchase_description?.trim() || product.name
-        : product.sales_description?.trim() || product.name;
-    const rate = productSide === "purchase" ? product.purchase_rate : product.selling_rate;
-    setLineValue(index, "description", description);
-    setLineValue(index, "rate", rate ?? "");
-    setLineValue(index, "unit_id", product.unit_id ?? OPTIONAL_SELECT_NONE);
-    setLineValue(index, "tax_id", product.tax_id ?? OPTIONAL_SELECT_NONE);
+    const values = productLineAutofillValues(product, productSide === "purchase" ? "purchase" : "sales");
+    setLineValue(index, "description", values.description);
+    setLineValue(index, "rate", values.rate);
+    setLineValue(index, "unit_id", values.unit_id);
+    setLineValue(index, "tax_id", values.tax_id);
   }
 
   function applyCatalogRow(index: number, row: SupplierProduct) {
@@ -546,6 +554,31 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
       return;
     }
     applyProductValues(index, product);
+    const needsServerDefaults =
+      Boolean(lineAutofillContext?.priceListId) ||
+      Boolean(lineAutofillContext?.warehouseId) ||
+      (Boolean(lineAutofillContext?.currencyId) &&
+        lineAutofillContext?.currencyId !== baseCurrencyId);
+    if (needsServerDefaults) {
+      void partyComposeApi
+        .productLineDefaults(productId, {
+          price_list_id: lineAutofillContext?.priceListId ?? undefined,
+          currency_id: lineAutofillContext?.currencyId ?? undefined,
+          warehouse_id: lineAutofillContext?.warehouseId ?? undefined,
+          purchase_side: productSide === "purchase",
+        })
+        .then((defaults) => {
+          const base = productLineAutofillValues(
+            product,
+            productSide === "purchase" ? "purchase" : "sales",
+          );
+          const merged = mergeProductLineDefaults(base, defaults);
+          setLineValue(index, "rate", merged.rate);
+          setLineValue(index, "unit_id", merged.unit_id);
+          setLineValue(index, "tax_id", merged.tax_id);
+        })
+        .catch(() => undefined);
+    }
     if (!supplierCatalog) {
       return;
     }

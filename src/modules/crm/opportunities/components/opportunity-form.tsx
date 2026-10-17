@@ -137,6 +137,25 @@ export function OpportunityForm({
     }
   }, [form, isEdit, pipelinesQuery.data]);
 
+  useEffect(() => {
+    if (isEdit || !pipelineQuery.data) {
+      return;
+    }
+    const currentStageId = form.getValues("stage_id");
+    const stages = pipelineQuery.data.stages ?? [];
+    const stillValid =
+      currentStageId &&
+      currentStageId !== OPTIONAL_SELECT_NONE &&
+      stages.some((stage) => stage.id === currentStageId);
+    if (stillValid) {
+      return;
+    }
+    const firstOpen = openStages[0];
+    if (firstOpen) {
+      form.setValue("stage_id", firstOpen.id);
+    }
+  }, [form, isEdit, openStages, pipelineQuery.data]);
+
   async function onSubmit(values: OpportunityFormValues) {
     try {
       if (isEdit && opportunity) {

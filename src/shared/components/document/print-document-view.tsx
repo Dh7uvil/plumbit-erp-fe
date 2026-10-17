@@ -5,10 +5,6 @@ import { useEffect } from "react";
 import type { PrintDocument } from "@/shared/lib/print";
 import { formatDate, formatMoney, formatQuantity, humanizeEnum } from "@/shared/lib/format";
 
-function showChina(doc: PrintDocument): boolean {
-  return doc.template_family.toLowerCase() === "china";
-}
-
 function isAccountingDocument(doc: PrintDocument): boolean {
   const kind = doc.template_kind.toLowerCase();
   return kind === "voucher" || kind === "journal" || kind === "cheque";
@@ -18,7 +14,7 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
   useEffect(() => {
     const timer = window.setTimeout(() => window.print(), 400);
     return () => window.clearTimeout(timer);
-  }, [document.document_id, document.template_family]);
+  }, [document.document_id]);
 
   if (isAccountingDocument(document)) {
     return <AccountingPrintDocumentView document={document} />;
@@ -28,7 +24,6 @@ export function PrintDocumentView({ document }: { document: PrintDocument }) {
 }
 
 function CommercialPrintDocumentView({ document }: { document: PrintDocument }) {
-  const china = showChina(document);
   const letterhead = document.letterhead;
   const currency = document.currency_code ?? "";
 
@@ -52,7 +47,7 @@ function CommercialPrintDocumentView({ document }: { document: PrintDocument }) 
           </div>
           <div className="text-right">
             <p className="text-xl font-semibold tracking-tight">
-              {china ? chinaTitle(document.document_type) : uaeTitle(document.document_type)}
+              {uaeTitle(document.document_type)}
             </p>
             <p className="font-mono text-sm">{document.document_number}</p>
             <p className="text-sm">{formatDate(document.document_date)}</p>
@@ -89,14 +84,10 @@ function CommercialPrintDocumentView({ document }: { document: PrintDocument }) 
             <th className="py-2 text-left font-medium">#</th>
             <th className="py-2 text-left font-medium">Item</th>
             <th className="py-2 text-left font-medium">Description</th>
-            {china ? <th className="py-2 text-right font-medium">CTNS</th> : null}
-            {china ? <th className="py-2 text-left font-medium">PKG</th> : null}
             <th className="py-2 text-right font-medium">Qty</th>
-            {china ? <th className="py-2 text-right font-medium">CBM</th> : null}
-            {china ? <th className="py-2 text-right font-medium">Weight</th> : null}
             <th className="py-2 text-right font-medium">Rate</th>
-            {!china ? <th className="py-2 text-right font-medium">Taxable</th> : null}
-            {!china ? <th className="py-2 text-right font-medium">VAT</th> : null}
+            <th className="py-2 text-right font-medium">Taxable</th>
+            <th className="py-2 text-right font-medium">VAT</th>
             <th className="py-2 text-right font-medium">Amount</th>
           </tr>
         </thead>
@@ -106,36 +97,16 @@ function CommercialPrintDocumentView({ document }: { document: PrintDocument }) 
               <td className="py-1.5">{line.line_number}</td>
               <td className="py-1.5">{line.item_code ?? ""}</td>
               <td className="py-1.5">{line.description}</td>
-              {china ? (
-                <td className="py-1.5 text-right tabular-nums">
-                  {line.carton_qty ? formatQuantity(line.carton_qty) : ""}
-                </td>
-              ) : null}
-              {china ? <td className="py-1.5">{line.packing_unit ?? ""}</td> : null}
               <td className="py-1.5 text-right tabular-nums">{formatQuantity(line.quantity)}</td>
-              {china ? (
-                <td className="py-1.5 text-right tabular-nums">
-                  {line.cbm ? formatQuantity(line.cbm) : ""}
-                </td>
-              ) : null}
-              {china ? (
-                <td className="py-1.5 text-right tabular-nums">
-                  {line.weight ? formatQuantity(line.weight) : ""}
-                </td>
-              ) : null}
               <td className="py-1.5 text-right tabular-nums">
                 {line.unit_price ? formatMoney(line.unit_price, currency) : ""}
               </td>
-              {!china ? (
-                <td className="py-1.5 text-right tabular-nums">
-                  {line.taxable_amount ? formatMoney(line.taxable_amount, currency) : ""}
-                </td>
-              ) : null}
-              {!china ? (
-                <td className="py-1.5 text-right tabular-nums">
-                  {line.tax_amount ? formatMoney(line.tax_amount, currency) : ""}
-                </td>
-              ) : null}
+              <td className="py-1.5 text-right tabular-nums">
+                {line.taxable_amount ? formatMoney(line.taxable_amount, currency) : ""}
+              </td>
+              <td className="py-1.5 text-right tabular-nums">
+                {line.tax_amount ? formatMoney(line.tax_amount, currency) : ""}
+              </td>
               <td className="py-1.5 text-right tabular-nums">
                 {line.amount ? formatMoney(line.amount, currency) : ""}
               </td>
@@ -175,9 +146,6 @@ function CommercialPrintDocumentView({ document }: { document: PrintDocument }) 
         <p className="mt-3 text-sm">Amount in words: {document.amount_in_words}</p>
       ) : null}
       {document.notes ? <p className="mt-3 text-sm whitespace-pre-wrap">{document.notes}</p> : null}
-      {china && letterhead.bank_details ? (
-        <p className="mt-4 text-sm whitespace-pre-wrap">{letterhead.bank_details}</p>
-      ) : null}
       <footer className="mt-12 grid grid-cols-2 gap-8 text-sm">
         <p>Received by ______________________</p>
         <p className="text-right">Authorized signatory ______________________</p>
@@ -316,15 +284,6 @@ function uaeTitle(type: string): string {
   const key = type.toUpperCase();
   if (key.includes("INVOICE")) return "TAX INVOICE";
   if (key.includes("DELIVERY")) return "DELIVERY NOTE";
-  if (key.includes("QUOTATION")) return "QUOTATION";
-  if (key.includes("PROFORMA")) return "PROFORMA INVOICE";
-  return key.replaceAll("_", " ");
-}
-
-function chinaTitle(type: string): string {
-  const key = type.toUpperCase();
-  if (key.includes("INVOICE")) return "COMMERCIAL INVOICE";
-  if (key.includes("PACKAGE") || key.includes("PACKING")) return "PACKING LIST";
   if (key.includes("QUOTATION")) return "QUOTATION";
   if (key.includes("PROFORMA")) return "PROFORMA INVOICE";
   return key.replaceAll("_", " ");

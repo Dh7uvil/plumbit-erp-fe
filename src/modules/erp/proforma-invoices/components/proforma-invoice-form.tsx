@@ -91,6 +91,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDocumentLineAutofillContext } from "@/shared/hooks/use-document-line-autofill-context";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
@@ -352,11 +353,13 @@ export function ProformaInvoiceForm({
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const customerId = useWatch({ control: form.control, name: "customer_id" });
+  const lineAutofillContext = useDocumentLineAutofillContext({ control: form.control });
   const selectedCustomerId = optionalUuid(customerId);
   const composeQuery = useProformaInvoiceComposeDefaults(isEdit ? null : selectedCustomerId);
   const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
   const taxTreatment = useWatch({ control: form.control, name: "tax_treatment" });
   const customerTrn = useWatch({ control: form.control, name: "customer_trn" });
+  const proformaDate = useWatch({ control: form.control, name: "proforma_date" });
 
   const customers = customersQuery.data ?? [];
   const contacts = (contactsQuery.data ?? []).filter(
@@ -842,10 +845,16 @@ export function ProformaInvoiceForm({
             showPacking
             showHsCode
             showPricesIncludeTax
+            lineAutofillContext={lineAutofillContext}
           />
         </div>
         {currencies.length > 0 ? (
-          <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={invoice} />
+          <LiveDocumentTotalsPanel
+            form={form}
+            currencies={currencies}
+            savedTotals={invoice}
+            documentDate={proformaDate}
+          />
         ) : null}
         <Card>
           <CardHeader>

@@ -108,18 +108,14 @@ export function isPrintableResource(value: string): value is PrintableResource {
 }
 
 export const printApi = {
-  get: async (
-    resource: PrintableResource,
-    id: string,
-    templateFamily: string = "uae",
-  ): Promise<PrintDocument> =>
+  get: async (resource: PrintableResource, id: string): Promise<PrintDocument> =>
     PrintDocumentSchema.parse(
       await apiClient.get(`/${resource}/${id}/print`, {
-        params: { template_family: templateFamily },
+        params: { template_family: "uae" },
       }),
     ),
 };
 
-export function printHref(resource: PrintableResource, id: string, family: string = "uae"): string {
-  return `/print/${resource}/${id}?family=${encodeURIComponent(family)}`;
+export function printHref(resource: PrintableResource, id: string): string {
+  return `/print/${resource}/${id}`;
 }

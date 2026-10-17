@@ -4,7 +4,7 @@ import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
@@ -119,10 +119,24 @@ export function ShipmentForm({
   const pending = createShipment.isPending || updateShipment.isPending;
   useDirtyFormGuard(!disabled && form.formState.isDirty);
   const suppliers = suppliersQuery.data ?? [];
+  const freightForwarderId = useWatch({ control: form.control, name: "freight_forwarder_id" });
 
   useEffect(() => {
     form.reset(toFormValues(shipment));
   }, [form, shipment]);
+
+  useEffect(() => {
+    if (shipment || !freightForwarderId || freightForwarderId === OPTIONAL_SELECT_NONE) {
+      return;
+    }
+    const forwarder = suppliers.find((row) => row.id === freightForwarderId);
+    if (!forwarder) {
+      return;
+    }
+    if (!form.formState.dirtyFields.carrier_name && !form.getValues("carrier_name").trim()) {
+      form.setValue("carrier_name", forwarder.name);
+    }
+  }, [form, freightForwarderId, shipment, suppliers]);
 
   async function onSubmit(values: ShipmentFormValues) {
     const payload = toPayload(values);

@@ -20,6 +20,8 @@ import { documentDetailHref } from "@/shared/components/document/document-links"
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -40,14 +42,19 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
   const from = filters.from ?? period.from;
   const to = filters.to ?? period.to;
   const partyId = kind === "customer" ? (filters.customer_id ?? "") : (filters.supplier_id ?? "");
+  const includePdc = filters.include_pdc === "true";
   const customersQuery = useAllCustomers(kind === "customer");
   const suppliersQuery = useAllSuppliers(kind === "supplier");
   const parties = kind === "customer" ? (customersQuery.data ?? []) : (suppliersQuery.data ?? []);
   const customerQuery = useCustomerStatement(
-    kind === "customer" && partyId ? { customer_id: partyId, from, to } : null,
+    kind === "customer" && partyId
+      ? { customer_id: partyId, from, to, include_pdc: includePdc }
+      : null,
   );
   const supplierQuery = useSupplierStatement(
-    kind === "supplier" && partyId ? { supplier_id: partyId, from, to } : null,
+    kind === "supplier" && partyId
+      ? { supplier_id: partyId, from, to, include_pdc: includePdc }
+      : null,
   );
   const reportQuery = kind === "customer" ? customerQuery : supplierQuery;
   const report = reportQuery.data;
@@ -77,7 +84,11 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
               variant="outline"
               size="sm"
               onClick={() => {
-                void downloadCsv(path, { [partyKey]: partyId, from, to }, filename);
+                void downloadCsv(
+                  path,
+                  { [partyKey]: partyId, from, to, include_pdc: includePdc },
+                  filename,
+                );
               }}
               disabled={csvPending}
             >
@@ -108,7 +119,19 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
           onFromChange={(value) => setParams({ filters: { from: value || null } })}
           onToChange={(value) => setParams({ filters: { to: value || null } })}
         />
-        {from || to || partyId ? (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="party-stmt-pdc"
+            checked={includePdc}
+            onCheckedChange={(checked) =>
+              setParams({ filters: { include_pdc: checked === true ? "true" : null } })
+            }
+          />
+          <Label htmlFor="party-stmt-pdc" className="text-sm whitespace-nowrap">
+            Include pending cheques (PDC)
+          </Label>
+        </div>
+        {from || to || partyId || includePdc ? (
           <Button
             type="button"
             variant="ghost"
@@ -121,6 +144,7 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
                   to: null,
                   customer_id: null,
                   supplier_id: null,
+                  include_pdc: null,
                 },
               })
             }

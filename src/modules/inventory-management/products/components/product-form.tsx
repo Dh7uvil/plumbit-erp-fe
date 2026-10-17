@@ -19,10 +19,12 @@ import {
   useCreateProduct,
   useUpdateProduct,
 } from "@/modules/inventory-management/products/mutations";
+import { useAllProducts } from "@/modules/inventory-management/products/queries";
 import {
   ITEM_TYPE_LABELS,
   ITEM_TYPES,
   ProductFormSchema,
+  formatPacking,
   type Product,
   type ProductCreateRequest,
   type ProductFormValues,
@@ -70,6 +72,7 @@ function toFormValues(product: Product | null): ProductFormValues {
     item_type: product?.item_type ?? "PRODUCT",
     sales_description: product?.sales_description ?? "",
     unit_id: product?.unit_id ?? OPTIONAL_SELECT_NONE,
+    pieces_per_unit: product?.pieces_per_unit ?? "",
     category_id: product?.category_id ?? OPTIONAL_SELECT_NONE,
     selling_rate: product?.selling_rate ?? "0",
     purchase_rate: product?.purchase_rate ?? "0",
@@ -85,6 +88,10 @@ function toFormValues(product: Product | null): ProductFormValues {
   };
 }
 
+function piecesPerUnitPayload(unitId: string, piecesPerUnit: string): string | null {
+  return optionalUuid(unitId) ? emptyToNull(piecesPerUnit) : null;
+}
+
 function toCreateRequest(values: ProductFormValues): ProductCreateRequest {
   return {
     sku: values.sku.trim(),
@@ -92,6 +99,7 @@ function toCreateRequest(values: ProductFormValues): ProductCreateRequest {
     item_type: values.item_type,
     sales_description: emptyToNull(values.sales_description),
     unit_id: optionalUuid(values.unit_id),
+    pieces_per_unit: piecesPerUnitPayload(values.unit_id, values.pieces_per_unit),
     category_id: optionalUuid(values.category_id),
     selling_rate: values.selling_rate.trim() || "0",
     purchase_rate: values.purchase_rate.trim() || "0",
@@ -112,6 +120,7 @@ function toUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
     name: values.name.trim(),
     sales_description: emptyToNull(values.sales_description),
     unit_id: optionalUuid(values.unit_id),
+    pieces_per_unit: piecesPerUnitPayload(values.unit_id, values.pieces_per_unit),
     category_id: optionalUuid(values.category_id),
     selling_rate: values.selling_rate.trim() || "0",
     purchase_rate: values.purchase_rate.trim() || "0",
@@ -152,6 +161,7 @@ export function ProductForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState<"unit" | "category" | "tax" | null>(null);
   const isEdit = Boolean(product);
+  const productsQuery = useAllProducts(!isEdit);
   const qcDefault = tenantQuery.data?.qc_required_default ?? false;
 
   const form = useForm<ProductFormValues>({
@@ -163,6 +173,33 @@ export function ProductForm({
   useDirtyFormGuard(form.formState.isDirty && !disabled);
   const itemType = useWatch({ control: form.control, name: "item_type" });
   const trackInventory = useWatch({ control: form.control, name: "track_inventory" });
+  const categoryId = useWatch({ control: form.control, name: "category_id" });
+  const unitId = useWatch({ control: form.control, name: "unit_id" });
+  const piecesPerUnit = useWatch({ control: form.control, name: "pieces_per_unit" });
+  const hasUnit = Boolean(unitId && unitId !== OPTIONAL_SELECT_NONE);
+  const selectedUnitName = hasUnit
+    ? (unitsQuery.data ?? []).find((unit) => unit.id === unitId)?.name
+    : undefined;
+  const packingLabel = formatPacking(piecesPerUnit, selectedUnitName);
+
+  useEffect(() => {
+    if (isEdit || !categoryId || categoryId === OPTIONAL_SELECT_NONE) {
+      return;
+    }
+    const sample = (productsQuery.data ?? []).find(
+      (item) => item.category_id === categoryId && item.id !== product?.id,
+    );
+    if (!sample) {
+      return;
+    }
+    const dirty = form.formState.dirtyFields;
+    if (!dirty.tax_id && form.getValues("tax_id") === OPTIONAL_SELECT_NONE && sample.tax_id) {
+      form.setValue("tax_id", sample.tax_id);
+    }
+    if (!dirty.unit_id && form.getValues("unit_id") === OPTIONAL_SELECT_NONE && sample.unit_id) {
+      form.setValue("unit_id", sample.unit_id);
+    }
+  }, [categoriesQuery.data, categoryId, form, isEdit, product?.id, productsQuery.data]);
 
   useEffect(() => {
     if (product || form.formState.isDirty || initialValues?.requires_qc != null) {
@@ -344,6 +381,32 @@ export function ProductForm({
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="pieces_per_unit"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  {hasUnit ? `Pieces per ${selectedUnitName ?? "unit"}` : "Pieces per unit"}
+                </FormLabel>
+                <FormControl>
+                  <DecimalInput
+                    kind="quantity"
+                    disabled={disabled || !hasUnit}
+                    placeholder={hasUnit ? undefined : "Select a unit first"}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormItem>
+            <FormLabel>Packing</FormLabel>
+            <FormControl>
+              <Input readOnly disabled value={packingLabel ?? "—"} tabIndex={-1} />
+            </FormControl>
+          </FormItem>
           <FormField
             control={form.control}
             name="category_id"

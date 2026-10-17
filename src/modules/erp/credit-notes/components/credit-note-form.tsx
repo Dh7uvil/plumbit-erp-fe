@@ -3,8 +3,8 @@
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useMemo, useRef, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
@@ -58,7 +58,9 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useApplyComposeDefaults } from "@/shared/hooks/use-apply-compose-defaults";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useCreditNoteComposeDefaults } from "@/shared/queries/party-compose-queries";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
@@ -199,6 +201,7 @@ export function CreditNoteForm({
   const currenciesQuery = useAllCurrencies();
   const [formError, setFormError] = useState<string | null>(null);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const dirtyCompose = useRef(new Set<"currency_id" | "place_of_supply">());
   const sourced = Boolean(
     note?.lines.some((line) => line.sales_invoice_line_id || line.sales_return_line_id),
   );
@@ -215,6 +218,31 @@ export function CreditNoteForm({
 
   const customers = customersQuery.data ?? [];
   const currencies = currenciesQuery.data ?? [];
+  const customerId = useWatch({ control: form.control, name: "customer_id" });
+  const currencyId = useWatch({ control: form.control, name: "currency_id" });
+  const creditNoteDate = useWatch({ control: form.control, name: "credit_note_date" });
+  const selectedCustomerId = optionalUuid(customerId);
+  const lineAutofillContext = useMemo(
+    () => ({
+      currencyId: optionalUuid(currencyId),
+      priceListId: null,
+      warehouseId: null,
+    }),
+    [currencyId],
+  );
+  const composeQuery = useCreditNoteComposeDefaults(isEdit ? null : selectedCustomerId);
+
+  useApplyComposeDefaults({
+    form,
+    defaults: composeQuery.data,
+    isEdit,
+    disabled,
+    dirtyFieldsRef: dirtyCompose,
+    fieldMap: {
+      currency_id: { field: "currency_id" },
+      place_of_supply: { field: "place_of_supply" },
+    },
+  });
 
   async function onSubmit(values: CreditNoteFormValues) {
     setFormError(null);
@@ -422,10 +450,16 @@ export function CreditNoteForm({
             productSide="sales"
             showHsCode
             showPricesIncludeTax
+            lineAutofillContext={lineAutofillContext}
           />
         </div>
         {currencies.length > 0 ? (
-          <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={note} />
+          <LiveDocumentTotalsPanel
+            form={form}
+            currencies={currencies}
+            savedTotals={note}
+            documentDate={creditNoteDate}
+          />
         ) : null}
         <FormField
           control={form.control}

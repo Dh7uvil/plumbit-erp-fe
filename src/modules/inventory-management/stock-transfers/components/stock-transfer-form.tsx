@@ -405,6 +405,9 @@ export function StockTransferForm({
           disabled={disabled}
           sourceQtyByProductId={sourceQtyByProductId}
           destQtyByProductId={destQtyByProductId}
+          sourceWarehouseId={
+            fromWarehouseId !== OPTIONAL_SELECT_NONE ? fromWarehouseId : null
+          }
         />
         <p className="text-muted-foreground text-xs tabular-nums">
           Total quantity: {formatQuantity(totalTransferQty)}

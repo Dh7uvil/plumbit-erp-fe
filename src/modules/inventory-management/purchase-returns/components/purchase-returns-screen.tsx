@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
+import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useDeletePurchaseReturn } from "@/modules/inventory-management/purchase-returns/mutations";
 import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { usePurchaseReturns } from "@/modules/inventory-management/purchase-returns/queries";
@@ -28,6 +30,7 @@ import {
 } from "@/shared/components/data-table/audit-columns";
 import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
@@ -64,7 +67,21 @@ export function PurchaseReturnsScreen() {
     page_size,
     search,
     status: parseStatus(filters.status),
+    supplier_id: filters.supplier_id,
+    warehouse_id: filters.warehouse_id,
+    document_date_from: filters.document_date_from,
+    document_date_to: filters.document_date_to,
   });
+  const suppliersQuery = useAllSuppliers();
+  const warehousesQuery = useAllWarehouses();
+  const supplierLabelById = useMemo(
+    () => new Map((suppliersQuery.data ?? []).map((row) => [row.id, row.name])),
+    [suppliersQuery.data],
+  );
+  const warehouseLabelById = useMemo(
+    () => new Map((warehousesQuery.data ?? []).map((row) => [row.id, row.name])),
+    [warehousesQuery.data],
+  );
   const deleteReturn = useDeletePurchaseReturn();
   const [deleting, setDeleting] = useState<PurchaseReturn | null>(null);
   const rows = returnsQuery.data?.data ?? [];
@@ -83,6 +100,17 @@ export function PurchaseReturnsScreen() {
             {purchaseReturnDisplayNumber(row) ?? "—"}
           </RecordLink>
         ),
+      },
+      {
+        id: "supplier",
+        header: "Supplier",
+        cell: (row) => supplierLabelById.get(row.supplier_id) ?? "—",
+      },
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        defaultVisible: false,
+        cell: (row) => warehouseLabelById.get(row.warehouse_id) ?? "—",
       },
       {
         id: "reason",
@@ -138,7 +166,15 @@ export function PurchaseReturnsScreen() {
         );
       }),
     ];
-  }, [canDelete, canRead, canUpdate, showActions, userNameById]);
+  }, [
+    canDelete,
+    canRead,
+    canUpdate,
+    showActions,
+    supplierLabelById,
+    userNameById,
+    warehouseLabelById,
+  ]);
 
   const { columns, columnsDialog, colSpan } = useTableColumns(
     "inventory.purchase_returns",
@@ -193,6 +229,48 @@ export function PurchaseReturnsScreen() {
               label: STOCK_DOCUMENT_STATUS_LABELS[status],
             })),
           ]}
+        />
+        <FilterSelect
+          label="Supplier"
+          className="w-44"
+          placeholder="Supplier"
+          value={filters.supplier_id ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { supplier_id: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All suppliers" },
+            ...(suppliersQuery.data ?? []).map((supplier) => ({
+              value: supplier.id,
+              label: supplier.name,
+            })),
+          ]}
+        />
+        <FilterSelect
+          label="Warehouse"
+          className="w-44"
+          placeholder="Warehouse"
+          value={filters.warehouse_id ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { warehouse_id: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All warehouses" },
+            ...(warehousesQuery.data ?? []).map((warehouse) => ({
+              value: warehouse.id,
+              label: warehouse.name,
+            })),
+          ]}
+        />
+        <DateRangeFilter
+          from={filters.document_date_from ?? ""}
+          to={filters.document_date_to ?? ""}
+          onFromChange={(value) =>
+            setParams({ filters: { document_date_from: value || null } })
+          }
+          onToChange={(value) =>
+            setParams({ filters: { document_date_to: value || null } })
+          }
         />
         {columnsDialog}
       </DataTableToolbar>

@@ -7,10 +7,16 @@ import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
 import { DocumentTotalsPanel } from "@/shared/components/document/document-totals-panel";
 import type { DocumentTotals } from "@/shared/components/document/schemas";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import {
   useLiveDocumentTotals,
   type CommercialLineForTotals,
 } from "@/shared/hooks/use-live-document-totals";
+import {
+  documentTotalsRateStatusMessage,
+  savedDocumentDateFromRecord,
+  useResolvedExchangeRate,
+} from "@/shared/hooks/use-resolved-exchange-rate";
 import type { RoundOffRule } from "@/shared/lib/document-totals";
 
 type CommercialTotalsForm = {
@@ -30,14 +36,17 @@ export function LiveDocumentTotalsPanel<T extends FieldValues & CommercialTotals
   currencies,
   savedTotals,
   roundOffRule = "NONE",
+  documentDate,
 }: {
   form: UseFormReturn<T>;
   currencies: readonly { id: string; code: string }[];
   savedTotals?: DocumentTotals | null;
   roundOffRule?: RoundOffRule;
+  documentDate?: string | null;
 }) {
   const taxesQuery = useAllTaxes();
   const taxes = taxesQuery.data ?? [];
+  const { baseCurrencyId: orgBaseCurrencyId, baseCurrencyCode } = useBaseCurrency();
   const lines = useWatch({ control: form.control, name: "lines" as Path<T> }) as
     | CommercialLineForTotals[]
     | undefined;
@@ -71,6 +80,36 @@ export function LiveDocumentTotalsPanel<T extends FieldValues & CommercialTotals
     name: "exchange_rate" as Path<T>,
   }) as string | null | undefined;
 
+  const normalizedCurrencyId =
+    currencyId && currencyId !== OPTIONAL_SELECT_NONE ? currencyId : null;
+
+  const baseId =
+    (baseCurrencyId && baseCurrencyId !== OPTIONAL_SELECT_NONE ? baseCurrencyId : null) ??
+    savedTotals?.base_currency_id ??
+    orgBaseCurrencyId ??
+    normalizedCurrencyId ??
+    currencyId;
+
+  const savedDate =
+    savedDocumentDateFromRecord(savedTotals as Record<string, unknown> | null | undefined) ??
+    null;
+
+  const resolved = useResolvedExchangeRate({
+    currencyId: normalizedCurrencyId,
+    baseCurrencyId: baseId,
+    documentDate: documentDate?.trim() || null,
+    savedRate: savedTotals?.exchange_rate,
+    savedCurrencyId: savedTotals?.currency_id,
+    savedDate,
+  });
+
+  const formRate = exchangeRate?.trim() || null;
+  const effectiveExchangeRate =
+    formRate ??
+    (resolved.sameCurrency ? "1" : resolved.rate) ??
+    savedTotals?.exchange_rate ??
+    "1";
+
   const live = useLiveDocumentTotals({
     lines: lines ?? [],
     taxes,
@@ -80,13 +119,8 @@ export function LiveDocumentTotalsPanel<T extends FieldValues & CommercialTotals
     adjustmentAmount,
     pricesIncludeTax,
     roundOffRule,
-    exchangeRate,
+    exchangeRate: effectiveExchangeRate,
   });
-
-  const baseId =
-    (baseCurrencyId && baseCurrencyId !== OPTIONAL_SELECT_NONE ? baseCurrencyId : null) ??
-    savedTotals?.base_currency_id ??
-    currencyId;
 
   const totals: DocumentTotals = {
     subtotal: live.subtotal,
@@ -95,10 +129,24 @@ export function LiveDocumentTotalsPanel<T extends FieldValues & CommercialTotals
     grand_total: live.net_total,
     foreign_amount: live.foreign_amount,
     base_amount: live.base_amount,
-    exchange_rate: exchangeRate?.trim() || savedTotals?.exchange_rate || "1",
+    exchange_rate: effectiveExchangeRate,
     currency_id: currencyId,
     base_currency_id: baseId,
   };
+
+  const rateStatusMessage = documentTotalsRateStatusMessage({
+    sameCurrency: resolved.sameCurrency,
+    isLoading: resolved.isLoading,
+    isError: resolved.isError,
+    rate: formRate ?? resolved.rate,
+  });
+
+  const showDualCurrency = Boolean(
+    !resolved.sameCurrency &&
+      !resolved.isLoading &&
+      !resolved.isError &&
+      (formRate ?? resolved.rate),
+  );
 
   return (
     <DocumentTotalsPanel
@@ -110,6 +158,13 @@ export function LiveDocumentTotalsPanel<T extends FieldValues & CommercialTotals
         pre_round_grand_total: live.grand_total,
         round_off_amount: live.round_off_amount,
         net_total: live.net_total,
+      }}
+      rateProps={{
+        exchangeRate: showDualCurrency ? effectiveExchangeRate : undefined,
+        baseCurrencyCode: baseCurrencyCode ?? undefined,
+        sameCurrency: resolved.sameCurrency,
+        rateStatusMessage:
+          documentDate !== undefined || savedTotals ? rateStatusMessage : null,
       }}
     />
   );

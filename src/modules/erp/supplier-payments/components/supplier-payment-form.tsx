@@ -63,7 +63,9 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useApplyComposeDefaults } from "@/shared/hooks/use-apply-compose-defaults";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useSupplierPaymentComposeDefaults } from "@/shared/queries/party-compose-queries";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
@@ -210,6 +212,18 @@ export function SupplierPaymentForm({
       form.setValue("currency_id", supplierQuery.data.currency_id);
     }
   }, [defaults?.currencyId, defaults?.invoiceId, form, payment, supplierQuery.data]);
+
+  const composeQuery = useSupplierPaymentComposeDefaults(payment ? null : selectedSupplierId);
+  useApplyComposeDefaults({
+    form,
+    defaults: composeQuery.data,
+    isEdit: Boolean(payment),
+    disabled,
+    fieldMap: {
+      currency_id: { field: "currency_id" },
+      payable_account_id: { field: "payment_account_id", optional: true },
+    },
+  });
 
   useEffect(() => {
     if (payment || !defaults?.invoiceId || !openItemsQuery.data) {

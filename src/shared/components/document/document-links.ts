@@ -91,6 +91,7 @@ const DOCUMENT_HREF: Record<string, (id: string) => string> = {
   // Opening AR/AP open items are journal lines; surface the go-live screen.
   OPENING_AR: (_id) => `/opening-balances`,
   OPENING_AP: (_id) => `/opening-balances`,
+  CHEQUE_PDC: (id) => `/cheques/${id}`,
 };
 
 export function documentDetailHref(documentType: string, documentId: string): string | null {

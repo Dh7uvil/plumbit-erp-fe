@@ -32,6 +32,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { formatQuantity } from "@/shared/lib/format";
+import { applyProductWithServerDefaults } from "@/shared/lib/apply-product-line-server-defaults";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function emptyAdjustmentLine(): StockAdjustmentLineFormValues {
@@ -50,11 +52,13 @@ export function StockAdjustmentLinesEditor({
   disabled,
   isCount,
   bookedByProductId,
+  warehouseId,
 }: {
   form: UseFormReturn<StockAdjustmentFormValues>;
   disabled: boolean;
   isCount: boolean;
   bookedByProductId?: Map<string, string | null>;
+  warehouseId?: string | null;
 }) {
   const can = useCan();
   const productsQuery = useAllProducts();
@@ -73,12 +77,28 @@ export function StockAdjustmentLinesEditor({
   const qtyHeader = isCount ? "Counted qty" : "Adjust by";
   const showBooked = Boolean(bookedByProductId?.size);
 
-  function applyProduct(index: number, product: Pick<Product, "unit_id" | "purchase_rate">) {
+  const { baseCurrencyId } = useBaseCurrency();
+
+  function applyProduct(index: number, product: Product) {
     form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
     const currentCost = form.getValues(`lines.${index}.unit_cost`);
     if (!currentCost.trim()) {
       form.setValue(`lines.${index}.unit_cost`, product.purchase_rate ?? "");
     }
+    void applyProductWithServerDefaults(product, {
+      purchaseSide: true,
+      warehouseId,
+      baseCurrencyId,
+    }).then((values) => {
+      form.setValue(`lines.${index}.unit_id`, values.unit_id);
+      const cost = form.getValues(`lines.${index}.unit_cost`);
+      if (!cost.trim()) {
+        form.setValue(
+          `lines.${index}.unit_cost`,
+          values.average_cost?.trim() || values.rate || (product.purchase_rate ?? ""),
+        );
+      }
+    });
   }
 
   function onLastFieldKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {

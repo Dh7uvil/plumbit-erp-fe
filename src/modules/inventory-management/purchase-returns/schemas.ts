@@ -184,6 +184,15 @@ export const PurchaseReturnFormSchema = z
           message: "Enter a quantity greater than 0",
         });
       }
+      if (
+        !PURCHASE_RETURN_DISPOSITIONS.includes(line.disposition as PurchaseReturnDisposition)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["lines", index, "disposition"],
+          message: "Select a disposition",
+        });
+      }
     });
   });
 export type PurchaseReturnFormValues = z.infer<typeof PurchaseReturnFormSchema>;

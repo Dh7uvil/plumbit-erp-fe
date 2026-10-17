@@ -79,6 +79,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useDocumentLineAutofillContext } from "@/shared/hooks/use-document-line-autofill-context";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
@@ -276,11 +277,13 @@ export function QuotationForm({
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const customerId = useWatch({ control: form.control, name: "customer_id" });
+  const lineAutofillContext = useDocumentLineAutofillContext({ control: form.control });
   const selectedCustomerId = optionalUuid(customerId);
   const composeQuery = useQuotationComposeDefaults(isEdit ? null : selectedCustomerId);
   const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
   const taxTreatment = useWatch({ control: form.control, name: "tax_treatment" });
   const customerTrn = useWatch({ control: form.control, name: "customer_trn" });
+  const quoteDate = useWatch({ control: form.control, name: "quote_date" });
 
   const customers = customersQuery.data ?? [];
   const contacts = (contactsQuery.data ?? []).filter(
@@ -773,10 +776,16 @@ export function QuotationForm({
             productSide="sales"
             showPacking
             showPricesIncludeTax
+            lineAutofillContext={lineAutofillContext}
           />
         </div>
         {currencies.length > 0 ? (
-          <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={quotation} />
+          <LiveDocumentTotalsPanel
+            form={form}
+            currencies={currencies}
+            savedTotals={quotation}
+            documentDate={quoteDate}
+          />
         ) : null}
         <div className="grid grid-cols-1 gap-3">
           <FormField

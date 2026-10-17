@@ -32,6 +32,8 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { formatQuantity } from "@/shared/lib/format";
+import { applyProductWithServerDefaults } from "@/shared/lib/apply-product-line-server-defaults";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 export function emptyTransferLine(): StockTransferLineFormValues {
@@ -49,11 +51,13 @@ export function StockTransferLinesEditor({
   disabled,
   sourceQtyByProductId,
   destQtyByProductId,
+  sourceWarehouseId,
 }: {
   form: UseFormReturn<StockTransferFormValues>;
   disabled: boolean;
   sourceQtyByProductId?: Map<string, string | null>;
   destQtyByProductId?: Map<string, string | null>;
+  sourceWarehouseId?: string | null;
 }) {
   const can = useCan();
   const productsQuery = useAllProducts();
@@ -70,9 +74,17 @@ export function StockTransferLinesEditor({
   );
   const units = unitsQuery.data ?? [];
   const showLive = Boolean(sourceQtyByProductId || destQtyByProductId);
+  const { baseCurrencyId } = useBaseCurrency();
 
-  function applyProduct(index: number, product: Pick<Product, "unit_id">) {
+  function applyProduct(index: number, product: Product) {
     form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
+    void applyProductWithServerDefaults(product, {
+      purchaseSide: true,
+      warehouseId: sourceWarehouseId,
+      baseCurrencyId,
+    }).then((values) => {
+      form.setValue(`lines.${index}.unit_id`, values.unit_id);
+    });
   }
 
   function onLastFieldKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {

@@ -3,7 +3,7 @@
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -38,6 +38,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useSourceDocumentAutofill } from "@/shared/hooks/use-source-document-autofill";
 import { useCan } from "@/shared/providers/session-provider";
 
 function todayIsoDate(): string {
@@ -70,6 +71,17 @@ export function DeliveryNoteFromSalesOrderForm({ salesOrderId }: { salesOrderId:
   const warehouses = warehousesQuery.data ?? [];
   const salesOrder = salesOrderQuery.data;
   const number = salesOrder ? salesOrderDisplayNumber(salesOrder) : null;
+  const sourceHeader = useMemo(
+    () =>
+      salesOrder
+        ? {
+            currencyId: salesOrder.currency_id,
+            warehouseId: salesOrder.warehouse_id,
+          }
+        : null,
+    [salesOrder],
+  );
+  useSourceDocumentAutofill(form, sourceHeader, { isEdit: false });
 
   async function onSubmit(values: DeliveryNoteFromSalesOrderFormValues) {
     setWriteError(null);

@@ -40,8 +40,9 @@ import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useSourceDocumentAutofill } from "@/shared/hooks/use-source-document-autofill";
 import { useCan } from "@/shared/providers/session-provider";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -88,6 +89,17 @@ export function GoodsReceiptFromPoForm({ purchaseOrderId }: { purchaseOrderId: s
   const warehouses = warehousesQuery.data ?? [];
   const purchaseOrder = purchaseOrderQuery.data;
   const number = purchaseOrder ? purchaseOrderDisplayNumber(purchaseOrder) : null;
+  const sourceHeader = useMemo(
+    () =>
+      purchaseOrder
+        ? {
+            currencyId: purchaseOrder.currency_id,
+            warehouseId: purchaseOrder.warehouse_id,
+          }
+        : null,
+    [purchaseOrder],
+  );
+  useSourceDocumentAutofill(form, sourceHeader, { isEdit: false });
 
   async function onSubmit(values: GoodsReceiptFromPoFormValues) {
     setWriteError(null);

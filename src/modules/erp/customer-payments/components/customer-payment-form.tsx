@@ -65,7 +65,9 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useApplyComposeDefaults } from "@/shared/hooks/use-apply-compose-defaults";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useCustomerPaymentComposeDefaults } from "@/shared/queries/party-compose-queries";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
@@ -212,6 +214,10 @@ export function CustomerPaymentForm({
   );
   const currencyCode = currencies.find((currency) => currency.id === currencyId)?.code ?? "";
 
+  const composeQuery = useCustomerPaymentComposeDefaults(
+    payment ? null : selectedCustomerId,
+  );
+
   useEffect(() => {
     if (payment || !customerQuery.data) {
       return;
@@ -220,6 +226,17 @@ export function CustomerPaymentForm({
       form.setValue("currency_id", customerQuery.data.currency_id);
     }
   }, [customerQuery.data, form, payment]);
+
+  useApplyComposeDefaults({
+    form,
+    defaults: composeQuery.data,
+    isEdit: Boolean(payment),
+    disabled: false,
+    fieldMap: {
+      currency_id: { field: "currency_id" },
+      receivable_account_id: { field: "payment_account_id", optional: true },
+    },
+  });
 
   useEffect(() => {
     if (payment || !defaults?.invoiceId || !openItemsQuery.data) {

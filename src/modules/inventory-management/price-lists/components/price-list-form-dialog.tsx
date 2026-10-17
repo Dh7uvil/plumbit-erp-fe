@@ -40,7 +40,9 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
 
 const EMPTY_FORM: PriceListFormValues = {
@@ -79,11 +81,13 @@ export function PriceListFormDialog({
   const [creatingCurrency, setCreatingCurrency] = useState(false);
   const currencies = currenciesQuery.data ?? [];
 
+  const { baseCurrencyId } = useBaseCurrency();
   const form = useForm<PriceListFormValues>({
     resolver: zodResolver(PriceListFormSchema),
-    defaultValues: EMPTY_FORM,
+    defaultValues: { ...EMPTY_FORM, currency_id: baseCurrencyId ?? "" },
   });
   useDirtyFormGuard(open && canCreate && form.formState.isDirty);
+  useDefaultDocumentCurrency(form, false, baseCurrencyId);
 
   const listType = useWatch({ control: form.control, name: "list_type" });
 

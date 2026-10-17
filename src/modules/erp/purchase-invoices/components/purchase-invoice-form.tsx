@@ -3,7 +3,7 @@
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -85,7 +85,9 @@ import {
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
+import { useApplyComposeDefaults } from "@/shared/hooks/use-apply-compose-defaults";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { usePurchaseInvoiceComposeDefaults } from "@/shared/queries/party-compose-queries";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useCan } from "@/shared/providers/session-provider";
@@ -330,7 +332,9 @@ export function PurchaseInvoiceForm({
   const [creating, setCreating] = useState<
     "supplier" | "contact" | "branch" | "currency" | "paymentTerms" | null
   >(null);
-  const dirtyCompose = useRef(new Set<"currency_id" | "payment_terms_id">());
+  const dirtyCompose = useRef(
+    new Set<"currency_id" | "payment_terms_id" | "contact_id" | "place_of_supply">(),
+  );
   const isEdit = Boolean(invoice);
   const { baseCurrencyId, baseCurrencyCode } = useBaseCurrency();
   const sourced = Boolean(
@@ -346,8 +350,18 @@ export function PurchaseInvoiceForm({
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
 
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
+  const currencyId = useWatch({ control: form.control, name: "currency_id" });
   const selectedSupplierId = optionalUuid(supplierId);
+  const lineAutofillContext = useMemo(
+    () => ({
+      currencyId: optionalUuid(currencyId),
+      priceListId: null,
+      warehouseId: null,
+    }),
+    [currencyId],
+  );
   const supplierQuery = useSupplier(isEdit ? null : selectedSupplierId);
+  const composeQuery = usePurchaseInvoiceComposeDefaults(isEdit ? null : selectedSupplierId);
   const suppliers = suppliersQuery.data ?? [];
   const contacts = (contactsQuery.data ?? []).filter(
     (contact) => contact.customer_id === selectedSupplierId,
@@ -358,6 +372,7 @@ export function PurchaseInvoiceForm({
   const purchaseOrderId = useWatch({ control: form.control, name: "purchase_order_id" });
   const goodsReceiptId = useWatch({ control: form.control, name: "goods_receipt_id" });
   const billType = useWatch({ control: form.control, name: "bill_type" });
+  const invoiceDate = useWatch({ control: form.control, name: "invoice_date" });
   const varianceLines = (invoice?.lines ?? []).filter(lineHasPurchasePriceVariance);
 
   useEffect(() => {
@@ -375,6 +390,18 @@ export function PurchaseInvoiceForm({
     form.setValue("supplier_trn", supplier.trn ?? "");
     form.setValue("tax_treatment", supplier.tax_treatment);
   }, [form, isEdit, supplierQuery.data]);
+
+  useApplyComposeDefaults({
+    form,
+    defaults: composeQuery.data,
+    isEdit,
+    disabled,
+    dirtyFieldsRef: dirtyCompose,
+    fieldMap: {
+      contact_id: { field: "contact_id", optional: true },
+      place_of_supply: { field: "place_of_supply" },
+    },
+  });
 
   async function onSubmit(values: PurchaseInvoiceFormValues) {
     setFormError(null);
@@ -989,6 +1016,7 @@ export function PurchaseInvoiceForm({
             showImportMetrics={billType === "IMPORT"}
             enablePurchaseCostHints
             supplierCatalog={selectedSupplierId ? { supplierId: selectedSupplierId } : undefined}
+            lineAutofillContext={lineAutofillContext}
           />
         </div>
         {billType === "IMPORT" || billType === "GOODS" ? (
@@ -1000,7 +1028,12 @@ export function PurchaseInvoiceForm({
         ) : null}
         {currencies.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <LiveDocumentTotalsPanel form={form} currencies={currencies} savedTotals={invoice} />
+            <LiveDocumentTotalsPanel
+              form={form}
+              currencies={currencies}
+              savedTotals={invoice}
+              documentDate={invoiceDate}
+            />
             {invoice ? (
               <BaseEquivalentPreview
                 amount={invoice.grand_total}

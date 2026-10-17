@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -18,7 +18,7 @@ import {
   emptyCostSheetLine,
 } from "@/modules/erp/cost-sheets/components/cost-sheet-lines-editor";
 import { useCreateCostSheet, useUpdateCostSheet } from "@/modules/erp/cost-sheets/mutations";
-import { usePurchaseInvoices } from "@/modules/erp/purchase-invoices/queries";
+import { usePurchaseInvoice, usePurchaseInvoices } from "@/modules/erp/purchase-invoices/queries";
 import { purchaseInvoiceDisplayNumber } from "@/modules/erp/purchase-invoices/schemas";
 import {
   COST_SHEET_MODES,
@@ -37,14 +37,14 @@ import {
   CHARGE_ALLOCATION_METHOD_LABELS,
   CHARGE_ALLOCATION_METHODS,
 } from "@/modules/erp/accounting/charge-types/schemas";
-import { useProformaInvoices } from "@/modules/erp/proforma-invoices/queries";
+import { useProformaInvoice, useProformaInvoices } from "@/modules/erp/proforma-invoices/queries";
 import { proformaInvoiceDisplayNumber } from "@/modules/erp/proforma-invoices/schemas";
-import { usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
+import { usePurchaseOrder, usePurchaseOrders } from "@/modules/erp/purchase-orders/queries";
 import { purchaseOrderDisplayNumber } from "@/modules/erp/purchase-orders/schemas";
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
-import { useShipments } from "@/modules/inventory-management/shipments/queries";
+import { useShipment, useShipments } from "@/modules/inventory-management/shipments/queries";
 import { shipmentDisplayNumber } from "@/modules/inventory-management/shipments/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -71,6 +71,9 @@ import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
+import { useSupplierPartyAutofill, supplierComposeFieldMap } from "@/shared/hooks/use-supplier-party-autofill";
+import { partyComposeApi } from "@/shared/api/party-compose-api";
+import { useCustomerPartyAutofill, customerComposeFieldMap } from "@/shared/hooks/use-customer-party-autofill";
 import { useCan } from "@/shared/providers/session-provider";
 
 const selectedMaster = (message: string) =>
@@ -281,6 +284,79 @@ export function CostSheetForm({ sheet }: Props) {
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   useDirtyFormGuard(form.formState.isDirty && !disabled);
 
+  const linkedPurchaseInvoiceId = optionalUuid(form.watch("purchase_invoice_id"));
+  const linkedPurchaseOrderId = optionalUuid(form.watch("purchase_order_id"));
+  const linkedProformaId = optionalUuid(form.watch("proforma_invoice_id"));
+  const linkedShipmentId = optionalUuid(form.watch("shipment_id"));
+  const linkedPurchaseInvoiceQuery = usePurchaseInvoice(
+    isEdit || disabled ? null : linkedPurchaseInvoiceId ?? null,
+  );
+  const linkedPurchaseOrderQuery = usePurchaseOrder(
+    isEdit || disabled ? null : linkedPurchaseOrderId ?? null,
+  );
+  const linkedProformaQuery = useProformaInvoice(isEdit || disabled ? null : linkedProformaId ?? null);
+  const linkedShipmentQuery = useShipment(isEdit || disabled ? null : linkedShipmentId ?? null);
+  const supplierId = optionalUuid(form.watch("supplier_id"));
+  const customerId = optionalUuid(form.watch("customer_id"));
+
+  useSupplierPartyAutofill({
+    form,
+    queryKey: "cost-sheet",
+    fetcher: partyComposeApi.purchaseInvoice,
+    supplierId: supplierId ?? null,
+    isEdit,
+    disabled,
+    fieldMap: {
+      currency_id: supplierComposeFieldMap.currency_id,
+    },
+  });
+  useCustomerPartyAutofill({
+    form,
+    queryKey: "cost-sheet",
+    fetcher: partyComposeApi.salesInvoice,
+    customerId: customerId ?? null,
+    isEdit,
+    disabled,
+    fieldMap: {
+      currency_id: customerComposeFieldMap.currency_id,
+    },
+  });
+
+  useEffect(() => {
+    const invoice = linkedPurchaseInvoiceQuery.data;
+    if (isEdit || disabled || !invoice) {
+      return;
+    }
+    form.setValue("supplier_id", invoice.supplier_id);
+    form.setValue("currency_id", invoice.currency_id);
+  }, [disabled, form, isEdit, linkedPurchaseInvoiceQuery.data]);
+
+  useEffect(() => {
+    const order = linkedPurchaseOrderQuery.data;
+    if (isEdit || disabled || !order) {
+      return;
+    }
+    form.setValue("supplier_id", order.supplier_id);
+    form.setValue("currency_id", order.currency_id);
+  }, [disabled, form, isEdit, linkedPurchaseOrderQuery.data]);
+
+  useEffect(() => {
+    const proforma = linkedProformaQuery.data;
+    if (isEdit || disabled || !proforma) {
+      return;
+    }
+    form.setValue("customer_id", proforma.customer_id);
+    form.setValue("currency_id", proforma.currency_id);
+  }, [disabled, form, isEdit, linkedProformaQuery.data]);
+
+  useEffect(() => {
+    const shipment = linkedShipmentQuery.data;
+    if (isEdit || disabled || !shipment?.freight_forwarder_id) {
+      return;
+    }
+    form.setValue("supplier_id", shipment.freight_forwarder_id);
+  }, [disabled, form, isEdit, linkedShipmentQuery.data]);
+
   const sheetMode = form.watch("sheet_mode");
   const sheetType = form.watch("sheet_type");
   const isJournalMode = sheetMode === "JOURNAL";
@@ -289,8 +365,6 @@ export function CostSheetForm({ sheet }: Props) {
     isJournalMode,
   );
   const importInvoices = importInvoicesQuery.data?.data ?? [];
-  const supplierId = optionalUuid(form.watch("supplier_id"));
-  const customerId = optionalUuid(form.watch("customer_id"));
   const purchaseOrdersQuery = usePurchaseOrders(
     { page_size: 100, supplier_id: supplierId },
     Boolean(supplierId) || Boolean(sheet?.purchase_order_id),

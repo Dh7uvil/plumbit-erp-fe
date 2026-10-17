@@ -82,6 +82,7 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { formatQuantity } from "@/shared/lib/format";
+import { useDocumentLineAutofillContext } from "@/shared/hooks/use-document-line-autofill-context";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
@@ -320,12 +321,14 @@ export function PurchaseOrderForm({
   }, [suggestionCompose?.warehouseId]);
 
   const supplierId = useWatch({ control: form.control, name: "supplier_id" });
+  const lineAutofillContext = useDocumentLineAutofillContext({ control: form.control });
   const selectedSupplierId = optionalUuid(supplierId);
   const previousCatalogSupplierId = useRef(selectedSupplierId);
   const composeQuery = usePurchaseOrderComposeDefaults(isEdit ? null : selectedSupplierId);
   const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
   const taxTreatment = useWatch({ control: form.control, name: "tax_treatment" });
   const supplierTrn = useWatch({ control: form.control, name: "supplier_trn" });
+  const orderDate = useWatch({ control: form.control, name: "order_date" });
 
   const suppliers = suppliersQuery.data ?? [];
   const contacts = (contactsQuery.data ?? []).filter(
@@ -857,6 +860,7 @@ export function PurchaseOrderForm({
             showImportMetrics
             showPricesIncludeTax
             supplierCatalog={{ supplierId: selectedSupplierId }}
+            lineAutofillContext={lineAutofillContext}
           />
         </div>
         {purchaseOrder && purchaseOrder.lines.length > 0 ? (
@@ -890,6 +894,7 @@ export function PurchaseOrderForm({
             form={form}
             currencies={currencies}
             savedTotals={purchaseOrder}
+            documentDate={orderDate}
           />
         ) : null}
         <div className="grid grid-cols-1 gap-3">

@@ -140,6 +140,22 @@ export function AccountForm({
   const hasMainAccount = parentId !== OPTIONAL_SELECT_NONE && parentId !== "";
 
   useEffect(() => {
+    if (isEdit || !selectedParent) {
+      return;
+    }
+    if (form.getValues("account_type") !== selectedParent.account_type) {
+      form.setValue("account_type", selectedParent.account_type);
+    }
+    const allowed = ACCOUNT_SUBTYPES_BY_TYPE[selectedParent.account_type] ?? [];
+    if (
+      allowed.length > 0 &&
+      !allowed.includes(form.getValues("account_subtype") as (typeof allowed)[number])
+    ) {
+      form.setValue("account_subtype", selectedParent.account_subtype);
+    }
+  }, [form, isEdit, selectedParent]);
+
+  useEffect(() => {
     if (manualCode || codeLocked || !hasMainAccount || !selectedParent) {
       return;
     }

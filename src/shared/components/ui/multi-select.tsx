@@ -60,7 +60,7 @@ export function MultiSelect({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="max-h-60 w-(--radix-dropdown-menu-trigger-width)"
+        className="max-h-60 min-w-(--radix-dropdown-menu-trigger-width) w-max max-w-[min(36rem,calc(100vw-2rem))]"
       >
         {options.length === 0 ? (
           <p className="text-muted-foreground px-2 py-1.5 text-xs">{emptyText}</p>

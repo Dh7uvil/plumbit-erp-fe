@@ -57,6 +57,8 @@ export const productsApi = {
     ),
   delete: async (id: string): Promise<Product> =>
     ProductSchema.parse(await apiClient.delete(`/products/${id}`)),
+  renameSku: async (id: string, sku: string): Promise<Product> =>
+    ProductSchema.parse(await apiClient.post(`/products/${id}/rename-sku`, { sku })),
   listCustomers: async (
     id: string,
     params: TradingAggregateListParams = {},
