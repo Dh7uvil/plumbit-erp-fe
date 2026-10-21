@@ -13,7 +13,10 @@ import {
   useProductSalesHistory,
   useSupplierPurchaseHistory,
 } from "@/modules/inventory-management/history/queries";
-import type { TradingHistoryLine } from "@/modules/inventory-management/history/schemas";
+import {
+  TRADING_HISTORY_POSTING_STATUSES,
+  type TradingHistoryLine,
+} from "@/modules/inventory-management/history/schemas";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { DocumentHistoryTable } from "@/shared/components/document/document-history-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
@@ -44,12 +47,14 @@ export function TradingHistoryLines({
   partyId,
   productId,
   documentHref,
+  postingStatus,
 }: {
   kind: TradingHistoryKind;
   ownerId: string;
   partyId?: string;
   productId?: string;
   documentHref?: (row: TradingHistoryLine) => string;
+  postingStatus?: (typeof TRADING_HISTORY_POSTING_STATUSES)[number];
 }) {
   const can = useCan();
   const showCost = can(historyPermissions.cost);
@@ -68,6 +73,9 @@ export function TradingHistoryLines({
     warehouse_id: filters.warehouse_id,
     document_date_from: filters.document_date_from,
     document_date_to: filters.document_date_to,
+    posting_status:
+      postingStatus ??
+      (filters.posting_status as (typeof TRADING_HISTORY_POSTING_STATUSES)[number] | undefined),
   };
   const productSales = useProductSalesHistory(ownerId, params, kind === "product-sales");
   const productPurchases = useProductPurchaseHistory(ownerId, params, kind === "product-purchases");

@@ -359,6 +359,13 @@ export const navigation: NavigationGroup[] = [
         subsection: "Stock",
       },
       {
+        label: "Inventory details",
+        href: "/inventory-details",
+        permission: productPermissions.read,
+        icon: ClipboardList,
+        subsection: "Stock",
+      },
+      {
         label: "Stock movements",
         href: "/stock-movements",
         permission: stockPermissions.read,

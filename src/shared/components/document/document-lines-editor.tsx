@@ -25,11 +25,13 @@ import type { SupplierProduct } from "@/modules/erp/supplier-products/schemas";
 import { ProductFormDialog } from "@/modules/inventory-management/products/components/product-form-dialog";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { useAllProducts, useProductInquiry } from "@/modules/inventory-management/products/queries";
+import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import type { Product } from "@/modules/inventory-management/products/schemas";
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
+import { useResolvedExchangeRate } from "@/shared/hooks/use-resolved-exchange-rate";
 import {
   DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
@@ -157,12 +159,15 @@ function emptyMixedProductLine() {
 
 const IMPORT_METRIC_HEADERS = ["Net wt", "Gross wt", "Volume"] as const;
 
+const IMPORT_PURCHASE_EXTRA_HEADERS = ["Warehouse", "Amt FCY", "Amt LCY", "Rate LCY"] as const;
+
 function lineHeaders(
   showSupplierSku: boolean,
   mode: DocumentLinesMode,
   showPacking: boolean,
   showHsCode: boolean,
   showImportMetrics: boolean,
+  showImportPurchaseColumns: boolean,
 ): readonly string[] {
   let headers: readonly string[];
   if (mode === "mixed") {
@@ -196,6 +201,20 @@ function lineHeaders(
         ...withoutActions.slice(0, rateIndex + 1),
         ...IMPORT_METRIC_HEADERS,
         ...withoutActions.slice(rateIndex + 1),
+        "",
+      ];
+    }
+  }
+  if (mode === "mixed" && showImportPurchaseColumns) {
+    const withoutActions = headers.slice(0, -1).map((header) =>
+      header === "Rate" ? "Rate (FCY)" : header,
+    );
+    const amountIndex = withoutActions.indexOf("Amount");
+    if (amountIndex >= 0) {
+      return [
+        ...withoutActions.slice(0, amountIndex),
+        ...IMPORT_PURCHASE_EXTRA_HEADERS,
+        ...withoutActions.slice(amountIndex),
         "",
       ];
     }
@@ -398,8 +417,10 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   showPacking = false,
   showHsCode = false,
   showImportMetrics = false,
+  showImportPurchaseColumns = false,
   showPricesIncludeTax = false,
   enableInventoryHelp = false,
+  inventoryHelpVariant = "default",
   enablePurchaseCostHints = false,
   lineAutofillContext,
 }: {
@@ -411,9 +432,12 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   showPacking?: boolean;
   showHsCode?: boolean;
   showImportMetrics?: boolean;
+  /** Import purchase invoice: warehouse + FCY/LCY line amounts. */
+  showImportPurchaseColumns?: boolean;
   showPricesIncludeTax?: boolean;
   /** F7 inventory help sheet (sales documents). */
   enableInventoryHelp?: boolean;
+  inventoryHelpVariant?: "default" | "winsoft";
   /** LP / average cost strip under rate (purchase documents). */
   enablePurchaseCostHints?: boolean;
   /** When set, product selection may fetch server line defaults (price list / stock). */
@@ -492,12 +516,15 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const isExpense = lineMode === "expense";
   const isMixed = lineMode === "mixed";
   const showSupplierSku = Boolean(supplierCatalog) || isReceive;
+  const warehousesQuery = useAllWarehouses(showImportPurchaseColumns);
+  const warehouses = warehousesQuery.data ?? [];
   const headers = lineHeaders(
     showSupplierSku,
     lineMode,
     showPacking,
     showHsCode,
     showImportMetrics,
+    showImportPurchaseColumns,
   );
   const rawCurrencyId = useWatch({
     control: form.control,
@@ -506,6 +533,23 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const documentCurrencyId = optionalUuid(
     typeof rawCurrencyId === "string" ? rawCurrencyId : undefined,
   );
+  const exchangeRate = useWatch({
+    control: form.control,
+    name: "exchange_rate" as Path<TFieldValues>,
+  });
+  const documentDateRaw = useWatch({
+    control: form.control,
+    name: "invoice_date" as Path<TFieldValues>,
+  });
+  const resolvedFx = useResolvedExchangeRate({
+    currencyId: documentCurrencyId,
+    baseCurrencyId: baseCurrencyId,
+    documentDate: typeof documentDateRaw === "string" ? documentDateRaw : null,
+  });
+  const formRate =
+    typeof exchangeRate === "string" && exchangeRate.trim() ? exchangeRate.trim() : null;
+  const effectiveLineExchangeRate =
+    formRate ?? (resolvedFx.sameCurrency ? "1" : resolvedFx.rate) ?? "1";
 
   function setLineValue(index: number, field: string, value: string) {
     form.setValue(
@@ -701,6 +745,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                     supplierId={supplierId}
                     showSupplierSku={showSupplierSku}
                     showImportMetrics={showImportMetrics}
+                    showImportPurchaseColumns={showImportPurchaseColumns}
+                    warehouses={warehouses}
+                    exchangeRate={
+                      showImportPurchaseColumns ? effectiveLineExchangeRate : formRate ?? ""
+                    }
                     onApplyProduct={applyProduct}
                     onApplyCatalogRow={applyCatalogRow}
                     onRemove={remove}
@@ -1343,6 +1392,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
           productId={inventoryHelpProductId}
           open={inventoryHelpOpen}
           onOpenChange={setInventoryHelpOpen}
+          variant={inventoryHelpVariant}
         />
       ) : null}
     </div>

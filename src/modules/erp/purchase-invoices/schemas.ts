@@ -110,6 +110,10 @@ export const PurchaseInvoiceLineSchema = z.object({
   grn_unit_cost: MoneySchema,
   qty_debited: DecimalStringSchema,
   qty_received: DecimalStringSchema.optional().default("0"),
+  warehouse_id: z.string().uuid().nullable().optional().default(null),
+  amount_fcy: MoneySchema.nullable().optional().default(null),
+  amount_lcy: MoneySchema.nullable().optional().default(null),
+  rate_lcy: MoneySchema.nullable().optional().default(null),
 });
 export type PurchaseInvoiceLine = z.infer<typeof PurchaseInvoiceLineSchema>;
 
@@ -214,6 +218,7 @@ export const PurchaseInvoiceLineInputSchema = z.object({
   discount_type: DiscountTypeSchema.nullable().optional(),
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
 });
 export type PurchaseInvoiceLineInput = z.infer<typeof PurchaseInvoiceLineInputSchema>;
 
@@ -252,6 +257,7 @@ export const PurchaseInvoiceCreateRequestSchema = z.object({
   boe_number: z.string().nullable().optional(),
   cargo_permit_number: z.string().nullable().optional(),
   document_series: z.enum(["BILL", "LC"]).nullable().optional(),
+  exchange_rate: MoneySchema.nullable().optional(),
   lines: z.array(PurchaseInvoiceLineInputSchema),
 });
 export type PurchaseInvoiceCreateRequest = z.infer<typeof PurchaseInvoiceCreateRequestSchema>;
@@ -289,6 +295,7 @@ export const PurchaseInvoiceUpdateRequestSchema = z.object({
   import_doc_date: z.string().nullable().optional(),
   boe_number: z.string().nullable().optional(),
   cargo_permit_number: z.string().nullable().optional(),
+  exchange_rate: MoneySchema.nullable().optional(),
   lines: z.array(PurchaseInvoiceLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -331,6 +338,10 @@ export const PurchaseInvoiceLineFormSchema = z.object({
   expense_category: z.string().optional(),
   charge_type_id: z.string().optional(),
   grn_unit_cost: z.string().optional(),
+  warehouse_id: z.string().optional(),
+  amount_fcy: z.string().optional(),
+  amount_lcy: z.string().optional(),
+  rate_lcy: z.string().optional(),
 });
 export type PurchaseInvoiceLineFormValues = z.infer<typeof PurchaseInvoiceLineFormSchema>;
 
@@ -389,6 +400,7 @@ export const PurchaseInvoiceFormSchema = z
     import_doc_date: z.string(),
     boe_number: z.string(),
     cargo_permit_number: z.string(),
+    exchange_rate: z.string(),
     lines: z.array(PurchaseInvoiceLineFormSchema),
   })
   .superRefine((values, ctx) => {

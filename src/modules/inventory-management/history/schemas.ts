@@ -58,6 +58,9 @@ export const TradingProductAggregateSchema = z.object({
 export type TradingProductAggregate = z.infer<typeof TradingProductAggregateSchema>;
 export const TradingProductAggregateListSchema = z.array(TradingProductAggregateSchema);
 
+export const TRADING_HISTORY_POSTING_STATUSES = ["POSTED", "ALL", "UNPOSTED"] as const;
+export type TradingHistoryPostingStatus = (typeof TRADING_HISTORY_POSTING_STATUSES)[number];
+
 export type TradingHistoryListParams = {
   page?: number;
   page_size?: number;
@@ -69,6 +72,7 @@ export type TradingHistoryListParams = {
   warehouse_id?: string;
   document_date_from?: string;
   document_date_to?: string;
+  posting_status?: TradingHistoryPostingStatus;
 };
 
 export type TradingAggregateListParams = {

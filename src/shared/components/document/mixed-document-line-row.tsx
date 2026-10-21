@@ -14,6 +14,7 @@ import type { Tax } from "@/modules/erp/accounting/taxes/schemas";
 import type { Account } from "@/modules/erp/accounting/accounts/schemas";
 import type { SupplierProduct } from "@/modules/erp/supplier-products/schemas";
 import type { Unit } from "@/modules/inventory-management/units/schemas";
+import type { Warehouse } from "@/modules/inventory-management/warehouses/schemas";
 import {
   DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
@@ -40,6 +41,74 @@ import {
   multiplyDecimals,
   subtractDecimals,
 } from "@/shared/lib/format";
+
+function lineNetFcyAmount(
+  quantity: unknown,
+  rate: unknown,
+  discountType: unknown,
+  discountValue: unknown,
+): string {
+  const qty = String(quantity ?? "").trim();
+  const unitRate = String(rate ?? "").trim();
+  if (!qty || !unitRate) {
+    return "";
+  }
+  const lineTotal = multiplyDecimals(qty, unitRate);
+  if (!lineTotal) {
+    return "";
+  }
+  let net = lineTotal;
+  const type = discountType && discountType !== OPTIONAL_SELECT_NONE ? String(discountType) : "";
+  const disc = String(discountValue ?? "").trim();
+  if (disc) {
+    if (type === "PERCENTAGE") {
+      const pct = multiplyDecimals(disc, "0.01");
+      const discountAmount = pct ? multiplyDecimals(lineTotal, pct) : null;
+      net = discountAmount ? (subtractDecimals(lineTotal, discountAmount) ?? lineTotal) : lineTotal;
+    } else if (type === "AMOUNT") {
+      const capped = minDecimals(disc, lineTotal) ?? disc;
+      net = subtractDecimals(lineTotal, capped) ?? lineTotal;
+    }
+  }
+  return formatFixedDecimal(net, 2) ?? net;
+}
+
+function ImportPurchaseMoneyCells({
+  form,
+  index,
+  exchangeRate,
+}: {
+  form: UseFormReturn<FieldValues>;
+  index: number;
+  exchangeRate: string;
+}) {
+  const quantity = useWatch({ control: form.control, name: linePath(index, "quantity") });
+  const rate = useWatch({ control: form.control, name: linePath(index, "rate") });
+  const discountType = useWatch({ control: form.control, name: linePath(index, "discount_type") });
+  const discountValue = useWatch({
+    control: form.control,
+    name: linePath(index, "discount_value"),
+  });
+  const unitRate = String(rate ?? "").trim();
+  const fx = exchangeRate.trim() || "1";
+  const amountFcy = lineNetFcyAmount(quantity, rate, discountType, discountValue);
+  const amountLcy = amountFcy ? multiplyDecimals(amountFcy, fx) : "";
+  const rateLcy = unitRate ? multiplyDecimals(unitRate, fx) : "";
+  const cell = (value: string | null | undefined) => (
+    <TableCell className="w-24 min-w-24 align-top">
+      <span className="block min-h-9 py-2 text-right text-sm tabular-nums">
+        {value?.trim() ? value : "—"}
+      </span>
+    </TableCell>
+  );
+  return (
+    <>
+      {cell(amountFcy || null)}
+      {cell(amountLcy || null)}
+      {cell(rateLcy || null)}
+    </>
+  );
+}
 
 function linePath<TFieldValues extends FieldValues>(
   index: number,
@@ -71,31 +140,13 @@ function LineAmountPreview({ form, index }: { form: UseFormReturn<FieldValues>; 
     control: form.control,
     name: linePath(index, "discount_value"),
   });
-  const qty = String(quantity ?? "").trim();
-  const unitRate = String(rate ?? "").trim();
-  if (!qty || !unitRate) {
+  const net = lineNetFcyAmount(quantity, rate, discountType, discountValue);
+  if (!net) {
     return <span className="block min-h-9 py-2 text-right text-sm">—</span>;
-  }
-  const lineTotal = multiplyDecimals(qty, unitRate);
-  if (!lineTotal) {
-    return <span className="block min-h-9 py-2 text-right text-sm">—</span>;
-  }
-  let net = lineTotal;
-  const type = discountType && discountType !== OPTIONAL_SELECT_NONE ? String(discountType) : "";
-  const disc = String(discountValue ?? "").trim();
-  if (disc) {
-    if (type === "PERCENTAGE") {
-      const pct = multiplyDecimals(disc, "0.01");
-      const discountAmount = pct ? multiplyDecimals(lineTotal, pct) : null;
-      net = discountAmount ? (subtractDecimals(lineTotal, discountAmount) ?? lineTotal) : lineTotal;
-    } else if (type === "AMOUNT") {
-      const capped = minDecimals(disc, lineTotal) ?? disc;
-      net = subtractDecimals(lineTotal, capped) ?? lineTotal;
-    }
   }
   return (
     <span className="block min-h-9 py-2 text-right text-sm tabular-nums">
-      {formatFixedDecimal(net, 2)}
+      {net}
     </span>
   );
 }
@@ -112,6 +163,9 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
   supplierId,
   showSupplierSku,
   showImportMetrics = false,
+  showImportPurchaseColumns = false,
+  warehouses = [],
+  exchangeRate = "",
   onApplyProduct,
   onApplyCatalogRow,
   onRemove,
@@ -130,6 +184,9 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
   supplierId: string | null;
   showSupplierSku: boolean;
   showImportMetrics?: boolean;
+  showImportPurchaseColumns?: boolean;
+  warehouses?: Warehouse[];
+  exchangeRate?: string;
   onApplyProduct: (index: number, productId: string) => void;
   onApplyCatalogRow: (index: number, row: SupplierProduct) => void;
   onRemove: (index: number) => void;
@@ -441,6 +498,46 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
             />
           </TableCell>
         ))
+      ) : null}
+      {!isExpense && showImportPurchaseColumns ? (
+        <>
+          <TableCell className="min-w-40 align-top">
+            <FormField
+              control={form.control}
+              name={linePath<TFieldValues>(index, "warehouse_id")}
+              render={({ field: warehouseField }) => (
+                <FormItem>
+                  <MasterSelect
+                    compact
+                    value={String(warehouseField.value ?? OPTIONAL_SELECT_NONE)}
+                    onValueChange={warehouseField.onChange}
+                    disabled={disabled}
+                    placeholder="Warehouse"
+                    searchPlaceholder="Search…"
+                    options={[
+                      { value: OPTIONAL_SELECT_NONE, label: "None" },
+                      ...warehouses.map((wh) => ({ value: wh.id, label: wh.name })),
+                    ]}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TableCell>
+          <ImportPurchaseMoneyCells
+            form={form as UseFormReturn<FieldValues>}
+            index={index}
+            exchangeRate={exchangeRate}
+          />
+        </>
+      ) : null}
+      {isExpense && showImportPurchaseColumns ? (
+        <>
+          <TableCell className="text-muted-foreground text-sm">—</TableCell>
+          <TableCell className="text-muted-foreground text-sm">—</TableCell>
+          <TableCell className="text-muted-foreground text-sm">—</TableCell>
+          <TableCell className="text-muted-foreground text-sm">—</TableCell>
+        </>
       ) : null}
       {isExpense ? (
         <>

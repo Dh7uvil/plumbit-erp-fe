@@ -21,19 +21,21 @@ import {
 } from "@/modules/inventory-management/products/mutations";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
 import {
+  toCreateRequest,
+  toDirtyUpdateRequest,
+  toFormValues,
+} from "@/modules/inventory-management/products/product-form-payload";
+import {
   ITEM_TYPE_LABELS,
   ITEM_TYPES,
   ProductFormSchema,
   formatPacking,
   type Product,
-  type ProductCreateRequest,
   type ProductFormValues,
-  type ProductUpdateRequest,
 } from "@/modules/inventory-management/products/schemas";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
-import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -60,81 +62,6 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
-
-function optionalUuid(value: string): string | null {
-  return !value || value === OPTIONAL_SELECT_NONE ? null : value;
-}
-
-function toFormValues(product: Product | null): ProductFormValues {
-  return {
-    sku: product?.sku ?? "",
-    name: product?.name ?? "",
-    item_type: product?.item_type ?? "PRODUCT",
-    sales_description: product?.sales_description ?? "",
-    unit_id: product?.unit_id ?? OPTIONAL_SELECT_NONE,
-    pieces_per_unit: product?.pieces_per_unit ?? "",
-    category_id: product?.category_id ?? OPTIONAL_SELECT_NONE,
-    selling_rate: product?.selling_rate ?? "0",
-    purchase_rate: product?.purchase_rate ?? "0",
-    purchase_description: product?.purchase_description ?? "",
-    tax_id: product?.tax_id ?? OPTIONAL_SELECT_NONE,
-    income_account_id: product?.income_account_id ?? OPTIONAL_SELECT_NONE,
-    purchase_account_id: product?.purchase_account_id ?? OPTIONAL_SELECT_NONE,
-    hs_code: product?.hs_code ?? "",
-    volume: product?.volume ?? "",
-    track_inventory: product?.track_inventory ?? true,
-    requires_qc: product?.requires_qc ?? false,
-    is_active: product?.is_active ?? true,
-  };
-}
-
-function piecesPerUnitPayload(unitId: string, piecesPerUnit: string): string | null {
-  return optionalUuid(unitId) ? emptyToNull(piecesPerUnit) : null;
-}
-
-function toCreateRequest(values: ProductFormValues): ProductCreateRequest {
-  return {
-    sku: values.sku.trim(),
-    name: values.name.trim(),
-    item_type: values.item_type,
-    sales_description: emptyToNull(values.sales_description),
-    unit_id: optionalUuid(values.unit_id),
-    pieces_per_unit: piecesPerUnitPayload(values.unit_id, values.pieces_per_unit),
-    category_id: optionalUuid(values.category_id),
-    selling_rate: values.selling_rate.trim() || "0",
-    purchase_rate: values.purchase_rate.trim() || "0",
-    purchase_description: emptyToNull(values.purchase_description),
-    tax_id: optionalUuid(values.tax_id),
-    income_account_id: optionalUuid(values.income_account_id) ?? undefined,
-    purchase_account_id: optionalUuid(values.purchase_account_id) ?? undefined,
-    hs_code: emptyToNull(values.hs_code),
-    volume: emptyToNull(values.volume),
-    track_inventory: values.track_inventory,
-    requires_qc: values.requires_qc,
-  };
-}
-
-function toUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
-  return {
-    item_type: values.item_type,
-    name: values.name.trim(),
-    sales_description: emptyToNull(values.sales_description),
-    unit_id: optionalUuid(values.unit_id),
-    pieces_per_unit: piecesPerUnitPayload(values.unit_id, values.pieces_per_unit),
-    category_id: optionalUuid(values.category_id),
-    selling_rate: values.selling_rate.trim() || "0",
-    purchase_rate: values.purchase_rate.trim() || "0",
-    purchase_description: emptyToNull(values.purchase_description),
-    tax_id: optionalUuid(values.tax_id),
-    income_account_id: optionalUuid(values.income_account_id),
-    purchase_account_id: optionalUuid(values.purchase_account_id),
-    hs_code: emptyToNull(values.hs_code),
-    volume: emptyToNull(values.volume),
-    track_inventory: values.track_inventory,
-    requires_qc: values.requires_qc,
-    is_active: values.is_active,
-  };
-}
 
 export function ProductForm({
   product,
@@ -175,8 +102,11 @@ export function ProductForm({
   const trackInventory = useWatch({ control: form.control, name: "track_inventory" });
   const categoryId = useWatch({ control: form.control, name: "category_id" });
   const unitId = useWatch({ control: form.control, name: "unit_id" });
+  const taxId = useWatch({ control: form.control, name: "tax_id" });
+  const secondaryUnitId = useWatch({ control: form.control, name: "secondary_unit_id" });
   const piecesPerUnit = useWatch({ control: form.control, name: "pieces_per_unit" });
   const hasUnit = Boolean(unitId && unitId !== OPTIONAL_SELECT_NONE);
+  const hasSecondaryUnit = Boolean(secondaryUnitId && secondaryUnitId !== OPTIONAL_SELECT_NONE);
   const selectedUnitName = hasUnit
     ? (unitsQuery.data ?? []).find((unit) => unit.id === unitId)?.name
     : undefined;
@@ -212,7 +142,14 @@ export function ProductForm({
     setFormError(null);
     try {
       if (product) {
-        await updateProduct.mutateAsync({ id: product.id, values: toUpdateRequest(values) });
+        const dirty = form.formState.dirtyFields;
+        const patch = toDirtyUpdateRequest(values, dirty);
+        if (Object.keys(patch).length === 0) {
+          toast.message("No changes to save");
+          onSuccess?.(product);
+          return;
+        }
+        await updateProduct.mutateAsync({ id: product.id, values: patch });
         toast.success("Product updated");
         onSuccess?.(product);
       } else {
@@ -232,6 +169,7 @@ export function ProductForm({
   const units = unitsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
   const taxes = taxesQuery.data ?? [];
+  const selectedTaxRate = taxes.find((tax) => tax.id === taxId)?.rate;
 
   return (
     <Form {...form}>
@@ -317,6 +255,32 @@ export function ProductForm({
           />
           <FormField
             control={form.control}
+            name="price_1"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price 1</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="price_2"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price 2</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="money" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="sales_description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
@@ -334,10 +298,18 @@ export function ProductForm({
             name="purchase_rate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Purchase rate</FormLabel>
+                <FormLabel>Avg. cost</FormLabel>
                 <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
+                  <DecimalInput
+                    kind="money"
+                    disabled={disabled || Boolean(product?.id)}
+                    {...field}
+                  />
                 </FormControl>
+                <p className="text-muted-foreground text-xs">
+                  Updated automatically from FIFO when goods receipts or purchase invoices are
+                  posted.
+                </p>
                 <FormMessage />
               </FormItem>
             )}
@@ -465,6 +437,12 @@ export function ProductForm({
                 </FormItem>
               )}
             />
+            <FormItem>
+              <FormLabel>Tax rate</FormLabel>
+              <FormControl>
+                <Input readOnly disabled tabIndex={-1} value={selectedTaxRate ?? "—"} />
+              </FormControl>
+            </FormItem>
             <FormField
               control={form.control}
               name="hs_code"
@@ -492,6 +470,202 @@ export function ProductForm({
               )}
             />
           </div>
+          <p className="col-span-full text-sm font-medium">Additional item details</p>
+          <FormField
+            control={form.control}
+            name="brand"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Brand</FormLabel>
+                <FormControl>
+                  <Input maxLength={120} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="origin_country_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Made in (ISO)</FormLabel>
+                <FormControl>
+                  <Input maxLength={2} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="engine"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Engine / model</FormLabel>
+                <FormControl>
+                  <Input maxLength={80} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="alias_2"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Alias 2</FormLabel>
+                <FormControl>
+                  <Input maxLength={80} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="alias_3"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Alias 3</FormLabel>
+                <FormControl>
+                  <Input maxLength={80} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="alias_4"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Alias 4</FormLabel>
+                <FormControl>
+                  <Input maxLength={80} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="secondary_unit_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Unit 2</FormLabel>
+                <MasterSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={disabled || unitsQuery.isLoading}
+                  placeholder="None"
+                  searchPlaceholder="Search unit…"
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...units.map((unit) => ({ value: unit.id, label: unit.name })),
+                  ]}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="secondary_unit_factor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Unit 2 factor</FormLabel>
+                <FormControl>
+                  <DecimalInput
+                    kind="quantity"
+                    disabled={disabled || !hasSecondaryUnit}
+                    placeholder={hasSecondaryUnit ? undefined : "Select unit 2 first"}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="default_reorder_level"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reorder level</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="max_level"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Max level</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="net_weight"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Net weight</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="gross_weight"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Gross weight</FormLabel>
+                <FormControl>
+                  <DecimalInput kind="quantity" disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="rem"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Rem</FormLabel>
+                <FormControl>
+                  <Input maxLength={200} disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="remarks"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Remarks</FormLabel>
+                <FormControl>
+                  <Textarea disabled={disabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           {can(accountPermissions.read) ? (
             <div
               data-slot="form-grid"
@@ -568,6 +742,22 @@ export function ProductForm({
                 )}
               />
             ) : null}
+            <FormField
+              control={form.control}
+              name="stock_input_disabled"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={disabled}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel>Disable stock input on documents</FormLabel>
+                </FormItem>
+              )}
+            />
             {isEdit ? (
               <FormField
                 control={form.control}

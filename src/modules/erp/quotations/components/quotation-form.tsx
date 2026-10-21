@@ -776,6 +776,8 @@ export function QuotationForm({
             productSide="sales"
             showPacking
             showPricesIncludeTax
+            enableInventoryHelp
+            inventoryHelpVariant="winsoft"
             lineAutofillContext={lineAutofillContext}
           />
         </div>

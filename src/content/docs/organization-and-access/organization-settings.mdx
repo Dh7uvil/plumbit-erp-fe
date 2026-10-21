@@ -30,9 +30,9 @@ Warehouses have **no branch_id**. Branch appears on transaction headers; warehou
 
 | Setting | Effect |
 |---|---|
-| `quotation_requires_approval` | Blocks send-from-draft; must submit → approve |
-| `sales_order_requires_approval` | Blocks confirm-from-draft |
-| `purchase_order_requires_approval` | Blocks issue-from-draft |
+| `quotation_requires_approval` | Blocks send-from-draft; must submit → approve (skipped when the document creator is a Superadmin) |
+| `sales_order_requires_approval` | Blocks confirm-from-draft (skipped when the document creator is a Superadmin) |
+| `purchase_order_requires_approval` | Blocks issue-from-draft (skipped when the document creator is a Superadmin) |
 | `allow_negative_stock` | Allows issuing below available on delivery/adjustment |
 | `allow_over_receipt` + tolerance | Controls GRN qty above PO outstanding |
 | `qc_required_default` | Default for new products requiring QC |

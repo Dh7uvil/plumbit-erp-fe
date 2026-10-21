@@ -37,12 +37,14 @@ export function LiveDocumentTotalsPanel<T extends FieldValues & CommercialTotals
   savedTotals,
   roundOffRule = "NONE",
   documentDate,
+  amountLabels,
 }: {
   form: UseFormReturn<T>;
   currencies: readonly { id: string; code: string }[];
   savedTotals?: DocumentTotals | null;
   roundOffRule?: RoundOffRule;
   documentDate?: string | null;
+  amountLabels?: { foreign?: string; base?: string };
 }) {
   const taxesQuery = useAllTaxes();
   const taxes = taxesQuery.data ?? [];
@@ -152,6 +154,7 @@ export function LiveDocumentTotalsPanel<T extends FieldValues & CommercialTotals
     <DocumentTotalsPanel
       totals={totals}
       currencies={currencies}
+      amountLabels={amountLabels}
       liveExtras={{
         taxable_amount: live.taxable_amount,
         shipping_amount: live.shipping_amount,

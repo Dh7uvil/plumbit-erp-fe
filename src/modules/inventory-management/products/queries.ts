@@ -3,7 +3,11 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { productsApi } from "@/modules/inventory-management/products/api";
-import type { ProductListParams } from "@/modules/inventory-management/products/schemas";
+import type {
+  InventoryListParams,
+  ProductListParams,
+  ProductPurchaseDetailsParams,
+} from "@/modules/inventory-management/products/schemas";
 import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export const productKeys = {
@@ -12,6 +16,10 @@ export const productKeys = {
   allItems: () => [...productKeys.all, "all"] as const,
   detail: (id: string) => [...productKeys.all, "detail", id] as const,
   inquiry: (id: string) => [...productKeys.all, "inquiry", id] as const,
+  inventoryList: (params: InventoryListParams) =>
+    [...productKeys.all, "inventory-list", params] as const,
+  purchaseDetails: (id: string, params: ProductPurchaseDetailsParams) =>
+    [...productKeys.all, "purchase-details", id, params] as const,
 };
 
 export function useProducts(params: ProductListParams) {
@@ -43,5 +51,27 @@ export function useProductInquiry(id: string | null) {
     queryKey: useTenantQueryKey(productKeys.inquiry(id ?? "")),
     queryFn: () => productsApi.inquiry(id!),
     enabled: Boolean(id),
+  });
+}
+
+export function useProductInventoryList(params: InventoryListParams, enabled = true) {
+  return useQuery({
+    queryKey: useTenantQueryKey(productKeys.inventoryList(params)),
+    queryFn: () => productsApi.inventoryList(params),
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+}
+
+export function useProductPurchaseDetails(
+  productId: string | null,
+  params: ProductPurchaseDetailsParams,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: useTenantQueryKey(productKeys.purchaseDetails(productId ?? "", params)),
+    queryFn: () => productsApi.listPurchaseDetails(productId!, params),
+    placeholderData: keepPreviousData,
+    enabled: Boolean(productId) && enabled,
   });
 }

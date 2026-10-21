@@ -149,6 +149,7 @@ function toLineInput(line: PurchaseInvoiceLineFormValues): PurchaseInvoiceLineIn
     discount_type: optionalDiscountType(line.discount_type),
     discount_value: emptyToNull(line.discount_value),
     tax_id: optionalUuid(line.tax_id),
+    warehouse_id: optionalUuid(line.warehouse_id ?? ""),
   };
 }
 
@@ -176,6 +177,10 @@ function toFormLines(invoice: PurchaseInvoice | null): PurchaseInvoiceLineFormVa
     expense_category: line.expense_category ?? OPTIONAL_SELECT_NONE,
     charge_type_id: line.charge_type_id ?? "",
     grn_unit_cost: line.grn_unit_cost ?? "",
+    warehouse_id: line.warehouse_id ?? OPTIONAL_SELECT_NONE,
+    amount_fcy: line.amount_fcy ?? "",
+    amount_lcy: line.amount_lcy ?? "",
+    rate_lcy: line.rate_lcy ?? "",
   }));
 }
 
@@ -221,6 +226,7 @@ function toFormValues(
     import_doc_date: invoice?.import_doc_date ?? "",
     boe_number: invoice?.boe_number ?? "",
     cargo_permit_number: invoice?.cargo_permit_number ?? "",
+    exchange_rate: invoice?.exchange_rate ?? "",
     lines: toFormLines(invoice),
   };
 }
@@ -264,6 +270,7 @@ function toCreateRequest(
     boe_number: emptyToNull(values.boe_number),
     cargo_permit_number: emptyToNull(values.cargo_permit_number),
     document_series: importPreset ? "LC" : undefined,
+    exchange_rate: emptyToNull(values.exchange_rate),
     lines: values.lines.filter((line) => !isBlankPurchaseInvoiceLine(line)).map(toLineInput),
   };
 }
@@ -303,6 +310,7 @@ function toUpdateRequest(values: PurchaseInvoiceFormValues): PurchaseInvoiceUpda
     import_doc_date: created.import_doc_date,
     boe_number: created.boe_number,
     cargo_permit_number: created.cargo_permit_number,
+    exchange_rate: created.exchange_rate,
     lines: created.lines,
   };
 }
@@ -373,6 +381,11 @@ export function PurchaseInvoiceForm({
   const goodsReceiptId = useWatch({ control: form.control, name: "goods_receipt_id" });
   const billType = useWatch({ control: form.control, name: "bill_type" });
   const invoiceDate = useWatch({ control: form.control, name: "invoice_date" });
+  const docCurrencyId = optionalUuid(currencyId);
+  const isForeignCurrency = Boolean(
+    docCurrencyId && baseCurrencyId && docCurrencyId !== baseCurrencyId,
+  );
+  const showFcyLcyColumns = billType === "IMPORT" || isForeignCurrency;
   const varianceLines = (invoice?.lines ?? []).filter(lineHasPurchasePriceVariance);
 
   useEffect(() => {
@@ -788,6 +801,25 @@ export function PurchaseInvoiceForm({
               </FormItem>
             )}
           />
+          {showFcyLcyColumns ? (
+            <FormField
+              control={form.control}
+              name="exchange_rate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exchange rate</FormLabel>
+                  <FormControl>
+                    <DecimalInput kind="rate" disabled={disabled} {...field} />
+                  </FormControl>
+                  <p className="text-muted-foreground text-xs">
+                    Leave blank to use the rate for invoice date. Line FCY/LCY amounts update
+                    automatically from qty, FCY rate, discount, and this rate.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
           <FormField
             control={form.control}
             name="currency_id"
@@ -1014,7 +1046,10 @@ export function PurchaseInvoiceForm({
             lineMode="mixed"
             showPricesIncludeTax
             showImportMetrics={billType === "IMPORT"}
+            showImportPurchaseColumns={showFcyLcyColumns}
             enablePurchaseCostHints
+            enableInventoryHelp
+            inventoryHelpVariant="winsoft"
             supplierCatalog={selectedSupplierId ? { supplierId: selectedSupplierId } : undefined}
             lineAutofillContext={lineAutofillContext}
           />
@@ -1033,6 +1068,9 @@ export function PurchaseInvoiceForm({
               currencies={currencies}
               savedTotals={invoice}
               documentDate={invoiceDate}
+              amountLabels={
+                showFcyLcyColumns ? { foreign: "FCY total", base: "LCY total" } : undefined
+              }
             />
             {invoice ? (
               <BaseEquivalentPreview

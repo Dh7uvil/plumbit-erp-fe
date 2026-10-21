@@ -11,6 +11,8 @@ import {
   useUpdateWarehouse,
 } from "@/modules/inventory-management/warehouses/mutations";
 import {
+  WAREHOUSE_LOCATION_TYPE_LABELS,
+  WAREHOUSE_LOCATION_TYPES,
   WarehouseFormSchema,
   type Warehouse,
   type WarehouseCreateRequest,
@@ -35,6 +37,13 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 
@@ -46,6 +55,7 @@ function toFormValues(warehouse: Warehouse | null): WarehouseFormValues {
     address: warehouse ? addressToFormValues(warehouse.address) : EMPTY_ADDRESS_FORM,
     is_default: warehouse?.is_default ?? false,
     is_designated_zone: warehouse?.is_designated_zone ?? false,
+    location_type: warehouse?.location_type ?? "WAREHOUSE",
     is_active: warehouse?.is_active ?? true,
   };
 }
@@ -58,6 +68,7 @@ function toCreateRequest(values: WarehouseFormValues): WarehouseCreateRequest {
     address: toAddressPayload(values.address),
     is_default: values.is_default,
     is_designated_zone: values.is_designated_zone,
+    location_type: values.location_type,
   };
 }
 
@@ -97,6 +108,7 @@ export function WarehouseForm({
             address: toAddressPayload(values.address),
             is_default: values.is_default,
             is_designated_zone: values.is_designated_zone,
+            location_type: values.location_type,
             is_active: values.is_active,
           },
         });
@@ -209,6 +221,30 @@ export function WarehouseForm({
                     />
                   </FormControl>
                   <FormLabel>Designated zone</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="location_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location type</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {WAREHOUSE_LOCATION_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {WAREHOUSE_LOCATION_TYPE_LABELS[type]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
               )}
             />

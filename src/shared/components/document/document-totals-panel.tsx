@@ -74,11 +74,14 @@ export function DocumentTotalsPanel({
   currencies,
   liveExtras,
   rateProps,
+  amountLabels,
 }: {
   totals: DocumentTotals;
   currencies: readonly { id: string; code: string }[];
   liveExtras?: DocumentTotalsLiveExtras;
   rateProps?: DocumentTotalsPanelRateProps;
+  /** Override foreign/base row labels (e.g. FCY / LCY for import bills). */
+  amountLabels?: { foreign?: string; base?: string };
 }) {
   const currency = currencies.find((item) => item.id === totals.currency_id);
   const baseCurrency = currencies.find((item) => item.id === totals.base_currency_id);
@@ -125,8 +128,14 @@ export function DocumentTotalsPanel({
     value: amount(netAmount, netLabel),
   });
   rows.push(
-    { label: "Foreign amount", value: amount(totals.foreign_amount, "Foreign amount") },
-    { label: "Base amount", value: formatMoney(totals.base_amount, baseCode) },
+    {
+      label: amountLabels?.foreign ?? "Foreign amount",
+      value: amount(totals.foreign_amount, amountLabels?.foreign ?? "Foreign amount"),
+    },
+    {
+      label: amountLabels?.base ?? "Base amount",
+      value: formatMoney(totals.base_amount, baseCode),
+    },
     {
       label: `Exchange rate${code && baseCode ? ` (${code}/${baseCode})` : ""}`,
       value: totals.exchange_rate ? (

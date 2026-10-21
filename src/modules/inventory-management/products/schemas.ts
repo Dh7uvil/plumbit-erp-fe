@@ -40,6 +40,12 @@ export const ProductSchema = z.object({
   purchase_account_id: z.string().uuid().nullable().optional().default(null),
   hs_code: z.string().nullable(),
   volume: z.string().nullable().optional().default(null),
+  rem: z.string().nullable().optional().default(null),
+  remarks: z.string().nullable().optional().default(null),
+  max_level: z.string().nullable().optional().default(null),
+  default_reorder_level: z.string().nullable().optional().default(null),
+  net_weight: z.string().nullable().optional().default(null),
+  gross_weight: z.string().nullable().optional().default(null),
   track_inventory: z.boolean(),
   requires_qc: z.boolean(),
   is_active: z.boolean(),
@@ -47,6 +53,17 @@ export const ProductSchema = z.object({
   updated_at: z.string(),
   created_by: z.string().uuid().nullable().optional().default(null),
   updated_by: z.string().uuid().nullable().optional().default(null),
+  qty_on_hand: MoneySchema.nullable().optional(),
+  qty_opened: MoneySchema.nullable().optional(),
+  qty_committed: MoneySchema.nullable().optional(),
+  net_available: MoneySchema.nullable().optional(),
+  shop_qty: MoneySchema.nullable().optional(),
+  warehouse_qty: MoneySchema.nullable().optional(),
+  ordered_qty: MoneySchema.nullable().optional(),
+  last_sale_date: z.string().nullable().optional(),
+  last_sale_price: MoneySchema.nullable().optional(),
+  last_purchase_date: z.string().nullable().optional(),
+  last_purchase_price: MoneySchema.nullable().optional(),
 });
 export type Product = z.infer<typeof ProductSchema>;
 
@@ -68,6 +85,23 @@ export const ProductCreateRequestSchema = z.object({
   purchase_account_id: z.string().uuid().nullable().optional(),
   hs_code: z.string().max(20).nullable().optional(),
   volume: z.string().nullable().optional(),
+  brand: z.string().max(120).nullable().optional(),
+  origin_country_code: z.string().max(2).nullable().optional(),
+  engine: z.string().max(80).nullable().optional(),
+  alias_2: z.string().max(80).nullable().optional(),
+  alias_3: z.string().max(80).nullable().optional(),
+  alias_4: z.string().max(80).nullable().optional(),
+  rem: z.string().max(200).nullable().optional(),
+  remarks: z.string().nullable().optional(),
+  max_level: z.string().nullable().optional(),
+  default_reorder_level: z.string().nullable().optional(),
+  net_weight: z.string().nullable().optional(),
+  gross_weight: z.string().nullable().optional(),
+  price_1: MoneySchema.optional(),
+  price_2: MoneySchema.optional(),
+  stock_input_disabled: z.boolean().optional(),
+  secondary_unit_id: z.string().uuid().nullable().optional(),
+  secondary_unit_factor: z.string().nullable().optional(),
   track_inventory: z.boolean().optional(),
   requires_qc: z.boolean().nullable().optional(),
 });
@@ -88,6 +122,23 @@ export const ProductUpdateRequestSchema = z.object({
   purchase_account_id: z.string().uuid().nullable().optional(),
   hs_code: z.string().max(20).nullable().optional(),
   volume: z.string().nullable().optional(),
+  brand: z.string().max(120).nullable().optional(),
+  origin_country_code: z.string().max(2).nullable().optional(),
+  engine: z.string().max(80).nullable().optional(),
+  alias_2: z.string().max(80).nullable().optional(),
+  alias_3: z.string().max(80).nullable().optional(),
+  alias_4: z.string().max(80).nullable().optional(),
+  rem: z.string().max(200).nullable().optional(),
+  remarks: z.string().nullable().optional(),
+  max_level: z.string().nullable().optional(),
+  default_reorder_level: z.string().nullable().optional(),
+  net_weight: z.string().nullable().optional(),
+  gross_weight: z.string().nullable().optional(),
+  price_1: MoneySchema.nullable().optional(),
+  price_2: MoneySchema.nullable().optional(),
+  stock_input_disabled: z.boolean().nullable().optional(),
+  secondary_unit_id: z.string().uuid().nullable().optional(),
+  secondary_unit_factor: z.string().nullable().optional(),
   track_inventory: z.boolean().nullable().optional(),
   requires_qc: z.boolean().nullable().optional(),
   is_active: z.boolean().nullable().optional(),
@@ -119,11 +170,65 @@ export const ProductFormSchema = z.object({
   purchase_account_id: z.string(),
   hs_code: z.string().max(20),
   volume: z.string(),
+  brand: z.string().max(120),
+  origin_country_code: z.string().max(2),
+  engine: z.string().max(80),
+  alias_2: z.string().max(80),
+  alias_3: z.string().max(80),
+  alias_4: z.string().max(80),
+  rem: z.string().max(200),
+  remarks: z.string(),
+  max_level: z.string(),
+  default_reorder_level: z.string(),
+  net_weight: z.string(),
+  gross_weight: z.string(),
+  price_1: z.string(),
+  price_2: z.string(),
+  stock_input_disabled: z.boolean(),
+  secondary_unit_id: z.string(),
+  secondary_unit_factor: z.string(),
   track_inventory: z.boolean(),
   requires_qc: z.boolean(),
   is_active: z.boolean(),
 });
 export type ProductFormValues = z.infer<typeof ProductFormSchema>;
+
+export const PRODUCT_FORM_UPDATE_KEYS = [
+  "item_type",
+  "name",
+  "sales_description",
+  "unit_id",
+  "pieces_per_unit",
+  "category_id",
+  "selling_rate",
+  "purchase_rate",
+  "purchase_description",
+  "tax_id",
+  "income_account_id",
+  "purchase_account_id",
+  "hs_code",
+  "volume",
+  "brand",
+  "origin_country_code",
+  "engine",
+  "alias_2",
+  "alias_3",
+  "alias_4",
+  "rem",
+  "remarks",
+  "max_level",
+  "default_reorder_level",
+  "net_weight",
+  "gross_weight",
+  "price_1",
+  "price_2",
+  "stock_input_disabled",
+  "secondary_unit_id",
+  "secondary_unit_factor",
+  "track_inventory",
+  "requires_qc",
+  "is_active",
+] as const satisfies readonly (keyof ProductFormValues)[];
 
 /** Read-only label such as "10 ( pieces ) / Box" from pieces per unit and unit name. */
 export function formatPacking(
@@ -167,6 +272,21 @@ export const ProductWarehouseQtySchema = z.object({
 });
 export type ProductWarehouseQty = z.infer<typeof ProductWarehouseQtySchema>;
 
+export const ProductQuantityUnitBreakdownSchema = z.object({
+  unit_qty: z.string(),
+  unit2_qty: z.string(),
+  remainder_qty: z.string(),
+});
+export type ProductQuantityUnitBreakdown = z.infer<typeof ProductQuantityUnitBreakdownSchema>;
+
+export const ProductInquiryQuantityRowsSchema = z.object({
+  on_hand: ProductQuantityUnitBreakdownSchema.nullable().optional().default(null),
+  opened: ProductQuantityUnitBreakdownSchema.nullable().optional().default(null),
+  committed: ProductQuantityUnitBreakdownSchema.nullable().optional().default(null),
+  net_available: ProductQuantityUnitBreakdownSchema.nullable().optional().default(null),
+});
+export type ProductInquiryQuantityRows = z.infer<typeof ProductInquiryQuantityRowsSchema>;
+
 export const ProductInquirySchema = z.object({
   product_id: z.string().uuid(),
   packing_label: z.string().nullable(),
@@ -174,7 +294,14 @@ export const ProductInquirySchema = z.object({
   qty_reserved: z.string(),
   qty_available: z.string(),
   qty_incoming: z.string(),
+  qty_opened: z.string().optional().default("0"),
+  qty_committed: z.string().optional().default("0"),
+  net_available: z.string().optional().default("0"),
+  ordered_qty: z.string().optional().default("0"),
+  shop_qty: z.string().optional().default("0"),
+  warehouse_qty: z.string().optional().default("0"),
   unit2_breakdown: z.string().nullable(),
+  quantity_rows: ProductInquiryQuantityRowsSchema.nullable().optional().default(null),
   warehouses: z.array(ProductWarehouseQtySchema),
   avg_cost: z.string().nullable(),
   lc_price: z.string().nullable(),
@@ -185,5 +312,120 @@ export const ProductInquirySchema = z.object({
   last_purchase_date: z.string().nullable(),
   last_purchase_price: z.string().nullable(),
   last_purchase_quantity: z.string().nullable(),
+  sku: z.string().nullable().optional().default(null),
+  name: z.string().nullable().optional().default(null),
+  alias_2: z.string().nullable().optional().default(null),
+  alias_3: z.string().nullable().optional().default(null),
+  alias_4: z.string().nullable().optional().default(null),
+  volume: z.string().nullable().optional().default(null),
+  brand: z.string().nullable().optional().default(null),
+  origin_country_code: z.string().nullable().optional().default(null),
+  engine: z.string().nullable().optional().default(null),
+  category_name: z.string().nullable().optional().default(null),
+  tax_name: z.string().nullable().optional().default(null),
+  tax_rate: z.string().nullable().optional().default(null),
+  selling_rate: z.string().nullable().optional().default(null),
+  price_1: z.string().nullable().optional().default(null),
+  price_2: z.string().nullable().optional().default(null),
+  purchase_rate: z.string().nullable().optional().default(null),
+  net_weight: z.string().nullable().optional().default(null),
+  gross_weight: z.string().nullable().optional().default(null),
+  rem: z.string().nullable().optional().default(null),
+  remarks: z.string().nullable().optional().default(null),
+  unit_code: z.string().nullable().optional().default(null),
+  unit2_code: z.string().nullable().optional().default(null),
 });
 export type ProductInquiry = z.infer<typeof ProductInquirySchema>;
+
+export const INVENTORY_LIST_SEARCH_TYPES = ["default", "starts_with"] as const;
+export const InventoryListSearchTypeSchema = z.enum(INVENTORY_LIST_SEARCH_TYPES);
+export type InventoryListSearchType = z.infer<typeof InventoryListSearchTypeSchema>;
+
+export const ProductInventoryListRowSchema = z.object({
+  product_id: z.string().uuid(),
+  sku: z.string(),
+  name: z.string(),
+  net_quantity: z.string(),
+  net_available: z.string(),
+  volume: z.string().nullable().optional().default(null),
+  alias_2: z.string().nullable().optional().default(null),
+  alias_3: z.string().nullable().optional().default(null),
+  alias_4: z.string().nullable().optional().default(null),
+  brand: z.string().nullable().optional().default(null),
+  engine: z.string().nullable().optional().default(null),
+  packing_label: z.string().nullable().optional().default(null),
+  selling_rate: z.string().nullable().optional().default(null),
+  price_1: z.string().nullable().optional().default(null),
+  price_2: z.string().nullable().optional().default(null),
+  purchase_rate: z.string().nullable().optional().default(null),
+  lc_price: z.string().nullable().optional().default(null),
+  avg_cost: z.string().nullable().optional().default(null),
+  last_purchase_price: z.string().nullable().optional().default(null),
+  ordered_qty: z.string().optional().default("0"),
+  shop_qty: z.string().optional().default("0"),
+  warehouse_qty: z.string().optional().default("0"),
+  qty_on_hand: z.string().optional().default("0"),
+  qty_opened: z.string().optional().default("0"),
+  qty_committed: z.string().optional().default("0"),
+});
+export type ProductInventoryListRow = z.infer<typeof ProductInventoryListRowSchema>;
+export const ProductInventoryListSchema = z.array(ProductInventoryListRowSchema);
+
+export type InventoryListParams = {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+  category_id?: string;
+  brand?: string;
+  engine?: string;
+  search_type?: InventoryListSearchType;
+  /** When false, include products that do not track inventory (Products page). */
+  tracked_only?: boolean;
+};
+
+export const PURCHASE_DETAIL_KINDS = ["LOCAL", "IMPORT"] as const;
+export const PurchaseDetailKindSchema = z.enum(PURCHASE_DETAIL_KINDS);
+export type PurchaseDetailKind = z.infer<typeof PurchaseDetailKindSchema>;
+
+export const PURCHASE_DETAIL_POSTING_STATUSES = ["ALL", "POSTED", "UNPOSTED"] as const;
+export const PurchaseDetailPostingStatusSchema = z.enum(PURCHASE_DETAIL_POSTING_STATUSES);
+export type PurchaseDetailPostingStatus = z.infer<typeof PurchaseDetailPostingStatusSchema>;
+
+export const ProductPurchaseDetailLineSchema = z.object({
+  document_id: z.string().uuid(),
+  document_number: z.string(),
+  document_date: z.string(),
+  product_id: z.string().uuid(),
+  description: z.string(),
+  party_id: z.string().uuid(),
+  party_name: z.string(),
+  quantity: z.string(),
+  rate: z.string(),
+  amount: z.string(),
+  warehouse_id: z.string().uuid().nullable().optional().default(null),
+  warehouse_name: z.string().nullable().optional().default(null),
+  supplier_invoice_number: z.string().nullable().optional().default(null),
+  lc_date: z.string().nullable().optional().default(null),
+  lc_number: z.string().nullable().optional().default(null),
+  fc_rate: z.string().nullable().optional().default(null),
+  rate_lcy: z.string().nullable().optional().default(null),
+  exchange_rate: z.string().nullable().optional().default(null),
+  branch_id: z.string().uuid().nullable().optional().default(null),
+  branch_name: z.string().nullable().optional().default(null),
+  is_posted: z.boolean().optional().default(false),
+});
+export type ProductPurchaseDetailLine = z.infer<typeof ProductPurchaseDetailLineSchema>;
+export const ProductPurchaseDetailLineListSchema = z.array(ProductPurchaseDetailLineSchema);
+
+export type ProductPurchaseDetailsParams = {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+  kind: PurchaseDetailKind;
+  posting_status?: PurchaseDetailPostingStatus;
+  name?: string;
+};

@@ -5,6 +5,15 @@ import {
   AddressPayloadSchema,
 } from "@/modules/users-management/tenants/schemas";
 
+export const WAREHOUSE_LOCATION_TYPES = ["SHOP", "WAREHOUSE"] as const;
+export const WarehouseLocationTypeSchema = z.enum(WAREHOUSE_LOCATION_TYPES);
+export type WarehouseLocationType = z.infer<typeof WarehouseLocationTypeSchema>;
+
+export const WAREHOUSE_LOCATION_TYPE_LABELS: Record<WarehouseLocationType, string> = {
+  SHOP: "Shop",
+  WAREHOUSE: "Warehouse",
+};
+
 export const WarehouseSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
@@ -14,6 +23,7 @@ export const WarehouseSchema = z.object({
   address: AddressPayloadSchema.nullable().optional(),
   is_default: z.boolean(),
   is_designated_zone: z.boolean().optional().default(false),
+  location_type: WarehouseLocationTypeSchema.optional().default("WAREHOUSE"),
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -31,6 +41,7 @@ export const WarehouseCreateRequestSchema = z.object({
   address: AddressPayloadSchema.nullable().optional(),
   is_default: z.boolean().optional(),
   is_designated_zone: z.boolean().optional(),
+  location_type: WarehouseLocationTypeSchema.optional(),
 });
 export type WarehouseCreateRequest = z.infer<typeof WarehouseCreateRequestSchema>;
 
@@ -40,6 +51,7 @@ export const WarehouseUpdateRequestSchema = z.object({
   address: AddressPayloadSchema.nullable().optional(),
   is_default: z.boolean().nullable().optional(),
   is_designated_zone: z.boolean().nullable().optional(),
+  location_type: WarehouseLocationTypeSchema.nullable().optional(),
   is_active: z.boolean().nullable().optional(),
 });
 export type WarehouseUpdateRequest = z.infer<typeof WarehouseUpdateRequestSchema>;
@@ -51,6 +63,7 @@ export const WarehouseFormSchema = z.object({
   address: AddressFormSchema,
   is_default: z.boolean(),
   is_designated_zone: z.boolean(),
+  location_type: WarehouseLocationTypeSchema,
   is_active: z.boolean(),
 });
 export type WarehouseFormValues = z.infer<typeof WarehouseFormSchema>;

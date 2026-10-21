@@ -10,13 +10,17 @@ import {
 import {
   ProductCreateRequestSchema,
   ProductInquirySchema,
+  ProductInventoryListSchema,
   ProductListSchema,
+  ProductPurchaseDetailLineListSchema,
   ProductSchema,
   ProductUpdateRequestSchema,
   type Product,
   type ProductInquiry,
   type ProductCreateRequest,
+  type InventoryListParams,
   type ProductListParams,
+  type ProductPurchaseDetailsParams,
   type ProductUpdateRequest,
 } from "@/modules/inventory-management/products/schemas";
 import { apiClient } from "@/shared/api/client";
@@ -43,6 +47,23 @@ export const productsApi = {
   },
   listAll: (): Promise<Product[]> =>
     fetchAllPages((page, pageSize) => productsApi.list({ page, page_size: pageSize })),
+  inventoryList: async (params: InventoryListParams = {}) => {
+    const result = await apiClient.getList<unknown>("/products/inventory-list", {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
+        category_id: params.category_id,
+        brand: params.brand,
+        engine: params.engine,
+        search_type: params.search_type,
+        tracked_only: params.tracked_only,
+      },
+    });
+    return { data: ProductInventoryListSchema.parse(result.data), meta: result.meta };
+  },
   get: async (id: string): Promise<Product> =>
     ProductSchema.parse(await apiClient.get(`/products/${id}`)),
   inquiry: async (id: string): Promise<ProductInquiry> =>
@@ -89,9 +110,25 @@ export const productsApi = {
         warehouse_id: params.warehouse_id,
         document_date_from: params.document_date_from,
         document_date_to: params.document_date_to,
+        posting_status: params.posting_status,
       },
     });
     return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
+  },
+  listPurchaseDetails: async (id: string, params: ProductPurchaseDetailsParams) => {
+    const result = await apiClient.getList<unknown>(`/products/${id}/purchase-details`, {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? DEFAULT_PAGE_SIZE,
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
+        kind: params.kind,
+        posting_status: params.posting_status,
+        name: params.name,
+      },
+    });
+    return { data: ProductPurchaseDetailLineListSchema.parse(result.data), meta: result.meta };
   },
   bulkUpdatePrices: async (
     items: Array<{
@@ -120,6 +157,7 @@ export const productsApi = {
         warehouse_id: params.warehouse_id,
         document_date_from: params.document_date_from,
         document_date_to: params.document_date_to,
+        posting_status: params.posting_status,
       },
     });
     return { data: TradingHistoryLineListSchema.parse(result.data), meta: result.meta };
