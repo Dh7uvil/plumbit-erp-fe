@@ -12,7 +12,8 @@ import {
 } from "@/modules/erp/accounting/accounts/queries";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
-import { glHref } from "@/modules/erp/accounting/reports/schemas";
+import { accountStatementHref, glHref } from "@/modules/erp/accounting/reports/schemas";
+import { isControlAccount } from "@/modules/erp/accounting/accounts/schemas";
 import { EntityAttachmentsPanel } from "@/modules/users-management/attachments/components/entity-attachments-panel";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
@@ -92,6 +93,12 @@ export function AccountDetailScreen({
             {account.is_system ? <Badge variant="info">System</Badge> : null}
             {account.is_blocked ? <Badge variant="destructive">Blocked</Badge> : null}
             {account.system_role ? <Badge variant="outline">{account.system_role}</Badge> : null}
+            {isControlAccount(account) && account.is_standalone_ledger ? (
+              <Badge variant="outline">Standalone ledger</Badge>
+            ) : null}
+            {account.linked_party_name ? (
+              <Badge variant="secondary">{account.linked_party_name}</Badge>
+            ) : null}
           </>
         }
       />
@@ -116,9 +123,16 @@ export function AccountDetailScreen({
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">Balance</CardTitle>
             {!account.is_group && can(reportPermissions.ledger) ? (
-              <Button type="button" variant="outline" size="sm" asChild>
-                <Link href={glHref(account.id, period.from, period.to)}>View ledger</Link>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href={accountStatementHref(account.id, period.from, period.to)}>
+                    Statement
+                  </Link>
+                </Button>
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href={glHref(account.id, period.from, period.to)}>View ledger</Link>
+                </Button>
+              </div>
             ) : null}
           </CardHeader>
           <CardContent>

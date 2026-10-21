@@ -85,6 +85,7 @@ const selectedMaster = (message: string) =>
 const journalLineSchema = z.object({
   line_kind: z.enum(["G", "S", "C"]),
   account_id: z.string().min(1),
+  charge_type_id: z.string().min(1),
   party_id: z.string().min(1),
   debit: z.string(),
   credit: z.string(),
@@ -132,11 +133,15 @@ const formSchema = z
         });
       }
       values.journal_lines.forEach((line, index) => {
-        if (line.line_kind === "G" && line.account_id === OPTIONAL_SELECT_NONE) {
+        if (
+          line.line_kind === "G" &&
+          line.account_id === OPTIONAL_SELECT_NONE &&
+          line.charge_type_id === OPTIONAL_SELECT_NONE
+        ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["journal_lines", index, "account_id"],
-            message: "Select an account",
+            message: "Select an account or charge type",
           });
         }
         if (line.line_kind !== "G" && line.party_id === OPTIONAL_SELECT_NONE) {
@@ -272,6 +277,7 @@ export function CostSheetForm({ sheet }: Props) {
         ? sheet.journal_lines.map((line) => ({
             line_kind: line.line_kind,
             account_id: line.account_id ?? OPTIONAL_SELECT_NONE,
+            charge_type_id: line.charge_type_id ?? OPTIONAL_SELECT_NONE,
             party_id: line.party_id ?? OPTIONAL_SELECT_NONE,
             debit: line.debit,
             credit: line.credit,
@@ -440,6 +446,8 @@ export function CostSheetForm({ sheet }: Props) {
               line_kind: line.line_kind,
               account_id:
                 line.line_kind === "G" ? optionalUuid(line.account_id) : undefined,
+              charge_type_id:
+                line.line_kind === "G" ? optionalUuid(line.charge_type_id) : undefined,
               party_id:
                 line.line_kind !== "G" ? optionalUuid(line.party_id) : undefined,
               debit: line.debit || "0",

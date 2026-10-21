@@ -239,6 +239,13 @@ export const navigation: NavigationGroup[] = [
         subsection: "Masters",
       },
       {
+        label: "Supplier statement",
+        href: "/reports/supplier-statement",
+        permission: reportPermissions.arAp,
+        icon: FileSpreadsheet,
+        subsection: "Masters",
+      },
+      {
         label: "Supplier catalog",
         href: "/supplier-products",
         permission: supplierProductPermissions.read,
@@ -392,7 +399,7 @@ export const navigation: NavigationGroup[] = [
     label: "Accounting",
     items: [
       {
-        label: "Chart of accounts",
+        label: "Ledger master (Chart of accounts)",
         href: "/accounts",
         permission: accountPermissions.read,
         icon: Landmark,
@@ -480,6 +487,13 @@ export const navigation: NavigationGroup[] = [
         href: "/reports/bank-book",
         permission: reportPermissions.ledger,
         icon: Landmark,
+        subsection: "Books",
+      },
+      {
+        label: "Account statement",
+        href: "/reports/account-statement",
+        permission: reportPermissions.ledger,
+        icon: FileSpreadsheet,
         subsection: "Books",
       },
       {
@@ -575,6 +589,12 @@ export const navigation: NavigationGroup[] = [
         href: "/customers",
         permission: customerPermissions.read,
         icon: Users,
+      },
+      {
+        label: "Customer statement",
+        href: "/reports/customer-statement",
+        permission: reportPermissions.arAp,
+        icon: FileSpreadsheet,
       },
       {
         label: "Contacts",

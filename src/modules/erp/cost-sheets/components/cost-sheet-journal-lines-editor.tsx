@@ -6,6 +6,7 @@ import { useFieldArray, useWatch } from "react-hook-form";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { journalBalanceTotals } from "@/modules/erp/accounting/journals/balance";
+import { useActiveChargeTypes } from "@/modules/erp/accounting/charge-types/queries";
 import { AccountPicker } from "@/modules/erp/accounting/accounts/components/account-picker";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
@@ -39,10 +40,11 @@ const LINE_KINDS = [
   { value: "C", label: "Customer (C)" },
 ] as const;
 
-function emptyJournalLine(): CostSheetFormValues["journal_lines"][number] {
+export function emptyJournalLine(): CostSheetFormValues["journal_lines"][number] {
   return {
     line_kind: "G",
     account_id: OPTIONAL_SELECT_NONE,
+    charge_type_id: OPTIONAL_SELECT_NONE,
     party_id: OPTIONAL_SELECT_NONE,
     debit: "0",
     credit: "0",
@@ -65,6 +67,7 @@ export function CostSheetJournalLinesEditor({
   const lines = useWatch({ control: form.control, name: "journal_lines" }) ?? [];
   const customers = useAllCustomers().data ?? [];
   const suppliers = useAllSuppliers().data ?? [];
+  const chargeTypes = useActiveChargeTypes().data ?? [];
   const { totalDebit, totalCredit, difference } = journalBalanceTotals(
     lines.map((line) => ({
       debit: line.debit ?? "0",
@@ -134,21 +137,59 @@ export function CostSheetJournalLinesEditor({
                 </TableCell>
                 <TableCell className="align-top">
                   {kind === "G" ? (
-                    <FormField
-                      control={form.control}
-                      name={`journal_lines.${index}.account_id`}
-                      render={({ field: accountField }) => (
-                        <FormItem>
-                          <AccountPicker
-                            value={accountField.value}
-                            onValueChange={accountField.onChange}
-                            disabled={disabled}
-                            placeholder="Account"
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="flex min-w-56 flex-col gap-2">
+                      <FormField
+                        control={form.control}
+                        name={`journal_lines.${index}.charge_type_id`}
+                        render={({ field: chargeField }) => (
+                          <FormItem>
+                            <MasterSelect
+                              value={chargeField.value}
+                              onValueChange={(value) => {
+                                chargeField.onChange(value);
+                                if (value === OPTIONAL_SELECT_NONE) {
+                                  return;
+                                }
+                                const chargeType = chargeTypes.find((row) => row.id === value);
+                                if (chargeType?.default_account_id) {
+                                  form.setValue(
+                                    `journal_lines.${index}.account_id`,
+                                    chargeType.default_account_id,
+                                    { shouldDirty: true },
+                                  );
+                                }
+                              }}
+                              disabled={disabled}
+                              placeholder="Charge type (optional)"
+                              searchPlaceholder="Search charge type…"
+                              options={[
+                                { value: OPTIONAL_SELECT_NONE, label: "No charge type" },
+                                ...chargeTypes.map((row) => ({
+                                  value: row.id,
+                                  label: row.name,
+                                })),
+                              ]}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`journal_lines.${index}.account_id`}
+                        render={({ field: accountField }) => (
+                          <FormItem>
+                            <AccountPicker
+                              value={accountField.value}
+                              onValueChange={accountField.onChange}
+                              disabled={disabled}
+                              placeholder="Account"
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   ) : (
                     <FormField
                       control={form.control}
@@ -252,5 +293,3 @@ export function CostSheetJournalLinesEditor({
     </div>
   );
 }
-
-export { emptyJournalLine };

@@ -17,11 +17,15 @@ import {
   AccountFormSchema,
   EMPTY_ACCOUNT_FORM,
   composeAccountCode,
+  isControlAccount,
   splitAccountCode,
   type Account,
   type AccountFormValues,
   type AccountSubtype,
+  type LedgerKind,
 } from "@/modules/erp/accounting/accounts/schemas";
+import { useAllCustomers } from "@/modules/crm/customers/queries";
+import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
@@ -75,6 +79,13 @@ function toFormValues(account: Account | null, defaultCurrencyId?: string): Acco
     currency_id: account.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     default_tax_id: account.default_tax_id ?? OPTIONAL_SELECT_NONE,
     financial_category_id: account.financial_category_id ?? OPTIONAL_SELECT_NONE,
+    ledger_kind: account.is_standalone_ledger
+      ? "standalone"
+      : account.linked_party_id
+        ? "existing_party"
+        : "none",
+    party_name: account.linked_party_name ?? "",
+    party_id: account.linked_party_id ?? OPTIONAL_SELECT_NONE,
   };
 }
 
@@ -114,6 +125,11 @@ export function AccountForm({
   useDirtyFormGuard(form.formState.isDirty && !disabled);
   useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
   const accountType = useWatch({ control: form.control, name: "account_type" });
+  const accountSubtype = useWatch({ control: form.control, name: "account_subtype" });
+  const isGroup = useWatch({ control: form.control, name: "is_group" });
+  const ledgerKind = useWatch({ control: form.control, name: "ledger_kind" });
+  const customersQuery = useAllCustomers();
+  const suppliersQuery = useAllSuppliers();
   const parentId = useWatch({ control: form.control, name: "parent_id" });
   const subAccountNumber = useWatch({ control: form.control, name: "sub_account_number" });
   const manualCode = useWatch({ control: form.control, name: "manual_code" });
@@ -138,6 +154,10 @@ export function AccountForm({
   const currencies = currenciesQuery.data ?? [];
   const pending = createAccount.isPending || updateAccount.isPending;
   const hasMainAccount = parentId !== OPTIONAL_SELECT_NONE && parentId !== "";
+  const showLedgerKind =
+    !isGroup &&
+    isControlAccount({ account_subtype: accountSubtype, is_group: false });
+  const isReceivable = accountSubtype === "ACCOUNTS_RECEIVABLE";
 
   useEffect(() => {
     if (isEdit || !selectedParent) {
@@ -457,6 +477,90 @@ export function AccountForm({
               </FormItem>
             )}
           />
+          {showLedgerKind ? (
+            <div className="col-span-full flex flex-col gap-3 rounded-md border p-3">
+              <p className="text-sm font-medium">Ledger kind</p>
+              <FormField
+                control={form.control}
+                name="ledger_kind"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => field.onChange(value as LedgerKind)}
+                      disabled={disabled}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose ledger kind" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No party link</SelectItem>
+                        <SelectItem value="new_party">
+                          Link to new {isReceivable ? "customer" : "supplier"}
+                        </SelectItem>
+                        <SelectItem value="existing_party">
+                          Link to existing {isReceivable ? "customer" : "supplier"}
+                        </SelectItem>
+                        <SelectItem value="standalone">Standalone ledger</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Standalone ledgers post without a party (e.g. charge-type payables).
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {ledgerKind === "new_party" ? (
+                <FormField
+                  control={form.control}
+                  name="party_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{isReceivable ? "Customer" : "Supplier"} name</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={disabled} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
+              {ledgerKind === "existing_party" ? (
+                <FormField
+                  control={form.control}
+                  name="party_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{isReceivable ? "Customer" : "Supplier"}</FormLabel>
+                      <MasterSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={disabled}
+                        searchPlaceholder={`Search ${isReceivable ? "customer" : "supplier"}…`}
+                        options={[
+                          { value: OPTIONAL_SELECT_NONE, label: "Select party" },
+                          ...(isReceivable
+                            ? (customersQuery.data ?? [])
+                            : (suppliersQuery.data ?? [])
+                          ).map(
+                            (party) => ({
+                              value: party.id,
+                              label: party.name,
+                            }),
+                          ),
+                        ]}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
+            </div>
+          ) : null}
           <FormField
             control={form.control}
             name="is_group"

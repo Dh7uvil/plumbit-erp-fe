@@ -52,6 +52,7 @@ export const CostSheetJournalLineSchema = z.object({
   line_number: z.number(),
   line_kind: z.enum(COST_SHEET_JOURNAL_LINE_KINDS),
   account_id: z.string().uuid().nullable(),
+  charge_type_id: z.string().uuid().nullable().optional(),
   party_id: z.string().uuid().nullable(),
   debit: money,
   credit: money,
@@ -151,6 +152,7 @@ export const CostSheetChargeInputSchema = z.object({
 export const CostSheetJournalLineInputSchema = z.object({
   line_kind: z.enum(COST_SHEET_JOURNAL_LINE_KINDS).default("G"),
   account_id: z.string().uuid().optional(),
+  charge_type_id: z.string().uuid().optional(),
   party_id: z.string().uuid().optional(),
   debit: money.default("0"),
   credit: money.default("0"),

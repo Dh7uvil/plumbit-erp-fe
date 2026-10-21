@@ -172,6 +172,10 @@ export const AccountSchema = z.object({
   financial_category_name: z.string().nullable().optional().default(null),
   is_active: z.boolean(),
   is_blocked: z.boolean().optional().default(false),
+  is_standalone_ledger: z.boolean().optional().default(false),
+  linked_party_id: z.string().uuid().nullable().optional().default(null),
+  linked_party_name: z.string().nullable().optional().default(null),
+  linked_party_type: z.enum(["CUSTOMER", "SUPPLIER"]).nullable().optional().default(null),
   created_at: z.string(),
   updated_at: z.string(),
   created_by: z.string().uuid().nullable().optional().default(null),
@@ -211,6 +215,16 @@ export const AccountCreateRequestSchema = z.object({
   currency_id: z.string().uuid().nullable().optional(),
   default_tax_id: z.string().uuid().nullable().optional(),
   financial_category_id: z.string().uuid().nullable().optional(),
+  is_standalone_ledger: z.boolean().optional(),
+  party_link: z
+    .object({
+      mode: z.enum(["new", "existing"]),
+      party_type: z.enum(["CUSTOMER", "SUPPLIER"]),
+      party_id: z.string().uuid().nullable().optional(),
+      name: z.string().min(1).max(200).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 export type AccountCreateRequest = z.infer<typeof AccountCreateRequestSchema>;
 
@@ -227,8 +241,13 @@ export const AccountUpdateRequestSchema = z.object({
   currency_id: z.string().uuid().nullable().optional(),
   default_tax_id: z.string().uuid().nullable().optional(),
   financial_category_id: z.string().uuid().nullable().optional(),
+  is_standalone_ledger: z.boolean().nullable().optional(),
+  party_link: AccountCreateRequestSchema.shape.party_link,
 });
 export type AccountUpdateRequest = z.infer<typeof AccountUpdateRequestSchema>;
+
+export const LEDGER_KINDS = ["none", "new_party", "existing_party", "standalone"] as const;
+export type LedgerKind = (typeof LEDGER_KINDS)[number];
 
 export const AccountFormSchema = z.object({
   code: z.string().min(1, "Enter a code").max(20),
@@ -245,6 +264,9 @@ export const AccountFormSchema = z.object({
   currency_id: z.string(),
   default_tax_id: z.string(),
   financial_category_id: z.string(),
+  ledger_kind: z.enum(LEDGER_KINDS),
+  party_name: z.string(),
+  party_id: z.string(),
 });
 export type AccountFormValues = z.infer<typeof AccountFormSchema>;
 
@@ -263,6 +285,9 @@ export const EMPTY_ACCOUNT_FORM: AccountFormValues = {
   currency_id: OPTIONAL_SELECT_NONE,
   default_tax_id: OPTIONAL_SELECT_NONE,
   financial_category_id: OPTIONAL_SELECT_NONE,
+  ledger_kind: "none",
+  party_name: "",
+  party_id: OPTIONAL_SELECT_NONE,
 };
 
 export const AccountBalanceSchema = z.object({
@@ -321,7 +346,48 @@ export type AccountListParams = {
   account_subtype?: AccountSubtype;
   is_group?: boolean;
   is_active?: boolean;
+  is_standalone_ledger?: boolean;
 };
+
+export function ledgerKindLabel(account: Pick<
+  Account,
+  "is_group" | "account_subtype" | "is_standalone_ledger" | "linked_party_name"
+>): string {
+  if (account.is_group) {
+    return "Group";
+  }
+  if (
+    account.account_subtype !== "ACCOUNTS_RECEIVABLE" &&
+    account.account_subtype !== "ACCOUNTS_PAYABLE"
+  ) {
+    return "Postable";
+  }
+  if (account.is_standalone_ledger) {
+    return "Standalone";
+  }
+  if (account.linked_party_name) {
+    return account.linked_party_name;
+  }
+  return "Unlinked";
+}
+
+export function accountPickerHint(
+  account: Pick<
+    Account,
+    "account_subtype" | "is_standalone_ledger" | "linked_party_name"
+  >,
+): string | null {
+  if (
+    account.account_subtype !== "ACCOUNTS_RECEIVABLE" &&
+    account.account_subtype !== "ACCOUNTS_PAYABLE"
+  ) {
+    return null;
+  }
+  if (account.is_standalone_ledger) {
+    return "Standalone";
+  }
+  return account.linked_party_name;
+}
 
 export function isControlAccount(account: Pick<Account, "account_subtype" | "is_group">): boolean {
   return !account.is_group && CONTROL_ACCOUNT_SUBTYPES.has(account.account_subtype);

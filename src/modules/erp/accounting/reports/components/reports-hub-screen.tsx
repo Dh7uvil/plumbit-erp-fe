@@ -103,7 +103,9 @@ export function ReportsHubScreen() {
   const { permissions } = useSession();
   const groups = visibleReportCatalog(permissions);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const activeGroup = groups.find((group) => group.label === openGroup);
+  const expandedGroupLabel =
+    openGroup ?? (groups.length > 0 ? groups[0].label : null);
+  const activeGroup = groups.find((group) => group.label === expandedGroupLabel);
 
   function toggleGroup(label: string) {
     setOpenGroup((current) => (current === label ? null : label));
@@ -124,7 +126,7 @@ export function ReportsHubScreen() {
             <ReportGroupTab
               key={group.label}
               group={group}
-              isOpen={openGroup === group.label}
+              isOpen={expandedGroupLabel === group.label}
               onToggle={() => toggleGroup(group.label)}
             />
           ))}

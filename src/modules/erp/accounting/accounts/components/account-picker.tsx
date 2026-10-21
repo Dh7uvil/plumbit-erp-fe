@@ -2,7 +2,11 @@
 
 import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
-import type { AccountSubtype, AccountType } from "@/modules/erp/accounting/accounts/schemas";
+import {
+  accountPickerHint,
+  type AccountSubtype,
+  type AccountType,
+} from "@/modules/erp/accounting/accounts/schemas";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { useCan } from "@/shared/providers/session-provider";
@@ -56,10 +60,15 @@ export function AccountPicker({
       emptyText={canRead ? "No matching accounts" : "No access to chart of accounts"}
       options={[
         { value: OPTIONAL_SELECT_NONE, label: placeholder },
-        ...accounts.map((account) => ({
-          value: account.id,
-          label: `${account.code} — ${account.name}`,
-        })),
+        ...accounts.map((account) => {
+          const hint = accountPickerHint(account);
+          return {
+            value: account.id,
+            label: hint
+              ? `${account.code} — ${account.name} (${hint})`
+              : `${account.code} — ${account.name}`,
+          };
+        }),
       ]}
     />
   );

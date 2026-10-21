@@ -992,6 +992,11 @@ export function glHref(
   return `/reports/general-ledger?${params.toString()}`;
 }
 
+export function accountStatementHref(accountId: string, from: string, to: string): string {
+  const params = new URLSearchParams({ account_id: accountId, from, to });
+  return `/reports/account-statement?${params.toString()}`;
+}
+
 export function vat201BoxRegisterHref(box: Vat201Box, from: string, to: string): string {
   const haystack = `${box.code} ${box.label}`.toLowerCase();
   const isPurchase = /input|purchase|recoverable|import/.test(haystack);

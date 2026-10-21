@@ -28,7 +28,39 @@ function optionalUuid(value: string): string | null {
   return !value || value === OPTIONAL_SELECT_NONE ? null : value;
 }
 
+function partyLinkFromForm(values: AccountFormValues): AccountCreateRequest["party_link"] {
+  if (values.is_group) {
+    return undefined;
+  }
+  if (values.ledger_kind === "standalone") {
+    return undefined;
+  }
+  if (values.ledger_kind === "new_party") {
+    const partyType =
+      values.account_subtype === "ACCOUNTS_RECEIVABLE" ? "CUSTOMER" : "SUPPLIER";
+    return {
+      mode: "new",
+      party_type: partyType,
+      name: values.party_name.trim() || values.name.trim(),
+    };
+  }
+  if (values.ledger_kind === "existing_party") {
+    const partyId = optionalUuid(values.party_id);
+    if (!partyId) {
+      return undefined;
+    }
+    const partyType =
+      values.account_subtype === "ACCOUNTS_RECEIVABLE" ? "CUSTOMER" : "SUPPLIER";
+    return { mode: "existing", party_type: partyType, party_id: partyId };
+  }
+  return undefined;
+}
+
 function toCreatePayload(values: AccountFormValues): AccountCreateRequest {
+  const isControl =
+    !values.is_group &&
+    (values.account_subtype === "ACCOUNTS_RECEIVABLE" ||
+      values.account_subtype === "ACCOUNTS_PAYABLE");
   return {
     code: values.code.trim(),
     name: values.name.trim(),
@@ -41,6 +73,8 @@ function toCreatePayload(values: AccountFormValues): AccountCreateRequest {
     currency_id: optionalUuid(values.currency_id),
     default_tax_id: optionalUuid(values.default_tax_id),
     financial_category_id: optionalUuid(values.financial_category_id),
+    is_standalone_ledger: isControl && values.ledger_kind === "standalone",
+    party_link: isControl ? partyLinkFromForm(values) : undefined,
   };
 }
 
@@ -58,6 +92,18 @@ function toUpdatePayload(values: AccountFormValues, isSystem: boolean): AccountU
     currency_id: optionalUuid(values.currency_id),
     default_tax_id: optionalUuid(values.default_tax_id),
     financial_category_id: optionalUuid(values.financial_category_id),
+    is_standalone_ledger:
+      !values.is_group &&
+      (values.account_subtype === "ACCOUNTS_RECEIVABLE" ||
+        values.account_subtype === "ACCOUNTS_PAYABLE")
+        ? values.ledger_kind === "standalone"
+        : undefined,
+    party_link:
+      !values.is_group &&
+      (values.account_subtype === "ACCOUNTS_RECEIVABLE" ||
+        values.account_subtype === "ACCOUNTS_PAYABLE")
+        ? partyLinkFromForm(values)
+        : undefined,
   };
 }
 
@@ -74,6 +120,7 @@ export const accountsApi = {
         account_subtype: params.account_subtype,
         is_group: params.is_group,
         is_active: params.is_active,
+        is_standalone_ledger: params.is_standalone_ledger,
       },
     });
     return { data: AccountListSchema.parse(result.data), meta: result.meta };

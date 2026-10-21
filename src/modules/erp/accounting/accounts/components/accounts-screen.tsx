@@ -18,7 +18,9 @@ import {
   ACCOUNT_TYPE_LABELS,
   ACCOUNT_TYPES,
   flattenAccountTree,
+  ledgerKindLabel,
   type Account,
+  type AccountSubtype,
   type AccountTreeNode,
   type AccountType,
 } from "@/modules/erp/accounting/accounts/schemas";
@@ -105,6 +107,11 @@ export function AccountsScreen() {
     filters.account_type && ACCOUNT_TYPES.includes(filters.account_type as AccountType)
       ? (filters.account_type as AccountType)
       : undefined;
+  const accountSubtype =
+    filters.account_subtype === "ACCOUNTS_RECEIVABLE" ||
+    filters.account_subtype === "ACCOUNTS_PAYABLE"
+      ? (filters.account_subtype as AccountSubtype)
+      : undefined;
   const accountsQuery = useAccounts({
     page,
     page_size,
@@ -112,8 +119,10 @@ export function AccountsScreen() {
     sort_by,
     sort_order,
     account_type: accountType,
+    account_subtype: accountSubtype,
     is_group: parseBoolFilter(filters.is_group),
     is_active: parseBoolFilter(filters.is_active),
+    is_standalone_ledger: parseBoolFilter(filters.is_standalone_ledger),
   });
   const treeQuery = useAccountTree(view === VIEW_TREE);
   const allAccountsQuery = useAllAccounts({}, view === VIEW_LIST);
@@ -173,8 +182,17 @@ export function AccountsScreen() {
       },
       {
         id: "kind",
-        header: "Kind",
-        cell: (row) => (row.is_group ? <Badge variant="secondary">Group</Badge> : "Postable"),
+        header: "Ledger kind",
+        cell: (row) => {
+          const label = ledgerKindLabel(row);
+          if (row.is_standalone_ledger) {
+            return <Badge variant="outline">Standalone</Badge>;
+          }
+          if (row.linked_party_name) {
+            return label;
+          }
+          return row.is_group ? <Badge variant="secondary">Group</Badge> : label;
+        },
       },
       {
         id: "is_active",
@@ -217,7 +235,15 @@ export function AccountsScreen() {
         />
       )),
     ];
-  }, [canDelete, canRead, canUpdate, currencyCodeById, parentNameById, showActions, userNameById]);
+  }, [
+    canDelete,
+    canRead,
+    canUpdate,
+    currencyCodeById,
+    parentNameById,
+    showActions,
+    userNameById,
+  ]);
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.accounts", columnDefs);
 
@@ -237,8 +263,8 @@ export function AccountsScreen() {
   return (
     <ListPage>
       <PageHeader
-        title="Chart of accounts"
-        subtitle="Postable accounts and groups used by the ledger"
+        title="Ledger master (Chart of accounts)"
+        subtitle="Receivable and payable ledgers, groups, and GL accounts"
         actions={
           canCreate ? (
             <Button type="button" size="sm" onClick={() => setFormOpen(true)}>
@@ -301,6 +327,24 @@ export function AccountsScreen() {
                   { value: ALL, label: "All statuses" },
                   { value: "true", label: "Active" },
                   { value: "false", label: "Inactive" },
+                ]}
+              />
+              <FilterSelect
+                label="Control"
+                className="w-44"
+                placeholder="AR/AP"
+                value={filters.account_subtype ?? ALL}
+                onValueChange={(value) =>
+                  setParams({
+                    filters: {
+                      account_subtype: value === ALL ? null : value,
+                    },
+                  })
+                }
+                options={[
+                  { value: ALL, label: "All subtypes" },
+                  { value: "ACCOUNTS_RECEIVABLE", label: "Receivable" },
+                  { value: "ACCOUNTS_PAYABLE", label: "Payable" },
                 ]}
               />
               <SortDialog
