@@ -7,7 +7,11 @@ import { toast } from "sonner";
 
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useDeleteDeliveryNote } from "@/modules/inventory-management/delivery-notes/mutations";
+import { CreateDeliveryNoteFromSalesInvoiceDialog } from "@/modules/inventory-management/delivery-notes/components/create-from-sales-invoice-dialog";
+import { CreateDeliveryNoteFromSalesOrderDialog } from "@/modules/inventory-management/delivery-notes/components/create-from-sales-order-dialog";
 import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
+import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
+import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import { useDeliveryNotes } from "@/modules/inventory-management/delivery-notes/queries";
 import {
   STOCK_DOCUMENT_STATUS_LABELS,
@@ -45,7 +49,18 @@ import { DocumentStatusBadge } from "@/shared/components/document/document-statu
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import { useCan } from "@/shared/providers/session-provider";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -71,7 +86,12 @@ function parseStatus(value: string | undefined): StockDocumentStatus | undefined
 }
 
 export function DeliveryNotesScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(deliveryNotePermissions);
+  const [fromSalesOrder, setFromSalesOrder] = useState(false);
+  const [fromSalesInvoice, setFromSalesInvoice] = useState(false);
+  const canConvertFrom =
+    can(salesOrderPermissions.read) || can(salesInvoicePermissions.read);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
@@ -236,12 +256,40 @@ export function DeliveryNotesScreen() {
         subtitle="Dispatch sales orders and consume reserved stock"
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/delivery-notes/new">
-                <Plus className="size-3.5" />
-                New delivery note
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {canConvertFrom ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                    >
+                      Convert from
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                    {can(salesOrderPermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromSalesOrder(true)}>
+                        Sales order
+                      </DropdownMenuItem>
+                    ) : null}
+                    {can(salesInvoicePermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromSalesInvoice(true)}>
+                        Sales invoice
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              <Button type="button" size="sm" asChild>
+                <Link href="/delivery-notes/new">
+                  <Plus className="size-3.5" />
+                  New delivery note
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -431,6 +479,14 @@ export function DeliveryNotesScreen() {
           )}
         </TableBody>
       </DataTable>
+      <CreateDeliveryNoteFromSalesOrderDialog
+        open={fromSalesOrder}
+        onOpenChange={setFromSalesOrder}
+      />
+      <CreateDeliveryNoteFromSalesInvoiceDialog
+        open={fromSalesInvoice}
+        onOpenChange={setFromSalesInvoice}
+      />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`${getDocumentAction(DELIVERY_NOTE_ACTION_REGISTRY, "delete").label} delivery note ${deleting ? (deliveryNoteDisplayNumber(deleting) ?? "delivery note") : "delivery note"}`}

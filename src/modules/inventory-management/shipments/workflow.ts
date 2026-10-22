@@ -57,8 +57,8 @@ export const SHIPMENT_ACTION_REGISTRY: DocumentActionSpec<ShipmentWorkflowAction
   },
   {
     action: "create_cost_sheet",
-    label: "Create cost sheet",
+    label: "Cost sheet",
     permission: costSheetPermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
 ];

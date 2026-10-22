@@ -17,6 +17,13 @@ import {
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { formatDate, formatFixedDecimal, formatMoney } from "@/shared/lib/format";
 
+function money(value: string | null | undefined, currencyCode: string) {
+  if (value == null || value === "") {
+    return "—";
+  }
+  return formatMoney(value, currencyCode);
+}
+
 export function ProductPurchaseDetailsTable({
   rows,
   isLoading,
@@ -33,6 +40,7 @@ export function ProductPurchaseDetailsTable({
   kind: "LOCAL" | "IMPORT";
 }) {
   const { baseCurrencyCode } = useBaseCurrency();
+  const baseCode = baseCurrencyCode ?? "";
   if (isLoading) {
     return <Skeleton className="h-40 w-full" />;
   }
@@ -46,22 +54,32 @@ export function ProductPurchaseDetailsTable({
       </div>
     );
   }
+  const showLocalCurrency = rows.some(
+    (row) => row.currency_code && baseCode && row.currency_code !== baseCode,
+  );
   return (
-    <div className="overflow-auto rounded-lg border bg-background">
+    <div className="bg-background overflow-auto rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Date</TableHead>
-            <TableHead>Invoice no.</TableHead>
+            <TableHead>Document</TableHead>
             <TableHead>Supplier</TableHead>
             <TableHead className="text-right">Qty</TableHead>
-            <TableHead className="text-right">Price</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-            {kind === "IMPORT" ? (
+            <TableHead className="text-right">
+              {kind === "IMPORT" ? "Rate (FCY)" : "Price"}
+            </TableHead>
+            <TableHead className="text-right">
+              {kind === "IMPORT" ? "Amount (FCY)" : "Amount"}
+            </TableHead>
+            {kind === "IMPORT" || showLocalCurrency ? (
               <>
-                <TableHead className="text-right">Rate LCY</TableHead>
-                <TableHead>LC</TableHead>
+                <TableHead className="text-right">Rate (LCY)</TableHead>
+                <TableHead className="text-right">Amount (LCY)</TableHead>
               </>
+            ) : null}
+            {kind === "IMPORT" ? (
+              <TableHead>LC</TableHead>
             ) : (
               <>
                 <TableHead>Sup. invoice</TableHead>
@@ -72,47 +90,55 @@ export function ProductPurchaseDetailsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow key={`${row.document_id}-${row.document_date}-${row.rate}`}>
-              <TableCell>{formatDate(row.document_date)}</TableCell>
-              <TableCell>
-                <Link
-                  href={`/purchase-invoices/${row.document_id}`}
-                  className="underline-offset-4 hover:underline"
-                >
-                  {row.document_number}
-                </Link>
-              </TableCell>
-              <TableCell>{row.party_name}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatFixedDecimal(row.quantity, 3)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatMoney(row.rate, baseCurrencyCode ?? "")}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatMoney(row.amount, baseCurrencyCode ?? "")}
-              </TableCell>
-              {kind === "IMPORT" ? (
-                <>
-                  <TableCell className="text-right tabular-nums">
-                    {row.rate_lcy ? formatMoney(row.rate_lcy, baseCurrencyCode ?? "") : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {[row.lc_number, row.lc_date ? formatDate(row.lc_date) : null]
-                      .filter(Boolean)
-                      .join(" · ") || "—"}
-                  </TableCell>
-                </>
-              ) : (
-                <>
-                  <TableCell className="text-sm">{row.supplier_invoice_number ?? "—"}</TableCell>
-                  <TableCell>{row.warehouse_name ?? "—"}</TableCell>
-                </>
-              )}
-              <TableCell>{row.is_posted ? "Yes" : "No"}</TableCell>
-            </TableRow>
-          ))}
+          {rows.map((row) => {
+            const billCurrency = row.currency_code || baseCode;
+            const lcLabel = [row.lc_number, row.lc_date ? formatDate(row.lc_date) : null]
+              .filter(Boolean)
+              .join(" · ");
+            const documentHref =
+              row.document_type === "GOODS_RECEIPT"
+                ? `/goods-receipts/${row.document_id}`
+                : `/purchase-invoices/${row.document_id}`;
+            return (
+              <TableRow key={row.line_id}>
+                <TableCell>{formatDate(row.document_date)}</TableCell>
+                <TableCell>
+                  <Link href={documentHref} className="underline-offset-4 hover:underline">
+                    {row.document_number}
+                  </Link>
+                </TableCell>
+                <TableCell>{row.party_name}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatFixedDecimal(row.quantity, 3)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {money(row.fc_rate ?? row.rate, billCurrency)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {money(row.amount, billCurrency)}
+                </TableCell>
+                {kind === "IMPORT" || showLocalCurrency ? (
+                  <>
+                    <TableCell className="text-right tabular-nums">
+                      {money(row.rate_lcy, baseCode)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {money(row.amount_lcy, baseCode)}
+                    </TableCell>
+                  </>
+                ) : null}
+                {kind === "IMPORT" ? (
+                  <TableCell className="text-sm">{lcLabel || "—"}</TableCell>
+                ) : (
+                  <>
+                    <TableCell className="text-sm">{row.supplier_invoice_number ?? "—"}</TableCell>
+                    <TableCell>{row.warehouse_name ?? "—"}</TableCell>
+                  </>
+                )}
+                <TableCell>{row.is_posted ? "Yes" : "No"}</TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

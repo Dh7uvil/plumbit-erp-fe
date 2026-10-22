@@ -8,7 +8,6 @@ import {
   useApproveQuotation,
   useCancelQuotation,
   useCloneQuotation,
-  useConvertQuotationToSalesOrder,
   useDeclineQuotation,
   useDeleteQuotation,
   useRejectQuotation,
@@ -32,7 +31,6 @@ export function useQuotationWorkflow(quotation: Quotation) {
   const declineQuotation = useDeclineQuotation();
   const cancelQuotation = useCancelQuotation();
   const cloneQuotation = useCloneQuotation();
-  const convertQuotation = useConvertQuotationToSalesOrder();
   const reviseQuotation = useReviseQuotation();
   const deleteQuotation = useDeleteQuotation();
   const write = { id: quotation.id, version: quotation.version };
@@ -73,11 +71,7 @@ export function useQuotationWorkflow(quotation: Quotation) {
       const cloned = await cloneQuotation.mutateAsync(quotation.id);
       toast.success("Quotation cloned");
       router.push(`/quotations/${cloned.id}`);
-    } else if (action === "convert") {
-      const order = await convertQuotation.mutateAsync(write);
-      toast.success("Sales order created");
-      router.push(`/sales-orders/${order.id}`);
-    } else if (action === "create_proforma" || action === "create_sales_invoice") {
+    } else if (action === "convert" || action === "create_proforma" || action === "create_sales_invoice") {
       return;
     } else if (action === "delete") {
       await deleteQuotation.mutateAsync(write);

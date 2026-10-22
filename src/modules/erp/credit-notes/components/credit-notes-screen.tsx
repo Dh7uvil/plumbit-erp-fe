@@ -8,7 +8,10 @@ import { toast } from "sonner";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
+import { CreateCreditNoteDialog } from "@/modules/erp/credit-notes/components/create-from-source-dialog";
 import { useDeleteCreditNote } from "@/modules/erp/credit-notes/mutations";
+import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
+import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { useCreditNotes } from "@/modules/erp/credit-notes/queries";
 import {
@@ -46,8 +49,19 @@ import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import { useCan } from "@/shared/providers/session-provider";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -68,7 +82,12 @@ function parseStatus(value: string | undefined): InvoiceDocumentStatus | undefin
 }
 
 export function CreditNotesScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(creditNotePermissions);
+  const [fromInvoice, setFromInvoice] = useState(false);
+  const [fromReturn, setFromReturn] = useState(false);
+  const canConvertFrom =
+    can(salesInvoicePermissions.read) || can(salesReturnPermissions.read);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
@@ -282,12 +301,40 @@ export function CreditNotesScreen() {
         subtitle="Credit notes reduce what a customer owes. Posting does not move stock."
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/credit-notes/new">
-                <Plus className="size-3.5" />
-                New credit note
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {canConvertFrom ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                    >
+                      Convert from
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                    {can(salesInvoicePermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromInvoice(true)}>
+                        Sales invoice
+                      </DropdownMenuItem>
+                    ) : null}
+                    {can(salesReturnPermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromReturn(true)}>
+                        Sales return
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              <Button type="button" size="sm" asChild>
+                <Link href="/credit-notes/new">
+                  <Plus className="size-3.5" />
+                  New credit note
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -452,6 +499,16 @@ export function CreditNotesScreen() {
           )}
         </TableBody>
       </DataTable>
+      <CreateCreditNoteDialog
+        open={fromInvoice}
+        onOpenChange={setFromInvoice}
+        pickSource="sales_invoice"
+      />
+      <CreateCreditNoteDialog
+        open={fromReturn}
+        onOpenChange={setFromReturn}
+        pickSource="sales_return"
+      />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`${getDocumentAction(CREDIT_NOTE_ACTION_REGISTRY, "delete").label} credit note ${deleting ? (creditNoteDisplayNumber(deleting) ?? "credit note") : "credit note"}`}

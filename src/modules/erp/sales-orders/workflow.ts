@@ -1,6 +1,7 @@
 import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
+import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
 import { salesOrderPermissions } from "@/modules/erp/sales-orders/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
@@ -14,6 +15,7 @@ export const SALES_ORDER_WORKFLOW_ACTIONS = [
   "acknowledge",
   "create_proforma",
   "create_sales_invoice",
+  "create_delivery_note",
   "record_advance",
   "cancel",
   "clone",
@@ -67,14 +69,21 @@ export const SALES_ORDER_ACTION_REGISTRY: DocumentActionSpec<SalesOrderWorkflowA
   },
   {
     action: "create_proforma",
-    label: "Create proforma invoice",
+    label: "Proforma invoice",
     permission: proformaInvoicePermissions.create,
+    convertTo: true,
   },
   {
     action: "create_sales_invoice",
-    label: "Create invoice",
+    label: "Sales invoice",
     permission: salesInvoicePermissions.create,
-    variant: "outline",
+    convertTo: true,
+  },
+  {
+    action: "create_delivery_note",
+    label: "Delivery note",
+    permission: deliveryNotePermissions.create,
+    convertTo: true,
   },
   {
     action: "record_advance",

@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useDeletePurchaseReturn } from "@/modules/inventory-management/purchase-returns/mutations";
+import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
+import { ConvertFromGoodsReceiptDialog } from "@/shared/components/document/convert-from-goods-receipt-dialog";
 import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { usePurchaseReturns } from "@/modules/inventory-management/purchase-returns/queries";
 import {
@@ -43,8 +45,19 @@ import { useTableColumns } from "@/shared/components/data-table/use-table-column
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import { useCan } from "@/shared/providers/session-provider";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -59,8 +72,10 @@ function parseStatus(value: string | undefined): StockDocumentStatus | undefined
 }
 
 export function PurchaseReturnsScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } =
     useCrudPermissions(purchaseReturnPermissions);
+  const [fromGoodsReceipt, setFromGoodsReceipt] = useState(false);
   const { page, page_size, search, filters, setParams, setPage } = useTableParams();
   const returnsQuery = usePurchaseReturns({
     page,
@@ -199,12 +214,33 @@ export function PurchaseReturnsScreen() {
         subtitle="Return goods against a posted goods receipt"
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/purchase-returns/new">
-                <Plus className="size-3.5" />
-                New purchase return
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {can(goodsReceiptPermissions.read) ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                    >
+                      Convert from
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                    <DropdownMenuItem onSelect={() => setFromGoodsReceipt(true)}>
+                      Goods receipt
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              <Button type="button" size="sm" asChild>
+                <Link href="/purchase-returns/new">
+                  <Plus className="size-3.5" />
+                  New purchase return
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -317,6 +353,11 @@ export function PurchaseReturnsScreen() {
           )}
         </TableBody>
       </DataTable>
+      <ConvertFromGoodsReceiptDialog
+        open={fromGoodsReceipt}
+        onOpenChange={setFromGoodsReceipt}
+        target="purchase-returns"
+      />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`Delete purchase return ${deleting ? (purchaseReturnDisplayNumber(deleting) ?? "purchase return") : ""}`}

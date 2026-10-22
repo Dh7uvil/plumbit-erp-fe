@@ -108,21 +108,18 @@ export function SalesOrdersScreen() {
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
-    fulfillmentStatus: filters.fulfillment_status ?? ALL,
     billingStatus: filters.billing_status ?? ALL,
     branchId: filters.branch_id ?? ALL,
     warehouseId: filters.warehouse_id ?? ALL,
     currencyId: filters.currency_id ?? ALL,
   };
   const extraCount = [
-    extraFilters.fulfillmentStatus !== ALL,
     extraFilters.billingStatus !== ALL,
     extraFilters.branchId !== ALL,
     extraFilters.warehouseId !== ALL,
     extraFilters.currencyId !== ALL,
   ].filter(Boolean).length;
   const [draftExtra, setDraftExtra] = useState({
-    fulfillmentStatus: ALL,
     billingStatus: ALL,
     branchId: ALL,
     warehouseId: ALL,
@@ -152,8 +149,7 @@ export function SalesOrdersScreen() {
   const [fromQuotation, setFromQuotation] = useState(false);
   const [fromClone, setFromClone] = useState(false);
   const [fromProforma, setFromProforma] = useState(false);
-  const canConvertFromQuotation =
-    canCreate && can(quotationPermissions.update) && can(quotationPermissions.read);
+  const canConvertFromQuotation = canCreate && can(quotationPermissions.read);
   const canConvertFromProforma = canCreate && can(proformaInvoicePermissions.read);
 
   const rows = salesOrdersQuery.data?.data ?? [];
@@ -489,6 +485,22 @@ export function SalesOrdersScreen() {
           ]}
         />
         <FilterSelect
+          label="Fulfillment"
+          className="w-44"
+          placeholder="Fulfillment"
+          value={filters.fulfillment_status ?? ALL}
+          onValueChange={(value) =>
+            setParams({ filters: { fulfillment_status: value === ALL ? null : value } })
+          }
+          options={[
+            { value: ALL, label: "All fulfillment" },
+            ...FULFILLMENT_STATUSES.map((status) => ({
+              value: status,
+              label: FULFILLMENT_STATUS_LABELS[status],
+            })),
+          ]}
+        />
+        <FilterSelect
           label="Customer"
           className="w-48"
           placeholder="Customer"
@@ -505,20 +517,17 @@ export function SalesOrdersScreen() {
           extraCount={extraCount}
           draftCount={
             [
-              draftExtra.fulfillmentStatus !== ALL,
               draftExtra.billingStatus !== ALL,
               draftExtra.branchId !== ALL,
               draftExtra.warehouseId !== ALL,
               draftExtra.currencyId !== ALL,
             ].filter(Boolean).length
           }
-          description="Filter by fulfillment, billing, branch, warehouse and currency."
+          description="Filter by billing, branch, warehouse and currency."
           onOpen={() => setDraftExtra(extraFilters)}
           onApply={() =>
             setParams({
               filters: {
-                fulfillment_status:
-                  draftExtra.fulfillmentStatus === ALL ? null : draftExtra.fulfillmentStatus,
                 billing_status: draftExtra.billingStatus === ALL ? null : draftExtra.billingStatus,
                 branch_id: draftExtra.branchId === ALL ? null : draftExtra.branchId,
                 warehouse_id: draftExtra.warehouseId === ALL ? null : draftExtra.warehouseId,
@@ -528,7 +537,6 @@ export function SalesOrdersScreen() {
           }
           onClearDraft={() =>
             setDraftExtra({
-              fulfillmentStatus: ALL,
               billingStatus: ALL,
               branchId: ALL,
               warehouseId: ALL,
@@ -536,24 +544,6 @@ export function SalesOrdersScreen() {
             })
           }
         >
-          <FilterField label="Fulfillment" htmlFor="sales-order-filter-fulfillment">
-            <FilterSelect
-              id="sales-order-filter-fulfillment"
-              className="w-full"
-              placeholder="Fulfillment"
-              value={draftExtra.fulfillmentStatus}
-              onValueChange={(value) =>
-                setDraftExtra((current) => ({ ...current, fulfillmentStatus: value }))
-              }
-              options={[
-                { value: ALL, label: "All fulfillment" },
-                ...FULFILLMENT_STATUSES.map((status) => ({
-                  value: status,
-                  label: FULFILLMENT_STATUS_LABELS[status],
-                })),
-              ]}
-            />
-          </FilterField>
           <FilterField label="Billing" htmlFor="sales-order-filter-billing">
             <FilterSelect
               id="sales-order-filter-billing"
@@ -625,7 +615,12 @@ export function SalesOrdersScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
+        {search ||
+        filters.status ||
+        filters.fulfillment_status ||
+        filters.customer_id ||
+        extraCount > 0 ||
+        sort_by ? (
           <Button
             type="button"
             variant="ghost"

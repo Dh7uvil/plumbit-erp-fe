@@ -29,7 +29,6 @@ import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { useAllFinancialCategories } from "@/modules/erp/accounting/financial-categories/queries";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -78,7 +77,6 @@ function toFormValues(account: Account | null, defaultCurrencyId?: string): Acco
     is_blocked: account.is_blocked,
     currency_id: account.currency_id ?? defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
     default_tax_id: account.default_tax_id ?? OPTIONAL_SELECT_NONE,
-    financial_category_id: account.financial_category_id ?? OPTIONAL_SELECT_NONE,
     ledger_kind: account.is_standalone_ledger
       ? "standalone"
       : account.linked_party_id
@@ -111,7 +109,6 @@ export function AccountForm({
   const groupsQuery = useAllAccounts({ is_group: true });
   const currenciesQuery = useAllCurrencies();
   const taxesQuery = useAllTaxes();
-  const categoriesQuery = useAllFinancialCategories();
   const [formError, setFormError] = useState<string | null>(null);
   const [creatingCurrency, setCreatingCurrency] = useState(false);
   const isEdit = Boolean(account);
@@ -422,30 +419,6 @@ export function AccountForm({
                 <FormControl>
                   <Textarea disabled={disabled} {...field} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="financial_category_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Financial category</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={disabled || categoriesQuery.isLoading}
-                  placeholder="None"
-                  searchPlaceholder="Search category…"
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "None" },
-                    ...(categoriesQuery.data ?? []).map((category) => ({
-                      value: category.id,
-                      label: category.name,
-                    })),
-                  ]}
-                />
                 <FormMessage />
               </FormItem>
             )}

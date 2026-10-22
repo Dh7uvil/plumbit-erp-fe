@@ -37,8 +37,8 @@ export const QUALITY_INSPECTION_ACTION_REGISTRY: DocumentActionSpec<QualityInspe
     },
     {
       action: "create_purchase_return",
-      label: "Create purchase return",
+      label: "Purchase return",
       permission: purchaseReturnPermissions.create,
-      variant: "outline",
+      convertTo: true,
     },
   ];

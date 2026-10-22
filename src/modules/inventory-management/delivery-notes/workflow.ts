@@ -41,20 +41,20 @@ export const DELIVERY_NOTE_ACTION_REGISTRY: DocumentActionSpec<DeliveryNoteWorkf
   },
   {
     action: "create_return",
-    label: "Create sales return",
+    label: "Sales return",
     permission: salesReturnPermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
   {
     action: "create_sales_invoice",
-    label: "Create invoice",
+    label: "Sales invoice",
     permission: salesInvoicePermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
   {
     action: "add_to_shipment",
-    label: "Add to shipment",
+    label: "Shipment",
     permission: shipmentPermissions.update,
-    variant: "outline",
+    convertTo: true,
   },
 ];

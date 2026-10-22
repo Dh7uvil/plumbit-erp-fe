@@ -7,7 +7,9 @@ import { toast } from "sonner";
 
 import { useGoodsReceipts } from "@/modules/inventory-management/goods-receipts/queries";
 import { goodsReceiptDisplayNumber } from "@/modules/inventory-management/goods-receipts/schemas";
+import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
 import { useDeleteQualityInspection } from "@/modules/inventory-management/quality-inspections/mutations";
+import { ConvertFromGoodsReceiptDialog } from "@/shared/components/document/convert-from-goods-receipt-dialog";
 import { qualityInspectionPermissions } from "@/modules/inventory-management/quality-inspections/permissions";
 import { useQualityInspections } from "@/modules/inventory-management/quality-inspections/queries";
 import {
@@ -44,8 +46,19 @@ import { useTableColumns } from "@/shared/components/data-table/use-table-column
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import { useCan } from "@/shared/providers/session-provider";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -75,7 +88,9 @@ const SORT_FIELDS = [
 ] as const;
 
 export function QualityInspectionsScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate } = useCrudPermissions(qualityInspectionPermissions);
+  const [fromGoodsReceipt, setFromGoodsReceipt] = useState(false);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = extraFromFilters(filters);
@@ -207,12 +222,33 @@ export function QualityInspectionsScreen() {
         subtitle="Release, scrap, or return inbound stock on hold"
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/quality-inspections/new">
-                <Plus className="size-3.5" />
-                New inspection
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {can(goodsReceiptPermissions.read) ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                    >
+                      Convert from
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                    <DropdownMenuItem onSelect={() => setFromGoodsReceipt(true)}>
+                      Goods receipt
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              <Button type="button" size="sm" asChild>
+                <Link href="/quality-inspections/new">
+                  <Plus className="size-3.5" />
+                  New inspection
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -361,6 +397,11 @@ export function QualityInspectionsScreen() {
           )}
         </TableBody>
       </DataTable>
+      <ConvertFromGoodsReceiptDialog
+        open={fromGoodsReceipt}
+        onOpenChange={setFromGoodsReceipt}
+        target="quality-inspections"
+      />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`${getDocumentAction(QUALITY_INSPECTION_ACTION_REGISTRY, "delete").label} quality inspection ${deleting ? (qualityInspectionDisplayNumber(deleting) ?? "inspection") : "inspection"}`}

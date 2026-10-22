@@ -71,7 +71,6 @@ export function useProductPurchaseDetails(
   return useQuery({
     queryKey: useTenantQueryKey(productKeys.purchaseDetails(productId ?? "", params)),
     queryFn: () => productsApi.listPurchaseDetails(productId!, params),
-    placeholderData: keepPreviousData,
     enabled: Boolean(productId) && enabled,
   });
 }

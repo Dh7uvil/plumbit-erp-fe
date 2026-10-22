@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { MoneySchema } from "@/shared/lib/money";
+import { DecimalStringSchema, MoneySchema, NullableDecimalStringSchema } from "@/shared/lib/money";
 
 export const ITEM_TYPES = ["PRODUCT", "SERVICE"] as const;
 export const ItemTypeSchema = z.enum(ITEM_TYPES);
@@ -151,16 +151,14 @@ export const ProductFormSchema = z.object({
   item_type: ItemTypeSchema,
   sales_description: z.string(),
   unit_id: z.string(),
-  pieces_per_unit: z
-    .string()
-    .refine((value) => {
-      const trimmed = value.trim();
-      if (!trimmed) {
-        return true;
-      }
-      const n = Number(trimmed);
-      return Number.isFinite(n) && n > 0;
-    }, "Enter a quantity greater than 0"),
+  pieces_per_unit: z.string().refine((value) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return true;
+    }
+    const n = Number(trimmed);
+    return Number.isFinite(n) && n > 0;
+  }, "Enter a quantity greater than 0"),
   category_id: z.string(),
   selling_rate: z.string(),
   purchase_rate: z.string(),
@@ -245,7 +243,10 @@ export function formatPacking(
     return null;
   }
   const qty = qtyRaw.includes(".")
-    ? qtyRaw.replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "").replace(/\.$/, "")
+    ? qtyRaw
+        .replace(/(\.\d*?[1-9])0+$/, "$1")
+        .replace(/\.0+$/, "")
+        .replace(/\.$/, "")
     : qtyRaw;
   return `${qty} ( pieces ) / ${unit}`;
 }
@@ -394,6 +395,11 @@ export const PurchaseDetailPostingStatusSchema = z.enum(PURCHASE_DETAIL_POSTING_
 export type PurchaseDetailPostingStatus = z.infer<typeof PurchaseDetailPostingStatusSchema>;
 
 export const ProductPurchaseDetailLineSchema = z.object({
+  line_id: z.string().uuid(),
+  document_type: z
+    .enum(["PURCHASE_INVOICE", "GOODS_RECEIPT"])
+    .optional()
+    .default("PURCHASE_INVOICE"),
   document_id: z.string().uuid(),
   document_number: z.string(),
   document_date: z.string(),
@@ -401,17 +407,19 @@ export const ProductPurchaseDetailLineSchema = z.object({
   description: z.string(),
   party_id: z.string().uuid(),
   party_name: z.string(),
-  quantity: z.string(),
-  rate: z.string(),
-  amount: z.string(),
+  quantity: DecimalStringSchema,
+  rate: DecimalStringSchema,
+  amount: DecimalStringSchema,
+  currency_code: z.string().nullable().optional().default(null),
   warehouse_id: z.string().uuid().nullable().optional().default(null),
   warehouse_name: z.string().nullable().optional().default(null),
   supplier_invoice_number: z.string().nullable().optional().default(null),
   lc_date: z.string().nullable().optional().default(null),
   lc_number: z.string().nullable().optional().default(null),
-  fc_rate: z.string().nullable().optional().default(null),
-  rate_lcy: z.string().nullable().optional().default(null),
-  exchange_rate: z.string().nullable().optional().default(null),
+  fc_rate: NullableDecimalStringSchema.optional().default(null),
+  rate_lcy: NullableDecimalStringSchema.optional().default(null),
+  amount_lcy: NullableDecimalStringSchema.optional().default(null),
+  exchange_rate: NullableDecimalStringSchema.optional().default(null),
   branch_id: z.string().uuid().nullable().optional().default(null),
   branch_name: z.string().nullable().optional().default(null),
   is_posted: z.boolean().optional().default(false),

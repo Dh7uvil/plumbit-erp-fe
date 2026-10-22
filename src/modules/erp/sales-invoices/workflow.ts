@@ -3,6 +3,7 @@ import { writeOffPermissions } from "@/modules/erp/accounting/write-offs/permiss
 import { creditNotePermissions } from "@/modules/erp/credit-notes/permissions";
 import { customerPaymentPermissions } from "@/modules/erp/customer-payments/permissions";
 import { deliveryNotePermissions } from "@/modules/inventory-management/delivery-notes/permissions";
+import { salesReturnPermissions } from "@/modules/inventory-management/sales-returns/permissions";
 import { salesInvoicePermissions } from "@/modules/erp/sales-invoices/permissions";
 import type { DocumentActionSpec } from "@/shared/components/document/workflow-registry";
 
@@ -14,6 +15,7 @@ export const SALES_INVOICE_WORKFLOW_ACTIONS = [
   "apply_credits",
   "create_credit_note",
   "create_delivery_note",
+  "create_sales_return",
   "write_off",
   "send_reminder",
 ] as const;
@@ -39,15 +41,21 @@ export const SALES_INVOICE_ACTION_REGISTRY: DocumentActionSpec<SalesInvoiceWorkf
   },
   {
     action: "create_credit_note",
-    label: "Create credit note",
+    label: "Credit note",
     permission: creditNotePermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
   {
     action: "create_delivery_note",
-    label: "Create delivery note",
+    label: "Delivery note",
     permission: deliveryNotePermissions.create,
-    variant: "outline",
+    convertTo: true,
+  },
+  {
+    action: "create_sales_return",
+    label: "Sales return",
+    permission: salesReturnPermissions.create,
+    convertTo: true,
   },
   {
     action: "write_off",

@@ -40,21 +40,21 @@ export const PURCHASE_INVOICE_ACTION_REGISTRY: DocumentActionSpec<PurchaseInvoic
     },
     {
       action: "create_debit_note",
-      label: "Create debit note",
+      label: "Debit note",
       permission: debitNotePermissions.create,
-      variant: "outline",
+      convertTo: true,
     },
     {
       action: "create_goods_receipt",
-      label: "Create goods receipt",
+      label: "Goods receipt",
       permission: goodsReceiptPermissions.create,
-      variant: "outline",
+      convertTo: true,
     },
     {
       action: "create_cost_sheet",
-      label: "Cost sheet (journal)",
+      label: "Cost sheet",
       permission: costSheetPermissions.create,
-      variant: "outline",
+      convertTo: true,
       confirmCopy: (documentNumber) =>
         `Open a new import cost sheet in journal mode linked to ${documentNumber}.`,
     },

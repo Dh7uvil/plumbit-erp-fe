@@ -8,7 +8,10 @@ import { toast } from "sonner";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
+import { CreateDebitNoteDialog } from "@/modules/erp/debit-notes/components/create-from-source-dialog";
 import { useDeleteDebitNote } from "@/modules/erp/debit-notes/mutations";
+import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
+import { purchaseReturnPermissions } from "@/modules/inventory-management/purchase-returns/permissions";
 import { debitNotePermissions } from "@/modules/erp/debit-notes/permissions";
 import { useDebitNotes } from "@/modules/erp/debit-notes/queries";
 import {
@@ -46,8 +49,19 @@ import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import { useCan } from "@/shared/providers/session-provider";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -68,7 +82,12 @@ function parseStatus(value: string | undefined): InvoiceDocumentStatus | undefin
 }
 
 export function DebitNotesScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(debitNotePermissions);
+  const [fromInvoice, setFromInvoice] = useState(false);
+  const [fromReturn, setFromReturn] = useState(false);
+  const canConvertFrom =
+    can(purchaseInvoicePermissions.read) || can(purchaseReturnPermissions.read);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = {
@@ -282,12 +301,40 @@ export function DebitNotesScreen() {
         subtitle="Debit notes reduce what you owe a supplier. Posting does not move stock."
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/debit-notes/new">
-                <Plus className="size-3.5" />
-                New debit note
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {canConvertFrom ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                    >
+                      Convert from
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                    {can(purchaseInvoicePermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromInvoice(true)}>
+                        Purchase invoice
+                      </DropdownMenuItem>
+                    ) : null}
+                    {can(purchaseReturnPermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromReturn(true)}>
+                        Purchase return
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              <Button type="button" size="sm" asChild>
+                <Link href="/debit-notes/new">
+                  <Plus className="size-3.5" />
+                  New debit note
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -452,6 +499,16 @@ export function DebitNotesScreen() {
           )}
         </TableBody>
       </DataTable>
+      <CreateDebitNoteDialog
+        open={fromInvoice}
+        onOpenChange={setFromInvoice}
+        pickSource="purchase_invoice"
+      />
+      <CreateDebitNoteDialog
+        open={fromReturn}
+        onOpenChange={setFromReturn}
+        pickSource="purchase_return"
+      />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`${getDocumentAction(DEBIT_NOTE_ACTION_REGISTRY, "delete").label} debit note ${deleting ? (debitNoteDisplayNumber(deleting) ?? "debit note") : "debit note"}`}

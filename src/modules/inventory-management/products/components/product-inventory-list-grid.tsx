@@ -57,11 +57,12 @@ export function ProductInventoryListGrid({
                 <TableRow
                   key={row.product_id}
                   data-state={selected ? "selected" : undefined}
+                  aria-selected={selected}
                   className={cn(
-                    "cursor-pointer border-l-2 border-l-transparent transition-colors",
+                    "cursor-pointer transition-colors",
                     selected
-                      ? "border-l-primary bg-primary/5 hover:bg-primary/10"
-                      : "hover:bg-muted/50",
+                      ? "bg-accent shadow-[inset_3px_0_0_0_var(--primary)] hover:bg-accent data-[state=selected]:bg-accent"
+                      : "hover:bg-muted/60",
                   )}
                   onClick={() => onSelect(row)}
                 >

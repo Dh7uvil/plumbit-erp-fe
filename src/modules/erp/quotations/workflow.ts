@@ -81,19 +81,21 @@ export const QUOTATION_ACTION_REGISTRY: DocumentActionSpec<QuotationWorkflowActi
   },
   {
     action: "create_proforma",
-    label: "Create proforma invoice",
+    label: "Proforma invoice",
     permission: proformaInvoicePermissions.create,
+    convertTo: true,
   },
   {
     action: "create_sales_invoice",
-    label: "Create sales invoice",
+    label: "Sales invoice",
     permission: salesInvoicePermissions.create,
+    convertTo: true,
   },
   {
     action: "convert",
-    label: "Convert to sales order",
+    label: "Sales order",
     permission: salesOrderPermissions.create,
-    confirmCopy: (quoteNumber) => `${quoteNumber} will be converted to a sales order.`,
+    convertTo: true,
   },
   {
     action: "cancel",

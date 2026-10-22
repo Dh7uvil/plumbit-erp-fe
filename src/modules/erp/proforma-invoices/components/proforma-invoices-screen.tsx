@@ -11,10 +11,12 @@ import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { PROFORMA_INVOICE_ACTION_REGISTRY } from "@/modules/erp/proforma-invoices/workflow";
+import { CreateProformaInvoiceFromQuotationDialog } from "@/modules/erp/proforma-invoices/components/create-from-quotation-dialog";
 import {
   useCloneProformaInvoice,
   useDeleteProformaInvoice,
 } from "@/modules/erp/proforma-invoices/mutations";
+import { quotationPermissions } from "@/modules/erp/quotations/permissions";
 import { proformaInvoicePermissions } from "@/modules/erp/proforma-invoices/permissions";
 import { useProformaInvoices } from "@/modules/erp/proforma-invoices/queries";
 import {
@@ -49,8 +51,18 @@ import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -87,6 +99,7 @@ export function ProformaInvoicesScreen() {
     Boolean,
   ).length;
   const [draftExtra, setDraftExtra] = useState({ branchId: ALL, currencyId: ALL });
+  const [fromQuotation, setFromQuotation] = useState(false);
   const invoicesQuery = useProformaInvoices({
     page,
     page_size,
@@ -323,12 +336,33 @@ export function ProformaInvoicesScreen() {
               }}
             />
             {canCreate ? (
-              <Button type="button" size="sm" asChild>
-                <Link href="/proforma-invoices/new">
-                  <Plus className="size-3.5" />
-                  New proforma invoice
-                </Link>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {can(quotationPermissions.read) ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                      >
+                        Convert from
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                      <DropdownMenuItem onSelect={() => setFromQuotation(true)}>
+                        Quotation
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+                <Button type="button" size="sm" asChild>
+                  <Link href="/proforma-invoices/new">
+                    <Plus className="size-3.5" />
+                    New proforma invoice
+                  </Link>
+                </Button>
+              </div>
             ) : null}
           </div>
         }
@@ -493,6 +527,10 @@ export function ProformaInvoicesScreen() {
           )}
         </TableBody>
       </DataTable>
+      <CreateProformaInvoiceFromQuotationDialog
+        open={fromQuotation}
+        onOpenChange={setFromQuotation}
+      />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`${getDocumentAction(PROFORMA_INVOICE_ACTION_REGISTRY, "delete").label} proforma invoice ${deleting ? (proformaInvoiceDisplayNumber(deleting) ?? "invoice") : "invoice"}`}

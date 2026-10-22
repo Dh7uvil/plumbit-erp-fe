@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
 import { CreateInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-invoices/components/create-from-sales-order-dialog";
 import { CreateProformaInvoiceFromSalesOrderDialog } from "@/modules/erp/sales-orders/components/create-proforma-invoice-dialog";
+import { CreateDeliveryNoteFromSalesOrderDialog } from "@/modules/inventory-management/delivery-notes/components/create-from-sales-order-dialog";
 import { SalesOrderCoverageCard } from "@/modules/erp/sales-orders/components/sales-order-coverage-card";
 import { SalesOrderForm } from "@/modules/erp/sales-orders/components/sales-order-form";
 import { SalesOrderTrackerCard } from "@/modules/erp/sales-orders/components/sales-order-tracker-card";
@@ -118,6 +119,7 @@ function SalesOrderDetailLoaded({
   const confirmSalesOrder = useConfirmSalesOrder();
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [proformaOpen, setProformaOpen] = useState(false);
+  const [deliveryNoteOpen, setDeliveryNoteOpen] = useState(false);
   const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
   const workflowActions = salesOrder.available_actions;
 
@@ -128,6 +130,10 @@ function SalesOrderDetailLoaded({
     }
     if (action === "create_sales_invoice") {
       setInvoiceOpen(true);
+      return;
+    }
+    if (action === "create_delivery_note") {
+      setDeliveryNoteOpen(true);
       return;
     }
     if (action === "record_advance") {
@@ -310,6 +316,11 @@ function SalesOrderDetailLoaded({
         salesOrder={salesOrder}
         open={proformaOpen}
         onOpenChange={setProformaOpen}
+      />
+      <CreateDeliveryNoteFromSalesOrderDialog
+        salesOrder={salesOrder}
+        open={deliveryNoteOpen}
+        onOpenChange={setDeliveryNoteOpen}
       />
     </DocumentRecordShell>
   );

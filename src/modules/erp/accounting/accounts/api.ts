@@ -72,7 +72,6 @@ function toCreatePayload(values: AccountFormValues): AccountCreateRequest {
     is_blocked: values.is_blocked,
     currency_id: optionalUuid(values.currency_id),
     default_tax_id: optionalUuid(values.default_tax_id),
-    financial_category_id: optionalUuid(values.financial_category_id),
     is_standalone_ledger: isControl && values.ledger_kind === "standalone",
     party_link: isControl ? partyLinkFromForm(values) : undefined,
   };
@@ -91,7 +90,6 @@ function toUpdatePayload(values: AccountFormValues, isSystem: boolean): AccountU
     is_blocked: values.is_blocked,
     currency_id: optionalUuid(values.currency_id),
     default_tax_id: optionalUuid(values.default_tax_id),
-    financial_category_id: optionalUuid(values.financial_category_id),
     is_standalone_ledger:
       !values.is_group &&
       (values.account_subtype === "ACCOUNTS_RECEIVABLE" ||

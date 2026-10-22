@@ -28,8 +28,9 @@ export const STOCK_TRANSFER_ACTION_REGISTRY: DocumentActionSpec<StockTransferWor
   },
   {
     action: "reverse",
-    label: "Reverse",
+    label: "Reverse transfer",
     permission: stockTransferPermissions.create,
+    convertTo: true,
     confirmCopy: (documentNumber) =>
       `Create a draft reverse transfer for ${documentNumber} (warehouses swapped). Review and post the new transfer to move stock back.`,
   },

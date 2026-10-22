@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { ConvertQuotationToSalesOrderDialog } from "@/modules/erp/quotations/components/convert-to-sales-order-dialog";
 import { CreateProformaInvoiceDialog } from "@/modules/erp/quotations/components/create-proforma-invoice-dialog";
 import { CreateSalesInvoiceFromQuotationDialog } from "@/modules/erp/quotations/components/create-sales-invoice-dialog";
 import { QuotationForm } from "@/modules/erp/quotations/components/quotation-form";
@@ -104,12 +105,17 @@ function QuotationDetailLoaded({
   const isEdit = mode === "edit";
   const number = quotationDisplayNumber(quotation);
   const onAction = useQuotationWorkflow(quotation);
+  const [convertOpen, setConvertOpen] = useState(false);
   const [createPfiOpen, setCreatePfiOpen] = useState(false);
   const [createInvoiceOpen, setCreateInvoiceOpen] = useState(false);
   const [directInvoiceConfirm, setDirectInvoiceConfirm] = useState(false);
   const hasSalesOrder = hasRelatedDocumentType(quotation.related_documents, "SALES_ORDER");
 
   async function handleAction(action: QuotationWorkflowAction, extras: DocumentWorkflowExtras) {
+    if (action === "convert") {
+      setConvertOpen(true);
+      return;
+    }
     if (action === "create_proforma") {
       setCreatePfiOpen(true);
       return;
@@ -198,6 +204,11 @@ function QuotationDetailLoaded({
         quotation={quotation}
         disabled={!isEdit}
         onSuccess={() => router.push(viewHref)}
+      />
+      <ConvertQuotationToSalesOrderDialog
+        quotation={quotation}
+        open={convertOpen}
+        onOpenChange={setConvertOpen}
       />
       <CreateProformaInvoiceDialog
         quotation={quotation}

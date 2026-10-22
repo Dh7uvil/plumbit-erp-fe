@@ -1,16 +1,23 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
 
 import { getErrorMessage } from "@/shared/api/errors";
 import {
+  isConvertToMenuAction,
   type DocumentActionSpec,
   visibleActions,
 } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import { Label } from "@/shared/components/ui/label";
 import {
   Select,
@@ -52,7 +59,11 @@ export function DocumentWorkflowButtons<TAction extends string>({
   const [reason, setReason] = useState("");
 
   const actions = visibleActions(availableActions, registry, can);
+  const convertToActions = actions.filter((spec) => isConvertToMenuAction(spec.action, spec));
+  const convertToKeys = new Set(convertToActions.map((spec) => spec.action));
+  const primaryActions = actions.filter((spec) => !convertToKeys.has(spec.action));
   const pending = Boolean(running);
+  const convertToPending = convertToActions.some((spec) => running === spec.action);
 
   const reasonRequired = Boolean(confirming?.reasonField?.required);
   const confirmDisabled = reasonRequired && !reason.trim();
@@ -91,7 +102,34 @@ export function DocumentWorkflowButtons<TAction extends string>({
       <div className="flex flex-col items-end gap-2">
         {extra}
         <div className="flex flex-wrap items-center gap-2">
-          {actions.map((spec) => (
+          {convertToActions.length > 0 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pending || convertToPending}
+                >
+                  {convertToPending ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                  Convert to
+                  <ChevronDown className="size-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {convertToActions.map((spec) => (
+                  <DropdownMenuItem
+                    key={spec.action}
+                    disabled={pending || Boolean(disabledActions?.[spec.action])}
+                    onSelect={() => onClickAction(spec)}
+                  >
+                    {spec.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+          {primaryActions.map((spec) => (
             <Button
               key={spec.action}
               type="button"

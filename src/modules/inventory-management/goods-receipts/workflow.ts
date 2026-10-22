@@ -41,20 +41,20 @@ export const GOODS_RECEIPT_ACTION_REGISTRY: DocumentActionSpec<GoodsReceiptWorkf
   },
   {
     action: "create_inspection",
-    label: "Create inspection",
+    label: "Quality inspection",
     permission: qualityInspectionPermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
   {
     action: "create_purchase_return",
-    label: "Create purchase return",
+    label: "Purchase return",
     permission: purchaseReturnPermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
   {
     action: "create_bill",
-    label: "Create bill",
+    label: "Purchase invoice",
     permission: purchaseInvoicePermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
 ];

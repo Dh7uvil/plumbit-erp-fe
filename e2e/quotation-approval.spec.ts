@@ -116,20 +116,10 @@ test.describe("quotation approval", () => {
     await confirm.getByRole("button", { name: "Send" }).click();
     await expect(page.getByText("Sent", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Accept" }).click();
-    confirm = page.getByRole("alertdialog");
-    await expect(
-      confirm.getByRole("heading", { name: "Accept quotation QUOACM26000001" }),
-    ).toBeVisible();
-    await confirm.getByRole("button", { name: "Accept" }).click();
-    await expect(page.getByText("Accepted", { exact: true })).toBeVisible();
-
-    await page.getByRole("button", { name: "Convert to sales order" }).click();
-    confirm = page.getByRole("alertdialog");
-    await expect(
-      confirm.getByRole("heading", { name: "Convert to sales order quotation QUOACM26000001" }),
-    ).toBeVisible();
-    await confirm.getByRole("button", { name: "Convert to sales order" }).click();
+    await page.getByRole("button", { name: "Convert to" }).click();
+    await page.getByRole("menuitem", { name: "Sales order" }).click();
+    await expect(page.getByRole("heading", { name: "Convert quotation to sales order" })).toBeVisible();
+    await page.getByRole("button", { name: "Convert" }).click();
 
     await expect(page).toHaveURL(/\/sales-orders\/[0-9a-f-]{36}$/i);
     await expect(page.getByRole("heading", { name: "SOACM26000001" })).toBeVisible();
@@ -179,7 +169,8 @@ test.describe("quotation approval", () => {
     await confirm.getByRole("button", { name: "Accept" }).click();
     await expect(page.getByText("Accepted", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Create sales invoice" }).click();
+    await page.getByRole("button", { name: "Convert to" }).click();
+    await page.getByRole("menuitem", { name: "Sales invoice" }).click();
     confirm = page.getByRole("alertdialog");
     await expect(confirm.getByRole("heading", { name: "Create sales invoice" })).toBeVisible();
     await expect(

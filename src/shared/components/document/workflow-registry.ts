@@ -5,6 +5,12 @@ export type DocumentActionSpec<TAction extends string = string> = {
   label: string;
   permission: string;
   variant?: DocumentActionVariant;
+  /** When true, action is shown under the record view "Convert to" menu. */
+  convertTo?: boolean;
+  /** When true, never group this action under "Convert to" (overrides defaults). */
+  convertToExclude?: boolean;
+  /** Additional permissions required before the action is shown. */
+  alsoRequires?: readonly string[];
   confirmCopy?: (documentLabel: string) => string;
   reasonField?: {
     label?: string;
@@ -13,6 +19,22 @@ export type DocumentActionSpec<TAction extends string = string> = {
     options?: readonly { value: string; label: string }[];
   };
 };
+
+/** Downstream document actions grouped under the record view "Convert to" menu. */
+export function isConvertToMenuAction(action: string, spec: DocumentActionSpec): boolean {
+  if (spec.convertToExclude) {
+    return false;
+  }
+  if (spec.convertTo) {
+    return true;
+  }
+  return (
+    action === "convert" ||
+    action.startsWith("create_") ||
+    action === "add_to_shipment" ||
+    action === "reverse"
+  );
+}
 
 export function visibleActions<TAction extends string>(
   availableActions: readonly string[],
@@ -24,6 +46,9 @@ export function visibleActions<TAction extends string>(
   for (const action of availableActions) {
     const spec = byAction.get(action as TAction);
     if (spec && can(spec.permission)) {
+      if (spec.alsoRequires?.some((code) => !can(code))) {
+        continue;
+      }
       visible.push(spec);
     }
   }

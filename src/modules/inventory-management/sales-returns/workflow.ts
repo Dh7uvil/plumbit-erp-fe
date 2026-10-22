@@ -37,8 +37,8 @@ export const SALES_RETURN_ACTION_REGISTRY: DocumentActionSpec<SalesReturnWorkflo
   },
   {
     action: "create_credit_note",
-    label: "Create credit note",
+    label: "Credit note",
     permission: creditNotePermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
 ];

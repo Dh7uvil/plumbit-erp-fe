@@ -479,7 +479,11 @@ export function ProductInventoryWorkbench({
               <FilterSelect
                 label="Group"
                 value={categoryId}
-                onValueChange={(value) => setParams({ filters: { ...filters, category_id: value } })}
+                onValueChange={(value) =>
+                  setParams({
+                    filters: { ...filters, category_id: value === ALL ? null : value },
+                  })
+                }
                 options={[
                   { value: ALL, label: "All groups" },
                   ...categories.map((c) => ({ value: c.id, label: c.name })),

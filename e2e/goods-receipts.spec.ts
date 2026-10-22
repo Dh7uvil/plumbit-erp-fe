@@ -52,7 +52,8 @@ test.describe("goods receipts and quality inspections", () => {
 
     await issuePurchaseOrderWithProduct(page, /PIPE-1/);
 
-    await page.getByRole("button", { name: "Create goods receipt" }).click();
+    await page.getByRole("button", { name: "Convert to" }).click();
+    await page.getByRole("menuitem", { name: "Goods receipt" }).click();
     await expect(page).toHaveURL(/\/goods-receipts\/[0-9a-f-]{36}$/i);
     await expect(page.getByRole("heading", { name: "GRNGPI26000001" })).toBeVisible();
 
@@ -72,7 +73,8 @@ test.describe("goods receipts and quality inspections", () => {
     test.setTimeout(120_000);
     await signIn(page);
     await issuePurchaseOrderWithProduct(page, /PIPE-QC/);
-    await page.getByRole("button", { name: "Create goods receipt" }).click();
+    await page.getByRole("button", { name: "Convert to" }).click();
+    await page.getByRole("menuitem", { name: "Goods receipt" }).click();
     await expect(page.getByRole("heading", { name: "GRNGPI26000001" })).toBeVisible();
     await page.getByRole("button", { name: "Post" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Post" }).click();

@@ -76,7 +76,8 @@ test.describe("sales orders", () => {
     await confirm.getByRole("button", { name: "Confirm" }).click();
     await expect(page.getByText("Confirmed", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Create proforma invoice" }).click();
+    await page.getByRole("button", { name: "Convert to" }).click();
+    await page.getByRole("menuitem", { name: "Proforma invoice" }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Create proforma invoice" })).toBeVisible();
     await dialog.getByRole("button", { name: "Create" }).click();

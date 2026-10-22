@@ -27,7 +27,6 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function PurchaseReturnDetailScreen({
@@ -101,10 +100,7 @@ function PurchaseReturnDetailLoaded({
   const onAction = usePurchaseReturnWorkflow(doc);
   const [writeError, setWriteError] = useState<unknown>(null);
   const [debitOpen, setDebitOpen] = useState(false);
-  const workflowActions = appendMissingActions(
-    doc.available_actions,
-    doc.status === "POSTED" ? ["create_debit_note"] : [],
-  );
+  const workflowActions = doc.available_actions;
 
   return (
     <DocumentRecordShell

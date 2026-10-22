@@ -55,13 +55,15 @@ export const PROFORMA_INVOICE_ACTION_REGISTRY: DocumentActionSpec<ProformaInvoic
     { action: "reopen", label: "Reopen", permission: proformaInvoicePermissions.update },
     {
       action: "convert",
-      label: "Convert to sales order",
+      label: "Sales order",
       permission: salesOrderPermissions.create,
+      convertTo: true,
     },
     {
       action: "create_sales_invoice",
-      label: "Create sales invoice",
+      label: "Sales invoice",
       permission: salesInvoicePermissions.create,
+      convertTo: true,
     },
     {
       action: "record_advance",
@@ -71,9 +73,9 @@ export const PROFORMA_INVOICE_ACTION_REGISTRY: DocumentActionSpec<ProformaInvoic
     },
     {
       action: "create_cost_sheet",
-      label: "Create cost sheet",
+      label: "Cost sheet",
       permission: costSheetPermissions.create,
-      variant: "outline",
+      convertTo: true,
     },
     {
       action: "cancel",

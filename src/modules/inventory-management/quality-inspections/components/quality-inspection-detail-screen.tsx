@@ -26,7 +26,6 @@ import { DocumentRecordShell } from "@/shared/components/document/document-recor
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { RelatedDocumentsCard } from "@/shared/components/document/related-documents-card";
 import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
-import { appendMissingActions } from "@/shared/components/document/workflow-registry";
 import type { RecordPageMode } from "@/shared/components/layout/record-page-header";
 
 export function QualityInspectionDetailScreen({
@@ -99,10 +98,7 @@ function QualityInspectionDetailLoaded({
   const number = qualityInspectionDisplayNumber(inspection);
   const onAction = useQualityInspectionWorkflow(inspection);
   const [writeError, setWriteError] = useState<unknown>(null);
-  const workflowActions = appendMissingActions(
-    inspection.available_actions,
-    inspection.status === "APPROVED" ? ["create_purchase_return"] : [],
-  );
+  const workflowActions = inspection.available_actions;
 
   return (
     <DocumentRecordShell

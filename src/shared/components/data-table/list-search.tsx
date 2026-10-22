@@ -66,7 +66,10 @@ export function ListSearch({
           <button
             type="button"
             className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1.5 -translate-y-1/2 cursor-pointer rounded-sm p-1"
-            onClick={() => setInput("")}
+            onClick={() => {
+              setInput("");
+              onChangeRef.current("");
+            }}
             aria-label="Clear search"
           >
             <X className="size-3.5" />

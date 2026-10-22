@@ -84,15 +84,15 @@ export const PURCHASE_ORDER_ACTION_REGISTRY: DocumentActionSpec<PurchaseOrderWor
   },
   {
     action: "create_goods_receipt",
-    label: "Create goods receipt",
+    label: "Goods receipt",
     permission: goodsReceiptPermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
   {
     action: "create_bill",
-    label: "Create bill",
+    label: "Purchase invoice",
     permission: purchaseInvoicePermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
   {
     action: "pay_advance",
@@ -102,8 +102,8 @@ export const PURCHASE_ORDER_ACTION_REGISTRY: DocumentActionSpec<PurchaseOrderWor
   },
   {
     action: "create_cost_sheet",
-    label: "Create cost sheet",
+    label: "Cost sheet",
     permission: costSheetPermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
 ];

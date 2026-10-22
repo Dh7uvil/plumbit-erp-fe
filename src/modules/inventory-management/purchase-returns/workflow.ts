@@ -37,8 +37,8 @@ export const PURCHASE_RETURN_ACTION_REGISTRY: DocumentActionSpec<PurchaseReturnW
   },
   {
     action: "create_debit_note",
-    label: "Create debit note",
+    label: "Debit note",
     permission: debitNotePermissions.create,
-    variant: "outline",
+    convertTo: true,
   },
 ];

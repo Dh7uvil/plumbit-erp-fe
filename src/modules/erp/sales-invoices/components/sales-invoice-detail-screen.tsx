@@ -11,6 +11,10 @@ import {
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { CreditLimitBanner } from "@/modules/erp/credit-control/components/credit-limit-banner";
 import { CreateCreditNoteDialog } from "@/modules/erp/credit-notes/components/create-from-source-dialog";
+import {
+  CreateSalesReturnFromSalesInvoiceDialog,
+  deliveryNoteIdsForSalesInvoice,
+} from "@/modules/erp/sales-invoices/components/create-sales-return-from-invoice-dialog";
 import { CreateDeliveryNoteFromSalesInvoiceDialog } from "@/modules/inventory-management/delivery-notes/components/create-from-sales-invoice-dialog";
 import { InvoiceCreditNotesCard } from "@/modules/erp/credit-notes/components/invoice-credit-notes-card";
 import { useSendPaymentReminder } from "@/modules/erp/accounting/dunning-rules/mutations";
@@ -127,6 +131,7 @@ function SalesInvoiceDetailLoaded({
   const [creditBlockError, setCreditBlockError] = useState<unknown>(null);
   const [creditOpen, setCreditOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [salesReturnOpen, setSalesReturnOpen] = useState(false);
   const [applyCreditsOpen, setApplyCreditsOpen] = useState(false);
   const [writeOffOpen, setWriteOffOpen] = useState(false);
   const currenciesQuery = useAllCurrencies();
@@ -249,6 +254,21 @@ function SalesInvoiceDetailLoaded({
             }
             if (action === "create_delivery_note") {
               setDeliveryOpen(true);
+              return;
+            }
+            if (action === "create_sales_return") {
+              const noteIds = deliveryNoteIdsForSalesInvoice(invoice);
+              if (noteIds.length === 0) {
+                toast.error(
+                  "This invoice has no linked delivery note. Create and post a delivery note first.",
+                );
+                return;
+              }
+              if (noteIds.length === 1) {
+                router.push(`/sales-returns/new?delivery_note_id=${noteIds[0]}`);
+                return;
+              }
+              setSalesReturnOpen(true);
               return;
             }
             if (action === "write_off") {
@@ -414,6 +434,11 @@ function SalesInvoiceDetailLoaded({
         open={deliveryOpen}
         onOpenChange={setDeliveryOpen}
         salesInvoiceId={invoice.id}
+      />
+      <CreateSalesReturnFromSalesInvoiceDialog
+        invoice={invoice}
+        open={salesReturnOpen}
+        onOpenChange={setSalesReturnOpen}
       />
       <ApplyCreditsDialog
         invoice={invoice}

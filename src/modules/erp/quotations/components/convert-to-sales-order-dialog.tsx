@@ -78,8 +78,9 @@ function ConvertQuotationToSalesOrderBody({
       <DialogHeader>
         <DialogTitle>Convert quotation to sales order</DialogTitle>
         <DialogDescription>
-          The quotation must be accepted or partially converted. A live proforma invoice blocks this
-          path. Omit line quantities to convert all remaining quantity.
+          Choose order details and quantities. Leave line quantities blank to convert everything
+          still open on the quotation. An active proforma invoice for this quote must be cancelled
+          first.
         </DialogDescription>
       </DialogHeader>
       {quotation ? null : (
@@ -94,7 +95,7 @@ function ConvertQuotationToSalesOrderBody({
             value: row.id,
             label: `${quotationDisplayNumber(row) ?? "Quotation"} · ${formatDate(row.document_date ?? row.quote_date)}`,
           }))}
-          emptyText="No quotations are available to convert. A live proforma invoice blocks this path."
+          emptyText="No sent or approved quotations are ready to convert. Cancel any active proforma for the quote first."
         />
       )}
       {pickedId && !resolved && detailQuery.isLoading ? (

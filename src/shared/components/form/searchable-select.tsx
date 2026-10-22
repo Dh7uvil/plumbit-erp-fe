@@ -204,11 +204,11 @@ export function SearchableSelect({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="min-w-(--radix-dropdown-menu-trigger-width) w-max max-w-[min(36rem,calc(100vw-2rem))] overflow-hidden p-0"
+        className="flex max-h-60 min-w-(--radix-dropdown-menu-trigger-width) w-max max-w-[min(36rem,calc(100vw-2rem))] flex-col overflow-hidden p-0"
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         {showSearch ? (
-          <div className="p-1.5">
+          <div className="shrink-0 p-1.5">
             <div className="relative">
               <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
               <Input
@@ -239,7 +239,10 @@ export function SearchableSelect({
             </div>
           </div>
         ) : null}
-        <div className="max-h-60 overflow-y-auto p-1">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1"
+          onWheel={(event) => event.stopPropagation()}
+        >
           {filtered.length === 0 ? (
             <p className="text-muted-foreground px-2 py-1.5 text-sm">
               {loading ? "Searching…" : emptyText}
@@ -261,8 +264,8 @@ export function SearchableSelect({
         </div>
         {createActions && createActions.length > 0 ? (
           <>
-            <DropdownMenuSeparator />
-            <div className="p-1">
+            <DropdownMenuSeparator className="shrink-0" />
+            <div className="shrink-0 p-1">
               {createActions.map((action) => (
                 <DropdownMenuItem
                   key={action.label}

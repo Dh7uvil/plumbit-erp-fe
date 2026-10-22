@@ -8,7 +8,11 @@ import { toast } from "sonner";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
 import { useDeleteGoodsReceipt } from "@/modules/inventory-management/goods-receipts/mutations";
+import { CreateGoodsReceiptFromPurchaseInvoiceDialog } from "@/modules/inventory-management/goods-receipts/components/create-from-purchase-invoice-dialog";
+import { CreateGoodsReceiptFromPurchaseOrderDialog } from "@/modules/inventory-management/goods-receipts/components/create-from-purchase-order-dialog";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
+import { purchaseInvoicePermissions } from "@/modules/erp/purchase-invoices/permissions";
+import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
 import { useGoodsReceipts } from "@/modules/inventory-management/goods-receipts/queries";
 import {
   QC_STATUS_LABELS,
@@ -52,7 +56,18 @@ import { DocumentStatusBadge } from "@/shared/components/document/document-statu
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
+import {
+  CONVERT_FROM_MENU_CLASSNAME,
+  CONVERT_FROM_TRIGGER_CLASSNAME,
+} from "@/shared/components/document/convert-from-menu";
 import { Button } from "@/shared/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import { useCan } from "@/shared/providers/session-provider";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -103,7 +118,12 @@ function parseStatus(value: string | undefined): StockDocumentStatus | undefined
 }
 
 export function GoodsReceiptsScreen() {
+  const can = useCan();
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(goodsReceiptPermissions);
+  const [fromPurchaseOrder, setFromPurchaseOrder] = useState(false);
+  const [fromPurchaseInvoice, setFromPurchaseInvoice] = useState(false);
+  const canConvertFrom =
+    can(purchaseOrderPermissions.read) || can(purchaseInvoicePermissions.read);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const extraFilters = extraFromFilters(filters);
@@ -292,12 +312,40 @@ export function GoodsReceiptsScreen() {
         subtitle="Receive purchase orders and direct inbound stock"
         actions={
           canCreate ? (
-            <Button type="button" size="sm" asChild>
-              <Link href="/goods-receipts/new">
-                <Plus className="size-3.5" />
-                New goods receipt
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {canConvertFrom ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={CONVERT_FROM_TRIGGER_CLASSNAME}
+                    >
+                      Convert from
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className={CONVERT_FROM_MENU_CLASSNAME}>
+                    {can(purchaseOrderPermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromPurchaseOrder(true)}>
+                        Purchase order
+                      </DropdownMenuItem>
+                    ) : null}
+                    {can(purchaseInvoicePermissions.read) ? (
+                      <DropdownMenuItem onSelect={() => setFromPurchaseInvoice(true)}>
+                        Purchase invoice
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              <Button type="button" size="sm" asChild>
+                <Link href="/goods-receipts/new">
+                  <Plus className="size-3.5" />
+                  New goods receipt
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -527,6 +575,14 @@ export function GoodsReceiptsScreen() {
           )}
         </TableBody>
       </DataTable>
+      <CreateGoodsReceiptFromPurchaseOrderDialog
+        open={fromPurchaseOrder}
+        onOpenChange={setFromPurchaseOrder}
+      />
+      <CreateGoodsReceiptFromPurchaseInvoiceDialog
+        open={fromPurchaseInvoice}
+        onOpenChange={setFromPurchaseInvoice}
+      />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title={`${getDocumentAction(GOODS_RECEIPT_ACTION_REGISTRY, "delete").label} goods receipt ${deleting ? (goodsReceiptDisplayNumber(deleting) ?? "goods receipt") : "goods receipt"}`}

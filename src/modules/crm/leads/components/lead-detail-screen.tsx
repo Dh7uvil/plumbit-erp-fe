@@ -143,7 +143,7 @@ export function LeadDetailScreen({ leadId, mode }: { leadId: string; mode: Recor
                 variant="outline"
                 onClick={() => setConvertOpen(true)}
               >
-                Convert
+                Convert to
               </Button>
             ) : null}
             <LeadStatusBadge status={currentLead.status} />
