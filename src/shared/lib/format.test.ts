@@ -8,6 +8,7 @@ import {
   formatFixedDecimal,
   formatMoney,
   formatPercent,
+  formatPackingLabel,
   formatQuantity,
   formatQuantitySummary,
   formatRate,
@@ -74,6 +75,12 @@ describe("formatFixedDecimal", () => {
     expect(formatFixedDecimal("-12.5")).toMatch(/-/);
     expect(digitsAndDot(formatFixedDecimal("-12.5"))).toBe("-12.50");
     expect(digitsAndDot(formatFixedDecimal("-0.006"))).toBe("-0.01");
+  });
+});
+
+describe("formatPackingLabel", () => {
+  it("formats the leading quantity to two decimals", () => {
+    expect(formatPackingLabel("100.000000 PCS / CTN")).toBe("100.00 PCS / CTN");
   });
 });
 

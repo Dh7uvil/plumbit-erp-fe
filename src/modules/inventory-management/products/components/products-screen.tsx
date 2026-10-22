@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { ProductFormDialog } from "@/modules/inventory-management/products/components/product-form-dialog";
@@ -10,11 +10,14 @@ import { ProductInventoryWorkbench } from "@/modules/inventory-management/produc
 import { useDeleteProduct } from "@/modules/inventory-management/products/mutations";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import { productKeys, useProduct } from "@/modules/inventory-management/products/queries";
+import type { ProductInventoryListRow } from "@/modules/inventory-management/products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
 import { Button } from "@/shared/components/ui/button";
+import { DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -29,6 +32,27 @@ export function ProductsScreen() {
   const deleteProduct = useDeleteProduct();
   const editingQuery = useProduct(editingId);
   const deletingQuery = useProduct(deletingId);
+
+  const showRowActions = hasRowActions(canRead, canUpdate, canDelete);
+
+  const renderRowActions = useCallback(
+    (row: ProductInventoryListRow) => (
+      <div
+        className="flex justify-end"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+        role="presentation"
+      >
+        <DataTableRowActions
+          entityName={row.sku}
+          viewHref={canRead ? `/products/${row.product_id}` : undefined}
+          onEdit={canUpdate ? () => setEditingId(row.product_id) : undefined}
+          onDelete={canDelete ? () => setDeletingId(row.product_id) : undefined}
+        />
+      </div>
+    ),
+    [canDelete, canRead, canUpdate],
+  );
 
   async function confirmDelete() {
     if (!deletingId) {
@@ -50,6 +74,8 @@ export function ProductsScreen() {
         title="Products"
         subtitle="Lookup items, pricing, and trading history for sales."
         trackedOnly={false}
+        defaultPageSize={DEFAULT_PAGE_SIZE}
+        compactLookupTable
         headerActions={
           <div className="flex flex-wrap items-center gap-2">
             <ImexToolbar
@@ -95,6 +121,7 @@ export function ProductsScreen() {
             ) : null}
           </>
         )}
+        rowActions={showRowActions ? renderRowActions : undefined}
       />
 
       <ProductFormDialog open={formOpen} product={null} onOpenChange={setFormOpen} />

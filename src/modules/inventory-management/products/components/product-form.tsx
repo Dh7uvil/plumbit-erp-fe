@@ -7,8 +7,6 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
-import { AccountPicker } from "@/modules/erp/accounting/accounts/components/account-picker";
-import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { TaxFormDialog } from "@/modules/erp/accounting/taxes/components/tax-form-dialog";
 import { taxPermissions } from "@/modules/erp/accounting/taxes/permissions";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
@@ -26,10 +24,9 @@ import {
   toFormValues,
 } from "@/modules/inventory-management/products/product-form-payload";
 import {
-  ITEM_TYPE_LABELS,
-  ITEM_TYPES,
   ProductFormSchema,
   formatPacking,
+  formatSecondaryPackingLabel,
   type Product,
   type ProductFormValues,
 } from "@/modules/inventory-management/products/schemas";
@@ -51,13 +48,6 @@ import {
 } from "@/shared/components/ui/form";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
@@ -98,19 +88,31 @@ export function ProductForm({
       : { defaultValues: { ...toFormValues(null), requires_qc: qcDefault, ...initialValues } }),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
-  const itemType = useWatch({ control: form.control, name: "item_type" });
   const trackInventory = useWatch({ control: form.control, name: "track_inventory" });
   const categoryId = useWatch({ control: form.control, name: "category_id" });
   const unitId = useWatch({ control: form.control, name: "unit_id" });
   const taxId = useWatch({ control: form.control, name: "tax_id" });
   const secondaryUnitId = useWatch({ control: form.control, name: "secondary_unit_id" });
+  const secondaryUnitFactor = useWatch({ control: form.control, name: "secondary_unit_factor" });
   const piecesPerUnit = useWatch({ control: form.control, name: "pieces_per_unit" });
   const hasUnit = Boolean(unitId && unitId !== OPTIONAL_SELECT_NONE);
   const hasSecondaryUnit = Boolean(secondaryUnitId && secondaryUnitId !== OPTIONAL_SELECT_NONE);
-  const selectedUnitName = hasUnit
-    ? (unitsQuery.data ?? []).find((unit) => unit.id === unitId)?.name
+  const selectedUnit = hasUnit
+    ? (unitsQuery.data ?? []).find((unit) => unit.id === unitId)
+    : undefined;
+  const selectedUnitName = selectedUnit?.name;
+  const selectedSecondaryUnit = hasSecondaryUnit
+    ? (unitsQuery.data ?? []).find((unit) => unit.id === secondaryUnitId)
     : undefined;
   const packingLabel = formatPacking(piecesPerUnit, selectedUnitName);
+  const secondaryPerLabel = formatSecondaryPackingLabel(
+    secondaryUnitFactor,
+    selectedUnit?.code,
+    selectedSecondaryUnit?.code,
+  );
+  const unit2SelectOptions = (unitsQuery.data ?? []).filter(
+    (unit) => !hasUnit || unit.id !== unitId,
+  );
 
   useEffect(() => {
     if (isEdit || !categoryId || categoryId === OPTIONAL_SELECT_NONE) {
@@ -137,6 +139,31 @@ export function ProductForm({
     }
     form.setValue("requires_qc", qcDefault);
   }, [form, initialValues?.requires_qc, product, qcDefault]);
+
+  useEffect(() => {
+    if (isEdit || unitsQuery.isLoading) {
+      return;
+    }
+    if (form.formState.dirtyFields.unit_id) {
+      return;
+    }
+    if (form.getValues("unit_id") !== OPTIONAL_SELECT_NONE) {
+      return;
+    }
+    const pcs = (unitsQuery.data ?? []).find((unit) => unit.code === "PCS");
+    if (pcs) {
+      form.setValue("unit_id", pcs.id);
+    }
+  }, [form, isEdit, unitsQuery.data, unitsQuery.isLoading]);
+
+  useEffect(() => {
+    if (hasSecondaryUnit) {
+      return;
+    }
+    if (form.getValues("secondary_unit_factor") !== "") {
+      form.setValue("secondary_unit_factor", "");
+    }
+  }, [form, hasSecondaryUnit]);
 
   async function onSubmit(values: ProductFormValues) {
     setFormError(null);
@@ -193,30 +220,6 @@ export function ProductForm({
                     {...field}
                   />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="item_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {ITEM_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {ITEM_TYPE_LABELS[type]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -377,6 +380,65 @@ export function ProductForm({
             <FormLabel>Packing</FormLabel>
             <FormControl>
               <Input readOnly disabled value={packingLabel ?? "—"} tabIndex={-1} />
+            </FormControl>
+          </FormItem>
+          <FormField
+            control={form.control}
+            name="secondary_unit_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Unit 2</FormLabel>
+                <MasterSelect
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    if (value === OPTIONAL_SELECT_NONE) {
+                      form.setValue("secondary_unit_factor", "");
+                    }
+                  }}
+                  disabled={disabled || unitsQuery.isLoading}
+                  placeholder="None"
+                  searchPlaceholder="Search unit…"
+                  createLabel="Create unit"
+                  onCreate={can(unitPermissions.create) ? () => setCreating("unit") : undefined}
+                  options={[
+                    { value: OPTIONAL_SELECT_NONE, label: "None" },
+                    ...unit2SelectOptions.map((unit) => ({
+                      value: unit.id,
+                      label: unit.name,
+                    })),
+                  ]}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="secondary_unit_factor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  {hasSecondaryUnit
+                    ? `Pieces per ${selectedSecondaryUnit?.name ?? "unit 2"}`
+                    : "Pieces per unit 2"}
+                </FormLabel>
+                <FormControl>
+                  <DecimalInput
+                    kind="quantity"
+                    disabled={disabled || !hasSecondaryUnit}
+                    placeholder={hasSecondaryUnit ? undefined : "Select unit 2 first"}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormItem>
+            <FormLabel>Per</FormLabel>
+            <FormControl>
+              <Input readOnly disabled value={secondaryPerLabel ?? "—"} tabIndex={-1} />
             </FormControl>
           </FormItem>
           <FormField
@@ -551,45 +613,6 @@ export function ProductForm({
           />
           <FormField
             control={form.control}
-            name="secondary_unit_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Unit 2</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={disabled || unitsQuery.isLoading}
-                  placeholder="None"
-                  searchPlaceholder="Search unit…"
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "None" },
-                    ...units.map((unit) => ({ value: unit.id, label: unit.name })),
-                  ]}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="secondary_unit_factor"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Unit 2 factor</FormLabel>
-                <FormControl>
-                  <DecimalInput
-                    kind="quantity"
-                    disabled={disabled || !hasSecondaryUnit}
-                    placeholder={hasSecondaryUnit ? undefined : "Select unit 2 first"}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="default_reorder_level"
             render={({ field }) => (
               <FormItem>
@@ -657,7 +680,7 @@ export function ProductForm({
             control={form.control}
             name="remarks"
             render={({ field }) => (
-              <FormItem className="sm:col-span-2">
+              <FormItem className="col-span-full">
                 <FormLabel>Remarks</FormLabel>
                 <FormControl>
                   <Textarea disabled={disabled} {...field} />
@@ -666,47 +689,6 @@ export function ProductForm({
               </FormItem>
             )}
           />
-          {can(accountPermissions.read) ? (
-            <div
-              data-slot="form-grid"
-              className="col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
-            >
-              <FormField
-                control={form.control}
-                name="income_account_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Income account</FormLabel>
-                    <AccountPicker
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={disabled}
-                      accountType="INCOME"
-                      aria-label="Income account"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="purchase_account_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Purchase account</FormLabel>
-                    <AccountPicker
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={disabled}
-                      accountSubtype="COGS"
-                      aria-label="Purchase account"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          ) : null}
           <div className="col-span-full flex flex-col gap-2">
             <FormField
               control={form.control}
@@ -724,7 +706,7 @@ export function ProductForm({
                 </FormItem>
               )}
             />
-            {itemType === "PRODUCT" && trackInventory ? (
+            {trackInventory ? (
               <FormField
                 control={form.control}
                 name="requires_qc"

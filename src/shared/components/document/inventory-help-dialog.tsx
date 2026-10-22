@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { formatFixedDecimal, formatMoney } from "@/shared/lib/format";
+import { formatMoney, formatQuantity } from "@/shared/lib/format";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 
 function WinsoftInventoryHelpStrip({ productId }: { productId: string }) {
@@ -31,27 +31,27 @@ function WinsoftInventoryHelpStrip({ productId }: { productId: string }) {
     <dl className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-md border p-3 text-sm sm:grid-cols-4">
       <div>
         <dt className="text-muted-foreground">Net avail.</dt>
-        <dd className="tabular-nums">{formatFixedDecimal(inquiry.net_available, 3)}</dd>
+        <dd className="tabular-nums">{formatQuantity(inquiry.net_available)}</dd>
       </div>
       <div>
         <dt className="text-muted-foreground">Opened</dt>
-        <dd className="tabular-nums">{formatFixedDecimal(inquiry.qty_opened, 3)}</dd>
+        <dd className="tabular-nums">{formatQuantity(inquiry.qty_opened)}</dd>
       </div>
       <div>
         <dt className="text-muted-foreground">Committed</dt>
-        <dd className="tabular-nums">{formatFixedDecimal(inquiry.qty_committed, 3)}</dd>
+        <dd className="tabular-nums">{formatQuantity(inquiry.qty_committed)}</dd>
       </div>
       <div>
         <dt className="text-muted-foreground">Ordered</dt>
-        <dd className="tabular-nums">{formatFixedDecimal(inquiry.ordered_qty, 3)}</dd>
+        <dd className="tabular-nums">{formatQuantity(inquiry.ordered_qty)}</dd>
       </div>
       <div>
         <dt className="text-muted-foreground">Shop</dt>
-        <dd className="tabular-nums">{formatFixedDecimal(inquiry.shop_qty, 3)}</dd>
+        <dd className="tabular-nums">{formatQuantity(inquiry.shop_qty)}</dd>
       </div>
       <div>
         <dt className="text-muted-foreground">Warehouse</dt>
-        <dd className="tabular-nums">{formatFixedDecimal(inquiry.warehouse_qty, 3)}</dd>
+        <dd className="tabular-nums">{formatQuantity(inquiry.warehouse_qty)}</dd>
       </div>
       {inquiry.avg_cost != null ? (
         <div>

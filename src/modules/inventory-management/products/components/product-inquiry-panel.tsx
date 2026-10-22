@@ -8,6 +8,7 @@ import {
   InquirySection,
   InquiryTableShell,
 } from "@/modules/inventory-management/products/components/product-inquiry-layout";
+import { ProductQuantityRowsTable } from "@/modules/inventory-management/products/components/product-quantity-rows-table";
 import { useProductInquiry } from "@/modules/inventory-management/products/queries";
 import type { Product } from "@/modules/inventory-management/products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -23,7 +24,12 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
-import { formatDate, formatFixedDecimal, formatMoney } from "@/shared/lib/format";
+import {
+  formatDate,
+  formatMoney,
+  formatPackingLabel,
+  formatQuantity,
+} from "@/shared/lib/format";
 
 export function ProductInquiryPanel({
   product,
@@ -40,10 +46,6 @@ export function ProductInquiryPanel({
   const { baseCurrencyCode } = useBaseCurrency();
   const inquiry = inquiryQuery.data;
   const moneyCode = inquiry?.lc_currency_code ?? baseCurrencyCode ?? "";
-  const substitutes = [product.alias_2, product.alias_3, product.alias_4].filter(
-    (value): value is string => Boolean(value?.trim()),
-  );
-
   if (inquiryQuery.isLoading) {
     return <Skeleton className="h-48 w-full rounded-lg" />;
   }
@@ -72,37 +74,44 @@ export function ProductInquiryPanel({
           </div>
         ) : null}
 
+        <ProductQuantityRowsTable
+          rows={inquiry.quantity_rows}
+          unitCode={inquiry.unit_code}
+          unit2Code={inquiry.unit2_code}
+          packingLabel={inquiry.packing_label}
+        />
+
         <InquirySection title="Stock levels">
           <InquiryFieldGrid>
             <InquiryField label="On hand" valueClassName="tabular-nums font-medium">
-              {formatFixedDecimal(inquiry.qty_on_hand, 3)}
+              {formatQuantity(inquiry.qty_on_hand)}
             </InquiryField>
             <InquiryField label="Available" valueClassName="tabular-nums">
-              {formatFixedDecimal(inquiry.qty_available, 3)}
+              {formatQuantity(inquiry.qty_available)}
             </InquiryField>
             <InquiryField label="Reserved" valueClassName="tabular-nums">
-              {formatFixedDecimal(inquiry.qty_reserved, 3)}
+              {formatQuantity(inquiry.qty_reserved)}
             </InquiryField>
             <InquiryField label="Incoming" valueClassName="tabular-nums">
-              {formatFixedDecimal(inquiry.qty_incoming, 3)}
+              {formatQuantity(inquiry.qty_incoming)}
             </InquiryField>
             <InquiryField label="Opened" valueClassName="tabular-nums">
-              {formatFixedDecimal(inquiry.qty_opened, 3)}
+              {formatQuantity(inquiry.qty_opened)}
             </InquiryField>
             <InquiryField label="Committed" valueClassName="tabular-nums">
-              {formatFixedDecimal(inquiry.qty_committed, 3)}
+              {formatQuantity(inquiry.qty_committed)}
             </InquiryField>
             <InquiryField label="Net available" valueClassName="tabular-nums font-medium">
-              {formatFixedDecimal(inquiry.net_available, 3)}
+              {formatQuantity(inquiry.net_available)}
             </InquiryField>
             <InquiryField label="Ordered" valueClassName="tabular-nums">
-              {formatFixedDecimal(inquiry.ordered_qty, 3)}
+              {formatQuantity(inquiry.ordered_qty)}
             </InquiryField>
             <InquiryField label="Shop" valueClassName="tabular-nums">
-              {formatFixedDecimal(inquiry.shop_qty, 3)}
+              {formatQuantity(inquiry.shop_qty)}
             </InquiryField>
             <InquiryField label="Warehouse" valueClassName="tabular-nums">
-              {formatFixedDecimal(inquiry.warehouse_qty, 3)}
+              {formatQuantity(inquiry.warehouse_qty)}
             </InquiryField>
           </InquiryFieldGrid>
         </InquirySection>
@@ -144,64 +153,6 @@ export function ProductInquiryPanel({
           </InquiryFieldGrid>
         </InquirySection>
 
-        <InquirySection title="Item details">
-          <InquiryFieldGrid>
-            {inquiry.brand?.trim() ? (
-              <InquiryField label="Brand">{inquiry.brand}</InquiryField>
-            ) : null}
-            {inquiry.engine?.trim() ? (
-              <InquiryField label="Engine">{inquiry.engine}</InquiryField>
-            ) : null}
-            {inquiry.category_name ? (
-              <InquiryField label="Category">{inquiry.category_name}</InquiryField>
-            ) : null}
-            {inquiry.tax_name ? (
-              <InquiryField label="Tax">
-                {inquiry.tax_name}
-                {inquiry.tax_rate ? ` (${inquiry.tax_rate}%)` : ""}
-              </InquiryField>
-            ) : null}
-            {inquiry.volume != null ? (
-              <InquiryField label="CBM" valueClassName="tabular-nums">
-                {formatFixedDecimal(inquiry.volume, 3)}
-              </InquiryField>
-            ) : null}
-            {inquiry.packing_label ? (
-              <InquiryField label="Packing" className="sm:col-span-2">
-                {inquiry.packing_label}
-                {inquiry.unit2_breakdown ? ` (${inquiry.unit2_breakdown})` : ""}
-              </InquiryField>
-            ) : null}
-            {inquiry.rem?.trim() ? (
-              <InquiryField label="Rem" className="col-span-full">
-                {inquiry.rem}
-              </InquiryField>
-            ) : null}
-            {inquiry.remarks?.trim() ? (
-              <InquiryField label="Remarks" className="col-span-full">
-                {inquiry.remarks}
-              </InquiryField>
-            ) : null}
-          </InquiryFieldGrid>
-          {substitutes.length > 0 ? (
-            <div className="mt-4 border-t pt-4">
-              <p className="text-muted-foreground mb-2 text-[0.65rem] font-medium tracking-wide uppercase">
-                Aliases
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {substitutes.map((alias) => (
-                  <span
-                    key={alias}
-                    className="bg-background rounded-md border px-2.5 py-1 font-mono text-xs"
-                  >
-                    {alias}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </InquirySection>
-
         {inquiry.warehouses.length > 0 ? (
           <InquirySection title="By warehouse">
             <InquiryTableShell>
@@ -219,13 +170,13 @@ export function ProductInquiryPanel({
                     <TableRow key={row.warehouse_id}>
                       <TableCell className="font-medium">{row.warehouse_name}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {formatFixedDecimal(row.qty_on_hand, 3)}
+                        {formatQuantity(row.qty_on_hand)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {formatFixedDecimal(row.qty_reserved, 3)}
+                        {formatQuantity(row.qty_reserved)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {formatFixedDecimal(row.qty_available, 3)}
+                        {formatQuantity(row.qty_available)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -250,20 +201,20 @@ export function ProductInquiryPanel({
       <InquirySection title="Stock">
         <InquiryFieldGrid>
           <InquiryField label="On hand" valueClassName="tabular-nums font-medium">
-            {formatFixedDecimal(inquiry.qty_on_hand, 3)}
+            {formatQuantity(inquiry.qty_on_hand)}
           </InquiryField>
           <InquiryField label="Available" valueClassName="tabular-nums">
-            {formatFixedDecimal(inquiry.qty_available, 3)}
+            {formatQuantity(inquiry.qty_available)}
           </InquiryField>
           <InquiryField label="Reserved" valueClassName="tabular-nums">
-            {formatFixedDecimal(inquiry.qty_reserved, 3)}
+            {formatQuantity(inquiry.qty_reserved)}
           </InquiryField>
           <InquiryField label="Incoming" valueClassName="tabular-nums">
-            {formatFixedDecimal(inquiry.qty_incoming, 3)}
+            {formatQuantity(inquiry.qty_incoming)}
           </InquiryField>
           {inquiry.packing_label ? (
             <InquiryField label="Packing" className="col-span-full sm:col-span-2">
-              {inquiry.packing_label}
+              {formatPackingLabel(inquiry.packing_label)}
               {inquiry.unit2_breakdown ? ` (${inquiry.unit2_breakdown})` : ""}
             </InquiryField>
           ) : null}
@@ -294,13 +245,13 @@ export function ProductInquiryPanel({
                   <TableRow key={row.warehouse_id}>
                     <TableCell>{row.warehouse_name}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatFixedDecimal(row.qty_on_hand, 3)}
+                      {formatQuantity(row.qty_on_hand)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatFixedDecimal(row.qty_reserved, 3)}
+                      {formatQuantity(row.qty_reserved)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatFixedDecimal(row.qty_available, 3)}
+                      {formatQuantity(row.qty_available)}
                     </TableCell>
                   </TableRow>
                 ))}

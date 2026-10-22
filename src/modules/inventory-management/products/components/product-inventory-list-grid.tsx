@@ -59,10 +59,10 @@ export function ProductInventoryListGrid({
                   data-state={selected ? "selected" : undefined}
                   aria-selected={selected}
                   className={cn(
-                    "cursor-pointer transition-colors",
+                    "group cursor-pointer transition-colors",
                     selected
-                      ? "bg-accent shadow-[inset_3px_0_0_0_var(--primary)] hover:bg-accent data-[state=selected]:bg-accent"
-                      : "hover:bg-muted/60",
+                      ? "bg-accent shadow-[inset_3px_0_0_0_var(--primary)] hover:bg-accent data-[state=selected]:bg-accent [&>td:last-child]:!bg-accent [&>td:last-child]:hover:!bg-accent"
+                      : "hover:bg-muted",
                   )}
                   onClick={() => onSelect(row)}
                 >

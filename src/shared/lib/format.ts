@@ -127,6 +127,26 @@ export function formatQuantity(value: string | null | undefined): string {
   return formatFixedDecimal(value, DISPLAY_SCALE);
 }
 
+/** Display API packing labels such as "100.000000 PCS / CTN" with two decimals. */
+export function formatPackingLabel(value: string | null | undefined): string {
+  if (value == null || !value.trim()) {
+    return "—";
+  }
+  const trimmed = value.trim();
+  const space = trimmed.indexOf(" ");
+  if (space <= 0) {
+    return trimmed;
+  }
+  const head = trimmed.slice(0, space);
+  const tail = trimmed.slice(space + 1);
+  try {
+    parseDecimalParts(head);
+    return `${formatQuantity(head)} ${tail}`;
+  } catch {
+    return trimmed;
+  }
+}
+
 /** Formats embedded qty values in tracker summaries such as "1 lines · qty 2.000000". */
 export function formatQuantitySummary(summary: string | null | undefined): string {
   if (summary == null || summary === "") {

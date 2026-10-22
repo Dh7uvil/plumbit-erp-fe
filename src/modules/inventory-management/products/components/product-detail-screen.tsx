@@ -140,7 +140,7 @@ export function ProductDetailScreen({
                   <CardTitle className="text-base">Inventory details</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ProductInquiryPanel product={product} showStockLink />
+                  <ProductInquiryPanel product={product} showStockLink extended />
                 </CardContent>
               </Card>
             </TabsContent>

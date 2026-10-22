@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
-import { formatDate, formatFixedDecimal, formatMoney } from "@/shared/lib/format";
+import { formatDate, formatMoney, formatQuantity } from "@/shared/lib/format";
 
 function money(value: string | null | undefined, currencyCode: string) {
   if (value == null || value === "") {
@@ -109,7 +109,7 @@ export function ProductPurchaseDetailsTable({
                 </TableCell>
                 <TableCell>{row.party_name}</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatFixedDecimal(row.quantity, 3)}
+                  {formatQuantity(row.quantity)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {money(row.fc_rate ?? row.rate, billCurrency)}

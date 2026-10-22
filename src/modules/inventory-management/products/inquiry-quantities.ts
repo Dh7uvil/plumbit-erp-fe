@@ -2,6 +2,34 @@ import type {
   ProductInquiryQuantityRows,
   ProductQuantityUnitBreakdown,
 } from "@/modules/inventory-management/products/schemas";
+import { formatQuantity } from "@/shared/lib/format";
+
+export function formatUnit2PackageText(
+  unit2Qty: string,
+  remainderQty: string,
+  unitCode: string | null | undefined,
+  unit2Code: string | null | undefined,
+): string | null {
+  const u1 = unitCode?.trim() || "Unit";
+  const u2 = unit2Code?.trim();
+  if (!u2) {
+    return null;
+  }
+  const full = parseDecimal(unit2Qty);
+  const rem = parseDecimal(remainderQty);
+  const fullLabel = formatQuantity(unit2Qty);
+  const remLabel = formatQuantity(remainderQty);
+  if (full > 0 && rem > 0) {
+    return `${fullLabel} ${u2} & ${remLabel} ${u1} loose`;
+  }
+  if (full > 0) {
+    return `${fullLabel} ${u2}`;
+  }
+  if (rem > 0) {
+    return `${remLabel} ${u1} loose`;
+  }
+  return `${formatQuantity("0")} ${u2}`;
+}
 
 function parseDecimal(value: string): number {
   const n = Number(value);

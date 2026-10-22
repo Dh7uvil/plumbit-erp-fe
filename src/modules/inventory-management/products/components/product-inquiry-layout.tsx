@@ -5,20 +5,31 @@ import { cn } from "@/shared/lib/cn";
 export function InquirySection({
   title,
   description,
+  headerAside,
   children,
   className,
 }: {
   title: string;
   description?: string;
+  headerAside?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <section className={cn("bg-muted/20 overflow-hidden rounded-lg border", className)}>
-      <header className="border-b bg-muted/30 px-4 py-2.5">
-        <h3 className="text-xs font-semibold tracking-wide uppercase">{title}</h3>
-        {description ? (
-          <p className="text-muted-foreground mt-0.5 text-xs font-normal normal-case">{description}</p>
+      <header className="flex items-start justify-between gap-3 border-b bg-muted/30 px-4 py-2.5">
+        <div className="min-w-0">
+          <h3 className="text-xs font-semibold tracking-wide uppercase">{title}</h3>
+          {description ? (
+            <p className="text-muted-foreground mt-0.5 text-xs font-normal normal-case">
+              {description}
+            </p>
+          ) : null}
+        </div>
+        {headerAside ? (
+          <p className="text-muted-foreground shrink-0 text-xs font-normal normal-case tabular-nums">
+            {headerAside}
+          </p>
         ) : null}
       </header>
       <div className="p-4">{children}</div>

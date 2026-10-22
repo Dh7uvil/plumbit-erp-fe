@@ -24,7 +24,6 @@ export function toFormValues(product: Product | null): ProductFormValues {
   return {
     sku: product?.sku ?? "",
     name: product?.name ?? "",
-    item_type: product?.item_type ?? "PRODUCT",
     sales_description: product?.sales_description ?? "",
     unit_id: product?.unit_id ?? OPTIONAL_SELECT_NONE,
     pieces_per_unit: product?.pieces_per_unit ?? "",
@@ -35,8 +34,6 @@ export function toFormValues(product: Product | null): ProductFormValues {
     price_2: product?.price_2 ?? "0",
     purchase_description: product?.purchase_description ?? "",
     tax_id: product?.tax_id ?? OPTIONAL_SELECT_NONE,
-    income_account_id: product?.income_account_id ?? OPTIONAL_SELECT_NONE,
-    purchase_account_id: product?.purchase_account_id ?? OPTIONAL_SELECT_NONE,
     hs_code: product?.hs_code ?? "",
     volume: product?.volume ?? "",
     brand: product?.brand ?? "",
@@ -88,7 +85,7 @@ export function toCreateRequest(values: ProductFormValues): ProductCreateRequest
   return {
     sku: values.sku.trim(),
     name: values.name.trim(),
-    item_type: values.item_type,
+    item_type: "PRODUCT",
     sales_description: emptyToNull(values.sales_description),
     unit_id: optionalUuid(values.unit_id),
     pieces_per_unit: piecesPerUnitPayload(values.unit_id, values.pieces_per_unit),
@@ -97,8 +94,6 @@ export function toCreateRequest(values: ProductFormValues): ProductCreateRequest
     purchase_rate: values.purchase_rate.trim() || "0",
     purchase_description: emptyToNull(values.purchase_description),
     tax_id: optionalUuid(values.tax_id),
-    income_account_id: optionalUuid(values.income_account_id) ?? undefined,
-    purchase_account_id: optionalUuid(values.purchase_account_id) ?? undefined,
     hs_code: emptyToNull(values.hs_code),
     volume: optionalDecimal(values.volume),
     track_inventory: values.track_inventory,
@@ -109,7 +104,6 @@ export function toCreateRequest(values: ProductFormValues): ProductCreateRequest
 
 export function toFullUpdateRequest(values: ProductFormValues): ProductUpdateRequest {
   return {
-    item_type: values.item_type,
     name: values.name.trim(),
     sales_description: emptyToNull(values.sales_description),
     unit_id: optionalUuid(values.unit_id),
@@ -119,8 +113,6 @@ export function toFullUpdateRequest(values: ProductFormValues): ProductUpdateReq
     purchase_rate: values.purchase_rate.trim() || "0",
     purchase_description: emptyToNull(values.purchase_description),
     tax_id: optionalUuid(values.tax_id),
-    income_account_id: optionalUuid(values.income_account_id),
-    purchase_account_id: optionalUuid(values.purchase_account_id),
     hs_code: emptyToNull(values.hs_code),
     volume: optionalDecimal(values.volume),
     track_inventory: values.track_inventory,

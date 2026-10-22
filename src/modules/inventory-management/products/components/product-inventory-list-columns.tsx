@@ -1,6 +1,6 @@
 import type { ProductInventoryListRow } from "@/modules/inventory-management/products/schemas";
 import type { DataTableColumn } from "@/shared/components/data-table/columns";
-import { formatFixedDecimal, formatMoney } from "@/shared/lib/format";
+import { formatMoney, formatQuantity } from "@/shared/lib/format";
 
 const qtyHead = "h-9 text-right text-xs font-semibold whitespace-nowrap";
 const qtyCell = "py-2 text-right text-sm tabular-nums";
@@ -10,7 +10,7 @@ const moneyHead = "h-9 text-right text-xs font-semibold whitespace-nowrap";
 const moneyCellClass = "py-2 text-right text-sm tabular-nums";
 
 function formatQty(value: string | undefined) {
-  return formatFixedDecimal(String(value ?? "0"), 3);
+  return formatQuantity(String(value ?? "0"));
 }
 
 function formatOptionalMoney(value: string | null | undefined, code: string) {
@@ -54,7 +54,7 @@ export function buildProductInventoryListColumnDefs(
       header: "CMB",
       headerClassName: qtyHead,
       className: qtyCell,
-      cell: (row) => (row.volume?.trim() ? formatFixedDecimal(row.volume, 4) : "—"),
+      cell: (row) => (row.volume?.trim() ? formatQuantity(row.volume) : "—"),
     },
     {
       id: "alias_2",

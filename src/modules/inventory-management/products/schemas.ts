@@ -1,6 +1,8 @@
 import { z } from "zod";
 
+import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { DecimalStringSchema, MoneySchema, NullableDecimalStringSchema } from "@/shared/lib/money";
+import { formatQuantity } from "@/shared/lib/format";
 
 export const ITEM_TYPES = ["PRODUCT", "SERVICE"] as const;
 export const ItemTypeSchema = z.enum(ITEM_TYPES);
@@ -148,7 +150,6 @@ export type ProductUpdateRequest = z.infer<typeof ProductUpdateRequestSchema>;
 export const ProductFormSchema = z.object({
   sku: z.string().min(1, "Enter a SKU").max(80),
   name: z.string().min(1, "Enter a name").max(200),
-  item_type: ItemTypeSchema,
   sales_description: z.string(),
   unit_id: z.string(),
   pieces_per_unit: z.string().refine((value) => {
@@ -164,8 +165,6 @@ export const ProductFormSchema = z.object({
   purchase_rate: z.string(),
   purchase_description: z.string(),
   tax_id: z.string(),
-  income_account_id: z.string(),
-  purchase_account_id: z.string(),
   hs_code: z.string().max(20),
   volume: z.string(),
   brand: z.string().max(120),
@@ -188,11 +187,37 @@ export const ProductFormSchema = z.object({
   track_inventory: z.boolean(),
   requires_qc: z.boolean(),
   is_active: z.boolean(),
-});
+})
+  .superRefine((values, ctx) => {
+    const hasUnit2 =
+      values.secondary_unit_id.trim() !== "" &&
+      values.secondary_unit_id !== OPTIONAL_SELECT_NONE;
+    if (!hasUnit2) {
+      return;
+    }
+    if (
+      values.unit_id !== OPTIONAL_SELECT_NONE &&
+      values.secondary_unit_id === values.unit_id
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Unit 2 must differ from the base unit",
+        path: ["secondary_unit_id"],
+      });
+    }
+    const factorRaw = values.secondary_unit_factor.trim();
+    const factor = factorRaw ? Number(factorRaw) : NaN;
+    if (!factorRaw || !Number.isFinite(factor) || factor <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter pieces per unit 2",
+        path: ["secondary_unit_factor"],
+      });
+    }
+  });
 export type ProductFormValues = z.infer<typeof ProductFormSchema>;
 
 export const PRODUCT_FORM_UPDATE_KEYS = [
-  "item_type",
   "name",
   "sales_description",
   "unit_id",
@@ -202,8 +227,6 @@ export const PRODUCT_FORM_UPDATE_KEYS = [
   "purchase_rate",
   "purchase_description",
   "tax_id",
-  "income_account_id",
-  "purchase_account_id",
   "hs_code",
   "volume",
   "brand",
@@ -249,6 +272,25 @@ export function formatPacking(
         .replace(/\.$/, "")
     : qtyRaw;
   return `${qty} ( pieces ) / ${unit}`;
+}
+
+/** Winsoft-style label: "100 PCS / CTN" from factor and unit codes. */
+export function formatSecondaryPackingLabel(
+  factor: string | null | undefined,
+  unitCode: string | null | undefined,
+  unit2Code: string | null | undefined,
+): string | null {
+  const qtyRaw = factor?.trim();
+  const u1 = unitCode?.trim();
+  const u2 = unit2Code?.trim();
+  if (!qtyRaw || !u1 || !u2) {
+    return null;
+  }
+  const n = Number(qtyRaw);
+  if (!Number.isFinite(n) || n <= 0) {
+    return null;
+  }
+  return `${formatQuantity(qtyRaw)} ${u1} / ${u2}`;
 }
 
 export type ProductListParams = {

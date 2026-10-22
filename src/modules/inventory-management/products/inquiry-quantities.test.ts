@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildQuantityRows,
+  formatUnit2PackageText,
   quantityUnitBreakdown,
 } from "@/modules/inventory-management/products/inquiry-quantities";
 
@@ -20,6 +21,22 @@ describe("quantityUnitBreakdown", () => {
       unit2_qty: "2",
       remainder_qty: "5",
     });
+  });
+});
+
+describe("formatUnit2PackageText", () => {
+  it("formats full packages only", () => {
+    expect(formatUnit2PackageText("61", "0", "PCS", "CTN")).toBe("61.00 CTN");
+  });
+
+  it("formats packages and loose remainder", () => {
+    expect(formatUnit2PackageText("2", "5", "PCS", "PKT")).toBe(
+      "2.00 PKT & 5.00 PCS loose",
+    );
+  });
+
+  it("formats quantity below one package", () => {
+    expect(formatUnit2PackageText("0", "7", "PCS", "PKT")).toBe("7.00 PCS loose");
   });
 });
 

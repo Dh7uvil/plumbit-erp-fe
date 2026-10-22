@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { TradingHistoryLines } from "@/modules/inventory-management/history/components/trading-history-lines";
@@ -11,7 +12,6 @@ import { ProductInquiryPanel } from "@/modules/inventory-management/products/com
 import { buildProductInventoryListColumnDefs } from "@/modules/inventory-management/products/components/product-inventory-list-columns";
 import { ProductInventoryListGrid } from "@/modules/inventory-management/products/components/product-inventory-list-grid";
 import { ProductPurchaseDetailsTable } from "@/modules/inventory-management/products/components/product-purchase-details-table";
-import { ProductQuantityRowsTable } from "@/modules/inventory-management/products/components/product-quantity-rows-table";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
 import {
   useProduct,
@@ -29,6 +29,7 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableError, DataTableEmpty } from "@/shared/components/data-table/states";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { actionsColumn } from "@/shared/components/data-table/columns";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -38,11 +39,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { cn } from "@/shared/lib/cn";
-import { formatFixedDecimal, formatMoney } from "@/shared/lib/format";
+import { formatMoney, formatPackingLabel, formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
 const DEFAULT_PAGE_SIZE = 50;
+const COMPACT_LOOKUP_GRID_CLASS = "max-h-[14rem] min-h-0";
+const DEFAULT_LOOKUP_GRID_CLASS = "max-h-[22rem]";
 
 type SummaryField =
   | { id: string; label: string; kind: "money"; emphasize?: boolean; value: string | null | undefined }
@@ -93,7 +96,7 @@ function SelectedItemSummary({
       return formatSummaryMoney(field.value, code);
     }
     if (field.kind === "qty") {
-      return formatFixedDecimal(String(field.value ?? "0"), 3);
+      return formatQuantity(String(field.value ?? "0"));
     }
     return field.value?.trim() || "—";
   }
@@ -150,27 +153,36 @@ export function ProductInventoryWorkbench({
   subtitle,
   headerActions,
   detailActions,
+  rowActions,
   trackedOnly = true,
   defaultPageSize = DEFAULT_PAGE_SIZE,
+  compactLookupTable = false,
 }: {
   title: string;
   subtitle: string;
   headerActions?: ReactNode;
   detailActions?: (productId: string) => ReactNode;
+  rowActions?: (row: ProductInventoryListRow) => ReactNode;
   trackedOnly?: boolean;
   defaultPageSize?: number;
+  /** Shorter lookup table (4 rows) so item details stay on screen. */
+  compactLookupTable?: boolean;
 }) {
   const can = useCan();
   const enabled = can(productPermissions.read);
   const canHistory = can(historyPermissions.product);
+  const searchParams = useSearchParams();
   const { page, page_size, search, filters, setParams, setPage, setPageSize } = useTableParams();
   const categoriesQuery = useAllCategories(enabled);
   const categories = categoriesQuery.data ?? [];
   const categoryId = filters.category_id ?? ALL;
   const { baseCurrencyCode } = useBaseCurrency();
   const inventoryListColumnDefs = useMemo(
-    () => buildProductInventoryListColumnDefs(baseCurrencyCode ?? ""),
-    [baseCurrencyCode],
+    () => [
+      ...buildProductInventoryListColumnDefs(baseCurrencyCode ?? ""),
+      ...actionsColumn(Boolean(rowActions), (row) => rowActions?.(row) ?? null),
+    ],
+    [baseCurrencyCode, rowActions],
   );
   const { columns, columnsDialog, colSpan } = useTableColumns(
     "inventory.product_inventory_lookup",
@@ -180,7 +192,10 @@ export function ProductInventoryWorkbench({
   const [postingStatus, setPostingStatus] = useState<string>("POSTED");
   const [supplierName, setSupplierName] = useState("");
 
-  const effectivePageSize = page_size ?? defaultPageSize;
+  const effectivePageSize = searchParams.has("page_size") ? page_size : defaultPageSize;
+  const lookupGridClassName = compactLookupTable
+    ? COMPACT_LOOKUP_GRID_CLASS
+    : DEFAULT_LOOKUP_GRID_CLASS;
 
   const listQuery = useProductInventoryList(
     {
@@ -321,7 +336,9 @@ export function ProductInventoryWorkbench({
             <p className="text-base leading-snug font-semibold tracking-tight">{product.name}</p>
             <p className="text-muted-foreground font-mono text-sm">{product.sku}</p>
             {selectedRow?.packing_label ? (
-              <p className="text-muted-foreground text-xs">{selectedRow.packing_label}</p>
+              <p className="text-muted-foreground text-xs">
+                {formatPackingLabel(selectedRow.packing_label)}
+              </p>
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -367,11 +384,6 @@ export function ProductInventoryWorkbench({
               className="mt-0 flex flex-col gap-4 focus-visible:outline-none"
             >
               <ProductInquiryPanel product={product} showStockLink={false} extended />
-              <ProductQuantityRowsTable
-                rows={inquiryQuery.data?.quantity_rows}
-                unitCode={inquiryQuery.data?.unit_code}
-                unit2Code={inquiryQuery.data?.unit2_code}
-              />
             </TabsContent>
             {canHistory ? (
               <TabsContent
@@ -519,7 +531,7 @@ export function ProductInventoryWorkbench({
             ) : (
               <>
                 <ProductInventoryListGrid
-                  className="max-h-[22rem]"
+                  className={lookupGridClassName}
                   rows={rows}
                   columns={columns}
                   colSpan={colSpan}
