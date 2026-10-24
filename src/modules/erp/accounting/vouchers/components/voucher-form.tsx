@@ -11,10 +11,10 @@ import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { useCustomerOpenItems } from "@/modules/crm/customers/queries";
 import { isCashOrBankAccount, isControlAccount } from "@/modules/erp/accounting/accounts/schemas";
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
-import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { useCreateVoucher, useUpdateVoucher } from "@/modules/erp/accounting/vouchers/mutations";
 import { EntryBookSelect } from "@/modules/erp/accounting/vouchers/components/entry-book-select";
+import { requiresChequeForEntryType } from "@/modules/erp/accounting/vouchers/entry-books";
 import { VoucherLinesEditor } from "@/modules/erp/accounting/vouchers/components/voucher-lines-editor";
 import {
   PAYMENT_METHOD_LABELS,
@@ -24,6 +24,7 @@ import {
   isContraVoucher,
   isJournalVoucher,
   isReceiptVoucher,
+  parseVoucherEntryBook,
   paymentAccountSubtypeFor,
   type Voucher,
   type VoucherCreateRequest,
@@ -91,9 +92,10 @@ function toFormValues(
       party_type: OPTIONAL_SELECT_NONE,
       party_id: OPTIONAL_SELECT_NONE,
       payment_method: voucherType.startsWith("BANK") ? "TT" : "CASH",
+      cheque_number: "",
+      cheque_date: "",
       reference: "",
       branch_id: OPTIONAL_SELECT_NONE,
-      cost_center_id: OPTIONAL_SELECT_NONE,
       narration: "",
       lines: [emptyVoucherLine()],
     };
@@ -108,9 +110,10 @@ function toFormValues(
     party_type: voucher.party_type ?? OPTIONAL_SELECT_NONE,
     party_id: voucher.party_id ?? OPTIONAL_SELECT_NONE,
     payment_method: voucher.payment_method ?? (voucher.voucher_type.startsWith("BANK") ? "TT" : "CASH"),
+    cheque_number: voucher.cheque_number ?? "",
+    cheque_date: voucher.cheque_date ?? "",
     reference: voucher.reference ?? "",
     branch_id: voucher.branch_id ?? OPTIONAL_SELECT_NONE,
-    cost_center_id: voucher.cost_center_id ?? OPTIONAL_SELECT_NONE,
     narration: voucher.narration ?? "",
     lines:
       voucher.lines.length > 0
@@ -121,7 +124,6 @@ function toFormValues(
             party_id: line.party_id ?? OPTIONAL_SELECT_NONE,
             tax_id: line.tax_id ?? OPTIONAL_SELECT_NONE,
             branch_id: line.branch_id ?? OPTIONAL_SELECT_NONE,
-            cost_center_id: line.cost_center_id ?? OPTIONAL_SELECT_NONE,
             description: line.description ?? "",
           }))
         : [emptyVoucherLine()],
@@ -138,7 +140,6 @@ function toLinePayload(lines: VoucherFormValues["lines"]) {
       party_id: optionalUuid(line.party_id),
       tax_id: optionalUuid(line.tax_id),
       branch_id: optionalUuid(line.branch_id),
-      cost_center_id: optionalUuid(line.cost_center_id),
       description: emptyToNull(line.description),
     }));
 }
@@ -158,12 +159,15 @@ function toCreateRequest(
     party_type: optionalUuid(values.party_type),
     party_id: optionalUuid(values.party_id),
     payment_method: journal ? null : values.payment_method,
+    cheque_number: journal ? null : emptyToNull(values.cheque_number),
+    cheque_date: journal ? null : emptyToNull(values.cheque_date),
     reference: emptyToNull(values.reference),
     branch_id: optionalUuid(values.branch_id),
-    cost_center_id: optionalUuid(values.cost_center_id),
     narration: emptyToNull(values.narration),
     lines: toLinePayload(values.lines),
     allocations,
+    source_document_type: undefined,
+    source_document_id: undefined,
   };
 }
 
@@ -181,9 +185,10 @@ function toUpdateRequest(
     party_type: created.party_type,
     party_id: created.party_id,
     payment_method: created.payment_method,
+    cheque_number: created.cheque_number,
+    cheque_date: created.cheque_date,
     reference: created.reference,
     branch_id: created.branch_id,
-    cost_center_id: created.cost_center_id,
     narration: created.narration,
     lines: created.lines,
     allocations: created.allocations ?? [],
@@ -207,7 +212,6 @@ export function VoucherForm({
   const accountsQuery = useAllAccounts({ is_group: false, is_active: true });
   const currenciesQuery = useAllCurrencies();
   const branchesQuery = useAllBranches();
-  const costCentersQuery = useAllCostCenters();
   const [formError, setFormError] = useState<string | null>(null);
   const [allocationValues, setAllocationValues] = useState<Record<string, string>>(() =>
     Object.fromEntries((voucher?.allocations ?? []).map((row) => [row.item_id, row.amount])),
@@ -239,6 +243,11 @@ export function VoucherForm({
   const currencyId = useWatch({ control: form.control, name: "currency_id" });
   const totalAmount = useWatch({ control: form.control, name: "total_amount" });
   const watchedLines = useWatch({ control: form.control, name: "lines" });
+  const paymentMethod = useWatch({ control: form.control, name: "payment_method" });
+  const entryType = parseVoucherEntryBook(String(selectedType));
+  const chequeFieldsEnabled =
+    !isJournalVoucher(selectedType as VoucherType) &&
+    (requiresChequeForEntryType(entryType) || paymentMethod === "CHEQUE");
   const customerOpenItemsQuery = useCustomerOpenItems(partyId, receipt && Boolean(partyId));
   const supplierOpenItemsQuery = useSupplierOpenItems(partyId, !receipt && Boolean(partyId));
 
@@ -452,6 +461,36 @@ export function VoucherForm({
           />
           <FormField
             control={form.control}
+            name="cheque_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cheque no.</FormLabel>
+                <FormControl>
+                  <Input disabled={disabled || !chequeFieldsEnabled} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="cheque_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cheque date</FormLabel>
+                <FormControl>
+                  <Input
+                    type="date"
+                    disabled={disabled || !chequeFieldsEnabled}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="reference"
             render={({ field }) => (
               <FormItem>
@@ -480,30 +519,6 @@ export function VoucherForm({
                     ...(branchesQuery.data ?? []).map((branch) => ({
                       value: branch.id,
                       label: `${branch.code} — ${branch.name}`,
-                    })),
-                  ]}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="cost_center_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cost center</FormLabel>
-                <MasterSelect
-                  value={field.value ?? OPTIONAL_SELECT_NONE}
-                  onValueChange={field.onChange}
-                  disabled={disabled || costCentersQuery.isLoading}
-                  placeholder="Optional"
-                  searchPlaceholder="Search cost center…"
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "None" },
-                    ...(costCentersQuery.data ?? []).map((row) => ({
-                      value: row.id,
-                      label: `${row.code} — ${row.name}`,
                     })),
                   ]}
                 />

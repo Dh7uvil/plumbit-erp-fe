@@ -8,27 +8,18 @@ import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { useCreateAccount, useUpdateAccount } from "@/modules/erp/accounting/accounts/mutations";
-import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
+import { useAllAccounts, useAccountPeriodBalances } from "@/modules/erp/accounting/accounts/queries";
 import {
   ACCOUNT_SUBTYPE_LABELS,
-  ACCOUNT_SUBTYPES_BY_TYPE,
-  ACCOUNT_TYPE_LABELS,
-  ACCOUNT_TYPES,
+  ACCOUNT_SUBTYPES,
   AccountFormSchema,
   EMPTY_ACCOUNT_FORM,
+  accountTypeForSubtype,
   composeAccountCode,
-  isControlAccount,
   splitAccountCode,
   type Account,
   type AccountFormValues,
-  type AccountSubtype,
-  type LedgerKind,
 } from "@/modules/erp/accounting/accounts/schemas";
-import { useAllCustomers } from "@/modules/crm/customers/queries";
-import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
-import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
-import { currencyPermissions } from "@/modules/erp/currencies/permissions";
-import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { useAllTaxes } from "@/modules/erp/accounting/taxes/queries";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -51,12 +42,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
-import { useDefaultDocumentCurrency } from "@/shared/hooks/use-default-document-currency";
-import { useCan } from "@/shared/providers/session-provider";
+import { formatReportMoney, formatSignedLedgerBalance } from "@/shared/lib/format";
+import { cn } from "@/shared/lib/cn";
+
+const fieldControlClass = "h-9";
+const readOnlyFieldClass = "bg-muted/50 text-muted-foreground";
 
 function toFormValues(account: Account | null, defaultCurrencyId?: string): AccountFormValues {
   if (!account) {
@@ -103,74 +96,51 @@ export function AccountForm({
   showCancel?: boolean;
   onCancel?: () => void;
 }) {
-  const can = useCan();
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const groupsQuery = useAllAccounts({ is_group: true });
-  const currenciesQuery = useAllCurrencies();
   const taxesQuery = useAllTaxes();
   const [formError, setFormError] = useState<string | null>(null);
-  const [creatingCurrency, setCreatingCurrency] = useState(false);
   const isEdit = Boolean(account);
   const { baseCurrencyId } = useBaseCurrency();
   const codeLocked = account?.is_system === true;
+  const periodBalancesQuery = useAccountPeriodBalances(
+    account?.id ?? null,
+    undefined,
+    isEdit && !account?.is_group,
+  );
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(AccountFormSchema),
     values: toFormValues(account, baseCurrencyId),
   });
   useDirtyFormGuard(form.formState.isDirty && !disabled);
-  useDefaultDocumentCurrency(form, isEdit, baseCurrencyId);
-  const accountType = useWatch({ control: form.control, name: "account_type" });
   const accountSubtype = useWatch({ control: form.control, name: "account_subtype" });
   const isGroup = useWatch({ control: form.control, name: "is_group" });
-  const ledgerKind = useWatch({ control: form.control, name: "ledger_kind" });
-  const customersQuery = useAllCustomers();
-  const suppliersQuery = useAllSuppliers();
   const parentId = useWatch({ control: form.control, name: "parent_id" });
   const subAccountNumber = useWatch({ control: form.control, name: "sub_account_number" });
   const manualCode = useWatch({ control: form.control, name: "manual_code" });
-  const selectedTaxId = useWatch({ control: form.control, name: "default_tax_id" });
-  const selectedTaxRate =
-    taxesQuery.data?.find((tax) => tax.id === selectedTaxId)?.rate ??
-    account?.default_tax_rate ??
-    null;
-  const subtypeOptions = ACCOUNT_SUBTYPES_BY_TYPE[accountType] ?? [];
+  const selectedTax =
+    taxesQuery.data?.find((tax) => tax.id === account?.default_tax_id) ??
+    (account?.default_tax_id
+      ? { name: "Tax", rate: account.default_tax_rate ?? "0" }
+      : null);
+  const subtypeOptions = ACCOUNT_SUBTYPES;
   const groups = useMemo(
-    () =>
-      (groupsQuery.data ?? []).filter(
-        (row) => row.account_type === accountType && row.id !== account?.id,
-      ),
-    [account?.id, accountType, groupsQuery.data],
+    () => (groupsQuery.data ?? []).filter((row) => row.id !== account?.id),
+    [account?.id, groupsQuery.data],
   );
   const selectedParent = useMemo(
     () => groups.find((row) => row.id === parentId) ?? null,
     [groups, parentId],
   );
-  const mainAccountName = selectedParent?.name ?? account?.parent_name ?? "";
-  const currencies = currenciesQuery.data ?? [];
   const pending = createAccount.isPending || updateAccount.isPending;
-  const hasMainAccount = parentId !== OPTIONAL_SELECT_NONE && parentId !== "";
-  const showLedgerKind =
-    !isGroup &&
-    isControlAccount({ account_subtype: accountSubtype, is_group: false });
-  const isReceivable = accountSubtype === "ACCOUNTS_RECEIVABLE";
+  const hasMainAccount = !isGroup && parentId !== OPTIONAL_SELECT_NONE && parentId !== "";
+  const showAccountNumberField = isGroup || !hasMainAccount || manualCode;
 
   useEffect(() => {
-    if (isEdit || !selectedParent) {
-      return;
-    }
-    if (form.getValues("account_type") !== selectedParent.account_type) {
-      form.setValue("account_type", selectedParent.account_type);
-    }
-    const allowed = ACCOUNT_SUBTYPES_BY_TYPE[selectedParent.account_type] ?? [];
-    if (
-      allowed.length > 0 &&
-      !allowed.includes(form.getValues("account_subtype") as (typeof allowed)[number])
-    ) {
-      form.setValue("account_subtype", selectedParent.account_subtype);
-    }
-  }, [form, isEdit, selectedParent]);
+    form.setValue("account_type", accountTypeForSubtype(accountSubtype));
+  }, [accountSubtype, form]);
 
   useEffect(() => {
     if (manualCode || codeLocked || !hasMainAccount || !selectedParent) {
@@ -192,13 +162,19 @@ export function AccountForm({
   async function onSubmit(values: AccountFormValues) {
     setFormError(null);
     try {
+      const payload: AccountFormValues = {
+        ...values,
+        account_type: accountTypeForSubtype(values.account_subtype),
+        description: values.name,
+      };
       const saved = isEdit
         ? await updateAccount.mutateAsync({
             id: account!.id,
-            values,
+            values: payload,
             isSystem: account!.is_system,
+            existing: account!,
           })
-        : await createAccount.mutateAsync(values);
+        : await createAccount.mutateAsync(payload);
       toast.success(isEdit ? "Account saved" : "Account created");
       form.reset(toFormValues(saved, baseCurrencyId));
       onSuccess?.(saved);
@@ -216,144 +192,129 @@ export function AccountForm({
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
         <div
           data-slot="form-grid"
-          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3"
         >
           <FormField
             control={form.control}
-            name="parent_id"
+            name="is_group"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Main account</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    if (value === OPTIONAL_SELECT_NONE) {
-                      form.setValue("sub_account_number", "");
-                      form.setValue("manual_code", true);
-                    } else {
-                      form.setValue("manual_code", false);
-                    }
-                  }}
-                  disabled={disabled}
-                  placeholder="No main account"
-                  searchPlaceholder="Search group…"
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "No main account" },
-                    ...groups.map((row) => ({
-                      value: row.id,
-                      label: `${row.code} — ${row.name}`,
-                    })),
-                  ]}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {hasMainAccount ? (
-            <>
-              <FormItem>
-                <FormLabel>Main account name</FormLabel>
+              <FormItem className="col-span-full flex flex-row items-center gap-2.5 space-y-0">
                 <FormControl>
-                  <Input disabled value={mainAccountName} readOnly />
-                </FormControl>
-              </FormItem>
-              <FormField
-                control={form.control}
-                name="sub_account_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sub account number</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={disabled || codeLocked}
-                        maxLength={20}
-                        {...field}
-                        onChange={(event) => {
-                          field.onChange(event);
-                          form.setValue("manual_code", false, { shouldDirty: true });
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          ) : null}
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Code</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled={disabled || codeLocked}
-                    maxLength={20}
-                    {...field}
-                    onChange={(event) => {
-                      field.onChange(event);
-                      form.setValue("manual_code", true, { shouldDirty: true });
+                  <Checkbox
+                    checked={field.value}
+                    disabled={disabled || lockGroupFlag}
+                    onCheckedChange={(checked) => {
+                      const next = checked === true;
+                      field.onChange(next);
+                      if (next) {
+                        form.setValue("parent_id", OPTIONAL_SELECT_NONE);
+                        form.setValue("sub_account_number", "");
+                      }
                     }}
                   />
                 </FormControl>
-                {hasMainAccount ? (
-                  <FormDescription>
-                    Composed from main + sub unless you edit this field directly.
-                  </FormDescription>
-                ) : null}
-                <FormMessage />
+                <FormLabel className="leading-snug">
+                  Main account
+                  {lockGroupFlag ? (
+                    <span className="text-muted-foreground ml-1 text-xs font-normal">
+                      (locked after journal activity or children)
+                    </span>
+                  ) : null}
+                </FormLabel>
               </FormItem>
             )}
           />
+          {!isGroup ? (
+            <FormField
+              control={form.control}
+              name="parent_id"
+              render={({ field }) => (
+                <FormItem className="lg:col-span-2">
+                  <FormLabel>Main account</FormLabel>
+                  <MasterSelect
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value === OPTIONAL_SELECT_NONE) {
+                        form.setValue("sub_account_number", "");
+                        form.setValue("manual_code", true);
+                      } else {
+                        form.setValue("manual_code", false);
+                      }
+                    }}
+                    disabled={disabled}
+                    placeholder="Select main account"
+                    searchPlaceholder="Search main account…"
+                    options={[
+                      { value: OPTIONAL_SELECT_NONE, label: "Select main account" },
+                      ...groups.map((row) => ({
+                        value: row.id,
+                        label: `${row.code} — ${row.name}`,
+                      })),
+                    ]}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {!isGroup && hasMainAccount ? (
+            <FormField
+              control={form.control}
+              name="sub_account_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sub account number</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={disabled || codeLocked}
+                      maxLength={20}
+                      className={cn(fieldControlClass, "font-mono tabular-nums")}
+                      {...field}
+                      onChange={(event) => {
+                        field.onChange(event);
+                        form.setValue("manual_code", false, { shouldDirty: true });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {showAccountNumberField ? (
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{isGroup ? "Main account number" : "Account number"}</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={disabled || codeLocked}
+                      maxLength={20}
+                      className={cn(fieldControlClass, "font-mono tabular-nums")}
+                      {...field}
+                      onChange={(event) => {
+                        field.onChange(event);
+                        form.setValue("manual_code", true, { shouldDirty: true });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="sm:col-span-2">
                 <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input disabled={disabled} maxLength={200} {...field} />
+                  <Input disabled={disabled} maxLength={200} className={fieldControlClass} {...field} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="account_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type</FormLabel>
-                <Select
-                  value={field.value}
-                  disabled={disabled}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    form.setValue("parent_id", OPTIONAL_SELECT_NONE);
-                    form.setValue("sub_account_number", "");
-                    form.setValue("manual_code", true);
-                    const allowed = ACCOUNT_SUBTYPES_BY_TYPE[value as Account["account_type"]];
-                    const current = form.getValues("account_subtype");
-                    if (!allowed.includes(current as AccountSubtype)) {
-                      form.setValue("account_subtype", allowed[0]);
-                    }
-                  }}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {ACCOUNT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {ACCOUNT_TYPE_LABELS[type]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -366,7 +327,7 @@ export function AccountForm({
                 <FormLabel>Financial category</FormLabel>
                 <Select value={field.value} disabled={disabled} onValueChange={field.onChange}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Financial category" />
                     </SelectTrigger>
                   </FormControl>
@@ -382,218 +343,103 @@ export function AccountForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="currency_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Currency</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={disabled}
-                  placeholder="Base currency"
-                  searchPlaceholder="Search currency…"
-                  createLabel="Create currency"
-                  onCreate={
-                    can(currencyPermissions.create) ? () => setCreatingCurrency(true) : undefined
-                  }
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "Base currency" },
-                    ...currencies.map((currency) => ({
-                      value: currency.id,
-                      label: `${currency.code} — ${currency.name}`,
-                    })),
-                  ]}
+          {isEdit && selectedTax ? (
+            <FormItem>
+              <FormLabel>Tax type</FormLabel>
+              <FormControl>
+                <Input
+                  disabled
+                  readOnly
+                  value={selectedTax.name}
+                  className={cn(fieldControlClass, readOnlyFieldClass)}
                 />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem className="col-span-full">
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="default_tax_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Default tax</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={disabled || taxesQuery.isLoading}
-                  placeholder="None"
-                  searchPlaceholder="Search tax…"
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "None" },
-                    ...(taxesQuery.data ?? []).map((tax) => ({
-                      value: tax.id,
-                      label: `${tax.name} (${tax.rate}%)`,
-                    })),
-                  ]}
-                />
-                {selectedTaxRate ? (
-                  <FormDescription>Rate: {selectedTaxRate}% (read-only)</FormDescription>
-                ) : null}
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {showLedgerKind ? (
-            <div className="col-span-full flex flex-col gap-3 rounded-md border p-3">
-              <p className="text-sm font-medium">Ledger kind</p>
-              <FormField
-                control={form.control}
-                name="ledger_kind"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Link</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => field.onChange(value as LedgerKind)}
-                      disabled={disabled}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose ledger kind" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">No party link</SelectItem>
-                        <SelectItem value="new_party">
-                          Link to new {isReceivable ? "customer" : "supplier"}
-                        </SelectItem>
-                        <SelectItem value="existing_party">
-                          Link to existing {isReceivable ? "customer" : "supplier"}
-                        </SelectItem>
-                        <SelectItem value="standalone">Standalone ledger</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Standalone ledgers post without a party (e.g. charge-type payables).
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {ledgerKind === "new_party" ? (
-                <FormField
-                  control={form.control}
-                  name="party_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{isReceivable ? "Customer" : "Supplier"} name</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled={disabled} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : null}
-              {ledgerKind === "existing_party" ? (
-                <FormField
-                  control={form.control}
-                  name="party_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{isReceivable ? "Customer" : "Supplier"}</FormLabel>
-                      <MasterSelect
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={disabled}
-                        searchPlaceholder={`Search ${isReceivable ? "customer" : "supplier"}…`}
-                        options={[
-                          { value: OPTIONAL_SELECT_NONE, label: "Select party" },
-                          ...(isReceivable
-                            ? (customersQuery.data ?? [])
-                            : (suppliersQuery.data ?? [])
-                          ).map(
-                            (party) => ({
-                              value: party.id,
-                              label: party.name,
-                            }),
-                          ),
-                        ]}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : null}
-            </div>
+              </FormControl>
+              <FormDescription>Rate: {selectedTax.rate}% (read-only)</FormDescription>
+            </FormItem>
           ) : null}
           <FormField
             control={form.control}
-            name="is_group"
+            name="is_blocked"
             render={({ field }) => (
-              <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+              <FormItem className="col-span-full flex flex-row items-center gap-2.5 space-y-0">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
-                    disabled={disabled || lockGroupFlag}
+                    disabled={disabled}
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
                 </FormControl>
-                <FormLabel>
-                  Group account (not postable)
-                  {lockGroupFlag ? (
-                    <span className="text-muted-foreground ml-1 text-xs font-normal">
-                      (locked after journal activity or children)
-                    </span>
-                  ) : null}
-                </FormLabel>
+                <FormLabel className="font-normal leading-snug">Blocked</FormLabel>
               </FormItem>
             )}
           />
           {isEdit ? (
-            <>
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        disabled={disabled}
-                        onCheckedChange={(checked) => field.onChange(checked === true)}
-                      />
-                    </FormControl>
-                    <FormLabel>Active</FormLabel>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="is_blocked"
-                render={({ field }) => (
-                  <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        disabled={disabled}
-                        onCheckedChange={(checked) => field.onChange(checked === true)}
-                      />
-                    </FormControl>
-                    <FormLabel>Blocked (visible but not postable)</FormLabel>
-                  </FormItem>
-                )}
-              />
-            </>
+            <FormField
+              control={form.control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="col-span-full flex flex-row items-center gap-2.5 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      disabled={disabled}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <FormLabel className="font-normal leading-snug">Active (status)</FormLabel>
+                </FormItem>
+              )}
+            />
           ) : null}
         </div>
+        {isEdit && !account?.is_group && periodBalancesQuery.data ? (
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="px-3 py-2 font-medium">Period</th>
+                  <th className="px-3 py-2 font-medium text-right">Debit</th>
+                  <th className="px-3 py-2 font-medium text-right">Credit</th>
+                  <th className="px-3 py-2 font-medium text-right">Cur. balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="px-3 py-2 font-medium">OP. Balance</td>
+                  <td className="px-3 py-2" />
+                  <td className="px-3 py-2" />
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {formatSignedLedgerBalance(
+                      periodBalancesQuery.data.opening,
+                      periodBalancesQuery.data.currency_code,
+                      account!.account_type,
+                    )}
+                  </td>
+                </tr>
+                {periodBalancesQuery.data.periods.map((row) => (
+                  <tr key={row.period} className="border-b">
+                    <td className="px-3 py-2 tabular-nums">
+                      {String(row.period).padStart(2, "0")}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatReportMoney(row.debit, periodBalancesQuery.data.currency_code)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatReportMoney(row.credit, periodBalancesQuery.data.currency_code)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatSignedLedgerBalance(
+                        row.closing,
+                        periodBalancesQuery.data.currency_code,
+                        account!.account_type,
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
         {disabled ? null : (
           <div className="flex justify-end gap-2">
             {showCancel ? (
@@ -608,13 +454,6 @@ export function AccountForm({
           </div>
         )}
       </form>
-      <CurrencyFormDialog
-        open={creatingCurrency}
-        currency={null}
-        nested
-        onCreated={(entity) => form.setValue("currency_id", entity.id, { shouldDirty: true })}
-        onOpenChange={setCreatingCurrency}
-      />
     </Form>
   );
 }

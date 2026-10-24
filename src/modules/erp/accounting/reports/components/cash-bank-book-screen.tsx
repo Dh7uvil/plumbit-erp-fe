@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
-import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useBankBook, useCashBook } from "@/modules/erp/accounting/reports/queries";
@@ -149,13 +148,11 @@ export function CashBankBookScreen({
   const to = filters.to ?? period.to;
   const accountId = filters.account_id;
   const branchId = filters.branch_id;
-  const costCenterId = filters.cost_center_id;
   const sourceType = filters.source_type;
   const side = filters.side;
   const subtype = bookKind === "cash" ? "CASH" : "BANK";
   const accountsQuery = useAllAccounts({ is_group: false, account_subtype: subtype });
   const branchesQuery = useAllBranches(can("identity.branch.read"));
-  const costCentersQuery = useAllCostCenters(can("masters.cost_center.read"));
   const reportParams =
     from && to
       ? {
@@ -163,7 +160,6 @@ export function CashBankBookScreen({
           to,
           account_id: accountId,
           branch_id: branchId,
-          cost_center_id: costCenterId,
           source_type: sourceType,
           side,
         }
@@ -173,7 +169,6 @@ export function CashBankBookScreen({
   const reportQuery = bookKind === "cash" ? cashQuery : bankQuery;
   const accounts = accountsQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
-  const costCenters = costCentersQuery.data ?? [];
   const report = reportQuery.data;
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
@@ -183,7 +178,6 @@ export function CashBankBookScreen({
     to,
     account_id: accountId,
     branch_id: branchId,
-    cost_center_id: costCenterId,
     source_type: sourceType,
     side,
   };
@@ -283,22 +277,6 @@ export function CashBankBookScreen({
                 ...branches.map((branch) => ({
                   value: branch.id,
                   label: `${branch.code} — ${branch.name}`,
-                })),
-              ]}
-            />
-            <FilterSelect
-              label="Cost center"
-              className="w-48"
-              placeholder="Cost center"
-              value={costCenterId ?? ALL}
-              onValueChange={(value) =>
-                setParams({ filters: { cost_center_id: value === ALL ? null : value } })
-              }
-              options={[
-                { value: ALL, label: "All cost centers" },
-                ...costCenters.map((row) => ({
-                  value: row.id,
-                  label: `${row.code} — ${row.name}`,
                 })),
               ]}
             />

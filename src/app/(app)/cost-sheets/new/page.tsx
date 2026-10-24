@@ -1,11 +1,5 @@
-import { CostSheetNewScreen } from "@/modules/erp/cost-sheets/components/cost-sheet-new-screen";
-import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { redirect } from "next/navigation";
 
 export default function CostSheetNewPage() {
-  return (
-    <PermissionGate permission={costSheetPermissions.create}>
-      <CostSheetNewScreen />
-    </PermissionGate>
-  );
+  redirect("/cost-sheets/entry");
 }

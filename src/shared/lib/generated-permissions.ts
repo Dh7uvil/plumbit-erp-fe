@@ -220,10 +220,6 @@ export const catalogPermissions = [
   "logistics.shipment.import",
   "logistics.shipment.read",
   "logistics.shipment.update",
-  "masters.cost_center.create",
-  "masters.cost_center.delete",
-  "masters.cost_center.read",
-  "masters.cost_center.update",
   "masters.currency.create",
   "masters.currency.delete",
   "masters.currency.read",
@@ -756,12 +752,6 @@ export const permissionsByModule = {
     },
   },
   masters: {
-    cost_center: {
-      create: "masters.cost_center.create",
-      delete: "masters.cost_center.delete",
-      read: "masters.cost_center.read",
-      update: "masters.cost_center.update",
-    },
     currency: {
       create: "masters.currency.create",
       delete: "masters.currency.delete",

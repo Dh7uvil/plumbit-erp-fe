@@ -9,7 +9,6 @@ import {
   isStockWriteAlertError,
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { CreateBillFromGoodsReceiptDialog } from "@/modules/erp/purchase-invoices/components/create-from-goods-receipt-dialog";
-import { GrnChargesReadOnlyCard } from "@/modules/inventory-management/goods-receipts/components/grn-charges-panel";
 import { GoodsReceiptForm } from "@/modules/inventory-management/goods-receipts/components/goods-receipt-form";
 import { useGoodsReceiptWorkflow } from "@/modules/inventory-management/goods-receipts/hooks/use-goods-receipt-workflow";
 import { goodsReceiptPermissions } from "@/modules/inventory-management/goods-receipts/permissions";
@@ -243,10 +242,6 @@ function GoodsReceiptDetailLoaded({
       formTitle={isEdit ? "Edit goods receipt" : "Goods receipt"}
       panels={
         <>
-          <GrnChargesReadOnlyCard
-            charges={receipt.charges}
-            chargesTotal={receipt.charges_total}
-          />
           <RelatedDocumentsCard documents={receipt.related_documents} />
           <DocumentLedgerCard journalEntryId={receipt.journal_entry_id} />
         </>

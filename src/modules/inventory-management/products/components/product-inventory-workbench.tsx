@@ -180,7 +180,9 @@ export function ProductInventoryWorkbench({
   const inventoryListColumnDefs = useMemo(
     () => [
       ...buildProductInventoryListColumnDefs(baseCurrencyCode ?? ""),
-      ...actionsColumn(Boolean(rowActions), (row) => rowActions?.(row) ?? null),
+      ...actionsColumn<ProductInventoryListRow>(Boolean(rowActions), (row) =>
+        rowActions?.(row) ?? null,
+      ),
     ],
     [baseCurrencyCode, rowActions],
   );

@@ -1,6 +1,5 @@
 "use client";
 
-import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
@@ -18,8 +17,6 @@ export function StatementReportFilters({
   from,
   to,
   branchId,
-  costCenterId,
-  showCostCenterFilter = false,
   includeYtd,
   periodCount,
   budgetId,
@@ -30,8 +27,6 @@ export function StatementReportFilters({
   from?: string;
   to?: string;
   branchId?: string;
-  costCenterId?: string;
-  showCostCenterFilter?: boolean;
   includeYtd?: boolean;
   periodCount?: string;
   budgetId?: string;
@@ -40,16 +35,11 @@ export function StatementReportFilters({
 }) {
   const can = useCan();
   const branchesQuery = useAllBranches(can("identity.branch.read"));
-  const costCentersQuery = useAllCostCenters(
-    showCostCenterFilter && can("masters.cost_center.read"),
-  );
   const branches = branchesQuery.data ?? [];
-  const costCenters = costCentersQuery.data ?? [];
   const hasFilters = Boolean(
     from ||
     to ||
     branchId ||
-    costCenterId ||
     includeYtd ||
     (periodCount && periodCount !== "1") ||
     budgetId,
@@ -92,22 +82,6 @@ export function StatementReportFilters({
           })),
         ]}
       />
-      {showCostCenterFilter ? (
-        <FilterSelect
-          label="Cost center"
-          className="w-48"
-          placeholder="Cost center"
-          value={costCenterId ?? ALL}
-          onValueChange={(value) => onChange({ cost_center_id: value === ALL ? null : value })}
-          options={[
-            { value: ALL, label: "All cost centers" },
-            ...costCenters.map((row) => ({
-              value: row.id,
-              label: `${row.code} — ${row.name}`,
-            })),
-          ]}
-        />
-      ) : null}
       {includeYtd !== undefined ? (
         <div className="flex h-9 items-center gap-2">
           <Checkbox
@@ -161,7 +135,6 @@ export function StatementReportFilters({
               from: null,
               to: null,
               branch_id: null,
-              cost_center_id: null,
               include_ytd: null,
               period_count: null,
               budget_id: null,

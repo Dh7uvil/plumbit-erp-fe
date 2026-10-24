@@ -80,6 +80,10 @@ export function entryBooksFromApi(
   });
 }
 
+export function requiresChequeForEntryType(type: VoucherEntryType): boolean {
+  return entryBookFor(type).requiresCheque;
+}
+
 export function entryBookFor(type: VoucherEntryType): EntryBookConfig {
   const book = ENTRY_BOOKS.find((row) => row.value === type);
   if (!book) {

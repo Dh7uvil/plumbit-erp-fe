@@ -147,7 +147,6 @@ export const VoucherLineSchema = z.object({
   party_id: z.string().uuid().nullable(),
   tax_id: z.string().uuid().nullable(),
   branch_id: z.string().uuid().nullable(),
-  cost_center_id: z.string().uuid().nullable(),
   description: z.string().nullable(),
 });
 export type VoucherLine = z.infer<typeof VoucherLineSchema>;
@@ -179,9 +178,11 @@ export const VoucherSchema = z.object({
   cheque_date: z.string().nullable().optional(),
   external_reference: z.string().nullable().optional(),
   reference: z.string().nullable(),
+  source_document_type: z.string().nullable().optional(),
+  source_document_id: z.string().uuid().nullable().optional(),
+  source_document_number: z.string().nullable().optional(),
   period: z.number().int().nullable().optional(),
   branch_id: z.string().uuid().nullable(),
-  cost_center_id: z.string().uuid().nullable(),
   narration: z.string().nullable(),
   journal_entry_id: z.string().uuid().nullable(),
   reversal_journal_entry_id: z.string().uuid().nullable(),
@@ -222,13 +223,15 @@ export const VoucherLineInputSchema = z.object({
   party_id: z.string().uuid().nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
   branch_id: z.string().uuid().nullable().optional(),
-  cost_center_id: z.string().uuid().nullable().optional(),
   description: z.string().nullable().optional(),
 });
 
 export const VoucherCreateRequestSchema = z.object({
   voucher_type: VoucherTypeSchema,
   voucher_date: z.string().nullable().optional(),
+  fiscal_period: z.number().int().min(1).max(12).nullable().optional(),
+  source_document_type: z.string().min(1).max(40).optional(),
+  source_document_id: z.string().uuid().optional(),
   payment_account_id: z.string().uuid().nullable().optional(),
   counter_account_id: z.string().uuid().nullable().optional(),
   total_amount: DecimalStringSchema.optional(),
@@ -241,7 +244,6 @@ export const VoucherCreateRequestSchema = z.object({
   external_reference: z.string().nullable().optional(),
   reference: z.string().nullable().optional(),
   branch_id: z.string().uuid().nullable().optional(),
-  cost_center_id: z.string().uuid().nullable().optional(),
   narration: z.string().nullable().optional(),
   lines: z.array(VoucherLineInputSchema).default([]),
   allocations: z.array(PaymentAllocationInputSchema).default([]),
@@ -279,7 +281,6 @@ export const DEFAULT_VOUCHER_LINE = {
   party_id: OPTIONAL_SELECT_NONE,
   tax_id: OPTIONAL_SELECT_NONE,
   branch_id: OPTIONAL_SELECT_NONE,
-  cost_center_id: OPTIONAL_SELECT_NONE,
   description: "",
 };
 
@@ -317,7 +318,6 @@ export const VoucherFormLineSchema = z.object({
   party_id: z.string(),
   tax_id: z.string().optional(),
   branch_id: z.string().optional(),
-  cost_center_id: z.string().optional(),
   description: z.string(),
 });
 export type VoucherFormLine = z.infer<typeof VoucherFormLineSchema>;
@@ -335,9 +335,10 @@ export const VoucherFormSchema = z
     party_type: z.string(),
     party_id: z.string(),
     payment_method: PaymentMethodSchema,
+    cheque_number: z.string(),
+    cheque_date: z.string(),
     reference: z.string(),
     branch_id: z.string(),
-    cost_center_id: z.string(),
     narration: z.string(),
     lines: z.array(VoucherFormLineSchema),
   })
@@ -380,9 +381,7 @@ export const VoucherEntryFormLineSchema = z.object({
   party_id: z.string(),
   tax_id: z.string().optional(),
   branch_id: z.string().optional(),
-  cost_center_id: z.string().optional(),
   due_date: z.string().optional(),
-  external_reference: z.string().optional(),
   description: z.string(),
 });
 export type VoucherEntryFormLine = z.infer<typeof VoucherEntryFormLineSchema>;
@@ -395,16 +394,23 @@ export const DEFAULT_VOUCHER_ENTRY_LINE = {
   party_id: OPTIONAL_SELECT_NONE,
   tax_id: OPTIONAL_SELECT_NONE,
   branch_id: OPTIONAL_SELECT_NONE,
-  cost_center_id: OPTIONAL_SELECT_NONE,
   due_date: "",
-  external_reference: "",
   description: "",
 };
 
 export const VoucherEntryFormSchema = z
   .object({
     voucher_type: VoucherEntryTypeSchema,
+    period: z.number().int().min(1).max(12),
     voucher_date: z.string().min(1, "Date is required"),
+    source_document_type: z
+      .string()
+      .min(1, "Document type is required")
+      .refine((value) => value !== OPTIONAL_SELECT_NONE, "Document type is required"),
+    source_document_id: z
+      .string()
+      .min(1, "Document is required")
+      .refine((value) => value !== OPTIONAL_SELECT_NONE, "Select a source document"),
     payment_account_id: z.string(),
     currency_id: z.string(),
     payment_method: PaymentMethodSchema,
@@ -413,17 +419,19 @@ export const VoucherEntryFormSchema = z
     external_reference: z.string(),
     reference: z.string(),
     branch_id: z.string(),
-    cost_center_id: z.string(),
     narration: z.string(),
     enable_vat_details: z.boolean(),
     lines: z.array(VoucherEntryFormLineSchema),
   })
   .superRefine((values, ctx) => {
-    if (values.currency_id === OPTIONAL_SELECT_NONE || !values.currency_id.trim()) {
+    if (
+      values.source_document_id === OPTIONAL_SELECT_NONE ||
+      !values.source_document_id.trim()
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Select a currency",
-        path: ["currency_id"],
+        message: "Select a source document",
+        path: ["source_document_id"],
       });
     }
   });

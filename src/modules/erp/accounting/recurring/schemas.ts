@@ -58,7 +58,6 @@ export const RecurringFormSchema = z
     narration: z.string(),
     currency_id: z.string(),
     branch_id: z.string(),
-    cost_center_id: z.string(),
     reference: z.string(),
     lines: z.array(VoucherEntryFormLineSchema),
   })

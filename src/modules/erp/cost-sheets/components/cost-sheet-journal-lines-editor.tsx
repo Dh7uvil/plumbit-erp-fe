@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
+import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 import { formatReportMoney } from "@/shared/lib/format";
 import type { CostSheetFormValues } from "@/modules/erp/cost-sheets/components/cost-sheet-form";
 
@@ -74,6 +75,7 @@ export function CostSheetJournalLinesEditor({
       credit: line.credit ?? "0",
     })),
   );
+  const { baseCurrencyCode } = useBaseCurrency();
 
   return (
     <div className="flex flex-col gap-2">
@@ -287,8 +289,9 @@ export function CostSheetJournalLinesEditor({
         </TableBody>
       </Table>
       <p className="text-muted-foreground text-xs tabular-nums">
-        Dr {formatReportMoney(totalDebit)} · Cr {formatReportMoney(totalCredit)} · Diff{" "}
-        {formatReportMoney(difference)}
+        Dr {formatReportMoney(totalDebit, baseCurrencyCode)} · Cr{" "}
+        {formatReportMoney(totalCredit, baseCurrencyCode)} · Diff{" "}
+        {formatReportMoney(difference, baseCurrencyCode)}
       </p>
     </div>
   );

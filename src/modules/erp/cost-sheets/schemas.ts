@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { OPTIONAL_SELECT_NONE } from "@/config/constants";
+
 export const COST_SHEET_TYPES = ["IMPORT", "EXPORT", "OTHER"] as const;
 export type CostSheetType = (typeof COST_SHEET_TYPES)[number];
 
@@ -92,8 +94,12 @@ export const CostSheetSchema = z.object({
   tenant_id: z.string().uuid(),
   document_number: z.string(),
   sheet_type: z.enum(COST_SHEET_TYPES),
-  sheet_mode: z.enum(COST_SHEET_MODES).default("PLANNING"),
+  sheet_mode: z.enum(COST_SHEET_MODES).default("JOURNAL"),
   status: z.enum(COST_SHEET_STATUSES),
+  source_document_type: z.string().nullable().optional(),
+  source_document_id: z.string().uuid().nullable().optional(),
+  source_document_number: z.string().nullable().optional(),
+  period: z.number().int().nullable().optional(),
   purchase_invoice_id: z.string().uuid().nullable().optional(),
   imp_reference: z.string().nullable().optional(),
   purchase_invoice_number: z.string().nullable().optional(),
@@ -161,11 +167,14 @@ export const CostSheetJournalLineInputSchema = z.object({
 });
 
 const costSheetWriteBaseSchema = z.object({
-  sheet_type: z.enum(COST_SHEET_TYPES),
+  sheet_type: z.enum(COST_SHEET_TYPES).optional(),
   sheet_mode: z.enum(COST_SHEET_MODES).optional(),
+  source_document_type: z.string().max(40).optional(),
+  source_document_id: z.string().uuid().optional(),
   purchase_invoice_id: z.string().uuid().optional(),
   imp_reference: z.string().max(80).optional(),
   document_date: z.string().optional(),
+  fiscal_period: z.number().int().min(1).max(12).nullable().optional(),
   shipment_id: z.string().uuid().optional(),
   purchase_order_id: z.string().uuid().optional(),
   supplier_id: z.string().uuid().optional(),
@@ -186,13 +195,22 @@ const costSheetWriteBaseSchema = z.object({
 function refineCostSheetModeLines(
   values: {
     sheet_mode?: CostSheetMode;
+    source_document_type?: string;
+    source_document_id?: string;
     lines?: z.infer<typeof CostSheetLineInputSchema>[];
     journal_lines?: z.infer<typeof CostSheetJournalLineInputSchema>[];
   },
   ctx: z.RefinementCtx,
 ) {
-  const mode = values.sheet_mode ?? "PLANNING";
+  const mode = values.sheet_mode ?? "JOURNAL";
   if (mode === "JOURNAL") {
+    if (!values.source_document_type?.trim() || !values.source_document_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["source_document_id"],
+        message: "Select a source document",
+      });
+    }
     if (!values.journal_lines?.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -209,6 +227,42 @@ function refineCostSheetModeLines(
       message: "Add at least one product line",
     });
   }
+}
+
+export const CostSheetEntryFormLineSchema = z.object({
+  account_id: z.string(),
+  debit: z.string(),
+  credit: z.string(),
+  description: z.string(),
+});
+export type CostSheetEntryFormLine = z.infer<typeof CostSheetEntryFormLineSchema>;
+
+export const CostSheetEntryFormSchema = z.object({
+  source_document_type: z
+    .string()
+    .min(1, "Document type is required")
+    .refine((value) => value !== OPTIONAL_SELECT_NONE, "Document type is required"),
+  source_document_id: z
+    .string()
+    .min(1, "Document is required")
+    .refine((value) => value !== OPTIONAL_SELECT_NONE, "Select a source document"),
+  document_date: z.string().min(1, "Date is required"),
+  period: z.number().int().min(1).max(12),
+  imp_reference: z.string(),
+  notes: z.string(),
+  journal_lines: z.array(CostSheetEntryFormLineSchema).min(1, "Add at least one line"),
+});
+export type CostSheetEntryFormValues = z.infer<typeof CostSheetEntryFormSchema>;
+
+export const DEFAULT_COST_SHEET_ENTRY_LINE: CostSheetEntryFormLine = {
+  account_id: OPTIONAL_SELECT_NONE,
+  debit: "",
+  credit: "",
+  description: "",
+};
+
+export function emptyCostSheetEntryLine(): CostSheetEntryFormLine {
+  return { ...DEFAULT_COST_SHEET_ENTRY_LINE };
 }
 
 export const CostSheetCreateRequestSchema = costSheetWriteBaseSchema.superRefine(

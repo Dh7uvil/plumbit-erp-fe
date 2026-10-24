@@ -82,7 +82,6 @@ describe("JournalEntrySchema", () => {
           external_reference: null,
           tax_id: null,
           branch_id: null,
-          cost_center_id: null,
           description: null,
         },
       ],

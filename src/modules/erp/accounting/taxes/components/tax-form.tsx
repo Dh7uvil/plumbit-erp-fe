@@ -121,13 +121,13 @@ export function TaxForm({
         {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
         <div
           data-slot="form-grid"
-          className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2"
         >
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="col-span-full">
                 <FormLabel>Name</FormLabel>
                 <FormControl>
                   <Input placeholder="Standard VAT" disabled={disabled} {...field} />

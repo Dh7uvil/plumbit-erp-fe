@@ -1,6 +1,7 @@
 import { DEFAULT_PAGE_SIZE, OPTIONAL_SELECT_NONE } from "@/config/constants";
 import {
   AccountCreateRequestSchema,
+  accountTypeForSubtype,
   AccountBalanceSchema,
   AccountListSchema,
   AccountPeriodBalancesSchema,
@@ -57,52 +58,51 @@ function partyLinkFromForm(values: AccountFormValues): AccountCreateRequest["par
 }
 
 function toCreatePayload(values: AccountFormValues): AccountCreateRequest {
-  const isControl =
-    !values.is_group &&
-    (values.account_subtype === "ACCOUNTS_RECEIVABLE" ||
-      values.account_subtype === "ACCOUNTS_PAYABLE");
+  const name = values.name.trim();
   return {
     code: values.code.trim(),
-    name: values.name.trim(),
-    description: emptyToNull(values.description),
-    account_type: values.account_type,
+    name,
+    description: emptyToNull(name),
+    account_type: accountTypeForSubtype(values.account_subtype),
     account_subtype: values.account_subtype,
     parent_id: optionalUuid(values.parent_id),
     is_group: values.is_group,
     is_blocked: values.is_blocked,
     currency_id: optionalUuid(values.currency_id),
     default_tax_id: optionalUuid(values.default_tax_id),
-    is_standalone_ledger: isControl && values.ledger_kind === "standalone",
-    party_link: isControl ? partyLinkFromForm(values) : undefined,
   };
 }
 
-function toUpdatePayload(values: AccountFormValues, isSystem: boolean): AccountUpdateRequest {
-  return {
+function toUpdatePayload(
+  values: AccountFormValues,
+  isSystem: boolean,
+  existing?: Account,
+): AccountUpdateRequest {
+  const accountType = accountTypeForSubtype(values.account_subtype);
+  const description = values.name.trim();
+  const payload: AccountUpdateRequest = {
     ...(isSystem ? {} : { code: values.code.trim() }),
     name: values.name.trim(),
-    description: emptyToNull(values.description),
-    account_type: values.account_type,
+    description: emptyToNull(description),
+    account_type: accountType,
     account_subtype: values.account_subtype,
     parent_id: optionalUuid(values.parent_id),
     is_group: values.is_group,
     is_active: values.is_active,
     is_blocked: values.is_blocked,
-    currency_id: optionalUuid(values.currency_id),
-    default_tax_id: optionalUuid(values.default_tax_id),
-    is_standalone_ledger:
-      !values.is_group &&
-      (values.account_subtype === "ACCOUNTS_RECEIVABLE" ||
-        values.account_subtype === "ACCOUNTS_PAYABLE")
-        ? values.ledger_kind === "standalone"
-        : undefined,
-    party_link:
-      !values.is_group &&
-      (values.account_subtype === "ACCOUNTS_RECEIVABLE" ||
-        values.account_subtype === "ACCOUNTS_PAYABLE")
-        ? partyLinkFromForm(values)
-        : undefined,
   };
+  if (existing) {
+    payload.currency_id = existing.currency_id;
+    payload.default_tax_id = existing.default_tax_id;
+    if (
+      !values.is_group &&
+      (values.account_subtype === "ACCOUNTS_RECEIVABLE" ||
+        values.account_subtype === "ACCOUNTS_PAYABLE")
+    ) {
+      payload.is_standalone_ledger = existing.is_standalone_ledger;
+    }
+  }
+  return payload;
 }
 
 export const accountsApi = {
@@ -118,6 +118,7 @@ export const accountsApi = {
         account_subtype: params.account_subtype,
         is_group: params.is_group,
         is_active: params.is_active,
+        is_blocked: params.is_blocked,
         is_standalone_ledger: params.is_standalone_ledger,
       },
     });
@@ -143,11 +144,16 @@ export const accountsApi = {
     AccountSchema.parse(
       await apiClient.post("/accounts", AccountCreateRequestSchema.parse(toCreatePayload(values))),
     ),
-  update: async (id: string, values: AccountFormValues, isSystem = false): Promise<Account> =>
+  update: async (
+    id: string,
+    values: AccountFormValues,
+    isSystem = false,
+    existing?: Account,
+  ): Promise<Account> =>
     AccountSchema.parse(
       await apiClient.patch(
         `/accounts/${id}`,
-        AccountUpdateRequestSchema.parse(toUpdatePayload(values, isSystem)),
+        AccountUpdateRequestSchema.parse(toUpdatePayload(values, isSystem, existing)),
       ),
     ),
   delete: async (id: string): Promise<Account> =>

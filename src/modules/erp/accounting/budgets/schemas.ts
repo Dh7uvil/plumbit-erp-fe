@@ -7,7 +7,6 @@ export const BudgetLineSchema = z.object({
   account_id: z.string().uuid(),
   period_start: z.string(),
   amount: DecimalStringSchema,
-  cost_center_id: z.string().uuid().nullable().optional().default(null),
   branch_id: z.string().uuid().nullable().optional().default(null),
 });
 
@@ -29,7 +28,6 @@ export const BudgetLineInputSchema = z.object({
   account_id: z.string().uuid(),
   period_start: z.string().min(1),
   amount: z.string().min(1),
-  cost_center_id: z.string().uuid().optional(),
   branch_id: z.string().uuid().optional(),
 });
 
@@ -45,7 +43,6 @@ export const BudgetLineFormSchema = z.object({
   account_id: z.string().uuid("Choose an account"),
   period_start: z.string().min(1, "Choose a period"),
   amount: z.string().trim().min(1, "Amount is required"),
-  cost_center_id: z.string().optional(),
   branch_id: z.string().optional(),
 });
 

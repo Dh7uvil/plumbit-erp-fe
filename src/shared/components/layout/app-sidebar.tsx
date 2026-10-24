@@ -260,10 +260,10 @@ function SidebarNav({
               <div className="border-sidebar-border mx-2 my-1 border-t" />
             )}
             {isOpen
-              ? sidebarNavRows(group.items).map((row) =>
+              ? sidebarNavRows(group.items).map((row, rowIndex) =>
                   row.kind === "subsection" ? (
                     <p
-                      key={`${group.label}-${row.label}`}
+                      key={`${group.label}-subsection-${rowIndex}-${row.label}`}
                       className="text-muted-foreground/70 mt-2 mb-0.5 px-3 text-[10px] font-semibold tracking-wide uppercase first:mt-0"
                     >
                       {row.label}

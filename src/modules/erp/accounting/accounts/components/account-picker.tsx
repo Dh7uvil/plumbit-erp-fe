@@ -17,6 +17,7 @@ export function AccountPicker({
   disabled = false,
   accountType,
   accountSubtype,
+  subAccountsOnly = false,
   placeholder = "System default",
   searchPlaceholder = "Search account…",
   asFormControl = true,
@@ -27,6 +28,8 @@ export function AccountPicker({
   disabled?: boolean;
   accountType?: AccountType;
   accountSubtype?: AccountSubtype;
+  /** When true, only postable sub accounts (non-group, not blocked). */
+  subAccountsOnly?: boolean;
   placeholder?: string;
   searchPlaceholder?: string;
   /** Set false when used outside `<FormField>` (e.g. inline grid editors). */
@@ -37,16 +40,19 @@ export function AccountPicker({
   const canRead = can(accountPermissions.read);
   const accountsQuery = useAllAccounts(
     {
-      is_group: false,
+      is_group: subAccountsOnly ? false : undefined,
       is_active: true,
       account_type: accountType,
       account_subtype: accountSubtype,
     },
     canRead,
   );
-  const accounts = (accountsQuery.data ?? []).filter(
-    (account) => !account.is_group && !account.is_blocked,
-  );
+  const accounts = (accountsQuery.data ?? []).filter((account) => {
+    if (subAccountsOnly) {
+      return !account.is_group && !account.is_blocked;
+    }
+    return !account.is_group && !account.is_blocked;
+  });
 
   return (
     <MasterSelect

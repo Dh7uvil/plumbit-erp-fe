@@ -39,7 +39,6 @@ function LineRow({
   from,
   to,
   branchId,
-  costCenterId,
   money,
   showComparative,
   showYtd,
@@ -49,7 +48,6 @@ function LineRow({
   from: string;
   to: string;
   branchId?: string;
-  costCenterId?: string;
   money: (value: string | null | undefined) => string;
   showComparative: boolean;
   showYtd: boolean;
@@ -58,12 +56,12 @@ function LineRow({
   return (
     <TableRow>
       <TableCell className="font-mono text-sm">
-        <RecordLink href={glHref(line.account_id, from, to, branchId, costCenterId)}>
+        <RecordLink href={glHref(line.account_id, from, to, branchId)}>
           {line.account_code}
         </RecordLink>
       </TableCell>
       <TableCell>
-        <RecordLink href={glHref(line.account_id, from, to, branchId, costCenterId)}>
+        <RecordLink href={glHref(line.account_id, from, to, branchId)}>
           {line.account_name}
         </RecordLink>
       </TableCell>
@@ -104,7 +102,6 @@ export function ProfitAndLossScreen() {
   const to = filters.to ?? period.to;
   const includeYtd = filters.include_ytd === "true";
   const branchId = filters.branch_id;
-  const costCenterId = filters.cost_center_id;
   const periodCount = filters.period_count ?? "1";
   const budgetId = filters.budget_id;
   const budgetsQuery = useBudgets({ page: 1, page_size: 50 }, can(budgetPermissions.read));
@@ -115,7 +112,6 @@ export function ProfitAndLossScreen() {
     from,
     to,
     branch_id: branchId,
-    cost_center_id: costCenterId,
     include_ytd: includeYtd,
     period_count: Number(periodCount) > 1 ? Number(periodCount) : undefined,
     budget_id: budgetId,
@@ -143,7 +139,6 @@ export function ProfitAndLossScreen() {
     from,
     to,
     ...(branchId ? { branch_id: branchId } : {}),
-    ...(costCenterId ? { cost_center_id: costCenterId } : {}),
     ...(includeYtd ? { include_ytd: "true" } : {}),
     ...(params.period_count ? { period_count: String(params.period_count) } : {}),
     ...(budgetId ? { budget_id: budgetId } : {}),
@@ -176,8 +171,6 @@ export function ProfitAndLossScreen() {
           from={from}
           to={to}
           branchId={branchId}
-          costCenterId={costCenterId}
-          showCostCenterFilter
           includeYtd={includeYtd}
           periodCount={periodCount}
           budgetId={budgetId}
@@ -247,7 +240,6 @@ export function ProfitAndLossScreen() {
                   from={from}
                   to={to}
                   branchId={branchId}
-                  costCenterId={costCenterId}
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}
@@ -275,7 +267,6 @@ export function ProfitAndLossScreen() {
                   from={from}
                   to={to}
                   branchId={branchId}
-                  costCenterId={costCenterId}
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}
@@ -322,7 +313,6 @@ export function ProfitAndLossScreen() {
                   from={from}
                   to={to}
                   branchId={branchId}
-                  costCenterId={costCenterId}
                   money={money}
                   showComparative={showComparative}
                   showYtd={showYtd}

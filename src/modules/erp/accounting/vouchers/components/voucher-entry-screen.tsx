@@ -11,15 +11,14 @@ import { toast } from "sonner";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
 import { isCashOrBankAccount } from "@/modules/erp/accounting/accounts/schemas";
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
-import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { journalBalanceTotals } from "@/modules/erp/accounting/journals/balance";
 import { EntryBookLinesEditor } from "@/modules/erp/accounting/vouchers/components/entry-book-lines-editor";
 import { EntryBookSelect } from "@/modules/erp/accounting/vouchers/components/entry-book-select";
-import { useEntryBooks } from "@/modules/erp/accounting/entry-books/queries";
 import {
-  resolveEntryBook,
-  type EntryBookApiRow,
+  entryBookFor,
+  requiresChequeForEntryType,
 } from "@/modules/erp/accounting/vouchers/entry-books";
+import { SourceDocumentPicker } from "@/shared/components/document/source-document-picker";
 import { useCreateVoucher, useUpdateVoucher } from "@/modules/erp/accounting/vouchers/mutations";
 import {
   PAYMENT_METHOD_LABELS,
@@ -38,11 +37,8 @@ import {
   type VoucherEntryType,
   type VoucherUpdateRequest,
 } from "@/modules/erp/accounting/vouchers/schemas";
-import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
-import { MasterSelect } from "@/shared/components/form/master-select";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -67,6 +63,7 @@ import {
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
+import { fiscalPeriodForIsoDate } from "@/shared/lib/fiscal-period";
 
 function todayIsoDate(): string {
   const now = new Date();
@@ -83,9 +80,13 @@ function toFormValues(
   defaultCurrencyId?: string,
 ): VoucherEntryFormValues {
   if (!voucher) {
+    const voucherDate = todayIsoDate();
     return {
       voucher_type: entryBook,
-      voucher_date: todayIsoDate(),
+      period: fiscalPeriodForIsoDate(voucherDate),
+      voucher_date: voucherDate,
+      source_document_type: OPTIONAL_SELECT_NONE,
+      source_document_id: OPTIONAL_SELECT_NONE,
       payment_account_id: OPTIONAL_SELECT_NONE,
       currency_id: defaultCurrencyId ?? OPTIONAL_SELECT_NONE,
       payment_method: entryBook.startsWith("BANK") ? "TT" : "CASH",
@@ -94,7 +95,6 @@ function toFormValues(
       external_reference: "",
       reference: "",
       branch_id: OPTIONAL_SELECT_NONE,
-      cost_center_id: OPTIONAL_SELECT_NONE,
       narration: "",
       enable_vat_details: false,
       lines: [emptyVoucherEntryLine(), emptyVoucherEntryLine()],
@@ -111,16 +111,17 @@ function toFormValues(
           party_id: line.party_id ?? OPTIONAL_SELECT_NONE,
           tax_id: line.tax_id ?? OPTIONAL_SELECT_NONE,
           branch_id: line.branch_id ?? OPTIONAL_SELECT_NONE,
-          cost_center_id: line.cost_center_id ?? OPTIONAL_SELECT_NONE,
           due_date: "",
-          external_reference: "",
           description: line.description ?? "",
         }))
       : [emptyVoucherEntryLine(), emptyVoucherEntryLine()];
 
   return {
     voucher_type: voucher.voucher_type as VoucherEntryType,
+    period: voucher.period ?? fiscalPeriodForIsoDate(voucher.voucher_date),
     voucher_date: voucher.voucher_date,
+    source_document_type: voucher.source_document_type ?? OPTIONAL_SELECT_NONE,
+    source_document_id: voucher.source_document_id ?? OPTIONAL_SELECT_NONE,
     payment_account_id: voucher.payment_account_id ?? OPTIONAL_SELECT_NONE,
     currency_id: voucher.currency_id,
     payment_method: voucher.payment_method ?? (voucher.voucher_type.startsWith("BANK") ? "TT" : "CASH"),
@@ -129,7 +130,6 @@ function toFormValues(
     external_reference: voucher.external_reference ?? "",
     reference: voucher.reference ?? "",
     branch_id: voucher.branch_id ?? OPTIONAL_SELECT_NONE,
-    cost_center_id: voucher.cost_center_id ?? OPTIONAL_SELECT_NONE,
     narration: voucher.narration ?? "",
     enable_vat_details: voucher.lines.some((line) => Boolean(line.tax_id)),
     lines,
@@ -149,7 +149,6 @@ function journalLinePayload(lines: VoucherEntryFormLine[]): VoucherCreateRequest
     party_id: optionalUuid(line.party_id),
     tax_id: optionalUuid(line.tax_id),
     branch_id: optionalUuid(line.branch_id),
-    cost_center_id: optionalUuid(line.cost_center_id),
     description: emptyToNull(line.description),
   }));
 }
@@ -184,7 +183,6 @@ function cashBankLinePayload(
       party_id: optionalUuid(line.party_id),
       tax_id: optionalUuid(line.tax_id),
       branch_id: optionalUuid(line.branch_id),
-      cost_center_id: optionalUuid(line.cost_center_id),
       description: emptyToNull(line.description),
     });
   }
@@ -199,19 +197,20 @@ function cashBankLinePayload(
 function toCreateRequest(
   values: VoucherEntryFormValues,
   accountsById: Map<string, { account_subtype: string }>,
-  entryBookRows?: EntryBookApiRow[] | null,
 ): VoucherCreateRequest {
-  const book = resolveEntryBook(values.voucher_type, entryBookRows);
+  const book = entryBookFor(values.voucher_type);
   const base = {
     voucher_type: values.voucher_type,
     voucher_date: emptyToNull(values.voucher_date),
+    fiscal_period: values.period,
+    source_document_type: values.source_document_type,
+    source_document_id: values.source_document_id,
     currency_id: optionalUuid(values.currency_id),
     cheque_number: emptyToNull(values.cheque_number),
     cheque_date: emptyToNull(values.cheque_date),
     external_reference: emptyToNull(values.external_reference),
     reference: emptyToNull(values.reference),
     branch_id: optionalUuid(values.branch_id),
-    cost_center_id: optionalUuid(values.cost_center_id),
     narration: emptyToNull(values.narration),
     allocations: [],
   };
@@ -243,10 +242,12 @@ function toCreateRequest(
 function toUpdateRequest(
   values: VoucherEntryFormValues,
   accountsById: Map<string, { account_subtype: string }>,
-  entryBookRows?: EntryBookApiRow[] | null,
 ): VoucherUpdateRequest {
-  const created = toCreateRequest(values, accountsById, entryBookRows);
+  const created = toCreateRequest(values, accountsById);
   return {
+    source_document_type: created.source_document_type,
+    source_document_id: created.source_document_id,
+    fiscal_period: created.fiscal_period,
     voucher_date: created.voucher_date,
     payment_account_id: created.payment_account_id,
     counter_account_id: created.counter_account_id,
@@ -260,7 +261,6 @@ function toUpdateRequest(
     external_reference: created.external_reference,
     reference: created.reference,
     branch_id: created.branch_id,
-    cost_center_id: created.cost_center_id,
     narration: created.narration,
     lines: created.lines,
     allocations: created.allocations ?? [],
@@ -273,17 +273,12 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
   const entryBook = parseVoucherEntryBook(
     voucher?.voucher_type ?? searchParams.get("voucher_type"),
   );
-  const entryBooksQuery = useEntryBooks();
-  const entryBookRows = entryBooksQuery.data;
   const createVoucher = useCreateVoucher();
   const updateVoucher = useUpdateVoucher(voucher?.id ?? "");
   const accountsQuery = useAllAccounts({ is_group: false, is_active: true });
-  const currenciesQuery = useAllCurrencies();
-  const branchesQuery = useAllBranches();
-  const costCentersQuery = useAllCostCenters();
   const [formError, setFormError] = useState<string | null>(null);
   const isEdit = Boolean(voucher);
-  const { baseCurrencyId } = useBaseCurrency();
+  const { baseCurrencyId, baseCurrencyCode } = useBaseCurrency();
 
   const form = useForm<VoucherEntryFormValues>({
     resolver: zodResolver(VoucherEntryFormSchema),
@@ -299,13 +294,15 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
     form.reset(toFormValues(null, entryBook, baseCurrencyId));
   }, [baseCurrencyId, entryBook, form, voucher]);
 
-  const selectedType = useWatch({ control: form.control, name: "voucher_type" }) ?? entryBook;
-  const selectedBook = resolveEntryBook(selectedType, entryBookRows);
+  const selectedType = (useWatch({ control: form.control, name: "voucher_type" }) ??
+    entryBook) as VoucherEntryType;
+  const paymentMethod = useWatch({ control: form.control, name: "payment_method" });
+  const chequeFieldsEnabled =
+    requiresChequeForEntryType(parseVoucherEntryBook(selectedType)) ||
+    paymentMethod === "CHEQUE";
   const enableVatDetails = useWatch({ control: form.control, name: "enable_vat_details" }) ?? false;
-  const currencyId = useWatch({ control: form.control, name: "currency_id" });
   const watchedLines = useWatch({ control: form.control, name: "lines" });
-  const currencies = currenciesQuery.data ?? [];
-  const currencyCode = currencies.find((currency) => currency.id === currencyId)?.code ?? "";
+  const currencyCode = baseCurrencyCode ?? "";
   const accounts = accountsQuery.data ?? [];
   const accountsById = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
@@ -319,7 +316,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
   async function onSubmit(values: VoucherEntryFormValues) {
     setFormError(null);
     if (!isDrCrEntryBook(values.voucher_type)) {
-      const book = resolveEntryBook(values.voucher_type, entryBookRows);
+      const book = entryBookFor(values.voucher_type);
       const { paymentAccountId } = cashBankLinePayload(values, accountsById, book.paymentSubtype!);
       if (!paymentAccountId || paymentAccountId === OPTIONAL_SELECT_NONE) {
         setFormError("Add a cash or bank account line for the payment account.");
@@ -329,14 +326,14 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
     try {
       if (voucher) {
         await updateVoucher.mutateAsync({
-          ...toUpdateRequest(values, accountsById, entryBookRows),
+          ...toUpdateRequest(values, accountsById),
           version: voucher.version,
         });
         toast.success("Voucher saved");
         router.push(`/vouchers/${voucher.id}`);
       } else {
         const created = await createVoucher.mutateAsync(
-          toCreateRequest(values, accountsById, entryBookRows),
+          toCreateRequest(values, accountsById),
         );
         toast.success("Voucher created");
         router.push(`/vouchers/${created.id}`);
@@ -378,6 +375,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                       <FormControl>
                         <EntryBookSelect
                           value={field.value as VoucherEntryType}
+                          navigateOnChange={false}
                           onChange={(nextType) => {
                             field.onChange(nextType);
                             form.setValue("payment_account_id", OPTIONAL_SELECT_NONE);
@@ -396,16 +394,33 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     </FormItem>
                   )}
                 />
-                <FormItem>
-                  <FormLabel>Period</FormLabel>
-                  <FormControl>
-                    <Input
-                      value={voucher?.period != null ? String(voucher.period) : "—"}
-                      disabled
-                      readOnly
-                    />
-                  </FormControl>
-                </FormItem>
+                <FormField
+                  control={form.control}
+                  name="period"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Period</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={String(field.value)}
+                          onValueChange={(value) => field.onChange(Number(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Period" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }, (_, index) => index + 1).map((period) => (
+                              <SelectItem key={period} value={String(period)}>
+                                {period}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormItem>
                   <FormLabel>Voucher no.</FormLabel>
                   <FormControl>
@@ -431,12 +446,42 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                 />
                 <FormField
                   control={form.control}
+                  name="source_document_type"
+                  render={({ field: typeField }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input {...typeField} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="source_document_id"
+                  render={({ field: idField }) => (
+                    <FormItem className="col-span-full grid grid-cols-1 gap-x-3 gap-y-4 sm:col-span-2 sm:grid-cols-2 lg:col-span-4 lg:grid-cols-2">
+                      <SourceDocumentPicker
+                        documentType={form.watch("source_document_type")}
+                        documentId={idField.value}
+                        documentNumber={voucher?.source_document_number}
+                        disabled={false}
+                        onDocumentTypeChange={(value) =>
+                          form.setValue("source_document_type", value, { shouldDirty: true })
+                        }
+                        onDocumentIdChange={idField.onChange}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="cheque_number"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cheque no.</FormLabel>
                       <FormControl>
-                        <Input disabled={!selectedBook.requiresCheque} {...field} />
+                        <Input disabled={!chequeFieldsEnabled} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -449,7 +494,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     <FormItem>
                       <FormLabel>Cheque date</FormLabel>
                       <FormControl>
-                        <Input type="date" disabled={!selectedBook.requiresCheque} {...field} />
+                        <Input type="date" disabled={!chequeFieldsEnabled} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -464,43 +509,6 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                       <FormControl>
                         <Input placeholder="Voucher description" {...field} />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="external_reference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>IMP/EXP ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Import / export reference" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="currency_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Currency</FormLabel>
-                      <MasterSelect
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={currenciesQuery.isLoading}
-                        placeholder="Currency"
-                        searchPlaceholder="Search currency…"
-                        options={[
-                          { value: OPTIONAL_SELECT_NONE, label: "Select currency" },
-                          ...currencies.map((currency) => ({
-                            value: currency.id,
-                            label: `${currency.code} — ${currency.name}`,
-                          })),
-                        ]}
-                      />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -531,67 +539,6 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     )}
                   />
                 ) : null}
-                <FormField
-                  control={form.control}
-                  name="reference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reference</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Cheque / UTR / reference" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="branch_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Branch</FormLabel>
-                      <MasterSelect
-                        value={field.value ?? OPTIONAL_SELECT_NONE}
-                        onValueChange={field.onChange}
-                        disabled={branchesQuery.isLoading}
-                        placeholder="Optional"
-                        searchPlaceholder="Search branch…"
-                        options={[
-                          { value: OPTIONAL_SELECT_NONE, label: "None" },
-                          ...(branchesQuery.data ?? []).map((branch) => ({
-                            value: branch.id,
-                            label: `${branch.code} — ${branch.name}`,
-                          })),
-                        ]}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cost_center_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cost center</FormLabel>
-                      <MasterSelect
-                        value={field.value ?? OPTIONAL_SELECT_NONE}
-                        onValueChange={field.onChange}
-                        disabled={costCentersQuery.isLoading}
-                        placeholder="Optional"
-                        searchPlaceholder="Search cost center…"
-                        options={[
-                          { value: OPTIONAL_SELECT_NONE, label: "None" },
-                          ...(costCentersQuery.data ?? []).map((row) => ({
-                            value: row.id,
-                            label: `${row.code} — ${row.name}`,
-                          })),
-                        ]}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="enable_vat_details"

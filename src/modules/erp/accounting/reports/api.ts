@@ -3,7 +3,6 @@ import {
   AgingSchema,
   BalanceSheetSchema,
   CashFlowSchema,
-  CostCenterProfitAndLossSchema,
   ExportEvidenceExceptionSchema,
   DayBookSchema,
   GeneralLedgerSchema,
@@ -35,7 +34,6 @@ import {
   type BalanceSheetParams,
   type CashFlow,
   type CashFlowParams,
-  type CostCenterProfitAndLoss,
   type CustomerStatementParams,
   type ExportEvidenceException,
   type ExportEvidenceExceptionParams,
@@ -97,7 +95,6 @@ export const reportsApi = {
           from: params.from,
           to: params.to,
           branch_id: params.branch_id,
-          cost_center_id: params.cost_center_id,
           include_zero: params.include_zero,
         },
       }),
@@ -111,7 +108,6 @@ export const reportsApi = {
           to: params.to,
           party_id: params.party_id,
           branch_id: params.branch_id,
-          cost_center_id: params.cost_center_id,
           source_type: params.source_type,
           side: params.side,
           page: params.page,
@@ -127,7 +123,6 @@ export const reportsApi = {
           to: params.to,
           account_id: params.account_id,
           branch_id: params.branch_id,
-          cost_center_id: params.cost_center_id,
           source_type: params.source_type,
           side: params.side,
         },
@@ -141,7 +136,6 @@ export const reportsApi = {
           to: params.to,
           account_id: params.account_id,
           branch_id: params.branch_id,
-          cost_center_id: params.cost_center_id,
           source_type: params.source_type,
           side: params.side,
         },
@@ -156,7 +150,6 @@ export const reportsApi = {
           account_id: params.account_id,
           party_id: params.party_id,
           branch_id: params.branch_id,
-          cost_center_id: params.cost_center_id,
           source_type: params.source_type,
           voucher_type: params.voucher_type,
           side: params.side,
@@ -245,7 +238,6 @@ export const reportsApi = {
           from: params.from,
           to: params.to,
           branch_id: params.branch_id,
-          cost_center_id: params.cost_center_id,
           include_ytd: params.include_ytd,
           period_count: params.period_count,
           budget_id: params.budget_id,
@@ -332,12 +324,6 @@ export const reportsApi = {
     ReceivedNotBilledSchema.parse(await apiClient.get("/reports/received-not-billed")),
   dashboard: async (): Promise<Dashboard> =>
     DashboardSchema.parse(await apiClient.get("/reports/dashboard")),
-  costCenterProfitAndLoss: async (params: ProfitAndLossParams): Promise<CostCenterProfitAndLoss> =>
-    CostCenterProfitAndLossSchema.parse(
-      await apiClient.get("/reports/cost-center-profit-and-loss", {
-        params: { from: params.from, to: params.to, branch_id: params.branch_id },
-      }),
-    ),
   queueExport: async (payload: {
     report: string;
     export_format: "csv" | "xlsx" | "pdf";

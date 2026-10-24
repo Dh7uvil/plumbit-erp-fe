@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { accountsApi } from "@/modules/erp/accounting/accounts/api";
 import { accountKeys } from "@/modules/erp/accounting/accounts/queries";
-import type { AccountFormValues } from "@/modules/erp/accounting/accounts/schemas";
+import type { Account, AccountFormValues } from "@/modules/erp/accounting/accounts/schemas";
 
 async function invalidateAccounts(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
   await queryClient.invalidateQueries({ queryKey: accountKeys.all });
@@ -30,11 +30,13 @@ export function useUpdateAccount() {
       id,
       values,
       isSystem,
+      existing,
     }: {
       id: string;
       values: AccountFormValues;
       isSystem?: boolean;
-    }) => accountsApi.update(id, values, isSystem),
+      existing?: Account;
+    }) => accountsApi.update(id, values, isSystem, existing),
     onSuccess: async (_data, { id }) => {
       await invalidateAccounts(queryClient, id);
     },

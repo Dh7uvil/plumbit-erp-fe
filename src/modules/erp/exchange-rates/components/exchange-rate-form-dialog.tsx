@@ -132,31 +132,33 @@ export function ExchangeRateFormDialog({
             {formError ? <p className="text-destructive text-sm">{formError}</p> : null}
             <div
               data-slot="form-grid"
-              className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+              className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2"
             >
               <FormField
                 control={form.control}
                 name="currency_id"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-full min-w-0">
                     <FormLabel>Currency</FormLabel>
-                    <MasterSelect
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={currenciesQuery.isLoading || readOnly}
-                      placeholder="Select a currency"
-                      searchPlaceholder="Search currency…"
-                      createLabel="Create currency"
-                      onCreate={
-                        can(currencyPermissions.create) && !readOnly
-                          ? () => setCreatingCurrency(true)
-                          : undefined
-                      }
-                      options={currencies.map((currency) => ({
-                        value: currency.id,
-                        label: `${currency.code} · ${currency.name}`,
-                      }))}
-                    />
+                    <FormControl>
+                      <MasterSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={currenciesQuery.isLoading || readOnly}
+                        placeholder="Select a currency"
+                        searchPlaceholder="Search currency…"
+                        createLabel="Create currency"
+                        onCreate={
+                          can(currencyPermissions.create) && !readOnly
+                            ? () => setCreatingCurrency(true)
+                            : undefined
+                        }
+                        options={currencies.map((currency) => ({
+                          value: currency.id,
+                          label: `${currency.code} · ${currency.name}`,
+                        }))}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -165,7 +167,7 @@ export function ExchangeRateFormDialog({
                 control={form.control}
                 name="rate_to_base"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>Rate to base</FormLabel>
                     <FormControl>
                       <DecimalInput
@@ -184,7 +186,7 @@ export function ExchangeRateFormDialog({
                 control={form.control}
                 name="effective_date"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>Effective date</FormLabel>
                     <FormControl>
                       <Input type="date" disabled={readOnly} {...field} />

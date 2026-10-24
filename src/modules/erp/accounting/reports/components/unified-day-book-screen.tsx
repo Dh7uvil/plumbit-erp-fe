@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
-import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
 import { DayBookRows } from "@/modules/erp/accounting/reports/components/cash-bank-book-screen";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
@@ -86,7 +85,6 @@ export function UnifiedDayBookScreen() {
   const accountId = filters.account_id;
   const partyId = filters.party_id;
   const branchId = filters.branch_id;
-  const costCenterId = filters.cost_center_id;
   const sourceType = filters.source_type;
   const voucherType = filters.voucher_type;
   const side = filters.side;
@@ -94,7 +92,6 @@ export function UnifiedDayBookScreen() {
   const customersQuery = useAllCustomers();
   const suppliersQuery = useAllSuppliers();
   const branchesQuery = useAllBranches(can("identity.branch.read"));
-  const costCentersQuery = useAllCostCenters(can("masters.cost_center.read"));
   const reportParams =
     from && to
       ? {
@@ -103,7 +100,6 @@ export function UnifiedDayBookScreen() {
           account_id: accountId,
           party_id: partyId,
           branch_id: branchId,
-          cost_center_id: costCenterId,
           source_type: sourceType,
           voucher_type: voucherType,
           side,
@@ -120,7 +116,6 @@ export function UnifiedDayBookScreen() {
     account_id: accountId,
     party_id: partyId,
     branch_id: branchId,
-    cost_center_id: costCenterId,
     source_type: sourceType,
     voucher_type: voucherType,
     side,
@@ -256,22 +251,6 @@ export function UnifiedDayBookScreen() {
               ...(branchesQuery.data ?? []).map((branch) => ({
                 value: branch.id,
                 label: `${branch.code} — ${branch.name}`,
-              })),
-            ]}
-          />
-          <FilterSelect
-            label="Cost center"
-            className="w-48"
-            placeholder="Cost center"
-            value={costCenterId ?? ALL}
-            onValueChange={(value) =>
-              setParams({ filters: { cost_center_id: value === ALL ? null : value } })
-            }
-            options={[
-              { value: ALL, label: "All cost centers" },
-              ...(costCentersQuery.data ?? []).map((row) => ({
-                value: row.id,
-                label: `${row.code} — ${row.name}`,
               })),
             ]}
           />

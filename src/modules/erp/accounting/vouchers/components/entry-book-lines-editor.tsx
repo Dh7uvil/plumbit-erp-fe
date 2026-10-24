@@ -11,9 +11,6 @@ import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
 import { isControlAccount, type Account } from "@/modules/erp/accounting/accounts/schemas";
 import { AccountFormDialog } from "@/modules/erp/accounting/accounts/components/account-form-dialog";
 import { journalBalanceTotals } from "@/modules/erp/accounting/journals/balance";
-import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
-import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
-import { CostCenterFormDialog } from "@/modules/erp/accounting/cost-centers/components/cost-center-form-dialog";
 import {
   emptyVoucherEntryLine,
   type VoucherEntryFormValues,
@@ -66,7 +63,6 @@ export function EntryBookLinesEditor({
   const accountsQuery = useAllAccounts({ is_group: false, is_active: true });
   const customersQuery = useAllCustomers();
   const suppliersQuery = useAllSuppliers();
-  const costCentersQuery = useAllCostCenters();
   const taxesQuery = useAllTaxes();
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "lines" });
   const [creatingAccount, setCreatingAccount] = useState<number | null>(null);
@@ -74,7 +70,6 @@ export function EntryBookLinesEditor({
     type: "CUSTOMER" | "SUPPLIER";
     index: number;
   } | null>(null);
-  const [creatingCostCenter, setCreatingCostCenter] = useState<number | null>(null);
   const accounts = (accountsQuery.data ?? []).filter((account) => !account.is_group);
   const accountsById = useMemo(() => {
     const map = new Map<string, Account>();
@@ -85,7 +80,6 @@ export function EntryBookLinesEditor({
   }, [accounts]);
   const customers = customersQuery.data ?? [];
   const suppliers = suppliersQuery.data ?? [];
-  const costCenters = costCentersQuery.data ?? [];
   const taxes = taxesQuery.data ?? [];
   const watchedLines = form.watch("lines");
   const totals = journalBalanceTotals(watchedLines ?? []);
@@ -115,8 +109,6 @@ export function EntryBookLinesEditor({
               {showPartyColumns ? <TableHead>Party</TableHead> : null}
               {showPartyColumns ? <TableHead>Due date</TableHead> : null}
               {showVatDetails ? <TableHead>Tax</TableHead> : null}
-              <TableHead>Cost center</TableHead>
-              <TableHead>Reference</TableHead>
               <TableHead>Description</TableHead>
               <TableHead />
             </TableRow>
@@ -335,57 +327,6 @@ export function EntryBookLinesEditor({
                       />
                     </TableCell>
                   ) : null}
-                  <TableCell className="min-w-52 align-top">
-                    <FormField
-                      control={form.control}
-                      name={`lines.${index}.cost_center_id`}
-                      render={({ field: costCenterField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <MasterSelect
-                              compact
-                              asFormControl={false}
-                              value={costCenterField.value ?? OPTIONAL_SELECT_NONE}
-                              onValueChange={costCenterField.onChange}
-                              disabled={disabled}
-                              placeholder="Cost center"
-                              searchPlaceholder="Search cost center…"
-                              aria-label={`Line ${index + 1} cost center`}
-                              createLabel="Create cost center"
-                              onCreate={
-                                can(costCenterPermissions.create)
-                                  ? () => setCreatingCostCenter(index)
-                                  : undefined
-                              }
-                              options={costCenters.map((row) => ({
-                                value: row.id,
-                                label: `${row.code} — ${row.name}`,
-                              }))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
-                  <TableCell className="min-w-36 align-top">
-                    <FormField
-                      control={form.control}
-                      name={`lines.${index}.external_reference`}
-                      render={({ field: refField }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input
-                              disabled={disabled}
-                              aria-label={`Line ${index + 1} reference`}
-                              {...refField}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TableCell>
                   <TableCell className="min-w-[16rem] align-top">
                     <FormField
                       control={form.control}
@@ -434,7 +375,7 @@ export function EntryBookLinesEditor({
               </TableCell>
               <TableCell
                 colSpan={
-                  4 + (showPartyColumns ? 2 : 0) + (showVatDetails ? 1 : 0)
+                  2 + (showPartyColumns ? 2 : 0) + (showVatDetails ? 1 : 0)
                 }
                 className="text-muted-foreground text-xs"
               >
@@ -486,20 +427,6 @@ export function EntryBookLinesEditor({
           if (creatingParty?.type === "CUSTOMER") {
             form.setValue(`lines.${creatingParty.index}.party_id`, entity.id);
             form.setValue(`lines.${creatingParty.index}.party_type`, "CUSTOMER");
-          }
-        }}
-      />
-      <CostCenterFormDialog
-        open={creatingCostCenter !== null}
-        nested
-        onOpenChange={(open) => {
-          if (!open) {
-            setCreatingCostCenter(null);
-          }
-        }}
-        onCreated={(entity) => {
-          if (creatingCostCenter !== null) {
-            form.setValue(`lines.${creatingCostCenter}.cost_center_id`, entity.id);
           }
         }}
       />

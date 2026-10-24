@@ -103,12 +103,6 @@ export const reportCatalog: ReportCatalogGroup[] = [
         icon: Banknote,
       },
       {
-        label: "Cost center profit and loss",
-        href: "/reports/cost-center-profit-and-loss",
-        permission: reportPermissions.financial,
-        icon: FileSpreadsheet,
-      },
-      {
         label: "FX exposure",
         href: "/fx-revaluation",
         permission: fxRevaluationPermissions.read,

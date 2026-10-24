@@ -337,10 +337,14 @@ export function formatReportMoney(
   value: string | null | undefined,
   currencyCode?: string | null,
 ): string {
-  if (!currencyCode && process.env.NODE_ENV === "development") {
-    console.warn("formatReportMoney called without currency_code");
+  if (value == null || value === "") {
+    return "—";
   }
-  return formatMoney(value, currencyCode ?? "");
+  const code = currencyCode?.trim();
+  if (!code) {
+    return formatFixedDecimal(value);
+  }
+  return formatMoney(value, code);
 }
 
 export function formatCompactReportMoney(

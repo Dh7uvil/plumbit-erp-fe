@@ -72,8 +72,6 @@ import { recurringPermissions } from "@/modules/erp/accounting/recurring/permiss
 import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
 import { openingBalancePermissions } from "@/modules/erp/accounting/opening-balances/permissions";
 import { yearEndPermissions } from "@/modules/erp/accounting/year-end/permissions";
-import { chargeTypePermissions } from "@/modules/erp/accounting/charge-types/permissions";
-import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
 import { reportPermissions } from "@/modules/erp/accounting/reports/permissions";
 import { dunningPermissions } from "@/modules/erp/accounting/dunning-rules/permissions";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
@@ -399,7 +397,7 @@ export const navigation: NavigationGroup[] = [
     label: "Accounting",
     items: [
       {
-        label: "Ledger master (Chart of accounts)",
+        label: "Ledger master",
         href: "/accounts",
         permission: accountPermissions.read,
         icon: Landmark,
@@ -417,13 +415,6 @@ export const navigation: NavigationGroup[] = [
         href: "/vouchers",
         permission: voucherPermissions.read,
         icon: ArrowLeftRight,
-        subsection: "Ledger",
-      },
-      {
-        label: "Entry books",
-        href: "/entry-books",
-        permission: voucherPermissions.read,
-        icon: NotebookPen,
         subsection: "Ledger",
       },
       {
@@ -525,7 +516,7 @@ export const navigation: NavigationGroup[] = [
         subsection: "Ledger",
       },
       {
-        label: "Cost sheets",
+        label: "Cost sheet entry",
         href: "/cost-sheets",
         permission: costSheetPermissions.read,
         icon: FileSpreadsheet,
@@ -554,18 +545,6 @@ export const navigation: NavigationGroup[] = [
         href: "/payment-terms",
         permission: paymentTermPermissions.read,
         icon: ListOrdered,
-      },
-      {
-        label: "Cost centers",
-        href: "/cost-centers",
-        permission: costCenterPermissions.read,
-        icon: Layers,
-      },
-      {
-        label: "Charge types",
-        href: "/charge-types",
-        permission: chargeTypePermissions.read,
-        icon: Layers,
       },
       {
         label: "Terms templates",

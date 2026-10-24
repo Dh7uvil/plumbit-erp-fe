@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import { useEntryBooks } from "@/modules/erp/accounting/entry-books/queries";
-import { ENTRY_BOOKS, entryBooksFromApi } from "@/modules/erp/accounting/vouchers/entry-books";
+import { ENTRY_BOOKS } from "@/modules/erp/accounting/vouchers/entry-books";
 import {
   type VoucherEntryBook,
   type VoucherEntryType,
@@ -28,10 +27,7 @@ export function EntryBookSelect({
   navigateOnChange?: boolean;
 }) {
   const router = useRouter();
-  const entryBooksQuery = useEntryBooks();
-  const books = entryBooksQuery.data?.length
-    ? entryBooksFromApi(entryBooksQuery.data)
-    : ENTRY_BOOKS;
+  const books = ENTRY_BOOKS;
 
   function handleValueChange(next: string) {
     if (navigateOnChange) {

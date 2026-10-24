@@ -57,7 +57,6 @@ import { branchPermissions } from "@/modules/users-management/branches/permissio
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
-import { DocumentChargesPanel } from "@/shared/components/document/document-charges-panel";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { BaseEquivalentPreview } from "@/shared/components/money";
@@ -1054,13 +1053,6 @@ export function PurchaseInvoiceForm({
             lineAutofillContext={lineAutofillContext}
           />
         </div>
-        {billType === "IMPORT" || billType === "GOODS" ? (
-          <DocumentChargesPanel
-            form={form}
-            disabled={disabled || sourced}
-            appliesTo={billType === "IMPORT" ? "IMPORT" : "BOTH"}
-          />
-        ) : null}
         {currencies.length > 0 ? (
           <div className="flex flex-col gap-2">
             <LiveDocumentTotalsPanel

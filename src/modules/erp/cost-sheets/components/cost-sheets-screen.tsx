@@ -9,12 +9,10 @@ import { useCostSheets } from "@/modules/erp/cost-sheets/queries";
 import {
   COST_SHEET_STATUS_LABELS,
   COST_SHEET_STATUSES,
-  COST_SHEET_TYPE_LABELS,
-  COST_SHEET_TYPES,
   type CostSheet,
   type CostSheetStatus,
-  type CostSheetType,
 } from "@/modules/erp/cost-sheets/schemas";
+import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
@@ -35,13 +33,9 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatDate, formatReportMoney } from "@/shared/lib/format";
+import { formatDate } from "@/shared/lib/format";
 
 const ALL = "all";
-
-function parseSheetType(value: string | null): CostSheetType | undefined {
-  return COST_SHEET_TYPES.includes(value as CostSheetType) ? (value as CostSheetType) : undefined;
-}
 
 function parseStatus(value: string | undefined): CostSheetStatus | undefined {
   return COST_SHEET_STATUSES.includes(value as CostSheetStatus)
@@ -53,14 +47,12 @@ export function CostSheetsScreen() {
   const { canCreate, canRead } = useCrudPermissions(costSheetPermissions);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
-  const sheetType = parseSheetType(filters.sheet_type);
   const listQuery = useCostSheets({
     page,
     page_size,
     search,
     sort_by,
     sort_order,
-    sheet_type: sheetType,
     status: parseStatus(filters.status),
     document_date_from: filters.document_date_from,
     document_date_to: filters.document_date_to,
@@ -73,23 +65,29 @@ export function CostSheetsScreen() {
     return [
       {
         id: "document_number",
-        header: "Number",
+        header: "Voucher no.",
         sortableField: "document_number",
         cell: (row) => (
-          <RecordLink href={`/cost-sheets/${row.id}`}>{row.document_number}</RecordLink>
+          <RecordLink href={`/cost-sheets/${row.id}/edit`}>{row.document_number}</RecordLink>
         ),
       },
       {
-        id: "sheet_type",
-        header: "Type",
-        sortableField: "sheet_type",
-        cell: (row) => COST_SHEET_TYPE_LABELS[row.sheet_type],
+        id: "source_document_type",
+        header: "Document type",
+        cell: (row) =>
+          row.source_document_type
+            ? documentTypeDisplayLabel(row.source_document_type)
+            : "—",
       },
       {
-        id: "status",
-        header: "Status",
-        sortableField: "status",
-        cell: (row) => <Badge variant="outline">{COST_SHEET_STATUS_LABELS[row.status]}</Badge>,
+        id: "source_document_number",
+        header: "Document no.",
+        cell: (row) => row.source_document_number ?? "—",
+      },
+      {
+        id: "period",
+        header: "Period",
+        cell: (row) => (row.period != null ? String(row.period) : "—"),
       },
       {
         id: "document_date",
@@ -98,17 +96,10 @@ export function CostSheetsScreen() {
         cell: (row) => formatDate(row.document_date),
       },
       {
-        id: "goods_value",
-        header: "Goods value",
-        cell: (row) => formatReportMoney(row.totals.goods_value_estimated),
-      },
-      {
-        id: "landed_cost",
-        header: "Est. landed unit",
-        cell: (row) =>
-          row.totals.weighted_landed_unit_cost_estimated
-            ? formatReportMoney(row.totals.weighted_landed_unit_cost_estimated)
-            : "—",
+        id: "status",
+        header: "Status",
+        sortableField: "status",
+        cell: (row) => <Badge variant="outline">{COST_SHEET_STATUS_LABELS[row.status]}</Badge>,
       },
     ];
   }, []);
@@ -122,13 +113,13 @@ export function CostSheetsScreen() {
   return (
     <ListPage>
       <PageHeader
-        title="Cost sheets"
+        title="Cost sheet entry"
         actions={
           canCreate ? (
             <Button size="sm" asChild>
-              <Link href="/cost-sheets/new">
+              <Link href="/cost-sheets/entry">
                 <Plus className="mr-2 h-4 w-4" />
-                New cost sheet
+                New entry
               </Link>
             </Button>
           ) : null
@@ -139,23 +130,6 @@ export function CostSheetsScreen() {
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
           placeholder="Search cost sheets…"
-        />
-        <FilterSelect
-          label="Type"
-          value={filters.sheet_type ?? ALL}
-          onValueChange={(value) =>
-            setParams({
-              filters: { ...filters, sheet_type: value === ALL ? undefined : value },
-              page: 1,
-            })
-          }
-          options={[
-            { value: ALL, label: "All types" },
-            ...COST_SHEET_TYPES.map((type) => ({
-              value: type,
-              label: COST_SHEET_TYPE_LABELS[type],
-            })),
-          ]}
         />
         <FilterSelect
           label="Status"
@@ -219,11 +193,11 @@ export function CostSheetsScreen() {
               <TableCell colSpan={colSpan}>
                 <DataTableEmpty
                   title="No cost sheets"
-                  message="Create a sheet to plan import landed cost or export margin."
+                  message="Create a journal cost sheet linked to a source document."
                   action={
                     canCreate ? (
                       <Button size="sm" asChild>
-                        <Link href="/cost-sheets/new">New cost sheet</Link>
+                        <Link href="/cost-sheets/entry">New entry</Link>
                       </Button>
                     ) : undefined
                   }

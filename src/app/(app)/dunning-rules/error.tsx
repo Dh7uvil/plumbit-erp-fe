@@ -2,7 +2,7 @@
 
 import { Button } from "@/shared/components/ui/button";
 
-export default function CostCentersError({ reset }: { error: Error; reset: () => void }) {
+export default function DunningRulesError({ reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold">Unable to load cost centers</h2>

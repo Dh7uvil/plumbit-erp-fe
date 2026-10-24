@@ -28,8 +28,6 @@ import {
 } from "@/modules/erp/accounting/vouchers/schemas";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
-import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
-import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
@@ -74,7 +72,6 @@ function journalLinePayload(lines: VoucherEntryFormLine[]) {
       party_id: optionalUuid(line.party_id),
       tax_id: optionalUuid(line.tax_id ?? ""),
       branch_id: optionalUuid(line.branch_id ?? ""),
-      cost_center_id: optionalUuid(line.cost_center_id ?? ""),
       description: emptyToNull(line.description),
     }));
 }
@@ -100,7 +97,6 @@ export function RecurringFormScreen() {
       narration: "",
       currency_id: OPTIONAL_SELECT_NONE,
       branch_id: OPTIONAL_SELECT_NONE,
-      cost_center_id: OPTIONAL_SELECT_NONE,
       reference: "",
       lines: [emptyVoucherEntryLine(), emptyVoucherEntryLine()],
     },
@@ -119,9 +115,6 @@ export function RecurringFormScreen() {
   const branchesQuery = useAllBranches(
     can(branchPermissions.read) && kind === "STANDING_JOURNAL",
   );
-  const costCentersQuery = useAllCostCenters(
-    can(costCenterPermissions.read) && kind === "STANDING_JOURNAL",
-  );
   const parties =
     kind === "SALES_INVOICE" ? (customersQuery.data ?? []) : (suppliersQuery.data ?? []);
   const currencyCode =
@@ -137,7 +130,6 @@ export function RecurringFormScreen() {
               narration: emptyToNull(values.narration),
               currency_id: optionalUuid(values.currency_id),
               branch_id: optionalUuid(values.branch_id),
-              cost_center_id: optionalUuid(values.cost_center_id),
               reference: emptyToNull(values.reference),
               lines: journalLinePayload(values.lines),
             }
@@ -332,26 +324,6 @@ export function RecurringFormScreen() {
                         options={(branchesQuery.data ?? []).map((branch) => ({
                           value: branch.id,
                           label: branch.name,
-                        }))}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cost_center_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cost center</FormLabel>
-                      <MasterSelect
-                        value={field.value || ""}
-                        onValueChange={field.onChange}
-                        placeholder="Optional"
-                        searchPlaceholder="Search cost center…"
-                        options={(costCentersQuery.data ?? []).map((center) => ({
-                          value: center.id,
-                          label: center.name,
                         }))}
                       />
                       <FormMessage />

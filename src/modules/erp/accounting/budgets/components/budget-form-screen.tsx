@@ -8,8 +8,6 @@ import { useFieldArray, useForm } from "react-hook-form";
 
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
 import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
-import { useAllCostCenters } from "@/modules/erp/accounting/cost-centers/queries";
-import { costCenterPermissions } from "@/modules/erp/accounting/cost-centers/permissions";
 import { useCreateBudget } from "@/modules/erp/accounting/budgets/mutations";
 import {
   BudgetFormSchema,
@@ -42,7 +40,6 @@ function emptyLine() {
     account_id: "",
     period_start: "",
     amount: "",
-    cost_center_id: OPTIONAL_SELECT_NONE,
     branch_id: OPTIONAL_SELECT_NONE,
   };
 }
@@ -51,7 +48,6 @@ export function BudgetFormScreen() {
   const router = useRouter();
   const can = useCan();
   const accountsQuery = useAllAccounts({}, can(accountPermissions.read));
-  const costCentersQuery = useAllCostCenters(can(costCenterPermissions.read));
   const branchesQuery = useAllBranches(can(branchPermissions.read));
   const createBudget = useCreateBudget();
   const [formError, setFormError] = useState<string | null>(null);
@@ -79,10 +75,6 @@ export function BudgetFormScreen() {
           account_id: line.account_id,
           period_start: line.period_start,
           amount: line.amount,
-          cost_center_id:
-            line.cost_center_id && line.cost_center_id !== OPTIONAL_SELECT_NONE
-              ? line.cost_center_id
-              : undefined,
           branch_id:
             line.branch_id && line.branch_id !== OPTIONAL_SELECT_NONE ? line.branch_id : undefined,
         })),
@@ -183,29 +175,6 @@ export function BudgetFormScreen() {
                       <FormControl>
                         <DecimalInput kind="money" {...amountField} />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`lines.${index}.cost_center_id`}
-                  render={({ field: costCenterField }) => (
-                    <FormItem>
-                      <FormLabel>Cost center</FormLabel>
-                      <MasterSelect
-                        value={String(costCenterField.value ?? OPTIONAL_SELECT_NONE)}
-                        onValueChange={costCenterField.onChange}
-                        placeholder="None"
-                        searchPlaceholder="Search cost center…"
-                        options={[
-                          { value: OPTIONAL_SELECT_NONE, label: "None" },
-                          ...(costCentersQuery.data ?? []).map((center) => ({
-                            value: center.id,
-                            label: center.name,
-                          })),
-                        ]}
-                      />
                       <FormMessage />
                     </FormItem>
                   )}

@@ -134,7 +134,6 @@ export const docsCatalog: DocCategory[] = [
       page("taxes", "Taxes", "Tax rates and VAT setup.", { appHrefs: ["/taxes"] }),
       page("payment-terms", "Payment terms", "Due date rules.", { appHrefs: ["/payment-terms"] }),
       page("terms-templates", "Terms templates", "Standard terms text.", { appHrefs: ["/terms-templates"] }),
-      page("cost-centers", "Cost centers", "Cost center tracking.", { appHrefs: ["/cost-centers"] }),
       page("charge-types", "Charge types", "Freight and duty charge types.", { appHrefs: ["/charge-types"] }),
       page("document-sequences", "Document sequences", "Numbering configuration.", {
         appHrefs: ["/document-sequences"],

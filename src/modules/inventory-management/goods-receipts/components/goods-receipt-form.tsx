@@ -23,7 +23,6 @@ import {
   useCreateGoodsReceipt,
   useUpdateGoodsReceipt,
 } from "@/modules/inventory-management/goods-receipts/mutations";
-import { GrnChargesPanel } from "@/modules/inventory-management/goods-receipts/components/grn-charges-panel";
 import {
   emptyGoodsReceiptLine,
   GoodsReceiptFormSchema,
@@ -721,7 +720,6 @@ export function GoodsReceiptForm({
             />
           )}
         </div>
-        <GrnChargesPanel form={form} disabled={disabled} />
         {receipt?.is_posted && receipt.lines.length > 0 ? (
           <DocumentViewTableContainer viewMode={disabled} rowCount={receipt.lines.length}>
             <table className="w-full caption-bottom text-sm">
@@ -732,7 +730,6 @@ export function GoodsReceiptForm({
                   <th className="px-3 py-2 text-right font-medium">Accepted</th>
                   <th className="px-3 py-2 text-right font-medium">Rejected</th>
                   <th className="px-3 py-2 text-right font-medium">On hold</th>
-                  <th className="px-3 py-2 text-right font-medium">Allocated charge</th>
                 </tr>
               </thead>
               <tbody>
@@ -750,11 +747,6 @@ export function GoodsReceiptForm({
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {formatQuantity(line.qty_on_hold)}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {line.allocated_charge_amount
-                        ? formatReportMoney(line.allocated_charge_amount)
-                        : "—"}
                     </td>
                   </tr>
                 ))}

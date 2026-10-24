@@ -120,7 +120,6 @@ export type DayBookParams = {
   account_id?: string;
   party_id?: string;
   branch_id?: string;
-  cost_center_id?: string;
   source_type?: string;
   voucher_type?: string;
   side?: string;
@@ -178,7 +177,6 @@ export type TrialBalanceParams = {
   from: string;
   to: string;
   branch_id?: string;
-  cost_center_id?: string;
   include_zero?: boolean;
 };
 
@@ -188,7 +186,6 @@ export type GeneralLedgerParams = {
   to: string;
   party_id?: string;
   branch_id?: string;
-  cost_center_id?: string;
   source_type?: string;
   side?: string;
   page?: number;
@@ -581,24 +578,6 @@ export const ProfitAndLossSchema = z.object({
 });
 export type ProfitAndLoss = z.infer<typeof ProfitAndLossSchema>;
 
-export const CostCenterProfitSectionSchema = z.object({
-  cost_center_id: z.string().uuid().nullable().optional().default(null),
-  cost_center_code: z.string(),
-  cost_center_name: z.string(),
-  total_income: DecimalStringSchema,
-  total_expense: DecimalStringSchema,
-  net_profit: DecimalStringSchema,
-  lines: z.array(ProfitAndLossLineSchema).optional().default([]),
-});
-
-export const CostCenterProfitAndLossSchema = z.object({
-  currency_code: z.string().nullable().optional().default(null),
-  from_date: z.string(),
-  to_date: z.string(),
-  sections: z.array(CostCenterProfitSectionSchema).optional().default([]),
-});
-export type CostCenterProfitAndLoss = z.infer<typeof CostCenterProfitAndLossSchema>;
-
 export const ReportExportJobSchema = z.object({
   id: z.string().uuid(),
   report_key: z.string(),
@@ -740,7 +719,6 @@ export type ProfitAndLossParams = {
   from: string;
   to: string;
   branch_id?: string;
-  cost_center_id?: string;
   include_ytd?: boolean;
   period_count?: number;
   budget_id?: string;
@@ -980,14 +958,10 @@ export function glHref(
   from: string,
   to: string,
   branchId?: string,
-  costCenterId?: string,
 ): string {
   const params = new URLSearchParams({ account_id: accountId, from, to });
   if (branchId) {
     params.set("branch_id", branchId);
-  }
-  if (costCenterId) {
-    params.set("cost_center_id", costCenterId);
   }
   return `/reports/general-ledger?${params.toString()}`;
 }

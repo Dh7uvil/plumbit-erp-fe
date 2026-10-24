@@ -340,6 +340,7 @@ export type AccountListParams = {
   account_subtype?: AccountSubtype;
   is_group?: boolean;
   is_active?: boolean;
+  is_blocked?: boolean;
   is_standalone_ledger?: boolean;
 };
 
@@ -395,6 +396,29 @@ export function isCashOrBankAccount(
     account.is_active &&
     (account.account_subtype === "CASH" || account.account_subtype === "BANK")
   );
+}
+
+export function accountTypeForSubtype(subtype: AccountSubtype): AccountType {
+  for (const type of ACCOUNT_TYPES) {
+    if ((ACCOUNT_SUBTYPES_BY_TYPE[type] as readonly string[]).includes(subtype)) {
+      return type;
+    }
+  }
+  return "EXPENSE";
+}
+
+export function ledgerMainSubNumbers(account: Pick<Account, "code" | "parent_code" | "is_group">): {
+  main: string;
+  sub: string;
+} {
+  if (account.is_group) {
+    return { main: account.code, sub: "—" };
+  }
+  if (account.parent_code && account.code.startsWith(account.parent_code)) {
+    const sub = account.code.slice(account.parent_code.length);
+    return { main: account.parent_code, sub: sub || account.code };
+  }
+  return { main: "—", sub: account.code };
 }
 
 export function flattenAccountTree(nodes: AccountTreeNode[]): Account[] {

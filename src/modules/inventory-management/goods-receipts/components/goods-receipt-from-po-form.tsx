@@ -13,7 +13,6 @@ import {
 } from "@/modules/erp/period-lock/components/stock-write-alert";
 import { usePurchaseOrder } from "@/modules/erp/purchase-orders/queries";
 import { purchaseOrderDisplayNumber } from "@/modules/erp/purchase-orders/schemas";
-import { GrnChargesPanel } from "@/modules/inventory-management/goods-receipts/components/grn-charges-panel";
 import { useCreateGoodsReceiptFromPurchaseOrder } from "@/modules/inventory-management/goods-receipts/mutations";
 import {
   GoodsReceiptFromPoFormSchema,
@@ -192,7 +191,6 @@ export function GoodsReceiptFromPoForm({ purchaseOrderId }: { purchaseOrderId: s
             </FormItem>
           )}
         />
-        <GrnChargesPanel form={form} />
         <div className="flex justify-end">
           <Button type="submit" disabled={createFromPo.isPending}>
             {createFromPo.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
