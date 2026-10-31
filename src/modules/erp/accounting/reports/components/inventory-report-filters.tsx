@@ -1,15 +1,71 @@
 "use client";
 
+import { useMemo } from "react";
+
+import {
+  reportAsOfSpec,
+  reportPeriodDateRangeSpec,
+} from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { useAllCategories } from "@/modules/inventory-management/categories/queries";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ToolbarControl } from "@/shared/components/data-table/toolbar";
-import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 
 const ALL = "all";
+
+export function useInventoryReportFilterSpecs(options: {
+  showDateRange?: boolean;
+  showAsOf?: boolean;
+}): FilterSpec[] {
+  const warehousesQuery = useAllWarehouses();
+  const productsQuery = useAllProducts();
+  const categoriesQuery = useAllCategories();
+  const warehouses = warehousesQuery.data ?? [];
+  const products = productsQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+  const { showDateRange = false, showAsOf = false } = options;
+
+  return useMemo(() => {
+    const specs: FilterSpec[] = [];
+    if (showAsOf) {
+      specs.push(reportAsOfSpec());
+    }
+    if (showDateRange) {
+      specs.push(reportPeriodDateRangeSpec());
+    }
+    specs.push(
+      {
+        type: "option",
+        key: "warehouse_id",
+        label: "Warehouse",
+        options: warehouses.map((warehouse) => ({
+          value: warehouse.id,
+          label: `${warehouse.code} — ${warehouse.name}`,
+        })),
+      },
+      {
+        type: "option",
+        key: "category_id",
+        label: "Category",
+        options: categories.map((category) => ({ value: category.id, label: category.name })),
+      },
+      {
+        type: "option",
+        key: "product_id",
+        label: "Product",
+        options: products.map((product) => ({
+          value: product.id,
+          label: `${product.sku} — ${product.name}`,
+        })),
+      },
+    );
+    return specs;
+  }, [categories, products, showAsOf, showDateRange, warehouses]);
+}
 
 export function todayIsoDate(): string {
   const now = new Date();
@@ -41,7 +97,6 @@ export function InventoryReportFilters({
   const warehouses = warehousesQuery.data ?? [];
   const products = productsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
-  const hasFilters = Boolean(from || to || warehouseId || productId || categoryId);
 
   return (
     <>
@@ -105,26 +160,6 @@ export function InventoryReportFilters({
           })),
         ]}
       />
-      {hasFilters ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-9"
-          onClick={() =>
-            onChange({
-              as_of: null,
-              from: null,
-              to: null,
-              warehouse_id: null,
-              product_id: null,
-              category_id: null,
-            })
-          }
-        >
-          Clear
-        </Button>
-      ) : null}
     </>
   );
 }

@@ -76,6 +76,7 @@ import {
   isZeroDecimal,
   minDecimals,
   multiplyDecimals,
+  proportionDecimal,
   QUANTITY_SCALE,
   subtractDecimals,
 } from "@/shared/lib/format";
@@ -168,6 +169,9 @@ function lineHeaders(
   showHsCode: boolean,
   showImportMetrics: boolean,
   showImportPurchaseColumns: boolean,
+  showSalesLocationColumns: boolean,
+  salesLineSourceLabel: string | null,
+  showLineRemarks: boolean,
 ): readonly string[] {
   let headers: readonly string[];
   if (mode === "mixed") {
@@ -218,6 +222,20 @@ function lineHeaders(
         "",
       ];
     }
+  }
+  if (mode === "standard" && showSalesLocationColumns) {
+    return [
+      "Item ID",
+      "Description",
+      "Loc",
+      "Quantity",
+      "Price",
+      "Amount",
+      ...(salesLineSourceLabel ? [salesLineSourceLabel] : []),
+      ...(showPacking ? (["Carton"] as const) : []),
+      ...(showLineRemarks ? (["Remarks"] as const) : []),
+      "",
+    ];
   }
   if (mode === "standard" && (showPacking || showHsCode)) {
     const withoutActions = headers.slice(0, -1);
@@ -311,9 +329,13 @@ function previewLineAmount(
 function LineAmountCell<TFieldValues extends FieldValues>({
   form,
   index,
+  disabled,
+  editable,
 }: {
   form: UseFormReturn<TFieldValues>;
   index: number;
+  disabled: boolean;
+  editable?: boolean;
 }) {
   const quantity = useWatch({
     control: form.control,
@@ -337,6 +359,34 @@ function LineAmountCell<TFieldValues extends FieldValues>({
     String(discountType ?? ""),
     String(discountValue ?? ""),
   );
+
+  if (editable) {
+    return (
+      <DecimalInput
+        kind="money"
+        className="w-full min-w-0 text-right"
+        disabled={disabled}
+        aria-label={`Line ${index + 1} amount`}
+        value={amount ?? ""}
+        onChange={(event) => {
+          const nextAmount = event.target.value;
+          const qty = String(quantity ?? "").trim();
+          if (!qty || isZeroDecimal(qty)) {
+            return;
+          }
+          const nextRate = proportionDecimal(nextAmount.trim(), qty, "1");
+          if (nextRate != null) {
+            form.setValue(
+              linePath<TFieldValues>(index, "rate"),
+              nextRate as PathValue<TFieldValues, Path<TFieldValues>>,
+              { shouldDirty: true, shouldValidate: true },
+            );
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <span className="block min-h-9 py-2 text-right text-sm tabular-nums">
       {amount ? formatFixedDecimal(amount, 2) : "—"}
@@ -418,7 +468,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   showHsCode = false,
   showImportMetrics = false,
   showImportPurchaseColumns = false,
+  showSalesLocationColumns = false,
+  salesLineSourceLabel = null,
+  showLineRemarks = false,
   showPricesIncludeTax = false,
+  editableLineAmount = false,
   enableInventoryHelp = false,
   inventoryHelpVariant = "default",
   enablePurchaseCostHints = false,
@@ -434,10 +488,17 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   showImportMetrics?: boolean;
   /** Import purchase invoice: warehouse + FCY/LCY line amounts. */
   showImportPurchaseColumns?: boolean;
+  /** Sales documents: Loc (warehouse) column after Description. */
+  showSalesLocationColumns?: boolean;
+  /** Read-only column label, e.g. Invoice no or Order no. */
+  salesLineSourceLabel?: string | null;
+  showLineRemarks?: boolean;
   showPricesIncludeTax?: boolean;
+  /** Allow editing line amount (updates rate from amount ÷ quantity). */
+  editableLineAmount?: boolean;
   /** F7 inventory help sheet (sales documents). */
   enableInventoryHelp?: boolean;
-  inventoryHelpVariant?: "default" | "winsoft";
+  inventoryHelpVariant?: "default" | "extended";
   /** LP / average cost strip under rate (purchase documents). */
   enablePurchaseCostHints?: boolean;
   /** When set, product selection may fetch server line defaults (price list / stock). */
@@ -516,7 +577,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
   const isExpense = lineMode === "expense";
   const isMixed = lineMode === "mixed";
   const showSupplierSku = Boolean(supplierCatalog) || isReceive;
-  const warehousesQuery = useAllWarehouses(showImportPurchaseColumns);
+  const warehousesQuery = useAllWarehouses(showImportPurchaseColumns || showSalesLocationColumns);
   const warehouses = warehousesQuery.data ?? [];
   const headers = lineHeaders(
     showSupplierSku,
@@ -525,6 +586,9 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
     showHsCode,
     showImportMetrics,
     showImportPurchaseColumns,
+    showSalesLocationColumns,
+    salesLineSourceLabel,
+    showLineRemarks,
   );
   const rawCurrencyId = useWatch({
     control: form.control,
@@ -674,39 +738,6 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
 
   return (
     <div className="flex flex-col gap-2">
-      {showPricesIncludeTax ? (
-        <FormField
-          control={form.control}
-          name={"prices_include_tax" as Path<TFieldValues>}
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center gap-2 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={Boolean(field.value)}
-                  disabled={disabled}
-                  onCheckedChange={(checked) => field.onChange(checked === true)}
-                />
-              </FormControl>
-              <span className="text-sm font-medium">Prices include VAT</span>
-            </FormItem>
-          )}
-        />
-      ) : null}
-      {enableInventoryHelp && !disabled ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => openInventoryHelp(activeLineIndex.current)}
-          >
-            Inventory help (F7)
-          </Button>
-          <span className="text-muted-foreground text-xs">
-            Focus a line product, then press F7 for stock and cost inquiry.
-          </span>
-        </div>
-      ) : null}
       <DocumentViewTableContainer
         viewMode={disabled}
         rowCount={fields.length}
@@ -1038,6 +1069,34 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         )}
                       />
                     </TableCell>
+                    {showSalesLocationColumns ? (
+                      <TableCell className="min-w-36 align-top">
+                        <FormField
+                          control={form.control}
+                          name={linePath<TFieldValues>(index, "warehouse_id")}
+                          render={({ field: warehouseField }) => (
+                            <FormItem>
+                              <MasterSelect
+                                compact
+                                value={String(warehouseField.value ?? OPTIONAL_SELECT_NONE)}
+                                onValueChange={warehouseField.onChange}
+                                disabled={disabled || warehousesQuery.isLoading}
+                                placeholder="Loc"
+                                searchPlaceholder="Search warehouse…"
+                                options={[
+                                  { value: OPTIONAL_SELECT_NONE, label: "—" },
+                                  ...warehouses.map((wh) => ({
+                                    value: wh.id,
+                                    label: wh.code,
+                                  })),
+                                ]}
+                              />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                    ) : null}
                     <TableCell className="w-24 min-w-24 align-top">
                       <FormField
                         control={form.control}
@@ -1058,38 +1117,40 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                         )}
                       />
                     </TableCell>
-                    <TableCell className="min-w-40 align-top">
-                      <FormField
-                        control={form.control}
-                        name={linePath<TFieldValues>(index, "unit_id")}
-                        render={({ field: unitField }) => (
-                          <FormItem>
-                            <MasterSelect
-                              compact
-                              value={String(unitField.value ?? OPTIONAL_SELECT_NONE)}
-                              onValueChange={unitField.onChange}
-                              disabled={disabled || unitsQuery.isLoading}
-                              placeholder="None"
-                              searchPlaceholder="Search unit…"
-                              createLabel="Create unit"
-                              onCreate={
-                                can(unitPermissions.create)
-                                  ? () => setLineCreate({ type: "unit", index })
-                                  : undefined
-                              }
-                              options={[
-                                { value: OPTIONAL_SELECT_NONE, label: "None" },
-                                ...units.map((unit) => ({
-                                  value: unit.id,
-                                  label: unit.code,
-                                })),
-                              ]}
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </TableCell>
+                    {!showSalesLocationColumns ? (
+                      <TableCell className="min-w-40 align-top">
+                        <FormField
+                          control={form.control}
+                          name={linePath<TFieldValues>(index, "unit_id")}
+                          render={({ field: unitField }) => (
+                            <FormItem>
+                              <MasterSelect
+                                compact
+                                value={String(unitField.value ?? OPTIONAL_SELECT_NONE)}
+                                onValueChange={unitField.onChange}
+                                disabled={disabled || unitsQuery.isLoading}
+                                placeholder="None"
+                                searchPlaceholder="Search unit…"
+                                createLabel="Create unit"
+                                onCreate={
+                                  can(unitPermissions.create)
+                                    ? () => setLineCreate({ type: "unit", index })
+                                    : undefined
+                                }
+                                options={[
+                                  { value: OPTIONAL_SELECT_NONE, label: "None" },
+                                  ...units.map((unit) => ({
+                                    value: unit.id,
+                                    label: unit.code,
+                                  })),
+                                ]}
+                              />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                    ) : null}
                     <TableCell className="w-28 min-w-28 align-top">
                       <FormField
                         control={form.control}
@@ -1126,7 +1187,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                       />
                     </TableCell>
                     {isReceive || showImportMetrics ? importMetricCells(index) : null}
-                    {!isReceive ? (
+                    {!isReceive && !showSalesLocationColumns ? (
                       <>
                         <TableCell className="min-w-36 align-top">
                           <FormField
@@ -1214,72 +1275,178 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                     ) : null}
                     {!isReceive && !isExpense ? (
                       <TableCell className="w-28 min-w-28 align-top">
-                        <LineAmountCell form={form} index={index} />
+                        <LineAmountCell
+                          form={form}
+                          index={index}
+                          disabled={disabled}
+                          editable={editableLineAmount}
+                        />
                       </TableCell>
                     ) : null}
-                    {showPacking && !isReceive && !isExpense
-                      ? (
-                          [
-                            ["item_code", "Item code", false],
-                            ["packing_unit", "PKG", false],
-                            ["carton_qty", "Ctns", true],
-                            ["cbm", "CBM", true],
-                            ["weight", "Weight", true],
-                          ] as const
-                        ).map(([name, label, decimal]) => (
-                          <TableCell key={name} className="w-24 min-w-24 align-top">
+                    {showSalesLocationColumns && !isReceive && !isExpense ? (
+                      <>
+                        {salesLineSourceLabel ? (
+                          <TableCell className="min-w-28 align-top">
                             <FormField
                               control={form.control}
-                              name={linePath<TFieldValues>(index, name)}
+                              name={linePath<TFieldValues>(index, "source_document_number")}
+                              render={({ field: sourceField }) => (
+                                <Input
+                                  disabled
+                                  className="bg-muted/40"
+                                  aria-label={`Line ${index + 1} ${salesLineSourceLabel}`}
+                                  {...sourceField}
+                                />
+                              )}
+                            />
+                          </TableCell>
+                        ) : null}
+                        {showPacking ? (
+                          <TableCell className="w-24 min-w-24 align-top">
+                            <FormField
+                              control={form.control}
+                              name={linePath<TFieldValues>(index, "carton_qty")}
                               render={({ field: packingField }) => (
                                 <FormItem>
                                   <FormControl>
-                                    {decimal ? (
-                                      <DecimalInput
-                                        kind="quantity"
-                                        className="w-full min-w-0 text-right"
-                                        disabled={disabled}
-                                        aria-label={`Line ${index + 1} ${label}`}
-                                        {...packingField}
-                                      />
-                                    ) : (
-                                      <Input
-                                        disabled={disabled}
-                                        className="w-full min-w-0"
-                                        aria-label={`Line ${index + 1} ${label}`}
-                                        {...packingField}
-                                      />
-                                    )}
+                                    <DecimalInput
+                                      kind="quantity"
+                                      className="w-full min-w-0 text-right"
+                                      disabled={disabled}
+                                      aria-label={`Line ${index + 1} carton`}
+                                      {...packingField}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
                           </TableCell>
-                        ))
-                      : null}
-                    {showHsCode && !isReceive && !isExpense ? (
-                      <TableCell className="w-24 min-w-24 align-top">
-                        <FormField
-                          control={form.control}
-                          name={linePath<TFieldValues>(index, "hs_code")}
-                          render={({ field: hsField }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input
-                                  disabled={disabled}
-                                  className="w-full min-w-0"
-                                  maxLength={20}
-                                  aria-label={`Line ${index + 1} HS code`}
-                                  {...hsField}
+                        ) : null}
+                        {showLineRemarks ? (
+                          <TableCell className="min-w-40 align-top">
+                            <FormField
+                              control={form.control}
+                              name={linePath<TFieldValues>(index, "remarks")}
+                              render={({ field: remarksField }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Input
+                                      disabled={disabled}
+                                      aria-label={`Line ${index + 1} remarks`}
+                                      {...remarksField}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        {showPacking && !isReceive && !isExpense
+                          ? (
+                              [
+                                ["item_code", "Item code", false],
+                                ["packing_unit", "PKG", false],
+                                ["carton_qty", "Ctns", true],
+                                ["cbm", "CBM", true],
+                                ["weight", "Weight", true],
+                              ] as const
+                            ).map(([name, label, decimal]) => (
+                              <TableCell key={name} className="w-24 min-w-24 align-top">
+                                <FormField
+                                  control={form.control}
+                                  name={linePath<TFieldValues>(index, name)}
+                                  render={({ field: packingField }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        {decimal ? (
+                                          <DecimalInput
+                                            kind="quantity"
+                                            className="w-full min-w-0 text-right"
+                                            disabled={disabled}
+                                            aria-label={`Line ${index + 1} ${label}`}
+                                            {...packingField}
+                                          />
+                                        ) : (
+                                          <Input
+                                            disabled={disabled}
+                                            className="w-full min-w-0"
+                                            aria-label={`Line ${index + 1} ${label}`}
+                                            {...packingField}
+                                          />
+                                        )}
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
                                 />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TableCell>
-                    ) : null}
+                              </TableCell>
+                            ))
+                          : null}
+                        {showHsCode && !isReceive && !isExpense ? (
+                          <TableCell className="w-24 min-w-24 align-top">
+                            <FormField
+                              control={form.control}
+                              name={linePath<TFieldValues>(index, "hs_code")}
+                              render={({ field: hsField }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Input
+                                      disabled={disabled}
+                                      className="w-full min-w-0"
+                                      maxLength={20}
+                                      aria-label={`Line ${index + 1} HS code`}
+                                      {...hsField}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+                        ) : null}
+                        {salesLineSourceLabel ? (
+                          <TableCell className="min-w-28 align-top">
+                            <FormField
+                              control={form.control}
+                              name={linePath<TFieldValues>(index, "source_document_number")}
+                              render={({ field: sourceField }) => (
+                                <Input
+                                  disabled
+                                  className="bg-muted/40"
+                                  aria-label={`Line ${index + 1} ${salesLineSourceLabel}`}
+                                  {...sourceField}
+                                />
+                              )}
+                            />
+                          </TableCell>
+                        ) : null}
+                        {showLineRemarks ? (
+                          <TableCell className="min-w-40 align-top">
+                            <FormField
+                              control={form.control}
+                              name={linePath<TFieldValues>(index, "remarks")}
+                              render={({ field: remarksField }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Input
+                                      disabled={disabled}
+                                      aria-label={`Line ${index + 1} remarks`}
+                                      {...remarksField}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </TableCell>
+                        ) : null}
+                      </>
+                    )}
                     <TableCell className="align-top">
                       {disabled ? null : (
                         <TableActionTooltip label="Remove line">

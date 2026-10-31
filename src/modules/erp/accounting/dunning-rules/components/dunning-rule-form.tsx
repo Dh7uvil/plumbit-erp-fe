@@ -179,7 +179,7 @@ export function DunningRuleForm({
           control={form.control}
           name="escalate"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start gap-3 space-y-0">
+            <FormItem variant="checkbox" className="items-start gap-3">
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -212,7 +212,7 @@ export function DunningRuleForm({
             control={form.control}
             name="is_active"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-3 space-y-0">
+              <FormItem variant="checkbox" className="gap-3">
                 <FormControl>
                   <Checkbox
                     checked={field.value}

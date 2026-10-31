@@ -1,5 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
+
+import { reportAsOfSpec } from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import {
   useOutstandingBills,
   useOutstandingInvoices,
@@ -7,12 +10,13 @@ import {
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { documentDetailHref } from "@/shared/components/document/document-links";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { ReportShell } from "@/shared/components/report/report-shell";
-import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
@@ -42,6 +46,7 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
   const filename = kind === "invoices" ? "outstanding-invoices" : "outstanding-bills";
   const money = (value: string | null | undefined, currency?: string | null) =>
     formatReportMoney(value, currency ?? report?.currency_code);
+  const filterSpecs = useMemo((): FilterSpec[] => [reportAsOfSpec()], []);
 
   return (
     <ReportShell
@@ -69,16 +74,10 @@ export function OutstandingDocumentsScreen({ kind }: { kind: "invoices" | "bills
               onChange={(event) => setParams({ filters: { as_of: event.target.value || null } })}
             />
           </ToolbarControl>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-9"
-            onClick={() => setParams({ filters: { as_of: null } })}
-          >
-            Clear
-          </Button>
         </div>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       {report ? (

@@ -860,7 +860,7 @@ export function PurchaseOrderForm({
             showImportMetrics
             showPricesIncludeTax
             enableInventoryHelp
-            inventoryHelpVariant="winsoft"
+            inventoryHelpVariant="extended"
             supplierCatalog={{ supplierId: selectedSupplierId }}
             lineAutofillContext={lineAutofillContext}
           />

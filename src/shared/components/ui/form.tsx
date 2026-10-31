@@ -67,9 +67,13 @@ const useFormField = () => {
 
 type FormItemContextValue = {
   id: string;
+  variant: "default" | "checkbox";
 };
 
-const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
+const FormItemContext = React.createContext<FormItemContextValue>({
+  id: "",
+  variant: "default",
+});
 
 const FORM_GRID_COLUMNS = {
   1: "grid-cols-1",
@@ -91,16 +95,32 @@ function FormGrid({
   );
 }
 
-function FormItem({ className, ...props }: React.ComponentProps<"div">) {
+function FormItem({
+  className,
+  variant = "default",
+  ...props
+}: React.ComponentProps<"div"> & { variant?: "default" | "checkbox" }) {
   const id = React.useId();
 
   return (
-    <FormItemContext.Provider value={{ id }}>
+    <FormItemContext.Provider value={{ id, variant }}>
       <div
         data-slot="form-item"
+        data-variant={variant}
         className={cn(
-          "grid min-w-0 gap-3",
-          "in-data-[slot=form-grid]:row-span-3 in-data-[slot=form-grid]:grid-rows-subgrid in-data-[slot=form-grid]:content-start in-data-[slot=form-grid]:gap-y-2.5",
+          variant === "checkbox"
+            ? [
+                "flex min-w-0 flex-row items-center gap-2 space-y-0",
+                // Sharing a grid row with field items means covering the same
+                // label/control/message band they do, or the columns placed after it drift off
+                // the rhythm. The row keeps flowing sideways, pinned to the control row.
+                // Full-width items own their row already, so they stay compact.
+                "[[data-slot=form-grid]>&:not(.col-span-full)]:row-span-3 [[data-slot=form-grid]>&:not(.col-span-full)]:grid [[data-slot=form-grid]>&:not(.col-span-full)]:auto-cols-max [[data-slot=form-grid]>&:not(.col-span-full)]:grid-flow-col [[data-slot=form-grid]>&:not(.col-span-full)]:grid-rows-subgrid [[data-slot=form-grid]>&:not(.col-span-full)]:*:row-start-2",
+              ]
+            : [
+                "grid min-w-0 gap-3",
+                "in-data-[slot=form-grid]:row-span-3 in-data-[slot=form-grid]:grid-rows-subgrid in-data-[slot=form-grid]:content-start in-data-[slot=form-grid]:gap-y-2.5",
+              ],
           className,
         )}
         {...props}
@@ -137,6 +157,7 @@ function FormLabel({
   ...props
 }: React.ComponentProps<typeof LabelPrimitive.Root> & { required?: boolean }) {
   const { error, formItemId } = useFormField();
+  const { variant: formItemVariant } = React.useContext(FormItemContext);
   const isRequired = useFieldRequired(required);
 
   return (
@@ -144,7 +165,10 @@ function FormLabel({
       data-slot="form-label"
       data-error={!!error}
       className={cn(
-        "data-[error=true]:text-destructive in-data-[slot=form-grid]:min-w-0 in-data-[slot=form-grid]:self-end",
+        "data-[error=true]:text-destructive",
+        formItemVariant === "checkbox"
+          ? "cursor-pointer font-normal leading-none"
+          : "in-data-[slot=form-grid]:min-w-0 in-data-[slot=form-grid]:self-end",
         className,
       )}
       htmlFor={formItemId}

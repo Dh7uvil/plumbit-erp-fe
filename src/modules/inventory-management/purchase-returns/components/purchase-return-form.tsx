@@ -344,7 +344,7 @@ export function PurchaseReturnForm({
           <p className="text-sm font-medium">Lines</p>
           <p className="text-muted-foreground text-xs">
             Quantity defaults to the goods receipt line. The server enforces what is still
-            returnable. Each line needs a disposition (legacy Winsoft return type).
+            returnable. Each line needs a disposition (legacy return type).
           </p>
           <ul className="text-muted-foreground list-disc pl-5 text-xs">
             {PURCHASE_RETURN_DISPOSITIONS.map((disposition) => (

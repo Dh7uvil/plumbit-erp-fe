@@ -4,6 +4,10 @@ import { useMemo } from "react";
 
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
 import { DayBookRows } from "@/modules/erp/accounting/reports/components/cash-bank-book-screen";
+import {
+  reportBranchOptionSpec,
+  reportPeriodDateRangeSpec,
+} from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useDayBook } from "@/modules/erp/accounting/reports/queries";
@@ -15,6 +19,8 @@ import { useAllCustomers } from "@/modules/crm/customers/queries";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ToolbarControl } from "@/shared/components/data-table/toolbar";
@@ -140,6 +146,54 @@ export function UnifiedDayBookScreen() {
       label: `Supplier · ${row.name}`,
     })),
   ];
+  const accounts = accountsQuery.data ?? [];
+  const branches = branchesQuery.data ?? [];
+
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      {
+        type: "option",
+        key: "account_id",
+        label: "Account",
+        options: accounts.map((account) => ({
+          value: account.id,
+          label: `${account.code} — ${account.name}`,
+        })),
+      },
+      {
+        type: "option",
+        key: "party_id",
+        label: "Party",
+        options: partyOptions,
+      },
+      reportPeriodDateRangeSpec(),
+      {
+        type: "option",
+        key: "source_type",
+        label: "Source",
+        options: GL_SOURCE_TYPES,
+      },
+      {
+        type: "option",
+        key: "voucher_type",
+        label: "Voucher type",
+        options: VOUCHER_ENTRY_TYPES.map((type) => ({
+          value: type,
+          label: VOUCHER_TYPE_LABELS[type],
+        })),
+      },
+      {
+        type: "option",
+        key: "side",
+        label: "Side",
+        options: [
+          { value: "debit", label: "Debit" },
+          { value: "credit", label: "Credit" },
+        ],
+      },
+      reportBranchOptionSpec(branches),
+    ];
+  }, [accounts, branches, partyOptions]);
 
   return (
     <ReportShell
@@ -255,6 +309,9 @@ export function UnifiedDayBookScreen() {
             ]}
           />
         </>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       {report ? (

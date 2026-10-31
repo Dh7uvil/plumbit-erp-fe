@@ -20,8 +20,11 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import type { SortFieldOption } from "@/shared/components/data-table/sort";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
-import { Button } from "@/shared/components/ui/button";
+import {
+  filterClearPatchFromSpecs,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { Input } from "@/shared/components/ui/input";
 import { useTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
@@ -252,21 +255,86 @@ export function UsersTableFilters({ columnsDialog }: { columnsDialog?: ReactNode
   }, [departments]);
 
   const extraCount = extraFilterCount(extraFilters);
-  const hasToolbarFilters = Boolean(search || status !== ALL || roleId !== ALL);
-  const hasActiveFilters = hasToolbarFilters || extraCount > 0 || Boolean(sort_by);
+
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    const specs: FilterSpec[] = [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: [
+          { value: "ACTIVE", label: "Active" },
+          { value: "INVITED", label: "Invited" },
+          { value: "DISABLED", label: "Disabled" },
+        ],
+      },
+    ];
+    if (canReadRoles) {
+      specs.push({
+        type: "option",
+        key: "role_id",
+        label: "Role",
+        options: roles.map((role) => ({ value: role.id, label: role.name })),
+      });
+    }
+    if (canReadBranches) {
+      specs.push({
+        type: "option",
+        key: "branch_id",
+        label: "Branch",
+        options: branches.map((branch) => ({ value: branch.id, label: branch.name })),
+      });
+    }
+    if (canReadDepartments) {
+      specs.push({
+        type: "option",
+        key: "department_id",
+        label: "Department",
+        options: departments.map((department) => ({
+          value: department.id,
+          label: department.name,
+        })),
+      });
+    }
+    specs.push(
+      {
+        type: "option",
+        key: "employee_status",
+        label: "Employee status",
+        options: [
+          { value: "ACTIVE", label: "Active employee" },
+          { value: "INACTIVE", label: "Inactive employee" },
+        ],
+      },
+      {
+        type: "option",
+        key: "manager_id",
+        label: "Manager",
+        options: managers.map((manager) => ({ value: manager.id, label: manager.name })),
+      },
+      { type: "text", source: { filterKey: "designation" }, label: "Designation" },
+      { type: "text", source: { filterKey: "employee_code" }, label: "Employee code" },
+      { type: "text", source: { filterKey: "phone" }, label: "Phone" },
+      {
+        type: "dateRange",
+        fromKey: "joining_date_from",
+        toKey: "joining_date_to",
+        label: "Joining date",
+      },
+      {
+        type: "dateRange",
+        fromKey: "last_login_from",
+        toKey: "last_login_to",
+        label: "Last login",
+      },
+    );
+    return specs;
+  }, [branches, canReadBranches, canReadDepartments, canReadRoles, departments, managers, roles]);
 
   function clearFilters() {
     setDraftExtra(EMPTY_EXTRA);
-    setParams({
-      search: null,
-      sort_by: null,
-      sort_order: null,
-      filters: {
-        status: null,
-        role_id: null,
-        ...extraToUrlPatch(EMPTY_EXTRA),
-      },
-    });
+    setParams(filterClearPatchFromSpecs(filterSpecs));
   }
 
   function updateDraft<Key extends keyof ExtraFilters>(key: Key, value: ExtraFilters[Key]) {
@@ -274,7 +342,13 @@ export function UsersTableFilters({ columnsDialog }: { columnsDialog?: ReactNode
   }
 
   return (
-    <DataTableToolbar>
+    <ListFilterToolbar
+      search={search}
+      filters={filters}
+      specs={filterSpecs}
+      setParams={setParams}
+      onClear={clearFilters}
+    >
       <ListSearch
         value={search ?? ""}
         onChange={(value) => setParams({ search: optionalText(value) ?? null })}
@@ -454,11 +528,6 @@ export function UsersTableFilters({ columnsDialog }: { columnsDialog?: ReactNode
         onApply={setParams}
       />
       {columnsDialog}
-      {hasActiveFilters ? (
-        <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-          Clear
-        </Button>
-      ) : null}
-    </DataTableToolbar>
+    </ListFilterToolbar>
   );
 }

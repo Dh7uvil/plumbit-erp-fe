@@ -60,26 +60,6 @@ export const ENTRY_BOOKS: EntryBookConfig[] = VOUCHER_ENTRY_TYPES.map((type) =>
   configForType(type),
 );
 
-/** Merge API entry book master rows onto static defaults (series + display name). */
-export function entryBooksFromApi(
-  rows: Array<{ voucher_type: string; name: string; series_prefix: string; is_active: boolean }>,
-): EntryBookConfig[] {
-  const byType = new Map(rows.map((row) => [row.voucher_type, row]));
-  return VOUCHER_ENTRY_TYPES.filter((type) => {
-    const remote = byType.get(type);
-    return remote?.is_active !== false;
-  }).map((type) => {
-    const remote = byType.get(type);
-    if (!remote) {
-      return configForType(type);
-    }
-    return configForType(type, {
-      label: remote.name,
-      seriesPrefix: remote.series_prefix,
-    });
-  });
-}
-
 export function requiresChequeForEntryType(type: VoucherEntryType): boolean {
   return entryBookFor(type).requiresCheque;
 }
@@ -90,26 +70,6 @@ export function entryBookFor(type: VoucherEntryType): EntryBookConfig {
     throw new Error(`Unknown entry book: ${type}`);
   }
   return book;
-}
-
-export type EntryBookApiRow = {
-  voucher_type: string;
-  name: string;
-  series_prefix: string;
-  is_active: boolean;
-};
-
-export function resolveEntryBook(
-  type: VoucherEntryType,
-  apiRows?: EntryBookApiRow[] | null,
-): EntryBookConfig {
-  if (apiRows?.length) {
-    const book = entryBooksFromApi(apiRows).find((row) => row.value === type);
-    if (book) {
-      return book;
-    }
-  }
-  return entryBookFor(type);
 }
 
 export function entryBookOptions(includeJournal = true): EntryBookConfig[] {

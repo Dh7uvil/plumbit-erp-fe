@@ -23,8 +23,11 @@ import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/q
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
-import { emptyDocumentLine } from "@/shared/components/document/schemas";
+import { emptyDocumentLine, salesLineLocInput } from "@/shared/components/document/schemas";
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
+import { SalesCommercialFooterFields } from "@/shared/components/document/sales-commercial-footer-fields";
+import { SalesCommercialHeaderFields } from "@/shared/components/document/sales-commercial-header-fields";
+import { SalesDocumentFormTabs } from "@/shared/components/document/sales-document-form-tabs";
 import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { useCreateSalesOrder, useUpdateSalesOrder } from "@/modules/erp/sales-orders/mutations";
 import {
@@ -32,13 +35,10 @@ import {
   useSalesOrderComposeDefaults,
 } from "@/modules/erp/sales-orders/queries";
 import {
-  DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
   isBlankSalesOrderLine,
-  PLACE_OF_SUPPLY_LABELS,
   PLACES_OF_SUPPLY,
   SalesOrderFormSchema,
-  TAX_TREATMENT_LABELS,
   type DiscountType,
   type PlaceOfSupply,
   type SalesOrder,
@@ -57,7 +57,6 @@ import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { WarehouseFormDialog } from "@/modules/inventory-management/warehouses/components/warehouse-form-dialog";
 import { warehousePermissions } from "@/modules/inventory-management/warehouses/permissions";
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
-import { EmployeeSelect } from "@/modules/users-management/employees/components/employee-select";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -65,7 +64,6 @@ import { Button } from "@/shared/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -73,13 +71,6 @@ import {
 } from "@/shared/components/ui/form";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDocumentLineAutofillContext } from "@/shared/hooks/use-document-line-autofill-context";
@@ -127,6 +118,7 @@ function toLineInput(line: SalesOrderLineFormValues): SalesOrderLineInput {
     discount_type: optionalDiscountType(line.discount_type),
     discount_value: emptyToNull(line.discount_value),
     tax_id: optionalUuid(line.tax_id),
+    ...salesLineLocInput(line),
   };
 }
 
@@ -136,6 +128,7 @@ function toFormLines(salesOrder: SalesOrder | null): SalesOrderLineFormValues[] 
     return [emptyDocumentLine()];
   }
   return lines.map((line) => ({
+    ...emptyDocumentLine(),
     product_id: line.product_id ?? OPTIONAL_SELECT_NONE,
     description: line.description ?? "",
     quantity: line.quantity,
@@ -144,6 +137,9 @@ function toFormLines(salesOrder: SalesOrder | null): SalesOrderLineFormValues[] 
     discount_type: line.discount_type ?? OPTIONAL_SELECT_NONE,
     discount_value: line.discount_value ?? "",
     tax_id: line.tax_id ?? OPTIONAL_SELECT_NONE,
+    warehouse_id: line.warehouse_id ?? OPTIONAL_SELECT_NONE,
+    remarks: line.remarks ?? "",
+    source_document_number: line.source_invoice_number ?? "",
   }));
 }
 
@@ -178,6 +174,15 @@ function toFormValues(
     bill_to_snapshot: salesOrder?.bill_to_snapshot ?? "",
     ship_to_snapshot: salesOrder?.ship_to_snapshot ?? "",
     prices_include_tax: salesOrder?.prices_include_tax ?? false,
+    payment_mode: salesOrder?.payment_mode ?? "CREDIT",
+    reference_date: salesOrder?.reference_date ?? "",
+    marks: salesOrder?.marks ?? "",
+    price_basis: salesOrder?.price_basis ?? "DEFAULT",
+    fiscal_period: salesOrder?.fiscal_period != null ? String(salesOrder.fiscal_period) : "",
+    account_code: salesOrder?.account_code ?? "",
+    account_name: salesOrder?.account_name ?? "",
+    registration_type: salesOrder?.registration_type ?? "",
+    is_invoiced: salesOrder?.is_invoiced ?? false,
     lines: toFormLines(salesOrder),
   };
 }
@@ -206,6 +211,13 @@ function toCreateRequest(values: SalesOrderFormValues): SalesOrderCreateRequest 
     adjustment_amount: values.adjustment_amount.trim() || "0",
     place_of_supply: optionalPlaceOfSupply(values.place_of_supply),
     prices_include_tax: values.prices_include_tax,
+    payment_mode: values.payment_mode as SalesOrderCreateRequest["payment_mode"],
+    reference_date: emptyToNull(values.reference_date),
+    marks: emptyToNull(values.marks),
+    price_basis: values.price_basis as SalesOrderCreateRequest["price_basis"],
+    fiscal_period: values.fiscal_period.trim()
+      ? Number.parseInt(values.fiscal_period, 10)
+      : null,
     lines: values.lines.filter((line) => !isBlankSalesOrderLine(line)).map(toLineInput),
   };
 }
@@ -233,6 +245,11 @@ function toUpdateRequest(values: SalesOrderFormValues): SalesOrderUpdateRequest 
     adjustment_amount: created.adjustment_amount,
     place_of_supply: created.place_of_supply,
     prices_include_tax: created.prices_include_tax,
+    payment_mode: created.payment_mode,
+    reference_date: created.reference_date,
+    marks: created.marks,
+    price_basis: created.price_basis,
+    fiscal_period: created.fiscal_period,
     lines: created.lines,
   };
 }
@@ -342,6 +359,8 @@ export function SalesOrderForm({
     form.setValue("tax_treatment", defaults.tax_treatment);
     form.setValue("bill_to_snapshot", defaults.bill_to_snapshot ?? "");
     form.setValue("ship_to_snapshot", defaults.ship_to_snapshot ?? "");
+    form.setValue("account_code", defaults.account_code ?? "");
+    form.setValue("account_name", defaults.account_name ?? "");
   }, [composeQuery.data, form, isEdit]);
 
   useEffect(() => {
@@ -429,6 +448,21 @@ export function SalesOrderForm({
               </FormItem>
             )}
           />
+          <SalesCommercialHeaderFields
+            control={form.control}
+            disabled={disabled}
+            taxTreatment={taxTreatment || ""}
+            customerTrn={customerTrn || ""}
+            documentNumber={isEdit && salesOrder ? salesOrder.document_number : undefined}
+            documentNumberLabel="Order no"
+            dateField="order_date"
+            onSalesmanChange={() => markComposeDirty("salesperson_id")}
+            onPlaceOfSupplyChange={() => markComposeDirty("place_of_supply")}
+          />
+        </div>
+        <SalesDocumentFormTabs
+          additionalDetailsPanel={
+            <>
           <FormField
             control={form.control}
             name="contact_id"
@@ -490,19 +524,6 @@ export function SalesOrderForm({
           />
           <FormField
             control={form.control}
-            name="order_date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Order date</FormLabel>
-                <FormControl>
-                  <Input type="date" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="expected_shipment_date"
             render={({ field }) => (
               <FormItem>
@@ -552,24 +573,6 @@ export function SalesOrderForm({
                   <Input type="date" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="reference_number"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Internal reference</FormLabel>
-                <FormControl>
-                  <Input maxLength={60} disabled={disabled} {...field} />
-                </FormControl>
-                <div className="flex min-w-0 flex-col">
-                  <FormDescription>
-                    Internal note only. The customer PO number is captured separately.
-                  </FormDescription>
-                  <FormMessage />
-                </div>
               </FormItem>
             )}
           />
@@ -701,103 +704,6 @@ export function SalesOrderForm({
           />
           <FormField
             control={form.control}
-            name="salesperson_id"
-            render={({ field }) => (
-              <EmployeeSelect
-                value={field.value}
-                onValueChange={(value) => {
-                  markComposeDirty("salesperson_id");
-                  field.onChange(value);
-                }}
-                disabled={disabled}
-              />
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="place_of_supply"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Place of supply</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    markComposeDirty("place_of_supply");
-                    field.onChange(value);
-                  }}
-                  disabled={disabled}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {PLACES_OF_SUPPLY.map((place) => (
-                      <SelectItem key={place} value={place}>
-                        {PLACE_OF_SUPPLY_LABELS[place]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="discount_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Header discount type</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {DISCOUNT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {DISCOUNT_TYPE_LABELS[type]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="discount_value"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Header discount value</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="shipping_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Shipping amount</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="adjustment_amount"
             render={({ field }) => (
               <FormItem>
@@ -809,66 +715,60 @@ export function SalesOrderForm({
               </FormItem>
             )}
           />
-          <FormItem>
-            <FormLabel>Customer TRN</FormLabel>
-            <Input value={customerTrn || "—"} disabled />
-          </FormItem>
-          <div
-            data-slot="form-grid"
-            className={"col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"}
-          >
-            <FormItem>
-              <FormLabel>Tax treatment</FormLabel>
-              <Input
-                value={
-                  taxTreatment && taxTreatment in TAX_TREATMENT_LABELS
-                    ? TAX_TREATMENT_LABELS[taxTreatment as keyof typeof TAX_TREATMENT_LABELS]
-                    : taxTreatment || "—"
-                }
-                disabled
-              />
-            </FormItem>
-            {!isEdit ? (
-              <FormField
-                control={form.control}
-                name="terms_template_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Terms template</FormLabel>
-                    <MasterSelect
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={disabled || termsTemplatesQuery.isLoading}
-                      placeholder="None"
-                      searchPlaceholder="Search template…"
-                      createLabel="Create terms template"
-                      onCreate={
-                        can(termsTemplatePermissions.create)
-                          ? () => setCreating("termsTemplate")
-                          : undefined
-                      }
-                      options={[
-                        { value: OPTIONAL_SELECT_NONE, label: "None" },
-                        ...templates.map((template) => ({
-                          value: template.id,
-                          label: template.name,
-                        })),
-                      ]}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
-          </div>
-        </div>
+          {!isEdit ? (
+            <FormField
+              control={form.control}
+              name="terms_template_id"
+              render={({ field }) => (
+                <FormItem className="col-span-full">
+                  <FormLabel>Terms template</FormLabel>
+                  <MasterSelect
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={disabled || termsTemplatesQuery.isLoading}
+                    placeholder="None"
+                    searchPlaceholder="Search template…"
+                    createLabel="Create terms template"
+                    onCreate={
+                      can(termsTemplatePermissions.create)
+                        ? () => setCreating("termsTemplate")
+                        : undefined
+                    }
+                    options={[
+                      { value: OPTIONAL_SELECT_NONE, label: "None" },
+                      ...templates.map((template) => ({
+                        value: template.id,
+                        label: template.name,
+                      })),
+                    ]}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+            </>
+          }
+          documentPanel={
+            <>
+        <SalesCommercialFooterFields
+          form={form}
+          disabled={disabled}
+          currencies={currencies}
+          savedTotals={salesOrder}
+        />
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
           <DocumentLinesEditor
             form={form}
             disabled={disabled}
             productSide="sales"
-            showPricesIncludeTax
+            enableInventoryHelp
+            editableLineAmount
+            showSalesLocationColumns
+            salesLineSourceLabel="Invoice no"
+            showLineRemarks
+            showPacking
             lineAutofillContext={lineAutofillContext}
           />
         </div>
@@ -881,19 +781,6 @@ export function SalesOrderForm({
           />
         ) : null}
         <div className="grid grid-cols-1 gap-3">
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <Textarea disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="terms_and_conditions"
@@ -947,6 +834,9 @@ export function SalesOrderForm({
             </Button>
           </div>
         ) : null}
+            </>
+          }
+        />
       </form>
       <CustomerFormDialog
         open={creating === "customer"}

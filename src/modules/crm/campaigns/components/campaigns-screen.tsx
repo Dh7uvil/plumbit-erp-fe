@@ -35,7 +35,11 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -134,6 +138,24 @@ export function CampaignsScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("crm.campaigns", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(CAMPAIGN_STATUSES, CAMPAIGN_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "campaign_type",
+        label: "Type",
+        options: enumFilterOptions(CAMPAIGN_TYPES, CAMPAIGN_TYPE_LABELS),
+      },
+    ];
+  }, []);
+
   async function confirmDelete() {
     if (!deleting) {
       return;
@@ -161,7 +183,7 @@ export function CampaignsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -206,24 +228,7 @@ export function CampaignsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.campaign_type || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: { status: null, campaign_type: null },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

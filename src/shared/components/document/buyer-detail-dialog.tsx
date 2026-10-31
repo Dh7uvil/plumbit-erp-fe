@@ -59,7 +59,7 @@ export function BuyerDetailDialog<T extends FieldValues>({
         <DialogHeader>
           <DialogTitle>Buyer details</DialogTitle>
           <DialogDescription>
-            Delivery and tax context for this invoice (legacy Winsoft buyer sheet).
+            Delivery and tax context for this invoice (legacy buyer sheet).
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">

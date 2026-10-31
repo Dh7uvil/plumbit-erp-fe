@@ -1,10 +1,17 @@
 "use client";
 
-import { StatementReportFilters } from "@/modules/erp/accounting/reports/components/statement-report-filters";
+import { useMemo } from "react";
+
+import {
+  StatementReportFilters,
+  useStatementReportFilterSpecs,
+} from "@/modules/erp/accounting/reports/components/statement-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { usePurchaseAnalysis, useSalesAnalysis } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -51,6 +58,14 @@ export function AnalysisReportScreen({ kind }: { kind: "sales" | "purchase" }) {
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
   const groups = kind === "sales" ? SALES_GROUPS : PURCHASE_GROUPS;
+  const statementSpecs = useStatementReportFilterSpecs({ showDateRange: true });
+  const filterSpecs = useMemo(
+    (): FilterSpec[] => [
+      ...statementSpecs,
+      { type: "option", key: "group_by", label: "Group by", options: groups },
+    ],
+    [groups, statementSpecs],
+  );
 
   return (
     <ReportShell
@@ -80,6 +95,9 @@ export function AnalysisReportScreen({ kind }: { kind: "sales" | "purchase" }) {
             options={groups}
           />
         </>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       {report?.warnings?.length ? (

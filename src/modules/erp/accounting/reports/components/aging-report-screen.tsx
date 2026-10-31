@@ -1,7 +1,9 @@
 "use client";
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+
+import { reportAsOfSpec } from "@/modules/erp/accounting/reports/components/report-filter-specs";
 
 import { useArAging, useApAging } from "@/modules/erp/accounting/reports/queries";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
@@ -11,6 +13,8 @@ import type {
   AgingPartyRow,
 } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -92,6 +96,7 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
   const filename = kind === "ar" ? "ar-aging" : "ap-aging";
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const reportCurrency = report?.currency_code;
+  const filterSpecs = useMemo((): FilterSpec[] => [reportAsOfSpec()], []);
 
   function toggle(partyId: string) {
     setExpanded((current) => {
@@ -131,16 +136,10 @@ export function AgingReportScreen({ kind }: { kind: "ar" | "ap" }) {
               onChange={(event) => setParams({ filters: { as_of: event.target.value || null } })}
             />
           </ToolbarControl>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-9"
-            onClick={() => setParams({ filters: { as_of: null } })}
-          >
-            Clear
-          </Button>
         </div>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <DataTable>

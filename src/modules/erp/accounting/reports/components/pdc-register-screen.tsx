@@ -1,13 +1,18 @@
 "use client";
 
+import { useMemo } from "react";
+
 import {
   CHEQUE_STATUS_LABELS,
   CHEQUE_STATUS_VARIANTS,
 } from "@/modules/erp/accounting/cheques/components/cheque-columns";
 import { useAllBankAccounts } from "@/modules/erp/accounting/bank-accounts/queries";
+import { reportDueDateRangeSpec } from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { usePdcRegister } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { RecordLink } from "@/shared/components/data-table/record-link";
@@ -46,6 +51,39 @@ export function PdcRegisterScreen() {
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
+  const bankAccounts = bankAccountsQuery.data ?? [];
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      reportDueDateRangeSpec(),
+      {
+        type: "option",
+        key: "direction",
+        label: "Direction",
+        options: [
+          { value: "INBOUND", label: "Inbound" },
+          { value: "OUTBOUND", label: "Outbound" },
+        ],
+      },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: Object.entries(CHEQUE_STATUS_LABELS).map(([value, label]) => ({
+          value,
+          label,
+        })),
+      },
+      {
+        type: "option",
+        key: "bank_account_id",
+        label: "Bank account",
+        options: bankAccounts.map((account) => ({
+          value: account.id,
+          label: `${account.bank_name} — ${account.account_name}`,
+        })),
+      },
+    ];
+  }, [bankAccounts]);
 
   return (
     <ReportShell
@@ -121,6 +159,9 @@ export function PdcRegisterScreen() {
             ]}
           />
         </div>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       {report ? (

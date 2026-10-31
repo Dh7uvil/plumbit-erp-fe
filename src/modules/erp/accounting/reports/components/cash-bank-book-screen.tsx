@@ -3,6 +3,10 @@
 import { useMemo } from "react";
 
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
+import {
+  reportBranchOptionSpec,
+  reportPeriodDateRangeSpec,
+} from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useBankBook, useCashBook } from "@/modules/erp/accounting/reports/queries";
@@ -10,6 +14,8 @@ import { sourceDocumentHref } from "@/modules/erp/accounting/reports/schemas";
 import type { DayBookLine } from "@/modules/erp/accounting/reports/schemas";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ToolbarControl } from "@/shared/components/data-table/toolbar";
@@ -192,6 +198,37 @@ export function CashBankBookScreen({
     return report.lines;
   }, [accountId, report]);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      {
+        type: "option",
+        key: "account_id",
+        label: "Account",
+        options: accounts.map((account) => ({
+          value: account.id,
+          label: `${account.code} — ${account.name}`,
+        })),
+      },
+      reportPeriodDateRangeSpec(),
+      {
+        type: "option",
+        key: "source_type",
+        label: "Source",
+        options: GL_SOURCE_TYPES,
+      },
+      {
+        type: "option",
+        key: "side",
+        label: "Side",
+        options: [
+          { value: "debit", label: "Debit" },
+          { value: "credit", label: "Credit" },
+        ],
+      },
+      reportBranchOptionSpec(branches),
+    ];
+  }, [accounts, branches]);
+
   return (
     <>
       <ReportShell
@@ -281,6 +318,9 @@ export function CashBankBookScreen({
               ]}
             />
           </>
+        }
+        activeFilters={
+          <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
         }
       >
         {report ? (

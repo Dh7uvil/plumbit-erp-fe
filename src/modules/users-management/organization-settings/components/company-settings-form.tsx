@@ -370,7 +370,7 @@ function SettingsSwitchField({
       control={control}
       name={name}
       render={({ field }) => (
-        <FormItem className="col-span-full flex flex-row items-center justify-between gap-3 space-y-0">
+        <FormItem variant="checkbox" className="col-span-full justify-between gap-3">
           <FormLabel className={toolbarLabelClass}>{label}</FormLabel>
           <FormControl>
             <Switch
@@ -879,7 +879,7 @@ export function CompanySettingsForm() {
               disabled={!canUpdate || !isEditingRegional}
             />
             {fiscalYearLocked && canOverrideFiscalYear ? (
-              <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+              <FormItem variant="checkbox" className="col-span-full">
                 <Checkbox
                   checked={acknowledgeFiscalYearChange}
                   disabled={!isEditingRegional}

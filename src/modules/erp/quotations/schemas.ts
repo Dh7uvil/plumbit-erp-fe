@@ -102,6 +102,26 @@ export const TAX_TREATMENT_LABELS: Record<TaxTreatment, string> = {
   EXEMPT: "Exempt",
 };
 
+export const PAYMENT_MODES = ["CASH", "CREDIT", "BANK"] as const;
+export const PaymentModeSchema = z.enum(PAYMENT_MODES);
+export type PaymentMode = z.infer<typeof PaymentModeSchema>;
+
+export const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
+  CASH: "Cash",
+  CREDIT: "Credit",
+  BANK: "Bank",
+};
+
+export const PRICE_BASIS_OPTIONS = ["DEFAULT", "PRICE_1", "PRICE_2"] as const;
+export const PriceBasisSchema = z.enum(PRICE_BASIS_OPTIONS);
+export type PriceBasis = z.infer<typeof PriceBasisSchema>;
+
+export const PRICE_BASIS_LABELS: Record<PriceBasis, string> = {
+  DEFAULT: "Def. Sale Price",
+  PRICE_1: "Price 1",
+  PRICE_2: "Price 2",
+};
+
 export const QuotationLineSchema = z.object({
   id: z.string().uuid(),
   line_number: z.number().int(),
@@ -119,6 +139,9 @@ export const QuotationLineSchema = z.object({
   amount: MoneySchema,
   qty_converted: DecimalStringSchema.optional().default("0"),
   qty_remaining: DecimalStringSchema.optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  remarks: z.string().nullable().optional(),
+  source_invoice_number: z.string().nullable().optional(),
   ...PackingLineResponseFields,
 });
 export type QuotationLine = z.infer<typeof QuotationLineSchema>;
@@ -160,6 +183,18 @@ export const QuotationSchema = z.object({
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
   prices_include_tax: z.boolean().optional().default(false),
+  payment_mode: PaymentModeSchema.optional().default("CREDIT"),
+  reference_number: z.string().nullable().optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  discount_account_id: z.string().uuid().nullable().optional(),
+  freight_account_id: z.string().uuid().nullable().optional(),
+  price_basis: PriceBasisSchema.optional().default("DEFAULT"),
+  fiscal_period: z.number().int().nullable().optional(),
+  registration_type: z.string().nullable().optional(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
+  is_invoiced: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   converted_at: z.string().nullable(),
@@ -194,6 +229,9 @@ export const QuotationComposeDefaultsSchema = z.object({
   bill_to_snapshot: z.string().nullable(),
   ship_to_snapshot: z.string().nullable(),
   terms_and_conditions: z.string().nullable(),
+  receivable_account_id: z.string().uuid().nullable().optional(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
 });
 export type QuotationComposeDefaults = z.infer<typeof QuotationComposeDefaultsSchema>;
 
@@ -206,6 +244,8 @@ export const QuotationLineInputSchema = z.object({
   discount_type: DiscountTypeSchema.nullable().optional(),
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  remarks: z.string().nullable().optional(),
   ...PackingLineInputFields,
 });
 export type QuotationLineInput = z.infer<typeof QuotationLineInputSchema>;
@@ -230,6 +270,14 @@ export const QuotationCreateRequestSchema = z.object({
   adjustment_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   prices_include_tax: z.boolean().nullable().optional(),
+  payment_mode: PaymentModeSchema.optional(),
+  reference_number: z.string().nullable().optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  discount_account_id: z.string().uuid().nullable().optional(),
+  freight_account_id: z.string().uuid().nullable().optional(),
+  price_basis: PriceBasisSchema.optional(),
+  fiscal_period: z.number().int().nullable().optional(),
   lines: z.array(QuotationLineInputSchema).optional(),
 });
 export type QuotationCreateRequest = z.infer<typeof QuotationCreateRequestSchema>;
@@ -251,6 +299,14 @@ export const QuotationUpdateRequestSchema = z.object({
   adjustment_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   prices_include_tax: z.boolean().nullable().optional(),
+  payment_mode: PaymentModeSchema.optional(),
+  reference_number: z.string().nullable().optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  discount_account_id: z.string().uuid().nullable().optional(),
+  freight_account_id: z.string().uuid().nullable().optional(),
+  price_basis: PriceBasisSchema.optional(),
+  fiscal_period: z.number().int().nullable().optional(),
   lines: z.array(QuotationLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -339,6 +395,9 @@ export const QuotationLineFormSchema = z
     discount_type: z.string(),
     discount_value: z.string(),
     tax_id: z.string(),
+    warehouse_id: z.string(),
+    remarks: z.string(),
+    source_document_number: z.string(),
   })
   .merge(PackingLineFormFieldsSchema);
 export type QuotationLineFormValues = z.infer<typeof QuotationLineFormSchema>;
@@ -379,6 +438,16 @@ export const QuotationFormSchema = z
     bill_to_snapshot: z.string(),
     ship_to_snapshot: z.string(),
     prices_include_tax: z.boolean(),
+    payment_mode: z.string(),
+    reference_number: z.string(),
+    reference_date: z.string(),
+    marks: z.string(),
+    price_basis: z.string(),
+    fiscal_period: z.string(),
+    account_code: z.string(),
+    account_name: z.string(),
+    registration_type: z.string(),
+    is_invoiced: z.boolean(),
     lines: z.array(QuotationLineFormSchema),
   })
   .superRefine((values, ctx) => {

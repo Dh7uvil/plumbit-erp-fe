@@ -643,7 +643,7 @@ export function PurchaseInvoiceForm({
             control={form.control}
             name="auto_stock_document"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2 space-y-0">
+              <FormItem variant="checkbox">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
@@ -1023,7 +1023,7 @@ export function PurchaseInvoiceForm({
             control={form.control}
             name="is_reverse_charge"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2 space-y-0">
+              <FormItem variant="checkbox">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
@@ -1048,7 +1048,7 @@ export function PurchaseInvoiceForm({
             showImportPurchaseColumns={showFcyLcyColumns}
             enablePurchaseCostHints
             enableInventoryHelp
-            inventoryHelpVariant="winsoft"
+            inventoryHelpVariant="extended"
             supplierCatalog={selectedSupplierId ? { supplierId: selectedSupplierId } : undefined}
             lineAutofillContext={lineAutofillContext}
           />

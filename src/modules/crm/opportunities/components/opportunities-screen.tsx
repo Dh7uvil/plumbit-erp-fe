@@ -36,7 +36,11 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -165,6 +169,24 @@ export function OpportunitiesScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("crm.opportunities", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "pipeline_id",
+        label: "Pipeline",
+        options: pipelines.map((pipeline) => ({ value: pipeline.id, label: pipeline.name })),
+      },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(OPPORTUNITY_STATUSES, OPPORTUNITY_STATUS_LABELS),
+      },
+    ];
+  }, [pipelines]);
+
   async function confirmDelete() {
     if (!deleting) {
       return;
@@ -192,7 +214,7 @@ export function OpportunitiesScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -256,7 +278,7 @@ export function OpportunitiesScreen() {
           />
         ) : null}
         {view === "table" ? columnsDialog : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       {view === "board" ? (
         opportunitiesQuery.isLoading ? (
           <Skeleton className="h-96 w-full" />

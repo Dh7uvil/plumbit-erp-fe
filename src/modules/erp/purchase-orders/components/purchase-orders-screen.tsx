@@ -59,7 +59,11 @@ import {
   CONVERT_FROM_TRIGGER_CLASSNAME,
 } from "@/shared/components/document/convert-from-menu";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage, ListPageContent } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -434,6 +438,62 @@ export function PurchaseOrdersScreen({
     columnDefs,
   );
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(PURCHASE_ORDER_STATUSES, PURCHASE_ORDER_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "supplier_id",
+        label: "Supplier",
+        options: suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name })),
+      },
+      {
+        type: "option",
+        key: "receipt_status",
+        label: "Receipt",
+        options: enumFilterOptions(RECEIPT_STATUSES, RECEIPT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "billing_status",
+        label: "Billing",
+        options: enumFilterOptions(BILLING_STATUSES, BILLING_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "branch_id",
+        label: "Branch",
+        options: branches.map((branch) => ({ value: branch.id, label: branch.name })),
+      },
+      {
+        type: "option",
+        key: "warehouse_id",
+        label: "Warehouse",
+        options: warehouses.map((warehouse) => ({
+          value: warehouse.id,
+          label: warehouse.name,
+        })),
+      },
+      {
+        type: "option",
+        key: "currency_id",
+        label: "Currency",
+        options: currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+      },
+      {
+        type: "text",
+        source: { filterKey: "source_sales_order_id" },
+        label: "Sales order",
+      },
+    ];
+  }, [branches, currencies, suppliers, warehouses]);
+
   const headerActions =
     !embedded && canCreate ? (
       <div className="flex flex-wrap gap-2">
@@ -463,7 +523,7 @@ export function PurchaseOrdersScreen({
 
   const listContent = (
     <ListPageContent>
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -622,38 +682,7 @@ export function PurchaseOrdersScreen({
           onApply={setParams}
         />
         {columnsDialog}
-        {search ||
-        filters.status ||
-        filters.supplier_id ||
-        filters.source_sales_order_id ||
-        extraCount > 0 ||
-        sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  supplier_id: null,
-                  receipt_status: null,
-                  billing_status: null,
-                  branch_id: null,
-                  warehouse_id: null,
-                  currency_id: null,
-                  source_sales_order_id: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       {filters.source_sales_order_id ? (
         <p className="text-muted-foreground text-sm">
           Showing purchase orders raised for{" "}

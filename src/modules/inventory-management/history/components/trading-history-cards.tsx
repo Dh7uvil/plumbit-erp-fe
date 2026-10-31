@@ -13,11 +13,11 @@ import {
   useProductCustomers,
 } from "@/modules/inventory-management/history/queries";
 import { DocumentHistoryTable } from "@/shared/components/document/document-history-table";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
-import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { useNestedTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
@@ -39,10 +39,12 @@ const PRODUCT_SORT_FIELDS = [
   { value: "dispatch_count", label: "Dispatches" },
 ] as const;
 
+const SEARCH_FILTER_SPECS: FilterSpec[] = [{ type: "text", source: "search", label: "Search" }];
+
 export function ProductCustomersCard({ productId }: { productId: string }) {
   const can = useCan();
   const enabled = can(historyPermissions.product);
-  const { page, page_size, search, sort_by, sort_order, setParams, setPage, setPageSize } =
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage, setPageSize } =
     useNestedTableParams();
   const query = useProductCustomers(
     productId,
@@ -56,8 +58,6 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
     "inventory.trading_party_aggregates",
     columnDefs,
   );
-  const hasQuery = Boolean(search || sort_by);
-
   if (!enabled) {
     return null;
   }
@@ -90,7 +90,12 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
             <TradingHistoryLines kind="product-sales" ownerId={productId} partyId={row.party_id} />
           )}
           toolbar={
-            <DataTableToolbar>
+            <ListFilterToolbar
+              search={search}
+              filters={filters}
+              specs={SEARCH_FILTER_SPECS}
+              setParams={setParams}
+            >
               <ListSearch
                 value={search ?? ""}
                 onChange={(value) => setParams({ search: value || null })}
@@ -103,17 +108,7 @@ export function ProductCustomersCard({ productId }: { productId: string }) {
                 onApply={setParams}
               />
               {columnsDialog}
-              {hasQuery ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setParams({ search: null, sort_by: null, sort_order: null })}
-                >
-                  Clear
-                </Button>
-              ) : null}
-            </DataTableToolbar>
+            </ListFilterToolbar>
           }
         />
       </CardContent>
@@ -168,7 +163,7 @@ export function ProductPurchaseHistoryCard({ productId }: { productId: string })
 export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
   const can = useCan();
   const enabled = can(historyPermissions.customer);
-  const { page, page_size, search, sort_by, sort_order, setParams, setPage, setPageSize } =
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage, setPageSize } =
     useNestedTableParams();
   const query = useCustomerProducts(
     customerId,
@@ -182,8 +177,6 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
     "inventory.trading_product_aggregates",
     columnDefs,
   );
-  const hasQuery = Boolean(search || sort_by);
-
   if (!enabled) {
     return null;
   }
@@ -220,7 +213,12 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
             />
           )}
           toolbar={
-            <DataTableToolbar>
+            <ListFilterToolbar
+              search={search}
+              filters={filters}
+              specs={SEARCH_FILTER_SPECS}
+              setParams={setParams}
+            >
               <ListSearch
                 value={search ?? ""}
                 onChange={(value) => setParams({ search: value || null })}
@@ -233,17 +231,7 @@ export function CustomerSoldItemsCard({ customerId }: { customerId: string }) {
                 onApply={setParams}
               />
               {columnsDialog}
-              {hasQuery ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setParams({ search: null, sort_by: null, sort_order: null })}
-                >
-                  Clear
-                </Button>
-              ) : null}
-            </DataTableToolbar>
+            </ListFilterToolbar>
           }
         />
       </CardContent>

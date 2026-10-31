@@ -23,8 +23,14 @@ import {
   type AttachmentEntityType,
 } from "@/modules/users-management/attachments/schemas";
 import { ApiError, getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTableToolbar, toolbarLabelClass } from "@/shared/components/data-table/toolbar";
+import type { TableParamPatch } from "@/shared/hooks/use-table-params";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
@@ -119,6 +125,33 @@ export function EntityAttachmentsPanel({
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const rows = useMemo(() => attachmentsQuery.data ?? [], [attachmentsQuery.data]);
+  const attachmentFilterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "category",
+        label: "Category",
+        options: enumFilterOptions(ATTACHMENT_CATEGORIES, ATTACHMENT_CATEGORY_LABELS),
+      },
+    ];
+  }, []);
+  const attachmentFilters = useMemo((): Record<string, string> => {
+    return filterCategory === "all" ? {} : { category: filterCategory };
+  }, [filterCategory]);
+  function setAttachmentFilterParams(patch: TableParamPatch) {
+    if (patch.search !== undefined) {
+      setSearch(patch.search ?? "");
+    }
+    if (patch.filters?.category !== undefined) {
+      const next = patch.filters.category;
+      setFilterCategory(
+        next && ATTACHMENT_CATEGORIES.includes(next as AttachmentCategory)
+          ? (next as AttachmentCategory)
+          : "all",
+      );
+    }
+  }
   const grouped = useMemo(() => groupAttachments(rows), [rows]);
   const images = useMemo(() => rows.filter(isImageAttachment), [rows]);
   const lightboxIndex = lightboxId ? images.findIndex((row) => row.id === lightboxId) : -1;
@@ -265,35 +298,43 @@ export function EntityAttachmentsPanel({
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-5 pb-6">
-        <DataTableToolbar className="grid grid-cols-[minmax(0,1fr)_11rem] flex-nowrap">
-          <ListSearch
-            className="w-full max-w-none min-w-0"
-            value={search}
-            onChange={setSearch}
-            placeholder="Search filename…"
+        <div className="flex flex-col gap-2">
+          <DataTableToolbar className="grid grid-cols-[minmax(0,1fr)_11rem] flex-nowrap">
+            <ListSearch
+              className="w-full max-w-none min-w-0"
+              value={search}
+              onChange={setSearch}
+              placeholder="Search filename…"
+            />
+            <div className="flex w-full min-w-0 flex-col gap-1">
+              <Label htmlFor={filterCategoryId} className={toolbarLabelClass}>
+                Category
+              </Label>
+              <Select
+                value={filterCategory}
+                onValueChange={(value) => setFilterCategory(value as AttachmentCategory | "all")}
+              >
+                <SelectTrigger id={filterCategoryId} className="w-full" aria-label="Category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {ATTACHMENT_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {ATTACHMENT_CATEGORY_LABELS[category]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </DataTableToolbar>
+          <AppliedFilterPills
+            search={search}
+            filters={attachmentFilters}
+            specs={attachmentFilterSpecs}
+            setParams={setAttachmentFilterParams}
           />
-          <div className="flex w-full min-w-0 flex-col gap-1">
-            <Label htmlFor={filterCategoryId} className={toolbarLabelClass}>
-              Category
-            </Label>
-            <Select
-              value={filterCategory}
-              onValueChange={(value) => setFilterCategory(value as AttachmentCategory | "all")}
-            >
-              <SelectTrigger id={filterCategoryId} className="w-full" aria-label="Category">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                {ATTACHMENT_CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {ATTACHMENT_CATEGORY_LABELS[category]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </DataTableToolbar>
+        </div>
         {attachmentsQuery.isLoading ? <Skeleton className="h-20 w-full" /> : null}
         {attachmentsQuery.isError ? (
           <DataTableError

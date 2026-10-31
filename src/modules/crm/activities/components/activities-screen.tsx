@@ -39,7 +39,11 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -189,6 +193,24 @@ export function ActivitiesScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("crm.activities", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(ACTIVITY_STATUSES, ACTIVITY_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "activity_type",
+        label: "Type",
+        options: enumFilterOptions(ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS),
+      },
+    ];
+  }, []);
+
   async function confirmDelete() {
     if (!deleting) {
       return;
@@ -216,7 +238,7 @@ export function ActivitiesScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -282,7 +304,7 @@ export function ActivitiesScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

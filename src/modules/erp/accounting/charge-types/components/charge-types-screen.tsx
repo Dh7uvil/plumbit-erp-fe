@@ -25,7 +25,8 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
@@ -40,7 +41,8 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 
 export function ChargeTypesScreen() {
   const { canCreate, canUpdate, canDelete } = useCrudPermissions(chargeTypePermissions);
-  const { page, page_size, search, sort_by, sort_order, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
   const chargeTypesQuery = useChargeTypes({
     page,
     page_size,
@@ -194,6 +196,10 @@ export function ChargeTypesScreen() {
 
   const { columns, colSpan } = useTableColumns("erp.charge_types", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [{ type: "text", source: "search", label: "Search" }];
+  }, []);
+
   function openCreate() {
     setEditing(null);
     setFormOpen(true);
@@ -227,13 +233,19 @@ export function ChargeTypesScreen() {
         }
       />
       <ListPageContent>
-        <DataTableToolbar className="shrink-0">
+        <ListFilterToolbar
+          search={search}
+          filters={filters}
+          specs={filterSpecs}
+          setParams={setParams}
+          className="shrink-0"
+        >
           <ListSearch
             value={search ?? ""}
             onChange={(value) => setParams({ search: value || null })}
             placeholder="Search charges…"
           />
-        </DataTableToolbar>
+        </ListFilterToolbar>
         <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
           <TableHeader>
             <TableRow>

@@ -33,12 +33,13 @@ import type { PaginationMeta } from "@/shared/api/envelope";
 import { emptyListMessage, useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
 import { DataTable } from "@/shared/components/data-table/data-table";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import {
@@ -264,7 +265,7 @@ export function PriceListDetailScreen({
                   control={form.control}
                   name="is_active"
                   render={({ field }) => (
-                    <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                    <FormItem variant="checkbox" className="col-span-full">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -399,7 +400,7 @@ function PriceListItemsTable({
   isEdit: boolean;
   onDelete: (item: PriceListItem) => void;
 }) {
-  const { page, page_size, search, sort_by, sort_order, setParams, setPage, setPageSize } =
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage, setPageSize } =
     useNestedTableParams();
   const rows = useMemo<PriceListItemRow[]>(() => {
     const needle = (search ?? "").trim().toLowerCase();
@@ -465,11 +466,19 @@ function PriceListItemsTable({
     "inventory.price_list_items",
     columnDefs,
   );
-  const hasQuery = Boolean(search || sort_by);
+  const filterSpecs = useMemo(
+    (): FilterSpec[] => [{ type: "text", source: "search", label: "Search" }],
+    [],
+  );
 
   return (
     <div className="flex flex-col gap-5">
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -482,17 +491,7 @@ function PriceListItemsTable({
           onApply={setParams}
         />
         {columnsDialog}
-        {hasQuery ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setParams({ search: null, sort_by: null, sort_order: null })}
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable
         variant="embedded"
         footer={

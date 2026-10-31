@@ -614,7 +614,7 @@ export function SupplierForm({
             control={form.control}
             name="is_active"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2 space-y-0">
+              <FormItem variant="checkbox">
                 <FormControl>
                   <Checkbox
                     checked={field.value}

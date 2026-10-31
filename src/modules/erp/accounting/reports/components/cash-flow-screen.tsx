@@ -1,11 +1,15 @@
 "use client";
 
-import { StatementReportFilters } from "@/modules/erp/accounting/reports/components/statement-report-filters";
+import {
+  StatementReportFilters,
+  useStatementReportFilterSpecs,
+} from "@/modules/erp/accounting/reports/components/statement-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useCashFlow } from "@/modules/erp/accounting/reports/queries";
 import { glHref } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -37,6 +41,7 @@ export function CashFlowScreen() {
     formatReportMoney(value, report?.currency_code);
   const showComparative = Boolean(report?.comparative_from);
   const columnCount = COLUMN_COUNT + Number(showComparative);
+  const filterSpecs = useStatementReportFilterSpecs({ showDateRange: true });
 
   return (
     <ReportShell
@@ -57,6 +62,9 @@ export function CashFlowScreen() {
           branchId={branchId}
           onChange={(patch) => setParams({ filters: patch })}
         />
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <DataTable>

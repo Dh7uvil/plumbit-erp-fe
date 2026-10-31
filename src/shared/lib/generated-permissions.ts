@@ -48,10 +48,6 @@ export const catalogPermissions = [
   "accounting.dunning.manage",
   "accounting.dunning.read",
   "accounting.dunning.send",
-  "accounting.financial_category.create",
-  "accounting.financial_category.delete",
-  "accounting.financial_category.read",
-  "accounting.financial_category.update",
   "accounting.fx_revaluation.read",
   "accounting.fx_revaluation.reverse",
   "accounting.fx_revaluation.run",
@@ -481,12 +477,6 @@ export const permissionsByModule = {
       manage: "accounting.dunning.manage",
       read: "accounting.dunning.read",
       send: "accounting.dunning.send",
-    },
-    financial_category: {
-      create: "accounting.financial_category.create",
-      delete: "accounting.financial_category.delete",
-      read: "accounting.financial_category.read",
-      update: "accounting.financial_category.update",
     },
     fx_revaluation: {
       read: "accounting.fx_revaluation.read",

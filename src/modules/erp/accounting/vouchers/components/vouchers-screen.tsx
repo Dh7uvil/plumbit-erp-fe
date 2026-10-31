@@ -37,6 +37,11 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
@@ -180,6 +185,54 @@ export function VouchersScreen({
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.vouchers", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    const specs: FilterSpec[] = [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(INVOICE_DOCUMENT_STATUSES, INVOICE_DOCUMENT_STATUS_LABELS),
+      },
+    ];
+    if (showCustomerFilter) {
+      specs.push({
+        type: "option",
+        key: "party_id",
+        label: "Customer",
+        options: customers.map((customer) => ({ value: customer.id, label: customer.name })),
+      });
+    } else if (showSupplierFilter) {
+      specs.push({
+        type: "option",
+        key: "party_id",
+        label: "Supplier",
+        options: suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name })),
+      });
+    }
+    specs.push(
+      {
+        type: "option",
+        key: "payment_method",
+        label: "Method",
+        options: enumFilterOptions(PAYMENT_METHODS, PAYMENT_METHOD_LABELS),
+      },
+      {
+        type: "option",
+        key: "currency_id",
+        label: "Currency",
+        options: currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+      },
+      {
+        type: "dateRange",
+        fromKey: "voucher_date_from",
+        toKey: "voucher_date_to",
+        label: "Voucher date",
+      },
+    );
+    return specs;
+  }, [currencies, customers, showCustomerFilter, showSupplierFilter, suppliers]);
+
   if (!canRead) {
     return <DataTableEmpty message="You do not have permission to view vouchers." />;
   }
@@ -189,12 +242,6 @@ export function VouchersScreen({
   const newHref = voucherType
     ? entryBookFor(voucherType).newEntryHref
     : "/vouchers/entry";
-  const hasActiveFilters =
-    Boolean(search) ||
-    Boolean(filters.status) ||
-    Boolean(filters.party_id) ||
-    extraCount > 0 ||
-    Boolean(sort_by);
 
   async function onDelete() {
     if (!deleting) {
@@ -223,7 +270,12 @@ export function VouchersScreen({
           ) : null}
         </DataTableToolbar>
       ) : null}
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null, page: 1 })}
@@ -351,32 +403,7 @@ export function VouchersScreen({
           onApply={(patch) => setParams({ ...patch, page: 1 })}
         />
         {columnsDialog}
-        {hasActiveFilters ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                page: 1,
-                filters: {
-                  status: null,
-                  party_id: null,
-                  currency_id: null,
-                  payment_method: null,
-                  voucher_date_from: null,
-                  voucher_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

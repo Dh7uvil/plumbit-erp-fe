@@ -17,7 +17,8 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
@@ -103,6 +104,22 @@ export function BankReconciliationScreen() {
     columnDefs,
   );
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: [
+          { value: "DRAFT", label: "Draft" },
+          { value: "IMPORTED", label: "Imported" },
+          { value: "RECONCILED", label: "Reconciled" },
+        ],
+      },
+    ];
+  }, []);
+
   return (
     <ListPage>
       <PageHeader
@@ -128,7 +145,12 @@ export function BankReconciliationScreen() {
           </div>
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null, page: 1 })}
@@ -150,17 +172,7 @@ export function BankReconciliationScreen() {
           ]}
         />
         {columnsDialog}
-        {search || filters.status ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setParams({ search: null, filters: { status: null }, page: 1 })}
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

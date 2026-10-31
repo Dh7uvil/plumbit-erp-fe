@@ -29,7 +29,9 @@ import { DataTable } from "@/shared/components/data-table/data-table";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/more-filters-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
+import type { TableParamPatch } from "@/shared/hooks/use-table-params";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -126,6 +128,53 @@ export function PermissionsScreen() {
   );
 
   const visibleActions = useMemo(() => matrixActionColumns(filteredRows), [filteredRows]);
+
+  const permissionFilters = useMemo(() => {
+    const next: Record<string, string> = {};
+    if (moduleFilter !== ALL) {
+      next.module = moduleFilter;
+    }
+    if (resourceFilter !== ALL) {
+      next.resource = resourceFilter;
+    }
+    return next;
+  }, [moduleFilter, resourceFilter]);
+
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      {
+        type: "option",
+        key: "module",
+        label: "Module",
+        options: modules.map((module) => ({ value: module, label: module })),
+      },
+      {
+        type: "option",
+        key: "resource",
+        label: "Resource",
+        options: resources.map((resource) => ({ value: resource, label: resource })),
+      },
+    ];
+  }, [modules, resources]);
+
+  function setPermissionFilterParams(patch: TableParamPatch) {
+    if (!patch.filters) {
+      return;
+    }
+    const next: { module?: string | null; resource?: string | null } = {};
+    if ("module" in patch.filters) {
+      next.module = patch.filters.module;
+      if (patch.filters.module == null) {
+        next.resource = null;
+      }
+    }
+    if ("resource" in patch.filters) {
+      next.resource = patch.filters.resource;
+    }
+    if (Object.keys(next).length > 0) {
+      replaceFilters(next);
+    }
+  }
 
   useEffect(() => {
     if (!selectedRoleId || typeof window === "undefined") {
@@ -276,7 +325,12 @@ export function PermissionsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        filters={permissionFilters}
+        specs={filterSpecs}
+        setParams={setPermissionFilterParams}
+        onClear={() => replaceFilters({ module: ALL, resource: ALL })}
+      >
         <FilterSelect
           id="permissions-filter-role"
           label="Role"
@@ -323,19 +377,7 @@ export function PermissionsScreen() {
             />
           </FilterField>
         </MoreFiltersDialog>
-        {moduleFilter !== ALL || resourceFilter !== ALL ? (
-          <div className="flex items-end self-end">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => replaceFilters({ module: ALL, resource: ALL })}
-            >
-              Clear
-            </Button>
-          </div>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       {rolesQuery.isError || matrixQuery.isError ? (
         <DataTableError
           message={getErrorMessage(rolesQuery.error ?? matrixQuery.error)}

@@ -1,16 +1,20 @@
 "use client";
 
+import { useMemo } from "react";
+
+import { reportPeriodDateRangeSpec } from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { usePurchaseRegister, useSalesRegister } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { documentDetailHref } from "@/shared/components/document/document-links";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
-import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -41,6 +45,13 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
   const lines = report?.lines ?? [];
   const reportMoney = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
+  const filterSpecs = useMemo(
+    (): FilterSpec[] => [
+      reportPeriodDateRangeSpec(),
+      { type: "text", source: { filterKey: "box" }, label: "VAT box" },
+    ],
+    [],
+  );
 
   return (
     <ReportShell
@@ -69,18 +80,10 @@ export function TaxRegisterScreen({ kind }: { kind: "sales" | "purchase" }) {
             onFromChange={(value) => setParams({ filters: { from: value || null } })}
             onToChange={(value) => setParams({ filters: { to: value || null } })}
           />
-          {from || to || box ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9"
-              onClick={() => setParams({ filters: { from: null, to: null, box: null } })}
-            >
-              Clear
-            </Button>
-          ) : null}
         </>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       {box ? <p className="text-muted-foreground text-sm">Filtered to VAT 201 box {box}.</p> : null}

@@ -438,7 +438,7 @@ export function SupplierDetailScreen({
                   control={addressForm.control}
                   name="is_default_billing"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                    <FormItem variant="checkbox">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -453,7 +453,7 @@ export function SupplierDetailScreen({
                   control={addressForm.control}
                   name="is_default_shipping"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                    <FormItem variant="checkbox">
                       <FormControl>
                         <Checkbox
                           checked={field.value}

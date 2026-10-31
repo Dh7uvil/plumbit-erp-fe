@@ -13,6 +13,7 @@ export function ReportShell({
   title,
   subtitle,
   toolbar,
+  activeFilters,
   onDownloadCsv,
   csvPending = false,
   csvDisabled = false,
@@ -28,6 +29,7 @@ export function ReportShell({
   title: string;
   subtitle?: string;
   toolbar?: ReactNode;
+  activeFilters?: ReactNode;
   onDownloadCsv?: () => void;
   csvPending?: boolean;
   csvDisabled?: boolean;
@@ -103,7 +105,12 @@ export function ReportShell({
           )
         }
       />
-      {toolbar ? <DataTableToolbar className="print:hidden">{toolbar}</DataTableToolbar> : null}
+      {toolbar ? (
+        <div className="flex flex-col gap-2 print:hidden">
+          <DataTableToolbar>{toolbar}</DataTableToolbar>
+          {activeFilters}
+        </div>
+      ) : null}
       {isBalanced === false ? (
         <Alert variant="destructive">
           <AlertCircle />

@@ -260,7 +260,7 @@ export function CostSheetJournalLinesEditor({
                     control={form.control}
                     name={`journal_lines.${index}.capitalize`}
                     render={({ field: capField }) => (
-                      <FormItem className="flex items-center pt-2">
+                      <FormItem variant="checkbox" className="pt-2">
                         <FormControl>
                           <Checkbox
                             checked={capField.value}

@@ -25,7 +25,8 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { enumFilterOptions, type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -179,6 +180,18 @@ export function OutboxEventsScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("identity.outbox_events", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(OUTBOX_STATUSES, OUTBOX_STATUS_LABELS),
+      },
+    ];
+  }, []);
+
   async function onConfirmRetry() {
     if (!retrying) {
       return;
@@ -198,7 +211,12 @@ export function OutboxEventsScreen() {
         title="Outbox"
         subtitle="Queued events for email and integrations. Retry sends the same payload again."
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value })}
@@ -227,7 +245,7 @@ export function OutboxEventsScreen() {
           onApply={(next) => setParams({ sort_by: next.sort_by, sort_order: next.sort_order })}
         />
         {columnsDialog}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

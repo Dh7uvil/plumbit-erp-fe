@@ -15,6 +15,8 @@ export const CustomerDocumentComposeDefaultsSchema = z.object({
   bill_to_snapshot: z.string().nullable(),
   ship_to_snapshot: z.string().nullable(),
   terms_and_conditions: z.string().nullable(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
 });
 
 export type CustomerDocumentComposeDefaults = z.infer<typeof CustomerDocumentComposeDefaultsSchema>;

@@ -1,13 +1,55 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { pipelinePermissions } from "@/modules/crm/pipelines/permissions";
 import { useAllPipelines } from "@/modules/crm/pipelines/queries";
+import { reportPeriodDateRangeSpec } from "@/modules/erp/accounting/reports/components/report-filter-specs";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
-import { Button } from "@/shared/components/ui/button";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
+
+export function useCrmReportFilterSpecs(options: {
+  showDates?: boolean;
+  showPipeline?: boolean;
+  showGroupBy?: boolean;
+  groupOptions?: { value: string; label: string }[];
+}): FilterSpec[] {
+  const can = useCan();
+  const { showDates = false, showPipeline = false, showGroupBy = false, groupOptions } = options;
+  const pipelinesQuery = useAllPipelines(showPipeline && can(pipelinePermissions.read));
+  const pipelines = pipelinesQuery.data ?? [];
+
+  return useMemo(() => {
+    const specs: FilterSpec[] = [];
+    if (showDates) {
+      specs.push(reportPeriodDateRangeSpec());
+    }
+    if (showPipeline) {
+      specs.push({
+        type: "option",
+        key: "pipeline_id",
+        label: "Pipeline",
+        options: pipelines.map((pipeline) => ({
+          value: pipeline.id,
+          label: pipeline.is_default ? `${pipeline.name} (default)` : pipeline.name,
+        })),
+      });
+    }
+    if (showGroupBy && groupOptions?.length) {
+      specs.push({
+        type: "option",
+        key: "group_by",
+        label: "Group by",
+        options: groupOptions,
+      });
+    }
+    return specs;
+  }, [groupOptions, pipelines, showDates, showGroupBy, showPipeline]);
+}
 
 export function CrmReportFilters({
   from,
@@ -35,9 +77,6 @@ export function CrmReportFilters({
   const can = useCan();
   const pipelinesQuery = useAllPipelines(showPipeline && can(pipelinePermissions.read));
   const pipelines = pipelinesQuery.data ?? [];
-  const hasFilters = Boolean(
-    from || to || pipelineId || (groupBy && groupBy !== groupOptions?.[0]?.value),
-  );
 
   return (
     <>
@@ -77,24 +116,6 @@ export function CrmReportFilters({
           onValueChange={(value) => onChange({ group_by: value })}
           options={groupOptions}
         />
-      ) : null}
-      {hasFilters ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-9"
-          onClick={() =>
-            onChange({
-              from: null,
-              to: null,
-              pipeline_id: null,
-              group_by: null,
-            })
-          }
-        >
-          Clear
-        </Button>
       ) : null}
     </>
   );

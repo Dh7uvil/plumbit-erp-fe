@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { Download } from "lucide-react";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import {
@@ -9,13 +11,18 @@ import {
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
+import {
+  reportIncludePdcFlag,
+  reportPeriodDateRangeSpec,
+} from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { getErrorMessage } from "@/shared/api/errors";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { documentDetailHref } from "@/shared/components/document/document-links";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -62,6 +69,18 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
   const path = kind === "customer" ? "/reports/customer-statement" : "/reports/supplier-statement";
   const filename = kind === "customer" ? "customer-statement" : "supplier-statement";
   const partyKey = kind === "customer" ? "customer_id" : "supplier_id";
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      {
+        type: "option",
+        key: partyKey,
+        label: kind === "customer" ? "Customer" : "Supplier",
+        options: parties.map((party) => ({ value: party.id, label: party.name })),
+      },
+      reportPeriodDateRangeSpec(),
+      reportIncludePdcFlag(),
+    ];
+  }, [kind, parties, partyKey]);
 
   function setParty(value: string) {
     setParams({
@@ -98,7 +117,7 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
           ) : null
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar filters={filters} specs={filterSpecs} setParams={setParams}>
         <FilterSelect
           label={kind === "customer" ? "Customer" : "Supplier"}
           className="w-64"
@@ -131,28 +150,7 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
             Include pending cheques (PDC)
           </Label>
         </div>
-        {from || to || partyId || includePdc ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-9"
-            onClick={() =>
-              setParams({
-                filters: {
-                  from: null,
-                  to: null,
-                  customer_id: null,
-                  supplier_id: null,
-                  include_pdc: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       {report ? (
         <p className="text-muted-foreground text-sm">
           {report.party_name}. Opening{" "}

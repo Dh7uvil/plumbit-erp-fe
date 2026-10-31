@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { env } from "@/config/env";
 import { serverRequest } from "@/shared/api/server-client";
@@ -20,11 +21,12 @@ export async function getRefreshToken(): Promise<string | undefined> {
 }
 
 export async function hasSessionCookie(): Promise<boolean> {
-  return Boolean(await getAccessToken());
+  return Boolean((await getAccessToken()) || (await getRefreshToken()));
 }
 
-export async function getSession(): Promise<SessionUser | null> {
-  if (!(await hasSessionCookie())) {
+export const getSession = cache(async function getSession(): Promise<SessionUser | null> {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
     return null;
   }
 
@@ -33,7 +35,7 @@ export async function getSession(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireSession(): Promise<SessionUser> {
   const session = await getSession();

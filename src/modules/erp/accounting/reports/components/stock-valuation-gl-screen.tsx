@@ -9,12 +9,14 @@ import { reportsApi } from "@/modules/erp/accounting/reports/api";
 import {
   InventoryReportFilters,
   todayIsoDate,
+  useInventoryReportFilterSpecs,
 } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { glHref } from "@/modules/erp/accounting/reports/schemas";
 import { useStockValuationGl } from "@/modules/erp/accounting/reports/queries";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -53,6 +55,7 @@ export function StockValuationGlScreen() {
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
   const outOfBalance = report ? !/^-?0+(?:\.0+)?$/.test(report.difference.trim()) : false;
+  const filterSpecs = useInventoryReportFilterSpecs({ showAsOf: true });
 
   return (
     <ReportShell
@@ -88,6 +91,9 @@ export function StockValuationGlScreen() {
           categoryId={filters.category_id}
           onChange={(patch) => setParams({ filters: patch })}
         />
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       {outOfBalance && canCatchUp ? (

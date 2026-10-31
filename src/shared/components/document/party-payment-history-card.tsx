@@ -31,13 +31,16 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { TableBody, TableCell, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { useNestedTableParams } from "@/shared/hooks/use-table-params";
+import { useNestedTableParams, type TableParamPatch } from "@/shared/hooks/use-table-params";
 
 const ALL = "all";
 const CUSTOMER_SORT_FIELDS = [
@@ -144,14 +147,6 @@ function CustomerPaymentHistoryTable({ partyId, title }: { partyId: string; titl
     [canRead, canUpdate, currencyCodeById, showActions, userNameById],
   );
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.customer_payments", columnDefs);
-  const hasQuery = Boolean(
-    search ||
-    filters.status ||
-    filters.payment_method ||
-    filters.payment_date_from ||
-    filters.payment_date_to ||
-    sort_by,
-  );
 
   if (!canRead) {
     return null;
@@ -164,29 +159,13 @@ function CustomerPaymentHistoryTable({ partyId, title }: { partyId: string; titl
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <PaymentHistoryToolbar
-          search={search ?? ""}
+          search={search}
           filters={filters}
           sortBy={sort_by}
           sortOrder={sort_order}
           sortFields={CUSTOMER_SORT_FIELDS}
-          hasQuery={hasQuery}
           columnsDialog={columnsDialog}
-          onSearch={(value) => setParams({ search: value || null })}
-          onFilter={(key, value) => setParams({ filters: { [key]: value } })}
-          onSort={setParams}
-          onClear={() =>
-            setParams({
-              search: null,
-              sort_by: null,
-              sort_order: null,
-              filters: {
-                status: null,
-                payment_method: null,
-                payment_date_from: null,
-                payment_date_to: null,
-              },
-            })
-          }
+          setParams={setParams}
         />
         <DataTable
           variant="embedded"
@@ -302,14 +281,6 @@ function SupplierPaymentHistoryTable({ partyId, title }: { partyId: string; titl
     [canRead, canUpdate, currencyCodeById, showActions, userNameById],
   );
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.supplier_payments", columnDefs);
-  const hasQuery = Boolean(
-    search ||
-    filters.status ||
-    filters.payment_method ||
-    filters.payment_date_from ||
-    filters.payment_date_to ||
-    sort_by,
-  );
 
   if (!canRead) {
     return null;
@@ -322,29 +293,13 @@ function SupplierPaymentHistoryTable({ partyId, title }: { partyId: string; titl
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <PaymentHistoryToolbar
-          search={search ?? ""}
+          search={search}
           filters={filters}
           sortBy={sort_by}
           sortOrder={sort_order}
           sortFields={SUPPLIER_SORT_FIELDS}
-          hasQuery={hasQuery}
           columnsDialog={columnsDialog}
-          onSearch={(value) => setParams({ search: value || null })}
-          onFilter={(key, value) => setParams({ filters: { [key]: value } })}
-          onSort={setParams}
-          onClear={() =>
-            setParams({
-              search: null,
-              sort_by: null,
-              sort_order: null,
-              filters: {
-                status: null,
-                payment_method: null,
-                payment_date_from: null,
-                payment_date_to: null,
-              },
-            })
-          }
+          setParams={setParams}
         />
         <DataTable
           variant="embedded"
@@ -409,40 +364,65 @@ function SupplierPaymentHistoryTable({ partyId, title }: { partyId: string; titl
   );
 }
 
+const PAYMENT_HISTORY_FILTER_SPECS: FilterSpec[] = [
+  { type: "text", source: "search", label: "Search" },
+  {
+    type: "option",
+    key: "status",
+    label: "Status",
+    options: enumFilterOptions(INVOICE_DOCUMENT_STATUSES, INVOICE_DOCUMENT_STATUS_LABELS),
+  },
+  {
+    type: "option",
+    key: "payment_method",
+    label: "Method",
+    options: enumFilterOptions(PAYMENT_METHODS, PAYMENT_METHOD_LABELS),
+  },
+  {
+    type: "dateRange",
+    fromKey: "payment_date_from",
+    toKey: "payment_date_to",
+    label: "Payment date",
+  },
+];
+
 function PaymentHistoryToolbar({
   search,
   filters,
   sortBy,
   sortOrder,
   sortFields,
-  hasQuery,
   columnsDialog,
-  onSearch,
-  onFilter,
-  onSort,
-  onClear,
+  setParams,
 }: {
-  search: string;
+  search?: string;
   filters: Record<string, string>;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   sortFields: readonly { value: string; label: string }[];
-  hasQuery: boolean;
   columnsDialog: ReactNode;
-  onSearch: (value: string) => void;
-  onFilter: (key: string, value: string | null) => void;
-  onSort: (next: { sort_by?: string | null; sort_order?: "asc" | "desc" | null }) => void;
-  onClear: () => void;
+  setParams: (patch: TableParamPatch) => void;
 }) {
   return (
-    <DataTableToolbar>
-      <ListSearch value={search} onChange={onSearch} placeholder="Search number or reference…" />
+    <ListFilterToolbar
+      search={search}
+      filters={filters}
+      specs={PAYMENT_HISTORY_FILTER_SPECS}
+      setParams={setParams}
+    >
+      <ListSearch
+        value={search ?? ""}
+        onChange={(value) => setParams({ search: value || null })}
+        placeholder="Search number or reference…"
+      />
       <FilterSelect
         label="Status"
         className="w-36"
         placeholder="Status"
         value={filters.status ?? ALL}
-        onValueChange={(value) => onFilter("status", value === ALL ? null : value)}
+        onValueChange={(value) =>
+          setParams({ filters: { status: value === ALL ? null : value } })
+        }
         options={STATUS_OPTIONS}
       />
       <FilterSelect
@@ -450,23 +430,22 @@ function PaymentHistoryToolbar({
         className="w-36"
         placeholder="Method"
         value={filters.payment_method ?? ALL}
-        onValueChange={(value) => onFilter("payment_method", value === ALL ? null : value)}
+        onValueChange={(value) =>
+          setParams({ filters: { payment_method: value === ALL ? null : value } })
+        }
         options={METHOD_OPTIONS}
       />
       <DateRangeFilter
         layout="inline"
         from={filters.payment_date_from ?? ""}
         to={filters.payment_date_to ?? ""}
-        onFromChange={(value) => onFilter("payment_date_from", value || null)}
-        onToChange={(value) => onFilter("payment_date_to", value || null)}
+        onFromChange={(value) =>
+          setParams({ filters: { payment_date_from: value || null } })
+        }
+        onToChange={(value) => setParams({ filters: { payment_date_to: value || null } })}
       />
-      <SortDialog fields={[...sortFields]} sortBy={sortBy} sortOrder={sortOrder} onApply={onSort} />
+      <SortDialog fields={[...sortFields]} sortBy={sortBy} sortOrder={sortOrder} onApply={setParams} />
       {columnsDialog}
-      {hasQuery ? (
-        <Button type="button" variant="ghost" size="sm" onClick={onClear}>
-          Clear
-        </Button>
-      ) : null}
-    </DataTableToolbar>
+    </ListFilterToolbar>
   );
 }

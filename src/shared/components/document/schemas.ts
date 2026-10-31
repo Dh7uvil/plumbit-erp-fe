@@ -233,6 +233,9 @@ export const DocumentLineFormSchema = z.object({
   cbm: z.string(),
   weight: z.string(),
   item_code: z.string(),
+  warehouse_id: z.string(),
+  remarks: z.string(),
+  source_document_number: z.string(),
 });
 export type DocumentLineFormValues = z.infer<typeof DocumentLineFormSchema>;
 
@@ -252,7 +255,21 @@ export function emptyDocumentLine(): DocumentLineFormValues {
     gross_weight: "",
     volume: "",
     purchase_order_line_id: "",
+    warehouse_id: OPTIONAL_SELECT_NONE,
+    remarks: "",
+    source_document_number: "",
     ...emptyPackingLineForm(),
+  };
+}
+
+export function salesLineLocInput(values: {
+  warehouse_id?: string;
+  remarks?: string;
+}) {
+  const wh = values.warehouse_id?.trim() ?? "";
+  return {
+    warehouse_id: wh && wh !== OPTIONAL_SELECT_NONE ? wh : null,
+    remarks: values.remarks?.trim() ? values.remarks.trim() : null,
   };
 }
 

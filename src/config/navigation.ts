@@ -124,7 +124,7 @@ export type NavigationItem = {
   permission: string | null;
   icon: LucideIcon;
   keywords?: string[];
-  /** Winsoft-style subgroup label within a sidebar section (Inventory, Accounting, …). */
+  /** Optional subgroup label within a sidebar section (Inventory, Accounting, …). */
   subsection?: string;
 };
 

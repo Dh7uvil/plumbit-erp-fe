@@ -274,7 +274,7 @@ export function formatPacking(
   return `${qty} ( pieces ) / ${unit}`;
 }
 
-/** Winsoft-style label: "100 PCS / CTN" from factor and unit codes. */
+/** Packing label: "100 PCS / CTN" from factor and unit codes. */
 export function formatSecondaryPackingLabel(
   factor: string | null | undefined,
   unitCode: string | null | undefined,

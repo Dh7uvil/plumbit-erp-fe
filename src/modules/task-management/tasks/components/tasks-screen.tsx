@@ -49,17 +49,14 @@ import {
 } from "@/shared/components/data-table/audit-columns";
 import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
-import {
-  ActiveFilterBar,
-  FilterChip,
-} from "@/shared/components/data-table/filter-chip";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -146,19 +143,63 @@ export function TasksScreen() {
   const rows = tasksQuery.data?.data ?? [];
   const meta = tasksQuery.data?.meta;
 
-  const hasActiveFilters =
-    mine ||
-    overdue ||
-    dueThisWeek ||
-    assigneeIds.length > 0 ||
-    labelIds.length > 0 ||
-    taskTypes.length > 0 ||
-    priorities.length > 0 ||
-    statuses.length > 0 ||
-    filters.unassigned === "1" ||
-    Boolean(search) ||
-    showSubtasksOnBoard ||
-    Boolean(swimlaneMode);
+  const labelRows = labelsQuery.data ?? [];
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      { type: "flag", key: "mine", label: "My open" },
+      { type: "flag", key: "overdue", label: "Overdue" },
+      { type: "flag", key: "due_this_week", label: "This week" },
+      { type: "flag", key: "unassigned", label: "Unassigned" },
+      {
+        type: "option",
+        key: "swimlane",
+        label: "Swimlanes",
+        options: SWIMLANE_MODES.map((mode) => ({
+          value: mode,
+          label: SWIMLANE_MODE_LABELS[mode],
+        })),
+      },
+      {
+        type: "multi",
+        key: "assignee_ids",
+        parse: parseIdList,
+        serialize: serializeIdList,
+        labelFor: (id) => userNameById.get(id) ?? id,
+        fieldLabel: "Assignee",
+      },
+      {
+        type: "multi",
+        key: "task_types",
+        parse: (value) => parseEnumList<TaskType>(value),
+        serialize: (values) => serializeEnumList(values),
+        labelFor: (value) => TASK_TYPE_LABELS[value as TaskType],
+      },
+      {
+        type: "multi",
+        key: "priorities",
+        parse: (value) => parseEnumList<TaskPriority>(value),
+        serialize: (values) => serializeEnumList(values),
+        labelFor: (value) => TASK_PRIORITY_LABELS[value as TaskPriority],
+      },
+      {
+        type: "multi",
+        key: "label_ids",
+        parse: parseIdList,
+        serialize: serializeIdList,
+        labelFor: (id) => labelRows.find((label) => label.id === id)?.name ?? id,
+        fieldLabel: "Label",
+      },
+      {
+        type: "multi",
+        key: "statuses",
+        parse: (value) => parseEnumList<TaskStatus>(value),
+        serialize: (values) => serializeEnumList(values),
+        labelFor: (value) => TASK_STATUS_LABELS[value as TaskStatus],
+        fieldLabel: "Status",
+      },
+    ];
+  }, [labelRows, userNameById]);
 
   const columnDefs = useMemo((): Array<DataTableColumn<Task>> => {
     return [
@@ -239,7 +280,7 @@ export function TasksScreen() {
 
   function clearFilters() {
     setParams({
-      search: "",
+      search: null,
       filters: {
         mine: null,
         overdue: null,
@@ -298,7 +339,13 @@ export function TasksScreen() {
           ) : null
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+        onClear={clearFilters}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value, page: 1 })}
@@ -482,94 +529,7 @@ export function TasksScreen() {
           </div>
           <div className="ml-auto shrink-0">{boardView ? lanePicker : columnsDialog}</div>
         </div>
-      </DataTableToolbar>
-      <ActiveFilterBar visible={hasActiveFilters} onClear={clearFilters}>
-        {mine ? (
-          <FilterChip label="My open" onRemove={() => setParams({ filters: { mine: null }, page: 1 })} />
-        ) : null}
-        {overdue ? (
-          <FilterChip label="Overdue" onRemove={() => setParams({ filters: { overdue: null }, page: 1 })} />
-        ) : null}
-        {dueThisWeek ? (
-          <FilterChip
-            label="This week"
-            onRemove={() => setParams({ filters: { due_this_week: null }, page: 1 })}
-          />
-        ) : null}
-        {swimlaneMode ? (
-          <FilterChip
-            label={`Swimlanes: ${SWIMLANE_MODE_LABELS[swimlaneMode]}`}
-            onRemove={() => setParams({ filters: { swimlane: null }, page: 1 })}
-          />
-        ) : null}
-        {filters.unassigned === "1" ? (
-          <FilterChip
-            label="Unassigned"
-            onRemove={() => setParams({ filters: { unassigned: null }, page: 1 })}
-          />
-        ) : null}
-        {assigneeIds.map((id) => (
-          <FilterChip
-            key={id}
-            label={userNameById.get(id) ?? id}
-            onRemove={() =>
-              setParams({
-                filters: {
-                  assignee_ids: serializeIdList(assigneeIds.filter((item) => item !== id)) ?? null,
-                },
-                page: 1,
-              })
-            }
-          />
-        ))}
-        {taskTypes.map((type) => (
-          <FilterChip
-            key={type}
-            label={TASK_TYPE_LABELS[type]}
-            onRemove={() =>
-              setParams({
-                filters: {
-                  task_types:
-                    serializeEnumList(taskTypes.filter((item) => item !== type)) ?? null,
-                },
-                page: 1,
-              })
-            }
-          />
-        ))}
-        {priorities.map((priority) => (
-          <FilterChip
-            key={priority}
-            label={TASK_PRIORITY_LABELS[priority]}
-            onRemove={() =>
-              setParams({
-                filters: {
-                  priorities:
-                    serializeEnumList(priorities.filter((item) => item !== priority)) ?? null,
-                },
-                page: 1,
-              })
-            }
-          />
-        ))}
-        {labelIds.map((id) => {
-          const label = labelsQuery.data?.find((item) => item.id === id);
-          return (
-            <FilterChip
-              key={id}
-              label={label?.name ?? id}
-              onRemove={() =>
-                setParams({
-                  filters: {
-                    label_ids: serializeIdList(labelIds.filter((item) => item !== id)) ?? null,
-                  },
-                  page: 1,
-                })
-              }
-            />
-          );
-        })}
-      </ActiveFilterBar>
+      </ListFilterToolbar>
       {!boardView && tasksQuery.isLoading ? <Skeleton className="h-64 w-full" /> : null}
       {!boardView && tasksQuery.isError ? (
         <DataTableError

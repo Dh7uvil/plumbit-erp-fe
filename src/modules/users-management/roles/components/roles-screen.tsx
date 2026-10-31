@@ -21,7 +21,8 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -51,7 +52,8 @@ export function RolesScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(rolePermissions);
   const can = useCan();
   const canAssign = can(rolePermissions.assignPermissions);
-  const { page, page_size, search, sort_by, sort_order, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
   const rolesQuery = useRoles({ page, page_size, search, sort_by, sort_order });
   const deleteRole = useDeleteRole();
   const [formOpen, setFormOpen] = useState(false);
@@ -158,6 +160,10 @@ export function RolesScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("identity.roles", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [{ type: "text", source: "search", label: "Search" }];
+  }, []);
+
   return (
     <ListPage>
       <PageHeader
@@ -172,7 +178,12 @@ export function RolesScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -185,17 +196,7 @@ export function RolesScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setParams({ search: null, sort_by: null, sort_order: null })}
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

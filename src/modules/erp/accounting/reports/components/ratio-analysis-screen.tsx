@@ -1,10 +1,14 @@
 "use client";
 
-import { StatementReportFilters } from "@/modules/erp/accounting/reports/components/statement-report-filters";
+import {
+  StatementReportFilters,
+  useStatementReportFilterSpecs,
+} from "@/modules/erp/accounting/reports/components/statement-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useRatioAnalysis } from "@/modules/erp/accounting/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
@@ -37,6 +41,7 @@ export function RatioAnalysisScreen() {
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
+  const filterSpecs = useStatementReportFilterSpecs({ showDateRange: true });
 
   return (
     <ReportShell
@@ -56,6 +61,9 @@ export function RatioAnalysisScreen() {
           to={to}
           onChange={(patch) => setParams({ filters: patch })}
         />
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <DataTable>

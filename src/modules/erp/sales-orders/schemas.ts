@@ -157,8 +157,19 @@ export const SalesOrderLineSchema = z.object({
   qty_remaining_to_invoice: DecimalStringSchema.optional(),
   source_quotation_line_id: z.string().uuid().nullable(),
   source_proforma_invoice_line_id: z.string().uuid().nullable().optional().default(null),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  remarks: z.string().nullable().optional(),
+  source_invoice_number: z.string().nullable().optional(),
 });
 export type SalesOrderLine = z.infer<typeof SalesOrderLineSchema>;
+
+export const PAYMENT_MODES = ["CASH", "CREDIT", "BANK"] as const;
+export const PaymentModeSchema = z.enum(PAYMENT_MODES);
+export type PaymentMode = z.infer<typeof PaymentModeSchema>;
+
+export const PRICE_BASIS_OPTIONS = ["DEFAULT", "PRICE_1", "PRICE_2"] as const;
+export const PriceBasisSchema = z.enum(PRICE_BASIS_OPTIONS);
+export type PriceBasis = z.infer<typeof PriceBasisSchema>;
 
 export const SalesOrderSchema = z.object({
   id: z.string().uuid(),
@@ -197,6 +208,15 @@ export const SalesOrderSchema = z.object({
   tax_amount: MoneySchema,
   grand_total: MoneySchema,
   prices_include_tax: z.boolean().optional().default(false),
+  payment_mode: z.enum(["CASH", "CREDIT", "BANK"]).optional().default("CREDIT"),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  price_basis: z.enum(["DEFAULT", "PRICE_1", "PRICE_2"]).optional().default("DEFAULT"),
+  fiscal_period: z.number().int().nullable().optional(),
+  registration_type: z.string().nullable().optional(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
+  is_invoiced: z.boolean().optional().default(false),
   foreign_amount: MoneySchema,
   base_amount: MoneySchema,
   fulfillment_status: FulfillmentStatusSchema,
@@ -245,6 +265,8 @@ export const SalesOrderComposeDefaultsSchema = z.object({
   bill_to_snapshot: z.string().nullable(),
   ship_to_snapshot: z.string().nullable(),
   terms_and_conditions: z.string().nullable(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
 });
 export type SalesOrderComposeDefaults = z.infer<typeof SalesOrderComposeDefaultsSchema>;
 
@@ -257,6 +279,8 @@ export const SalesOrderLineInputSchema = z.object({
   discount_type: DiscountTypeSchema.nullable().optional(),
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  remarks: z.string().nullable().optional(),
 });
 export type SalesOrderLineInput = z.infer<typeof SalesOrderLineInputSchema>;
 
@@ -283,6 +307,11 @@ export const SalesOrderCreateRequestSchema = z.object({
   adjustment_amount: MoneySchema.optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   prices_include_tax: z.boolean().nullable().optional(),
+  payment_mode: PaymentModeSchema.optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  price_basis: PriceBasisSchema.optional(),
+  fiscal_period: z.number().int().nullable().optional(),
   lines: z.array(SalesOrderLineInputSchema).optional(),
 });
 export type SalesOrderCreateRequest = z.infer<typeof SalesOrderCreateRequestSchema>;
@@ -308,6 +337,11 @@ export const SalesOrderUpdateRequestSchema = z.object({
   adjustment_amount: MoneySchema.nullable().optional(),
   place_of_supply: PlaceOfSupplySchema.nullable().optional(),
   prices_include_tax: z.boolean().nullable().optional(),
+  payment_mode: PaymentModeSchema.optional(),
+  reference_date: z.string().nullable().optional(),
+  marks: z.string().nullable().optional(),
+  price_basis: PriceBasisSchema.optional(),
+  fiscal_period: z.number().int().nullable().optional(),
   lines: z.array(SalesOrderLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -332,6 +366,14 @@ export const SalesOrderLineFormSchema = z.object({
   discount_type: z.string(),
   discount_value: z.string(),
   tax_id: z.string(),
+  warehouse_id: z.string(),
+  remarks: z.string(),
+  source_document_number: z.string(),
+  carton_qty: z.string(),
+  packing_unit: z.string(),
+  cbm: z.string(),
+  weight: z.string(),
+  item_code: z.string(),
 });
 export type SalesOrderLineFormValues = z.infer<typeof SalesOrderLineFormSchema>;
 
@@ -375,6 +417,15 @@ export const SalesOrderFormSchema = z
     bill_to_snapshot: z.string(),
     ship_to_snapshot: z.string(),
     prices_include_tax: z.boolean(),
+    payment_mode: z.string(),
+    reference_date: z.string(),
+    marks: z.string(),
+    price_basis: z.string(),
+    fiscal_period: z.string(),
+    account_code: z.string(),
+    account_name: z.string(),
+    registration_type: z.string(),
+    is_invoiced: z.boolean(),
     lines: z.array(SalesOrderLineFormSchema),
   })
   .superRefine((values, ctx) => {

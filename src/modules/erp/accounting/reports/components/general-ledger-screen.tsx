@@ -1,12 +1,20 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { useAllAccounts } from "@/modules/erp/accounting/accounts/queries";
+import {
+  reportBranchOptionSpec,
+  reportPeriodDateRangeSpec,
+} from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useGeneralLedger } from "@/modules/erp/accounting/reports/queries";
 import { sourceDocumentHref } from "@/modules/erp/accounting/reports/schemas";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ToolbarControl } from "@/shared/components/data-table/toolbar";
@@ -17,7 +25,6 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { ReportShell } from "@/shared/components/report/report-shell";
-import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -113,6 +120,37 @@ export function GeneralLedgerScreen() {
   const pageSize = report?.page_size ?? page_size;
   const totalPages = pageSize > 0 ? Math.ceil((report?.total_lines ?? 0) / pageSize) : 1;
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      {
+        type: "option",
+        key: "account_id",
+        label: "Account",
+        options: accounts.map((account) => ({
+          value: account.id,
+          label: `${account.code} — ${account.name}`,
+        })),
+      },
+      reportPeriodDateRangeSpec(),
+      {
+        type: "option",
+        key: "source_type",
+        label: "Source",
+        options: GL_SOURCE_TYPES,
+      },
+      {
+        type: "option",
+        key: "side",
+        label: "Side",
+        options: [
+          { value: "debit", label: "Debit" },
+          { value: "credit", label: "Credit" },
+        ],
+      },
+      reportBranchOptionSpec(branches),
+    ];
+  }, [accounts, branches]);
+
   return (
     <ReportShell
       title="General ledger"
@@ -200,29 +238,10 @@ export function GeneralLedgerScreen() {
               })),
             ]}
           />
-          {from || to || accountId || branchId || sourceType || side ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9"
-              onClick={() =>
-                setParams({
-                  filters: {
-                    from: null,
-                    to: null,
-                    account_id: null,
-                    branch_id: null,
-                    source_type: null,
-                    side: null,
-                  },
-                })
-              }
-            >
-              Clear
-            </Button>
-          ) : null}
         </>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       {report ? (

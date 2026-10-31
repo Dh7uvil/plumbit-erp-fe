@@ -7,10 +7,12 @@ import { reportsApi } from "@/modules/erp/accounting/reports/api";
 import {
   InventoryReportFilters,
   todayIsoDate,
+  useInventoryReportFilterSpecs,
 } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { useStockValuation } from "@/modules/erp/accounting/reports/queries";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -42,6 +44,7 @@ export function StockValuationScreen() {
   const report = reportQuery.data;
   const [csvPending, setCsvPending] = useState(false);
   const columnCount = canSeeCost ? 7 : 5;
+  const filterSpecs = useInventoryReportFilterSpecs({ showAsOf: true });
 
   return (
     <ReportShell
@@ -66,6 +69,9 @@ export function StockValuationScreen() {
           categoryId={filters.category_id}
           onChange={(patch) => setParams({ filters: patch })}
         />
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <DataTable>

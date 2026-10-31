@@ -21,7 +21,8 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { enumFilterOptions, type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -123,6 +124,18 @@ export function RecurringScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.recurring", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(RECURRING_STATUSES, STATUS_LABELS),
+      },
+    ];
+  }, []);
+
   return (
     <ListPage>
       <PageHeader
@@ -139,7 +152,12 @@ export function RecurringScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -165,24 +183,7 @@ export function RecurringScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: { status: null },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable
         footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}
       >

@@ -13,7 +13,14 @@ import {
   type AccountStatementLine,
 } from "@/modules/erp/accounting/reports/schemas";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
+import {
+  reportExcludeOpeningFlag,
+  reportIncludePdcFlag,
+  reportPeriodDateRangeSpec,
+} from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { DataTable } from "@/shared/components/data-table/data-table";
@@ -22,7 +29,6 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { ReportShell } from "@/shared/components/report/report-shell";
-import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -120,15 +126,44 @@ export function AccountStatementScreen() {
   );
 
   const hasScope = Boolean(accountId || partyId);
-  const hasFilters = Boolean(
-    from ||
-      to ||
-      accountId ||
-      partyId ||
-      !includeOpening ||
-      includePdc ||
-      currencyId,
-  );
+
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      {
+        type: "option",
+        key: "account_id",
+        label: "Account",
+        options: accounts.map((account) => ({
+          value: account.id,
+          label: `${account.code} — ${account.name}`,
+        })),
+      },
+      {
+        type: "option",
+        key: "party_type",
+        label: "Party type",
+        options: [
+          { value: "CUSTOMER", label: "Customer" },
+          { value: "SUPPLIER", label: "Supplier" },
+        ],
+      },
+      {
+        type: "option",
+        key: "party_id",
+        label: "Party",
+        options: parties.map((party) => ({ value: party.id, label: party.name })),
+      },
+      reportPeriodDateRangeSpec(),
+      {
+        type: "option",
+        key: "currency_id",
+        label: "Currency",
+        options: currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+      },
+      reportIncludePdcFlag(),
+      reportExcludeOpeningFlag(),
+    ];
+  }, [accounts, currencies, parties]);
 
   return (
     <ReportShell
@@ -249,31 +284,10 @@ export function AccountStatementScreen() {
               Previous balance
             </Label>
           </div>
-          {hasFilters ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9"
-              onClick={() =>
-                setParams({
-                  filters: {
-                    from: null,
-                    to: null,
-                    account_id: null,
-                    party_id: null,
-                    party_type: null,
-                    include_opening: null,
-                    include_pdc: null,
-                    currency_id: null,
-                  },
-                })
-              }
-            >
-              Clear
-            </Button>
-          ) : null}
         </>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       {report ? (

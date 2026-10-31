@@ -14,7 +14,7 @@ import {
 import { formatMoney, formatQuantity } from "@/shared/lib/format";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
 
-function WinsoftInventoryHelpStrip({ productId }: { productId: string }) {
+function ExtendedInventoryHelpStrip({ productId }: { productId: string }) {
   const inquiryQuery = useProductInquiry(productId);
   const { baseCurrencyCode } = useBaseCurrency();
   const inquiry = inquiryQuery.data;
@@ -78,12 +78,12 @@ export function InventoryHelpDialog({
   productId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  variant?: "default" | "winsoft";
+  variant?: "default" | "extended";
 }) {
   const productQuery = useProduct(open ? productId : null);
   const product = productQuery.data;
   const isLoading = productQuery.isLoading;
-  const isWinsoft = variant === "winsoft";
+  const isExtended = variant === "extended";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,7 +91,7 @@ export function InventoryHelpDialog({
         <DialogHeader>
           <DialogTitle>Inventory help</DialogTitle>
           <DialogDescription>
-            {isWinsoft
+            {isExtended
               ? "Stock positions, costs, and master fields for the focused line (F7)."
               : "Stock, cost, and last trading activity for the focused line (F7)."}
           </DialogDescription>
@@ -115,12 +115,12 @@ export function InventoryHelpDialog({
                 Open product master
               </Link>
             </div>
-            {isWinsoft && productId ? <WinsoftInventoryHelpStrip productId={productId} /> : null}
+            {isExtended && productId ? <ExtendedInventoryHelpStrip productId={productId} /> : null}
             <ProductInquiryPanel
               product={product}
               showStockLink
-              extended={isWinsoft}
-              compact={isWinsoft}
+              extended={isExtended}
+              compact={isExtended}
             />
           </div>
         )}

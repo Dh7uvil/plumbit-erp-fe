@@ -30,7 +30,8 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
@@ -141,6 +142,30 @@ export function AccountsScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.accounts", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "is_active",
+        label: "Status",
+        options: [
+          { value: "true", label: "Active" },
+          { value: "false", label: "Inactive" },
+        ],
+      },
+      {
+        type: "option",
+        key: "is_blocked",
+        label: "Blocked",
+        options: [
+          { value: "true", label: "Blocked" },
+          { value: "false", label: "Not blocked" },
+        ],
+      },
+    ];
+  }, []);
+
   async function confirmDelete() {
     if (!deleting) {
       return;
@@ -173,7 +198,13 @@ export function AccountsScreen() {
         }
       />
       <ListPageContent>
-        <DataTableToolbar className="shrink-0">
+        <ListFilterToolbar
+          search={search}
+          filters={filters}
+          specs={filterSpecs}
+          setParams={setParams}
+          className="shrink-0"
+        >
           <ListSearch
             value={search ?? ""}
             onChange={(value) => setParams({ search: value || null })}
@@ -214,7 +245,7 @@ export function AccountsScreen() {
             onApply={setParams}
           />
           {columnsDialog}
-        </DataTableToolbar>
+        </ListFilterToolbar>
         <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
           <TableHeader>
             <TableRow>

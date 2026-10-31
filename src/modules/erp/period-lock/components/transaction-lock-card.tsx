@@ -366,7 +366,7 @@ export function TransactionLockCard() {
           ) : null}
           {canLock ? (
             <div data-slot="form-grid" className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2.5">
                 <Label htmlFor="transaction-lock-date">Transaction lock</Label>
                 <Input
                   id="transaction-lock-date"
@@ -378,7 +378,7 @@ export function TransactionLockCard() {
                   <p className="text-muted-foreground text-xs">{current.lock_reason}</p>
                 ) : null}
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2.5">
                 <Label htmlFor="books-close-date">Books close</Label>
                 <Input
                   id="books-close-date"
@@ -390,7 +390,7 @@ export function TransactionLockCard() {
                   <p className="text-muted-foreground text-xs">{current.hard_lock_reason}</p>
                 ) : null}
               </div>
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <div className="flex flex-col gap-2.5 sm:col-span-2">
                 <Label htmlFor="period-lock-reason">
                   {needsReason ? "Reason (required to unlock)" : "Reason"}
                 </Label>

@@ -1,10 +1,14 @@
 "use client";
 
-import { CrmReportFilters } from "@/modules/crm/reports/components/crm-report-filters";
+import {
+  CrmReportFilters,
+  useCrmReportFilterSpecs,
+} from "@/modules/crm/reports/components/crm-report-filters";
 import { CrmReportTable } from "@/modules/crm/reports/components/crm-report-table";
 import { useCrmReportCsv } from "@/modules/crm/reports/hooks/use-crm-report-csv";
 import { useSalesPipeline } from "@/modules/crm/reports/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
 import { ReportShell } from "@/shared/components/report/report-shell";
 import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
@@ -27,6 +31,11 @@ export function SalesPipelineScreen() {
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useCrmReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
+  const filterSpecs = useCrmReportFilterSpecs({
+    showPipeline: true,
+    showGroupBy: true,
+    groupOptions: GROUPS,
+  });
 
   return (
     <ReportShell
@@ -49,6 +58,9 @@ export function SalesPipelineScreen() {
           showGroupBy
           onChange={(patch) => setParams({ filters: patch })}
         />
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <CrmReportTable

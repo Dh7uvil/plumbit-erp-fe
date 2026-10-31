@@ -28,7 +28,11 @@ import { FilterField, MoreFiltersDialog } from "@/shared/components/data-table/m
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -123,10 +127,59 @@ export function StockMovementsScreen() {
     columnDefs,
   );
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "warehouse_id",
+        label: "Warehouse",
+        options: warehouses.map((warehouse) => ({
+          value: warehouse.id,
+          label: `${warehouse.code} — ${warehouse.name}`,
+        })),
+      },
+      {
+        type: "option",
+        key: "product_id",
+        label: "Product",
+        options: products.map((product) => ({
+          value: product.id,
+          label: `${product.sku} — ${product.name}`,
+        })),
+      },
+      {
+        type: "option",
+        key: "category_id",
+        label: "Category",
+        options: categories.map((category) => ({ value: category.id, label: category.name })),
+      },
+      {
+        type: "option",
+        key: "movement_type",
+        label: "Movement type",
+        options: enumFilterOptions(STOCK_MOVEMENT_TYPES, STOCK_MOVEMENT_TYPE_LABELS),
+      },
+      {
+        type: "option",
+        key: "source_type",
+        label: "Source type",
+        options: enumFilterOptions(STOCK_MOVEMENT_SOURCE_TYPES, STOCK_MOVEMENT_SOURCE_TYPE_LABELS),
+      },
+      { type: "text", source: { filterKey: "source_id" }, label: "Source ID" },
+      {
+        type: "dateRange",
+        fromKey: "document_date_from",
+        toKey: "document_date_to",
+        label: "Document date",
+      },
+    ];
+  }, [categories, products, warehouses]);
+
   return (
     <ListPage>
       <PageHeader title="Stock movements" subtitle="Ledger of quantity changes" />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -269,33 +322,7 @@ export function StockMovementsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.warehouse_id || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  warehouse_id: null,
-                  product_id: null,
-                  category_id: null,
-                  movement_type: null,
-                  source_type: null,
-                  source_id: null,
-                  document_date_from: null,
-                  document_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

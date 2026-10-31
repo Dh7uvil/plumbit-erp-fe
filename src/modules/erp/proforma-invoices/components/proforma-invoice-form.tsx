@@ -971,7 +971,7 @@ export function ProformaInvoiceForm({
               control={form.control}
               name="partial_shipment_allowed"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 space-y-0 pt-6">
+                <FormItem variant="checkbox">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -987,7 +987,7 @@ export function ProformaInvoiceForm({
               control={form.control}
               name="transhipment_allowed"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 space-y-0 pt-6">
+                <FormItem variant="checkbox">
                   <FormControl>
                     <Checkbox
                       checked={field.value}

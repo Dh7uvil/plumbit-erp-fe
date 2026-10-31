@@ -1,16 +1,77 @@
 "use client";
 
+import { useMemo } from "react";
+
+import {
+  reportAsOfSpec,
+  reportBranchOptionSpec,
+  reportIncludeYtdFlag,
+  reportPeriodCountOptionSpec,
+  reportPeriodDateRangeSpec,
+} from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ToolbarControl, toolbarLabelClass } from "@/shared/components/data-table/toolbar";
-import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { useCan } from "@/shared/providers/session-provider";
 
 const ALL = "all";
+
+export function useStatementReportFilterSpecs(options: {
+  showDateRange?: boolean;
+  showAsOf?: boolean;
+  showIncludeYtd?: boolean;
+  showPeriodCount?: boolean;
+  budgetOptions?: Array<{ value: string; label: string }>;
+}): FilterSpec[] {
+  const can = useCan();
+  const branchesQuery = useAllBranches(can("identity.branch.read"));
+  const branches = branchesQuery.data ?? [];
+  const {
+    showDateRange = false,
+    showAsOf = false,
+    showIncludeYtd = false,
+    showPeriodCount = false,
+    budgetOptions = [],
+  } = options;
+
+  return useMemo(() => {
+    const specs: FilterSpec[] = [];
+    if (showAsOf) {
+      specs.push(reportAsOfSpec());
+    }
+    if (showDateRange) {
+      specs.push(reportPeriodDateRangeSpec());
+    }
+    specs.push(reportBranchOptionSpec(branches));
+    if (showIncludeYtd) {
+      specs.push(reportIncludeYtdFlag());
+    }
+    if (showPeriodCount) {
+      specs.push(reportPeriodCountOptionSpec());
+    }
+    if (budgetOptions.length > 0) {
+      specs.push({
+        type: "option",
+        key: "budget_id",
+        label: "Budget",
+        options: budgetOptions,
+      });
+    }
+    return specs;
+  }, [
+    branches,
+    budgetOptions,
+    showAsOf,
+    showDateRange,
+    showIncludeYtd,
+    showPeriodCount,
+  ]);
+}
 
 export function StatementReportFilters({
   asOf,
@@ -36,14 +97,6 @@ export function StatementReportFilters({
   const can = useCan();
   const branchesQuery = useAllBranches(can("identity.branch.read"));
   const branches = branchesQuery.data ?? [];
-  const hasFilters = Boolean(
-    from ||
-    to ||
-    branchId ||
-    includeYtd ||
-    (periodCount && periodCount !== "1") ||
-    budgetId,
-  );
 
   return (
     <>
@@ -122,27 +175,6 @@ export function StatementReportFilters({
           onValueChange={(value) => onChange({ budget_id: value === ALL ? null : value })}
           options={[{ value: ALL, label: "No budget" }, ...budgetOptions]}
         />
-      ) : null}
-      {hasFilters ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-9"
-          onClick={() =>
-            onChange({
-              as_of: null,
-              from: null,
-              to: null,
-              branch_id: null,
-              include_ytd: null,
-              period_count: null,
-              budget_id: null,
-            })
-          }
-        >
-          Clear
-        </Button>
       ) : null}
     </>
   );

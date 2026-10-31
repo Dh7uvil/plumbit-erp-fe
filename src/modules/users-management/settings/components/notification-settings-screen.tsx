@@ -101,7 +101,7 @@ export function NotificationSettingsScreen() {
                 control={form.control}
                 name="email_enabled"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between gap-3 space-y-0">
+                  <FormItem variant="checkbox" className="justify-between gap-3">
                     <FormLabel className={toolbarLabelClass}>Email notifications</FormLabel>
                     <FormControl>
                       <Switch
@@ -118,7 +118,7 @@ export function NotificationSettingsScreen() {
                 control={form.control}
                 name="in_app_enabled"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between gap-3 space-y-0">
+                  <FormItem variant="checkbox" className="justify-between gap-3">
                     <FormLabel className={toolbarLabelClass}>In-app notifications</FormLabel>
                     <FormControl>
                       <Switch
@@ -135,7 +135,7 @@ export function NotificationSettingsScreen() {
                 control={form.control}
                 name="whatsapp_enabled"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between gap-3 space-y-0">
+                  <FormItem variant="checkbox" className="justify-between gap-3">
                     <FormLabel className={toolbarLabelClass}>WhatsApp notifications</FormLabel>
                     <FormControl>
                       <Switch

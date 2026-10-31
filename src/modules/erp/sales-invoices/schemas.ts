@@ -145,6 +145,9 @@ export const SalesInvoiceLineSchema = z.object({
   qty_credited: DecimalStringSchema,
   qty_delivered: DecimalStringSchema.optional().default("0"),
   hs_code: z.string().nullable().optional().default(null),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  source_order_number: z.string().nullable().optional(),
+  delivery_note_number: z.string().nullable().optional(),
   ...PackingLineResponseFields,
 });
 export type SalesInvoiceLine = z.infer<typeof SalesInvoiceLineSchema>;
@@ -216,6 +219,12 @@ export const SalesInvoiceSchema = z.object({
   discount_account_id: z.string().uuid().nullable().optional().default(null),
   freight_account_id: z.string().uuid().nullable().optional().default(null),
   auto_stock_document: z.boolean().optional().default(false),
+  fiscal_period: z.number().int().nullable().optional(),
+  taxable_amount: MoneySchema.nullable().optional(),
+  registration_type: z.string().nullable().optional(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
+  terms_days: z.number().int().nullable().optional(),
   is_printed: z.boolean().optional().default(false),
   is_overdue: z.boolean().optional().default(false),
   is_partially_credited: z.boolean().optional().default(false),
@@ -245,6 +254,7 @@ export const SalesInvoiceLineInputSchema = z.object({
   discount_value: MoneySchema.nullable().optional(),
   tax_id: z.string().uuid().nullable().optional(),
   hs_code: z.string().max(20).nullable().optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
   ...PackingLineInputFields,
 });
 export type SalesInvoiceLineInput = z.infer<typeof SalesInvoiceLineInputSchema>;
@@ -277,6 +287,7 @@ export const SalesInvoiceCreateRequestSchema = z.object({
   discount_account_id: z.string().uuid().nullable().optional(),
   freight_account_id: z.string().uuid().nullable().optional(),
   auto_stock_document: z.boolean().optional(),
+  fiscal_period: z.number().int().nullable().optional(),
   document_series: z.enum(["INV", "EXP"]).nullable().optional(),
   lines: z.array(SalesInvoiceLineInputSchema),
 });
@@ -308,6 +319,7 @@ export const SalesInvoiceUpdateRequestSchema = z.object({
   discount_account_id: z.string().uuid().nullable().optional(),
   freight_account_id: z.string().uuid().nullable().optional(),
   auto_stock_document: z.boolean().nullable().optional(),
+  fiscal_period: z.number().int().nullable().optional(),
   lines: z.array(SalesInvoiceLineInputSchema).nullable().optional(),
   version: z.number().int().optional(),
 });
@@ -368,6 +380,8 @@ export const SalesInvoiceLineFormSchema = z
     delivery_note_id: z.string(),
     delivery_note_line_id: z.string(),
     hs_code: z.string().optional(),
+    warehouse_id: z.string(),
+    source_document_number: z.string().optional(),
   })
   .merge(PackingLineFormFieldsSchema);
 export type SalesInvoiceLineFormValues = z.infer<typeof SalesInvoiceLineFormSchema>;
@@ -417,6 +431,11 @@ export const SalesInvoiceFormSchema = z
     discount_account_id: z.string(),
     freight_account_id: z.string(),
     auto_stock_document: z.boolean(),
+    fiscal_period: z.string(),
+    account_code: z.string(),
+    account_name: z.string(),
+    registration_type: z.string(),
+    is_invoiced: z.boolean(),
     lines: z.array(SalesInvoiceLineFormSchema),
   })
   .superRefine((values, ctx) => {

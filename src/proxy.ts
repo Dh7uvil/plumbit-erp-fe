@@ -9,6 +9,7 @@ export function proxy(request: NextRequest) {
 
   const { pathname, search } = request.nextUrl;
   const accessToken = request.cookies.get(env.AUTH_ACCESS_COOKIE)?.value;
+  const refreshToken = request.cookies.get(env.AUTH_REFRESH_COOKIE)?.value;
 
   if (pathname.startsWith("/api/v1") && accessToken && !requestHeaders.has("authorization")) {
     requestHeaders.set("Authorization", `Bearer ${accessToken}`);
@@ -20,7 +21,7 @@ export function proxy(request: NextRequest) {
     });
   }
 
-  const hasSession = Boolean(accessToken);
+  const hasSession = Boolean(accessToken || refreshToken);
 
   if (!hasSession && !isAuthPath(pathname)) {
     const loginUrl = new URL("/login", request.url);

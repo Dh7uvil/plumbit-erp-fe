@@ -57,7 +57,7 @@ export function toFormValues(product: Product | null): ProductFormValues {
   };
 }
 
-function winsoftPayload(values: ProductFormValues) {
+function commercialProductPayload(values: ProductFormValues) {
   return {
     brand: emptyToNull(values.brand),
     origin_country_code: emptyToNull(values.origin_country_code)?.toUpperCase() ?? null,
@@ -98,7 +98,7 @@ export function toCreateRequest(values: ProductFormValues): ProductCreateRequest
     volume: optionalDecimal(values.volume),
     track_inventory: values.track_inventory,
     requires_qc: values.requires_qc,
-    ...winsoftPayload(values),
+    ...commercialProductPayload(values),
   };
 }
 
@@ -118,7 +118,7 @@ export function toFullUpdateRequest(values: ProductFormValues): ProductUpdateReq
     track_inventory: values.track_inventory,
     requires_qc: values.requires_qc,
     is_active: values.is_active,
-    ...winsoftPayload(values),
+    ...commercialProductPayload(values),
   };
 }
 

@@ -3,11 +3,13 @@
 import {
   InventoryReportFilters,
   todayIsoDate,
+  useInventoryReportFilterSpecs,
 } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useStockAging } from "@/modules/erp/accounting/reports/queries";
 import { stockPermissions } from "@/modules/inventory-management/stock/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -48,6 +50,7 @@ export function StockAgingScreen() {
   const reportMoney = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
   const columnCount = canSeeCost ? 8 : 7;
+  const filterSpecs = useInventoryReportFilterSpecs({ showAsOf: true });
 
   return (
     <ReportShell
@@ -65,6 +68,9 @@ export function StockAgingScreen() {
           categoryId={filters.category_id}
           onChange={(patch) => setParams({ filters: patch })}
         />
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <DataTable>

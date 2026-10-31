@@ -46,7 +46,11 @@ import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/s
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import {
@@ -294,6 +298,36 @@ export function DebitNotesScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.debit_notes", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(INVOICE_DOCUMENT_STATUSES, INVOICE_DOCUMENT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "supplier_id",
+        label: "Supplier",
+        options: suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name })),
+      },
+      {
+        type: "option",
+        key: "currency_id",
+        label: "Currency",
+        options: currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+      },
+      {
+        type: "dateRange",
+        fromKey: "debit_note_date_from",
+        toKey: "debit_note_date_to",
+        label: "Debit note date",
+      },
+    ];
+  }, [currencies, suppliers]);
+
   return (
     <ListPage>
       <PageHeader
@@ -338,7 +372,7 @@ export function DebitNotesScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -428,30 +462,7 @@ export function DebitNotesScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.supplier_id || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  supplier_id: null,
-                  currency_id: null,
-                  debit_note_date_from: null,
-                  debit_note_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

@@ -30,7 +30,11 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  filterClearPatchFromSpecs,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -217,7 +221,7 @@ export function AuditLogsScreen() {
   const meta = logsQuery.data?.meta;
   const users = usersQuery.data ?? [];
 
-  const hasActiveFilters = Boolean(search || moduleFilter !== ALL || extraCount > 0 || sortBy);
+  const hasActiveFilters = Boolean(search || moduleFilter !== ALL || extraCount > 0);
 
   const moduleOptions = useMemo(
     () =>
@@ -334,6 +338,40 @@ export function AuditLogsScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("identity.audit_logs", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "module",
+        label: "Module",
+        options: moduleOptions.map((module) => ({ value: module, label: titleCase(module) })),
+      },
+      {
+        type: "option",
+        key: "action",
+        label: "Action",
+        options: actionOptions.map((action) => ({ value: action, label: titleCase(action) })),
+      },
+      ...(canReadUsers
+        ? [
+            {
+              type: "option" as const,
+              key: "user_id",
+              label: "User",
+              options: users.map((user) => ({ value: user.id, label: user.name })),
+            },
+          ]
+        : []),
+      {
+        type: "dateRange",
+        fromKey: "date_from",
+        toKey: "date_to",
+        label: "Date",
+      },
+    ];
+  }, [actionOptions, canReadUsers, moduleOptions, users]);
+
   async function exportCsv() {
     setCsvPending(true);
     try {
@@ -357,15 +395,7 @@ export function AuditLogsScreen() {
 
   function clearFilters() {
     setDraftExtra(EMPTY_EXTRA);
-    setParams({
-      search: null,
-      sort_by: null,
-      sort_order: null,
-      filters: {
-        module: null,
-        ...extraToUrlPatch(EMPTY_EXTRA),
-      },
-    });
+    setParams(filterClearPatchFromSpecs(filterSpecs));
   }
 
   return (
@@ -414,7 +444,13 @@ export function AuditLogsScreen() {
           isLoading={summaryQuery.isLoading}
         />
       </div>
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+        onClear={clearFilters}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value.trim() || null })}
@@ -494,12 +530,7 @@ export function AuditLogsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {hasActiveFilters ? (
-          <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

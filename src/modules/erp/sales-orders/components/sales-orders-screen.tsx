@@ -60,7 +60,11 @@ import {
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -417,6 +421,57 @@ export function SalesOrdersScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.sales_orders", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(SALES_ORDER_STATUSES, SALES_ORDER_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "fulfillment_status",
+        label: "Fulfillment",
+        options: enumFilterOptions(FULFILLMENT_STATUSES, FULFILLMENT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "customer_id",
+        label: "Customer",
+        options: customers.map((customer) => ({ value: customer.id, label: customer.name })),
+      },
+      {
+        type: "option",
+        key: "billing_status",
+        label: "Billing",
+        options: enumFilterOptions(BILLING_STATUSES, BILLING_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "branch_id",
+        label: "Branch",
+        options: branches.map((branch) => ({ value: branch.id, label: branch.name })),
+      },
+      {
+        type: "option",
+        key: "warehouse_id",
+        label: "Warehouse",
+        options: warehouses.map((warehouse) => ({
+          value: warehouse.id,
+          label: warehouse.name,
+        })),
+      },
+      {
+        type: "option",
+        key: "currency_id",
+        label: "Currency",
+        options: currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+      },
+    ];
+  }, [branches, currencies, customers, warehouses]);
+
   return (
     <ListPage>
       <PageHeader
@@ -462,7 +517,7 @@ export function SalesOrdersScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -615,37 +670,7 @@ export function SalesOrdersScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search ||
-        filters.status ||
-        filters.fulfillment_status ||
-        filters.customer_id ||
-        extraCount > 0 ||
-        sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  customer_id: null,
-                  fulfillment_status: null,
-                  billing_status: null,
-                  branch_id: null,
-                  warehouse_id: null,
-                  currency_id: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

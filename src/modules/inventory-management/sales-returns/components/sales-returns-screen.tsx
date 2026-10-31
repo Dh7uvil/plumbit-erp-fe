@@ -37,7 +37,11 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
@@ -159,6 +163,18 @@ export function SalesReturnsScreen() {
     columnDefs,
   );
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(STOCK_DOCUMENT_STATUSES, STOCK_DOCUMENT_STATUS_LABELS),
+      },
+    ];
+  }, []);
+
   async function onDelete() {
     if (!deleting) return;
     try {
@@ -207,7 +223,7 @@ export function SalesReturnsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -230,7 +246,7 @@ export function SalesReturnsScreen() {
           ]}
         />
         {columnsDialog}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

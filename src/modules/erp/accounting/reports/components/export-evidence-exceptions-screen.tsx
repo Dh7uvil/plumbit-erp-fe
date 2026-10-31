@@ -1,6 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { Download } from "lucide-react";
+
+import { reportAsOfSpec } from "@/modules/erp/accounting/reports/components/report-filter-specs";
 
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useExportEvidenceExceptions } from "@/modules/erp/accounting/reports/queries";
@@ -8,7 +12,9 @@ import { getErrorMessage } from "@/shared/api/errors";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar, ToolbarControl } from "@/shared/components/data-table/toolbar";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
+import { ToolbarControl } from "@/shared/components/data-table/toolbar";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -35,6 +41,7 @@ export function ExportEvidenceExceptionsScreen() {
   const { csvPending, downloadCsv } = useReportCsv();
   const reportMoney = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
+  const filterSpecs = useMemo((): FilterSpec[] => [reportAsOfSpec()], []);
 
   return (
     <ListPage>
@@ -60,7 +67,7 @@ export function ExportEvidenceExceptionsScreen() {
           </Button>
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar filters={filters} specs={filterSpecs} setParams={setParams}>
         <ToolbarControl label="As of" htmlFor="eee-as-of">
           <Input
             id="eee-as-of"
@@ -69,7 +76,7 @@ export function ExportEvidenceExceptionsScreen() {
             onChange={(event) => setParams({ filters: { as_of: event.target.value || null } })}
           />
         </ToolbarControl>
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable>
         <TableHeader>
           <TableRow>

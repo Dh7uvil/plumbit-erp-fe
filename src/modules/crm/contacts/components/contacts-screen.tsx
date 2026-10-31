@@ -23,7 +23,10 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -107,6 +110,36 @@ export function ContactsScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("crm.contacts", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "is_active",
+        label: "Status",
+        options: [
+          { value: "true", label: "Active" },
+          { value: "false", label: "Inactive" },
+        ],
+      },
+      {
+        type: "option",
+        key: "customer_id",
+        label: "Company",
+        options: companies.map((company) => ({ value: company.id, label: company.name })),
+      },
+      {
+        type: "option",
+        key: "is_primary",
+        label: "Primary",
+        options: [
+          { value: "true", label: "Primary" },
+          { value: "false", label: "Other" },
+        ],
+      },
+    ];
+  }, [companies]);
+
   function openCreate() {
     setFormOpen(true);
   }
@@ -138,7 +171,7 @@ export function ContactsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -203,24 +236,7 @@ export function ContactsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.is_active || filters.customer_id || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: { is_active: null, customer_id: null, is_primary: null },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable
         tableClassName="min-w-[1100px]"
         footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}

@@ -121,7 +121,7 @@ export function PipelineForm({
             control={form.control}
             name="is_default"
             render={({ field }) => (
-              <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+              <FormItem variant="checkbox" className="col-span-full">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
@@ -138,7 +138,7 @@ export function PipelineForm({
               control={form.control}
               name="is_active"
               render={({ field }) => (
-                <FormItem className="col-span-full flex flex-row items-center gap-2 space-y-0">
+                <FormItem variant="checkbox" className="col-span-full">
                   <FormControl>
                     <Checkbox
                       checked={field.value}

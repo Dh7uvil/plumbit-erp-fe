@@ -38,7 +38,11 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -230,6 +234,30 @@ export function JournalsScreen({ embedded = false }: { embedded?: boolean } = {}
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.journals", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(JOURNAL_STATUSES, JOURNAL_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "journal_type",
+        label: "Type",
+        options: enumFilterOptions(JOURNAL_TYPES, JOURNAL_TYPE_LABELS),
+      },
+      {
+        type: "dateRange",
+        fromKey: "entry_date_from",
+        toKey: "entry_date_to",
+        label: "Entry date",
+      },
+    ];
+  }, []);
+
   async function confirmDelete() {
     if (!deleting) {
       return;
@@ -245,7 +273,12 @@ export function JournalsScreen({ embedded = false }: { embedded?: boolean } = {}
 
   const listBody = (
     <ListPageContent>
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -313,29 +346,7 @@ export function JournalsScreen({ embedded = false }: { embedded?: boolean } = {}
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.journal_type || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  journal_type: null,
-                  entry_date_from: null,
-                  entry_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

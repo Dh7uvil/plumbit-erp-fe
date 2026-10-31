@@ -80,8 +80,9 @@ function mergeSignals(timeoutMs: number, signal?: AbortSignal): AbortSignal {
 }
 
 let refreshInFlight: Promise<boolean> | null = null;
+let endingSession: Promise<void> | null = null;
 
-async function refreshSession(): Promise<boolean> {
+export async function refreshSession(): Promise<boolean> {
   if (!isBrowser()) {
     return false;
   }
@@ -101,6 +102,35 @@ async function refreshSession(): Promise<boolean> {
     });
 
   return refreshInFlight;
+}
+
+export async function endBrowserSession(): Promise<void> {
+  if (!isBrowser()) {
+    return;
+  }
+  if (window.location.pathname.startsWith("/login")) {
+    return;
+  }
+  if (endingSession) {
+    return endingSession;
+  }
+
+  endingSession = (async () => {
+    try {
+      await fetch(`${BFF_AUTH_PREFIX}/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+    } catch {
+      // Always leave the app; httpOnly cookies are cleared by the BFF when this succeeds.
+    }
+    // The shared client is not a React component, so router navigation is unavailable.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard fallback after failed refresh
+    window.location.assign("/login");
+  })();
+
+  return endingSession;
 }
 
 function shouldReport(error: ApiError): boolean {
@@ -151,13 +181,8 @@ async function request<T>(path: string, config: InternalConfig, hasRetried = fal
     if (refreshed) {
       return request<T>(path, config, true);
     }
-    if (
-      config.basePrefix === API_VERSION_PREFIX &&
-      !window.location.pathname.startsWith("/login")
-    ) {
-      // The shared client is not a React component, so router navigation is unavailable.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard fallback after failed refresh
-      window.location.assign("/login");
+    if (config.basePrefix === API_VERSION_PREFIX) {
+      await endBrowserSession();
     }
   }
 
@@ -235,13 +260,8 @@ async function requestList<T>(
     if (refreshed) {
       return requestList<T>(path, config, true);
     }
-    if (
-      config.basePrefix === API_VERSION_PREFIX &&
-      !window.location.pathname.startsWith("/login")
-    ) {
-      // The shared client is not a React component, so router navigation is unavailable.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard fallback after failed refresh
-      window.location.assign("/login");
+    if (config.basePrefix === API_VERSION_PREFIX) {
+      await endBrowserSession();
     }
   }
 
@@ -345,10 +365,7 @@ async function downloadFile(
     if (refreshed) {
       return downloadFile(path, config, basePrefix, skipRefresh, true);
     }
-    if (!window.location.pathname.startsWith("/login")) {
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard fallback after failed refresh
-      window.location.assign("/login");
-    }
+    await endBrowserSession();
   }
 
   const contentType = response.headers.get("content-type") ?? "";

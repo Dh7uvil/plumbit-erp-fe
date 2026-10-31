@@ -50,7 +50,11 @@ import { DataTableRowActions, hasRowActions } from "@/shared/components/data-tab
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
@@ -292,6 +296,63 @@ export function GoodsReceiptsScreen() {
     columnDefs,
   );
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(STOCK_DOCUMENT_STATUSES, STOCK_DOCUMENT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "supplier_id",
+        label: "Supplier",
+        options: suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name })),
+      },
+      {
+        type: "option",
+        key: "warehouse_id",
+        label: "Warehouse",
+        options: warehouses.map((warehouse) => ({
+          value: warehouse.id,
+          label: `${warehouse.code} — ${warehouse.name}`,
+        })),
+      },
+      {
+        type: "option",
+        key: "purchase_order_id",
+        label: "Purchase order",
+        options: purchaseOrders.map((order) => ({
+          value: order.id,
+          label: purchaseOrderDisplayNumber(order) ?? order.id,
+        })),
+      },
+      {
+        type: "option",
+        key: "qc_status",
+        label: "QC status",
+        options: enumFilterOptions(QC_STATUSES, QC_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "product_id",
+        label: "Product",
+        options: products.map((product) => ({
+          value: product.id,
+          label: `${product.sku} — ${product.name}`,
+        })),
+      },
+      {
+        type: "dateRange",
+        fromKey: "document_date_from",
+        toKey: "document_date_to",
+        label: "Document date",
+      },
+    ];
+  }, [products, purchaseOrders, suppliers, warehouses]);
+
   async function onDelete() {
     if (!deleting) {
       return;
@@ -349,7 +410,7 @@ export function GoodsReceiptsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -501,33 +562,7 @@ export function GoodsReceiptsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.supplier_id || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  supplier_id: null,
-                  warehouse_id: null,
-                  purchase_order_id: null,
-                  qc_status: null,
-                  product_id: null,
-                  document_date_from: null,
-                  document_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

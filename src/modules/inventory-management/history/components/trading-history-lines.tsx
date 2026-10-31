@@ -22,10 +22,10 @@ import { DocumentHistoryTable } from "@/shared/components/document/document-hist
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
-import { Button } from "@/shared/components/ui/button";
 import { useNestedTableParams } from "@/shared/hooks/use-table-params";
 import { useCan } from "@/shared/providers/session-provider";
 
@@ -114,13 +114,26 @@ export function TradingHistoryLines({
     }
     return true;
   });
-  const hasQuery = Boolean(
-    search ||
-    filters.warehouse_id ||
-    filters.document_date_from ||
-    filters.document_date_to ||
-    sort_by,
-  );
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "warehouse_id",
+        label: "Warehouse",
+        options: warehouses.map((warehouse) => ({
+          value: warehouse.id,
+          label: `${warehouse.code} — ${warehouse.name}`,
+        })),
+      },
+      {
+        type: "dateRange",
+        fromKey: "document_date_from",
+        toKey: "document_date_to",
+        label: "Document date",
+      },
+    ];
+  }, [warehouses]);
 
   return (
     <DocumentHistoryTable
@@ -140,7 +153,12 @@ export function TradingHistoryLines({
       sortOrder={sort_order}
       onSort={setParams}
       toolbar={
-        <DataTableToolbar>
+        <ListFilterToolbar
+          search={search}
+          filters={filters}
+          specs={filterSpecs}
+          setParams={setParams}
+        >
           <ListSearch
             value={search ?? ""}
             onChange={(value) => setParams({ search: value || null })}
@@ -176,28 +194,7 @@ export function TradingHistoryLines({
             onApply={setParams}
           />
           {columnsDialog}
-          {hasQuery ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                setParams({
-                  search: null,
-                  sort_by: null,
-                  sort_order: null,
-                  filters: {
-                    warehouse_id: null,
-                    document_date_from: null,
-                    document_date_to: null,
-                  },
-                })
-              }
-            >
-              Clear
-            </Button>
-          ) : null}
-        </DataTableToolbar>
+        </ListFilterToolbar>
       }
     />
   );

@@ -1,11 +1,22 @@
 import { Suspense } from "react";
 
 import { SessionProvider } from "@/modules/users-management/auth/components/session-provider";
+import { SessionRestore } from "@/modules/users-management/auth/components/session-restore";
 import { AppShell } from "@/shared/components/layout/app-shell";
-import { requireSession } from "@/shared/auth/guards";
+import { getRefreshToken, getSession } from "@/shared/auth/session";
 
 async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
-  const me = await requireSession();
+  const me = await getSession();
+
+  if (!me) {
+    const canRefresh = Boolean(await getRefreshToken());
+    return (
+      <>
+        <SessionRestore canRefresh={canRefresh} />
+        {children}
+      </>
+    );
+  }
 
   return (
     <SessionProvider initialMe={me}>

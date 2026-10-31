@@ -19,7 +19,8 @@ import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
@@ -37,7 +38,8 @@ const SORT_FIELDS = [
 
 export function TaskLabelsScreen() {
   const { canCreate, canUpdate, canDelete } = useCrudPermissions(taskLabelPermissions);
-  const { page, page_size, search, sort_by, sort_order, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
   const labelsQuery = useTaskLabels({ page, page_size, search, sort_by, sort_order });
   const deleteLabel = useDeleteTaskLabel();
   const [formOpen, setFormOpen] = useState(false);
@@ -76,6 +78,10 @@ export function TaskLabelsScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("tasks.labels", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [{ type: "text", source: "search", label: "Search" }];
+  }, []);
+
   return (
     <ListPage>
       <PageHeader
@@ -96,7 +102,12 @@ export function TaskLabelsScreen() {
           ) : null
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value, page: 1 })}
@@ -108,7 +119,7 @@ export function TaskLabelsScreen() {
           onApply={(next) => setParams({ ...next, page: 1 })}
         />
         {columnsDialog}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       {labelsQuery.isLoading ? <Skeleton className="h-64 w-full" /> : null}
       {labelsQuery.isError ? (
         <DataTableError

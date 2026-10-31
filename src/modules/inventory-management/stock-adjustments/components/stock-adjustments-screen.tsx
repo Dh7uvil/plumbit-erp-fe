@@ -49,7 +49,11 @@ import { DataTableRowActions, hasRowActions } from "@/shared/components/data-tab
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -268,6 +272,54 @@ export function StockAdjustmentsScreen() {
     columnDefs,
   );
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(STOCK_DOCUMENT_STATUSES, STOCK_DOCUMENT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "warehouse_id",
+        label: "Warehouse",
+        options: warehouses.map((warehouse) => ({
+          value: warehouse.id,
+          label: `${warehouse.code} — ${warehouse.name}`,
+        })),
+      },
+      {
+        type: "option",
+        key: "reason",
+        label: "Reason",
+        options: enumFilterOptions(STOCK_ADJUSTMENT_REASONS, STOCK_ADJUSTMENT_REASON_LABELS),
+      },
+      {
+        type: "option",
+        key: "branch_id",
+        label: "Branch",
+        options: branches.map((branch) => ({ value: branch.id, label: branch.name })),
+      },
+      {
+        type: "option",
+        key: "product_id",
+        label: "Product",
+        options: products.map((product) => ({
+          value: product.id,
+          label: `${product.sku} — ${product.name}`,
+        })),
+      },
+      {
+        type: "dateRange",
+        fromKey: "document_date_from",
+        toKey: "document_date_to",
+        label: "Document date",
+      },
+    ];
+  }, [branches, products, warehouses]);
+
   async function onDelete() {
     if (!deleting) {
       return;
@@ -297,7 +349,7 @@ export function StockAdjustmentsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -424,32 +476,7 @@ export function StockAdjustmentsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.warehouse_id || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  warehouse_id: null,
-                  reason: null,
-                  branch_id: null,
-                  product_id: null,
-                  document_date_from: null,
-                  document_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

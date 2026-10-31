@@ -26,7 +26,10 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
@@ -117,6 +120,21 @@ export function PipelinesScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("crm.pipelines", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "is_active",
+        label: "Status",
+        options: [
+          { value: "true", label: "Active" },
+          { value: "false", label: "Inactive" },
+        ],
+      },
+    ];
+  }, []);
+
   async function confirmDelete() {
     if (!deleting) {
       return;
@@ -144,7 +162,7 @@ export function PipelinesScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -171,7 +189,7 @@ export function PipelinesScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

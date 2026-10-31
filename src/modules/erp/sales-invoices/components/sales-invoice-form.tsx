@@ -29,12 +29,8 @@ import {
   useUpdateSalesInvoice,
 } from "@/modules/erp/sales-invoices/mutations";
 import {
-  DISCOUNT_TYPE_LABELS,
   DISCOUNT_TYPES,
   isBlankSalesInvoiceLine,
-  PAYMENT_MODE_LABELS,
-  PAYMENT_MODES,
-  PLACE_OF_SUPPLY_LABELS,
   PLACES_OF_SUPPLY,
   SalesInvoiceFormSchema,
   TAX_TREATMENT_LABELS,
@@ -58,12 +54,13 @@ import { BuyerDetailDialog } from "@/shared/components/document/buyer-detail-dia
 import { DocumentLinesEditor } from "@/shared/components/document/document-lines-editor";
 import { LiveDocumentTotalsPanel } from "@/shared/components/document/live-document-totals-panel";
 import { PartyBalanceChip } from "@/shared/components/document/party-balance-chip";
-import { PeriodBadge } from "@/shared/components/document/period-badge";
+import { SalesCommercialFooterFields } from "@/shared/components/document/sales-commercial-footer-fields";
+import { SalesCommercialHeaderFields } from "@/shared/components/document/sales-commercial-header-fields";
+import { SalesDocumentFormTabs } from "@/shared/components/document/sales-document-form-tabs";
 import { BaseEquivalentPreview } from "@/shared/components/money";
 import { BranchFormDialog } from "@/modules/users-management/branches/components/branch-form-dialog";
 import { branchPermissions } from "@/modules/users-management/branches/permissions";
 import { useAllBranches } from "@/modules/users-management/branches/queries";
-import { EmployeeSelect } from "@/modules/users-management/employees/components/employee-select";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { MasterSelect } from "@/shared/components/form/master-select";
@@ -79,13 +76,6 @@ import {
 } from "@/shared/components/ui/form";
 import { DecimalInput } from "@/shared/components/form/decimal-input";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useApplyComposeDefaults } from "@/shared/hooks/use-apply-compose-defaults";
@@ -138,6 +128,7 @@ function toLineInput(line: SalesInvoiceLineFormValues): SalesInvoiceLineInput {
     delivery_note_id: optionalUuid(line.delivery_note_id),
     delivery_note_line_id: optionalUuid(line.delivery_note_line_id),
     hs_code: emptyToNull(line.hs_code ?? ""),
+    warehouse_id: optionalUuid(line.warehouse_id),
     ...packingLineInput(line),
   };
 }
@@ -168,6 +159,8 @@ function toFormLines(invoice: SalesInvoice | null): SalesInvoiceLineFormValues[]
     delivery_note_id: line.delivery_note_id ?? "",
     delivery_note_line_id: line.delivery_note_line_id ?? "",
     hs_code: line.hs_code ?? "",
+    warehouse_id: line.warehouse_id ?? OPTIONAL_SELECT_NONE,
+    source_document_number: line.source_order_number ?? line.delivery_note_number ?? "",
     ...packingFromLine(line),
   }));
 }
@@ -208,6 +201,11 @@ function toFormValues(
     discount_account_id: invoice?.discount_account_id ?? OPTIONAL_SELECT_NONE,
     freight_account_id: invoice?.freight_account_id ?? OPTIONAL_SELECT_NONE,
     auto_stock_document: invoice?.auto_stock_document ?? false,
+    fiscal_period: invoice?.fiscal_period != null ? String(invoice.fiscal_period) : "",
+    account_code: invoice?.account_code ?? "",
+    account_name: invoice?.account_name ?? "",
+    registration_type: invoice?.registration_type ?? "",
+    is_invoiced: false,
     lines: toFormLines(invoice),
   };
 }
@@ -244,6 +242,9 @@ function toCreateRequest(
     discount_account_id: optionalUuid(values.discount_account_id),
     freight_account_id: optionalUuid(values.freight_account_id),
     auto_stock_document: values.auto_stock_document,
+    fiscal_period: values.fiscal_period.trim()
+      ? Number.parseInt(values.fiscal_period, 10)
+      : null,
     document_series: exportPreset ? "EXP" : undefined,
     lines: values.lines.filter((line) => !isBlankSalesInvoiceLine(line)).map(toLineInput),
   };
@@ -280,6 +281,7 @@ function toUpdateRequest(
     discount_account_id: created.discount_account_id,
     freight_account_id: created.freight_account_id,
     auto_stock_document: created.auto_stock_document,
+    fiscal_period: created.fiscal_period,
     lines: created.lines,
   };
 }
@@ -416,6 +418,14 @@ export function SalesInvoiceForm({
         alwaysRefresh: true,
         transform: (value) => value ?? "",
       },
+      account_code: {
+        field: "account_code",
+        transform: (value) => value ?? "",
+      },
+      account_name: {
+        field: "account_name",
+        transform: (value) => value ?? "",
+      },
     },
   });
 
@@ -524,6 +534,22 @@ export function SalesInvoiceForm({
               </FormItem>
             )}
           />
+          <SalesCommercialHeaderFields
+            control={form.control}
+            disabled={disabled}
+            taxTreatment={taxTreatment || ""}
+            customerTrn={customerTrn || ""}
+            documentNumber={isEdit && invoice ? invoice.document_number : undefined}
+            documentNumberLabel="Invoice no"
+            dateField="invoice_date"
+            showDefaultPrice={false}
+            onSalesmanChange={() => markComposeDirty("salesperson_id")}
+            onPlaceOfSupplyChange={() => markComposeDirty("place_of_supply")}
+          />
+        </div>
+        <SalesDocumentFormTabs
+          additionalDetailsPanel={
+            <>
           <FormField
             control={form.control}
             name="contact_id"
@@ -559,46 +585,6 @@ export function SalesInvoiceForm({
           />
           <FormField
             control={form.control}
-            name="invoice_date"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex flex-wrap items-center gap-2">
-                  <FormLabel>Invoice date</FormLabel>
-                  <PeriodBadge documentDate={invoiceDate} />
-                </div>
-                <FormControl>
-                  <Input type="date" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="payment_mode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment mode</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {PAYMENT_MODES.map((mode) => (
-                      <SelectItem key={mode} value={mode}>
-                        {PAYMENT_MODE_LABELS[mode]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="supply_date"
             render={({ field }) => (
               <FormItem>
@@ -612,48 +598,9 @@ export function SalesInvoiceForm({
           />
           <FormField
             control={form.control}
-            name="reference_number"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Reference no.</FormLabel>
-                <FormControl>
-                  <Input maxLength={80} disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="reference_date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Reference date</FormLabel>
-                <FormControl>
-                  <Input type="date" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="marks"
-            render={({ field }) => (
-              <FormItem className="col-span-full">
-                <FormLabel>Marks</FormLabel>
-                <FormControl>
-                  <Textarea maxLength={500} disabled={disabled} rows={2} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="auto_stock_document"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2 space-y-0">
+              <FormItem variant="checkbox">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
@@ -661,7 +608,7 @@ export function SalesInvoiceForm({
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
                 </FormControl>
-                <FormLabel>Update stock on post</FormLabel>
+                <FormLabel>Update invoice</FormLabel>
               </FormItem>
             )}
           />
@@ -757,96 +704,12 @@ export function SalesInvoiceForm({
           />
           <FormField
             control={form.control}
-            name="salesperson_id"
-            render={({ field }) => (
-              <EmployeeSelect
-                value={field.value}
-                onValueChange={(value) => {
-                  markComposeDirty("salesperson_id");
-                  field.onChange(value);
-                }}
-                disabled={disabled}
-              />
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="place_of_supply"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Place of supply</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    markComposeDirty("place_of_supply");
-                    field.onChange(value);
-                  }}
-                  disabled={disabled}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {PLACES_OF_SUPPLY.map((place) => (
-                      <SelectItem key={place} value={place}>
-                        {PLACE_OF_SUPPLY_LABELS[place]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="country_of_origin"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Country of origin</FormLabel>
                 <FormControl>
                   <Input maxLength={2} disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="discount_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Header discount type</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={OPTIONAL_SELECT_NONE}>None</SelectItem>
-                    {DISCOUNT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {DISCOUNT_TYPE_LABELS[type]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="discount_value"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Header discount value</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -888,19 +751,6 @@ export function SalesInvoiceForm({
           />
           <FormField
             control={form.control}
-            name="shipping_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Shipping amount</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="adjustment_amount"
             render={({ field }) => (
               <FormItem>
@@ -925,63 +775,49 @@ export function SalesInvoiceForm({
               </FormItem>
             )}
           />
-          <FormItem>
-            <FormLabel>Customer TRN</FormLabel>
-            <Input value={customerTrn || "—"} disabled />
-          </FormItem>
-          <div
-            data-slot="form-grid"
-            className={
-              isEdit
-                ? "col-span-full"
-                : "col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"
-            }
-          >
-            <FormItem>
-              <FormLabel>Tax treatment</FormLabel>
-              <Input
-                value={
-                  taxTreatment && taxTreatment in TAX_TREATMENT_LABELS
-                    ? TAX_TREATMENT_LABELS[taxTreatment as keyof typeof TAX_TREATMENT_LABELS]
-                    : taxTreatment || "—"
-                }
-                disabled
-              />
-            </FormItem>
-            {!isEdit ? (
-              <FormField
-                control={form.control}
-                name="terms_template_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Terms template</FormLabel>
-                    <MasterSelect
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={disabled || termsTemplatesQuery.isLoading}
-                      placeholder="None"
-                      searchPlaceholder="Search template…"
-                      createLabel="Create terms template"
-                      onCreate={
-                        can(termsTemplatePermissions.create)
-                          ? () => setCreating("termsTemplate")
-                          : undefined
-                      }
-                      options={[
-                        { value: OPTIONAL_SELECT_NONE, label: "None" },
-                        ...templates.map((template) => ({
-                          value: template.id,
-                          label: template.name,
-                        })),
-                      ]}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
-          </div>
-        </div>
+          {!isEdit ? (
+            <FormField
+              control={form.control}
+              name="terms_template_id"
+              render={({ field }) => (
+                <FormItem className="col-span-full">
+                  <FormLabel>Terms template</FormLabel>
+                  <MasterSelect
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={disabled || termsTemplatesQuery.isLoading}
+                    placeholder="None"
+                    searchPlaceholder="Search template…"
+                    createLabel="Create terms template"
+                    onCreate={
+                      can(termsTemplatePermissions.create)
+                        ? () => setCreating("termsTemplate")
+                        : undefined
+                    }
+                    options={[
+                      { value: OPTIONAL_SELECT_NONE, label: "None" },
+                      ...templates.map((template) => ({
+                        value: template.id,
+                        label: template.name,
+                      })),
+                    ]}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+            </>
+          }
+          documentPanel={
+            <>
+        <SalesCommercialFooterFields
+          form={form}
+          disabled={disabled}
+          currencies={currencies}
+          savedTotals={invoice}
+          showInvoiced={false}
+        />
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
           {sourcedLines ? (
@@ -994,9 +830,10 @@ export function SalesInvoiceForm({
             disabled={disabled || sourcedLines}
             productSide="sales"
             showPacking
-            showHsCode
-            showPricesIncludeTax
             enableInventoryHelp
+            showSalesLocationColumns
+            salesLineSourceLabel="Order no"
+            showLineRemarks
             lineAutofillContext={lineAutofillContext}
           />
         </div>
@@ -1020,19 +857,6 @@ export function SalesInvoiceForm({
           </div>
         ) : null}
         <div className="grid grid-cols-1 gap-3">
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <Textarea disabled={disabled} className="min-h-24" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="terms_and_conditions"
@@ -1087,6 +911,9 @@ export function SalesInvoiceForm({
             </Button>
           </div>
         ) : null}
+            </>
+          }
+        />
       </form>
       <CustomerFormDialog
         open={creating === "customer"}

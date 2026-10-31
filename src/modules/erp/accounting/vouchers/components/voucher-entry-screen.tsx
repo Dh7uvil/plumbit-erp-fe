@@ -52,7 +52,6 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -543,15 +542,14 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                   control={form.control}
                   name="enable_vat_details"
                   render={({ field }) => (
-                    <FormItem>
-                      <div className="flex h-9 items-center gap-2 pt-6">
+                    <FormItem variant="checkbox" className="self-end">
+                      <FormControl>
                         <Checkbox
-                          id="enable-vat-details"
                           checked={field.value}
                           onCheckedChange={(checked) => field.onChange(checked === true)}
                         />
-                        <Label htmlFor="enable-vat-details">Enable VAT details</Label>
-                      </div>
+                      </FormControl>
+                      <FormLabel>Enable VAT details</FormLabel>
                     </FormItem>
                   )}
                 />

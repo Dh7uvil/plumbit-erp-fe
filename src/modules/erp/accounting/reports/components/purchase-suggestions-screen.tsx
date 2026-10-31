@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 
-import { InventoryReportFilters } from "@/modules/erp/accounting/reports/components/inventory-report-filters";
+import {
+  InventoryReportFilters,
+  useInventoryReportFilterSpecs,
+} from "@/modules/erp/accounting/reports/components/inventory-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { usePurchaseSuggestions } from "@/modules/erp/accounting/reports/queries";
 import { purchaseOrderPermissions } from "@/modules/erp/purchase-orders/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -54,6 +58,7 @@ export function PurchaseSuggestionsScreen() {
   const report = reportQuery.data;
   const { csvPending, downloadCsv } = useReportCsv();
   const columnCount = canCreatePo ? 9 : 8;
+  const filterSpecs = useInventoryReportFilterSpecs({});
 
   return (
     <ReportShell
@@ -70,6 +75,9 @@ export function PurchaseSuggestionsScreen() {
           categoryId={filters.category_id}
           onChange={(patch) => setParams({ filters: patch })}
         />
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <DataTable>

@@ -19,7 +19,8 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
@@ -33,7 +34,8 @@ import { useTableParams } from "@/shared/hooks/use-table-params";
 
 export function BankAccountsScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(bankAccountPermissions);
-  const { page, page_size, search, sort_by, sort_order, setParams, setPage } = useTableParams();
+  const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
+    useTableParams();
   const query = useBankAccounts({ page, page_size, search, sort_by, sort_order });
   const deleteBankAccount = useDeleteBankAccount();
   const [formOpen, setFormOpen] = useState(false);
@@ -69,6 +71,10 @@ export function BankAccountsScreen() {
   );
   const { columns: columnsForTable, colSpan } = useTableColumns("bank-accounts", columns);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [{ type: "text", source: "search", label: "Search" }];
+  }, []);
+
   return (
     <ListPage>
       <PageHeader
@@ -83,12 +89,17 @@ export function BankAccountsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value, page: 1 })}
         />
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

@@ -28,18 +28,22 @@ import { stockTransferPermissions } from "@/modules/inventory-management/stock-t
 import { useAllWarehouses } from "@/modules/inventory-management/warehouses/queries";
 import { useCurrentTenant } from "@/modules/users-management/tenants/queries";
 import { getErrorMessage } from "@/shared/api/errors";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
@@ -209,7 +213,23 @@ function WarehouseStockTable({
     [canReadCost, canUpdate, currencyCode, onReorder, showActions],
   );
   const { columns, columnsDialog, colSpan } = useTableColumns("inventory.stock", columnDefs);
-  const hasQuery = Boolean(search || filters.negative_only || filters.below_reorder || sort_by);
+  const balanceFilterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "below_reorder",
+        label: "Below reorder",
+        options: [{ value: "true", label: "Below reorder" }],
+      },
+      {
+        type: "option",
+        key: "negative_only",
+        label: "Negative",
+        options: [{ value: "true", label: "Negative" }],
+      },
+    ];
+  }, []);
 
   return (
     <Card>
@@ -217,7 +237,12 @@ function WarehouseStockTable({
         <CardTitle className="text-base">Warehouse stock</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        <DataTableToolbar>
+        <ListFilterToolbar
+          search={search}
+          filters={filters}
+          specs={balanceFilterSpecs}
+          setParams={setParams}
+        >
           <ListSearch
             value={search ?? ""}
             onChange={(value) => setParams({ search: value || null })}
@@ -256,24 +281,7 @@ function WarehouseStockTable({
             onApply={setParams}
           />
           {columnsDialog}
-          {hasQuery ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                setParams({
-                  search: null,
-                  sort_by: null,
-                  sort_order: null,
-                  filters: { below_reorder: null, negative_only: null },
-                })
-              }
-            >
-              Clear
-            </Button>
-          ) : null}
-        </DataTableToolbar>
+        </ListFilterToolbar>
         <DataTable
           variant="embedded"
           footer={
@@ -372,14 +380,32 @@ function ProductMovementsTable({
     "inventory.stock_movements",
     columnDefs,
   );
-  const hasQuery = Boolean(
-    search ||
-    filters.warehouse_id ||
-    filters.movement_type ||
-    filters.document_date_from ||
-    filters.document_date_to ||
-    sort_by,
-  );
+  const movementFilterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "warehouse_id",
+        label: "Warehouse",
+        options: warehouses.map((warehouse) => ({
+          value: warehouse.id,
+          label: `${warehouse.code} — ${warehouse.name}`,
+        })),
+      },
+      {
+        type: "option",
+        key: "movement_type",
+        label: "Type",
+        options: enumFilterOptions(STOCK_MOVEMENT_TYPES, STOCK_MOVEMENT_TYPE_LABELS),
+      },
+      {
+        type: "dateRange",
+        fromKey: "document_date_from",
+        toKey: "document_date_to",
+        label: "Document date",
+      },
+    ];
+  }, [warehouses]);
 
   return (
     <Card>
@@ -387,7 +413,12 @@ function ProductMovementsTable({
         <CardTitle className="text-base">Movements</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        <DataTableToolbar>
+        <ListFilterToolbar
+          search={search}
+          filters={filters}
+          specs={movementFilterSpecs}
+          setParams={setParams}
+        >
           <ListSearch
             value={search ?? ""}
             onChange={(value) => setParams({ search: value || null })}
@@ -439,29 +470,7 @@ function ProductMovementsTable({
             onApply={setParams}
           />
           {columnsDialog}
-          {hasQuery ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                setParams({
-                  search: null,
-                  sort_by: null,
-                  sort_order: null,
-                  filters: {
-                    warehouse_id: null,
-                    movement_type: null,
-                    document_date_from: null,
-                    document_date_to: null,
-                  },
-                })
-              }
-            >
-              Clear
-            </Button>
-          ) : null}
-        </DataTableToolbar>
+        </ListFilterToolbar>
         <DataTable
           variant="embedded"
           footer={

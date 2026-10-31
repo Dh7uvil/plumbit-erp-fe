@@ -34,7 +34,6 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -306,16 +305,15 @@ export function ChargeTypeForm({
           control={form.control}
           name="is_inventoriable"
           render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center gap-2">
+            <FormItem variant="checkbox">
+              <FormControl>
                 <Checkbox
-                  id="charge-inventoriable"
                   checked={field.value}
                   onCheckedChange={(checked) => field.onChange(checked === true)}
                   disabled={disabled}
                 />
-                <Label htmlFor="charge-inventoriable">Capitalize to stock (inventoriable)</Label>
-              </div>
+              </FormControl>
+              <FormLabel>Capitalize to stock (inventoriable)</FormLabel>
             </FormItem>
           )}
         />
@@ -324,16 +322,15 @@ export function ChargeTypeForm({
             control={form.control}
             name="is_active"
             render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center gap-2">
+              <FormItem variant="checkbox">
+                <FormControl>
                   <Checkbox
-                    id="charge-active"
                     checked={field.value}
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                     disabled={disabled}
                   />
-                  <Label htmlFor="charge-active">Active</Label>
-                </div>
+                </FormControl>
+                <FormLabel>Active</FormLabel>
               </FormItem>
             )}
           />

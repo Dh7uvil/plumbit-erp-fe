@@ -24,11 +24,14 @@ import type {
   ProductInventoryListRow,
 } from "@/modules/inventory-management/products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { ListSearch } from "@/shared/components/data-table/list-search";
+import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableError, DataTableEmpty } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
 import { actionsColumn } from "@/shared/components/data-table/columns";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
@@ -37,7 +40,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { useBaseCurrency } from "@/shared/hooks/use-base-currency";
-import { useTableParams } from "@/shared/hooks/use-table-params";
+import { useTableParams, type TableParamPatch } from "@/shared/hooks/use-table-params";
 import { cn } from "@/shared/lib/cn";
 import { formatMoney, formatPackingLabel, formatQuantity } from "@/shared/lib/format";
 import { useCan } from "@/shared/providers/session-provider";
@@ -176,6 +179,17 @@ export function ProductInventoryWorkbench({
   const categoriesQuery = useAllCategories(enabled);
   const categories = categoriesQuery.data ?? [];
   const categoryId = filters.category_id ?? ALL;
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "category_id",
+        label: "Group",
+        options: categories.map((category) => ({ value: category.id, label: category.name })),
+      },
+    ];
+  }, [categories]);
   const { baseCurrencyCode } = useBaseCurrency();
   const inventoryListColumnDefs = useMemo(
     () => [
@@ -247,6 +261,40 @@ export function ProductInventoryWorkbench({
     },
     Boolean(selectedId) && canHistory,
   );
+  const salesPostingSpecs = useMemo((): FilterSpec[] => {
+    return [
+      {
+        type: "option",
+        key: "posting",
+        label: "Posting",
+        options: TRADING_HISTORY_POSTING_STATUSES.map((value) => ({
+          value,
+          label: value === "ALL" ? "All" : value.charAt(0) + value.slice(1).toLowerCase(),
+        })),
+      },
+    ];
+  }, []);
+  const salesPostingFilters = useMemo((): Record<string, string> => {
+    return postingStatus === "ALL" ? {} : { posting: postingStatus };
+  }, [postingStatus]);
+  function setSalesPostingFilters(patch: TableParamPatch) {
+    if (patch.filters?.posting !== undefined) {
+      setPostingStatus(patch.filters.posting || "ALL");
+    }
+  }
+  const supplierFilterSpecs = useMemo((): FilterSpec[] => {
+    return [{ type: "text", source: { filterKey: "supplier" }, label: "Supplier" }];
+  }, []);
+  const supplierFilters = useMemo((): Record<string, string> => {
+    const trimmed = supplierName.trim();
+    return trimmed ? { supplier: trimmed } : {};
+  }, [supplierName]);
+  function setSupplierFilters(patch: TableParamPatch) {
+    if (patch.filters?.supplier !== undefined) {
+      setSupplierName(patch.filters.supplier ?? "");
+    }
+  }
+
   const importPurchases = useProductPurchaseDetails(
     selectedId,
     {
@@ -392,7 +440,7 @@ export function ProductInventoryWorkbench({
                 value="sales"
                 className="mt-0 flex flex-col gap-3 focus-visible:outline-none"
               >
-                <div className="bg-muted/20 rounded-lg border px-3 py-2">
+                <div className="bg-muted/20 flex flex-col gap-2 rounded-lg border px-3 py-2">
                   <DataTableToolbar className="gap-2 py-0">
                     <FilterSelect
                       label="Posting"
@@ -405,6 +453,11 @@ export function ProductInventoryWorkbench({
                       }))}
                     />
                   </DataTableToolbar>
+                  <AppliedFilterPills
+                    filters={salesPostingFilters}
+                    specs={salesPostingSpecs}
+                    setParams={setSalesPostingFilters}
+                  />
                 </div>
                 <TradingHistoryLines
                   kind="product-sales"
@@ -422,7 +475,7 @@ export function ProductInventoryWorkbench({
                   value="local"
                   className="mt-0 flex flex-col gap-3 focus-visible:outline-none"
                 >
-                  <div className="bg-muted/20 rounded-lg border px-3 py-2">
+                  <div className="bg-muted/20 flex flex-col gap-2 rounded-lg border px-3 py-2">
                     <DataTableToolbar className="gap-2 py-0">
                       <ListSearch
                         value={supplierName}
@@ -431,6 +484,11 @@ export function ProductInventoryWorkbench({
                         className="max-w-sm"
                       />
                     </DataTableToolbar>
+                    <AppliedFilterPills
+                      filters={supplierFilters}
+                      specs={supplierFilterSpecs}
+                      setParams={setSupplierFilters}
+                    />
                   </div>
                   <ProductPurchaseDetailsTable
                     kind="LOCAL"
@@ -445,7 +503,7 @@ export function ProductInventoryWorkbench({
                   value="import"
                   className="mt-0 flex flex-col gap-3 focus-visible:outline-none"
                 >
-                  <div className="bg-muted/20 rounded-lg border px-3 py-2">
+                  <div className="bg-muted/20 flex flex-col gap-2 rounded-lg border px-3 py-2">
                     <DataTableToolbar className="gap-2 py-0">
                       <ListSearch
                         value={supplierName}
@@ -454,6 +512,11 @@ export function ProductInventoryWorkbench({
                         className="max-w-sm"
                       />
                     </DataTableToolbar>
+                    <AppliedFilterPills
+                      filters={supplierFilters}
+                      specs={supplierFilterSpecs}
+                      setParams={setSupplierFilters}
+                    />
                   </div>
                   <ProductPurchaseDetailsTable
                     kind="IMPORT"
@@ -483,7 +546,13 @@ export function ProductInventoryWorkbench({
         <PageHeader title={title} subtitle={subtitle} actions={headerActions} />
 
         <WorkbenchSection title="Item lookup" hint={lookupHint}>
-            <DataTableToolbar className="flex-wrap gap-2">
+            <ListFilterToolbar
+              className="flex-wrap gap-2"
+              search={search}
+              filters={filters}
+              specs={filterSpecs}
+              setParams={setParams}
+            >
               <ListSearch
                 value={search ?? ""}
                 onChange={(value) => setParams({ search: value || null })}
@@ -504,24 +573,7 @@ export function ProductInventoryWorkbench({
                 ]}
               />
               {columnsDialog}
-              {(search || categoryId !== ALL) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setParams({
-                      search: null,
-                      filters: {
-                        category_id: null,
-                      },
-                    });
-                  }}
-                >
-                  Clear
-                </Button>
-              )}
-            </DataTableToolbar>
+            </ListFilterToolbar>
 
             {listQuery.isError ? (
               <DataTableError

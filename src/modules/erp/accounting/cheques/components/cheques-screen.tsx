@@ -20,7 +20,8 @@ import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import { type FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -125,6 +126,40 @@ export function ChequesScreen() {
   );
   const colSpan = baseColSpan + (canDeposit ? 1 : 0);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: [
+          { value: "DRAFT", label: "Draft" },
+          { value: "ISSUED", label: "Issued" },
+          { value: "DEPOSITED", label: "Deposited" },
+          { value: "CLEARED", label: "Cleared" },
+          { value: "BOUNCED", label: "Bounced" },
+        ],
+      },
+      {
+        type: "option",
+        key: "direction",
+        label: "Direction",
+        options: [
+          { value: "INBOUND", label: "Inbound" },
+          { value: "OUTBOUND", label: "Outbound" },
+        ],
+      },
+      { type: "flag", key: "due", label: "PDC due view", matchValue: "pdc" },
+      {
+        type: "dateRange",
+        fromKey: "due_from",
+        toKey: "due_to",
+        label: "Due date",
+      },
+    ];
+  }, []);
+
   return (
     <ListPage>
       <PageHeader
@@ -141,7 +176,12 @@ export function ChequesScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar
+        search={search}
+        filters={filters}
+        specs={filterSpecs}
+        setParams={setParams}
+      >
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null, page: 1 })}
@@ -208,23 +248,7 @@ export function ChequesScreen() {
           </Button>
         ) : null}
         {columnsDialog}
-        {search || filters.status || filters.direction || filters.due ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                filters: { status: null, direction: null, due: null, due_from: null, due_to: null },
-                page: 1,
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

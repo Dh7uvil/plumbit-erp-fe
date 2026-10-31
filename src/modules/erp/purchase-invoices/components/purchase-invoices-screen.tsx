@@ -62,7 +62,11 @@ import {
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage, ListPageContent } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -413,6 +417,48 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.purchase_invoices", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(INVOICE_DOCUMENT_STATUSES, INVOICE_DOCUMENT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "payment_mode",
+        label: "Pay mode",
+        options: enumFilterOptions(PAYMENT_MODES, PAYMENT_MODE_LABELS),
+      },
+      {
+        type: "option",
+        key: "supplier_id",
+        label: "Supplier",
+        options: suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name })),
+      },
+      {
+        type: "option",
+        key: "payment_status",
+        label: "Payment status",
+        options: enumFilterOptions(PAYMENT_STATUSES, PAYMENT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "bill_type",
+        label: "Bill type",
+        options: enumFilterOptions(BILL_TYPES, BILL_TYPE_LABELS),
+      },
+      {
+        type: "dateRange",
+        fromKey: "invoice_date_from",
+        toKey: "invoice_date_to",
+        label: "Invoice date",
+      },
+    ];
+  }, [suppliers]);
+
   const headerActions =
     !embedded && canCreate ? (
       <div className="flex flex-wrap gap-2">
@@ -457,7 +503,7 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
 
   const listContent = (
     <ListPageContent>
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -594,31 +640,7 @@ export function PurchaseInvoicesScreen({ embedded = false }: { embedded?: boolea
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.supplier_id || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  supplier_id: null,
-                  payment_status: null,
-                  bill_type: null,
-                  invoice_date_from: null,
-                  invoice_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

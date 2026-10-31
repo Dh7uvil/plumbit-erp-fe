@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { formatDate, formatReportMoney } from "@/shared/lib/format";
 
@@ -115,10 +116,8 @@ export function YearEndScreen() {
                 : "—"}
             </p>
           </div>
-          <div>
-            <label className="text-sm font-medium" htmlFor="fiscal-year">
-              Fiscal year to close
-            </label>
+          <div className="flex flex-col gap-2.5">
+            <Label htmlFor="fiscal-year">Fiscal year to close</Label>
             <Input
               id="fiscal-year"
               type="number"

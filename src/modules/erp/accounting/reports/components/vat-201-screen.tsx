@@ -1,16 +1,20 @@
 "use client";
 
+import { useMemo } from "react";
+
+import { reportPeriodDateRangeSpec } from "@/modules/erp/accounting/reports/components/report-filter-specs";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useVat201 } from "@/modules/erp/accounting/reports/queries";
 import { vat201BoxRegisterHref } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
+import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ReportShell } from "@/shared/components/report/report-shell";
-import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   TableBody,
@@ -35,6 +39,7 @@ export function Vat201Screen() {
   const { csvPending, excelPending, downloadCsv, downloadExcel } = useReportCsv();
   const money = (value: string | null | undefined) =>
     formatReportMoney(value, report?.currency_code);
+  const filterSpecs = useMemo((): FilterSpec[] => [reportPeriodDateRangeSpec()], []);
 
   return (
     <ReportShell
@@ -59,18 +64,10 @@ export function Vat201Screen() {
             onFromChange={(value) => setParams({ filters: { from: value || null } })}
             onToChange={(value) => setParams({ filters: { to: value || null } })}
           />
-          {from || to ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9"
-              onClick={() => setParams({ filters: { from: null, to: null } })}
-            >
-              Clear
-            </Button>
-          ) : null}
         </>
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <DataTable>

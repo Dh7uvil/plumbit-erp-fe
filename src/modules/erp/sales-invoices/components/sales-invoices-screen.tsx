@@ -65,7 +65,11 @@ import { DocumentStatusBadge } from "@/shared/components/document/document-statu
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { ImexToolbar } from "@/shared/components/imex/imex-toolbar";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
 import { PageHeader } from "@/shared/components/layout/page-header";
@@ -443,6 +447,77 @@ export function SalesInvoicesScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.sales_invoices", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(INVOICE_DOCUMENT_STATUSES, INVOICE_DOCUMENT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "customer_id",
+        label: "Customer",
+        options: customers.map((customer) => ({ value: customer.id, label: customer.name })),
+      },
+      {
+        type: "option",
+        key: "payment_mode",
+        label: "Cash / credit",
+        options: enumFilterOptions(PAYMENT_MODES, PAYMENT_MODE_LABELS),
+      },
+      {
+        type: "option",
+        key: "payment_status",
+        label: "Payment status",
+        options: enumFilterOptions(PAYMENT_STATUSES, PAYMENT_STATUS_LABELS),
+      },
+      {
+        type: "option",
+        key: "branch_id",
+        label: "Branch",
+        options: branches.map((branch) => ({ value: branch.id, label: branch.name })),
+      },
+      {
+        type: "option",
+        key: "currency_id",
+        label: "Currency",
+        options: currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+      },
+      {
+        type: "dateRange",
+        fromKey: "invoice_date_from",
+        toKey: "invoice_date_to",
+        label: "Invoice date",
+      },
+      {
+        type: "option",
+        key: "is_export",
+        label: "Export invoice",
+        options: [
+          { value: "true", label: "Export only" },
+          { value: "false", label: "Non-export" },
+        ],
+      },
+      {
+        type: "option",
+        key: "is_printed",
+        label: "Printed",
+        options: [
+          { value: "true", label: "Printed only" },
+          { value: "false", label: "Not printed" },
+        ],
+      },
+      {
+        type: "text",
+        source: { filterKey: "reference_number" },
+        label: "Reference no.",
+      },
+    ];
+  }, [branches, currencies, customers]);
+
   return (
     <ListPage>
       <PageHeader
@@ -523,7 +598,7 @@ export function SalesInvoicesScreen() {
           </AlertDescription>
         </Alert>
       ) : null}
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -730,32 +805,7 @@ export function SalesInvoicesScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.customer_id || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  customer_id: null,
-                  payment_status: null,
-                  branch_id: null,
-                  currency_id: null,
-                  invoice_date_from: null,
-                  invoice_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

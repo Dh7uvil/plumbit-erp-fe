@@ -1,6 +1,9 @@
 "use client";
 
-import { StatementReportFilters } from "@/modules/erp/accounting/reports/components/statement-report-filters";
+import {
+  StatementReportFilters,
+  useStatementReportFilterSpecs,
+} from "@/modules/erp/accounting/reports/components/statement-report-filters";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
 import { useProfitAndLoss } from "@/modules/erp/accounting/reports/queries";
@@ -8,6 +11,7 @@ import { glHref, type ProfitAndLossLine } from "@/modules/erp/accounting/reports
 import { useBudgets } from "@/modules/erp/accounting/budgets/queries";
 import { budgetPermissions } from "@/modules/erp/accounting/budgets/permissions";
 import { getErrorMessage } from "@/shared/api/errors";
+import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
 import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
@@ -148,6 +152,12 @@ export function ProfitAndLossScreen() {
   const expenseLines = (report?.lines ?? []).filter(
     (line) => line.account_type === "EXPENSE" && line.account_subtype !== "COGS",
   );
+  const filterSpecs = useStatementReportFilterSpecs({
+    showDateRange: true,
+    showIncludeYtd: true,
+    showPeriodCount: true,
+    budgetOptions,
+  });
 
   return (
     <ReportShell
@@ -177,6 +187,9 @@ export function ProfitAndLossScreen() {
           budgetOptions={budgetOptions}
           onChange={(patch) => setParams({ filters: patch })}
         />
+      }
+      activeFilters={
+        <AppliedFilterPills filters={filters} specs={filterSpecs} setParams={setParams} />
       }
     >
       <DataTable>

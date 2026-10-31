@@ -38,7 +38,11 @@ import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ActiveBadge } from "@/shared/components/feedback/active-badge";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
@@ -237,6 +241,33 @@ export function SuppliersScreen() {
 
   const { columns, columnsDialog, colSpan } = useTableColumns("erp.suppliers", columnDefs);
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "is_active",
+        label: "Status",
+        options: [
+          { value: "true", label: "Active" },
+          { value: "false", label: "Inactive" },
+        ],
+      },
+      {
+        type: "option",
+        key: "tax_treatment",
+        label: "Tax treatment",
+        options: enumFilterOptions(TAX_TREATMENTS, TAX_TREATMENT_LABELS),
+      },
+      {
+        type: "option",
+        key: "currency_id",
+        label: "Currency",
+        options: currencies.map((currency) => ({ value: currency.id, label: currency.code })),
+      },
+    ];
+  }, [currencies]);
+
   async function confirmDelete() {
     if (!deleting) {
       return;
@@ -282,7 +313,7 @@ export function SuppliersScreen() {
           </div>
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -349,24 +380,7 @@ export function SuppliersScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.is_active || filters.tax_treatment || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: { is_active: null, tax_treatment: null, currency_id: null },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

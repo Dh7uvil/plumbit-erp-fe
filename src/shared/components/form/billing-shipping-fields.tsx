@@ -47,7 +47,7 @@ export function BillingShippingFields({ disabled }: { disabled?: boolean }) {
             control={control}
             name="same_as_billing"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2 space-y-0">
+              <FormItem variant="checkbox">
                 <FormControl>
                   <Checkbox
                     checked={field.value}

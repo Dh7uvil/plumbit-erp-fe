@@ -41,7 +41,11 @@ import { DataTableRowActions, hasRowActions } from "@/shared/components/data-tab
 import { SortDialog } from "@/shared/components/data-table/sort-dialog";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
-import { DataTableToolbar } from "@/shared/components/data-table/toolbar";
+import {
+  enumFilterOptions,
+  type FilterSpec,
+} from "@/shared/components/data-table/applied-filter-spec";
+import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { DocumentStatusBadge } from "@/shared/components/document/document-status-badge";
 import { getDocumentAction } from "@/shared/components/document/workflow-registry";
@@ -202,6 +206,36 @@ export function QualityInspectionsScreen() {
     columnDefs,
   );
 
+  const filterSpecs = useMemo((): FilterSpec[] => {
+    return [
+      { type: "text", source: "search", label: "Search" },
+      {
+        type: "option",
+        key: "status",
+        label: "Status",
+        options: enumFilterOptions(
+          QUALITY_INSPECTION_STATUSES,
+          QUALITY_INSPECTION_STATUS_LABELS,
+        ),
+      },
+      {
+        type: "option",
+        key: "goods_receipt_id",
+        label: "Goods receipt",
+        options: receipts.map((row) => ({
+          value: row.id,
+          label: goodsReceiptDisplayNumber(row) ?? row.id,
+        })),
+      },
+      {
+        type: "dateRange",
+        fromKey: "inspection_date_from",
+        toKey: "inspection_date_to",
+        label: "Inspection date",
+      },
+    ];
+  }, [receipts]);
+
   async function onDelete() {
     if (!deleting) {
       return;
@@ -252,7 +286,7 @@ export function QualityInspectionsScreen() {
           ) : undefined
         }
       />
-      <DataTableToolbar>
+      <ListFilterToolbar search={search} filters={filters} specs={filterSpecs} setParams={setParams}>
         <ListSearch
           value={search ?? ""}
           onChange={(value) => setParams({ search: value || null })}
@@ -327,29 +361,7 @@ export function QualityInspectionsScreen() {
           onApply={setParams}
         />
         {columnsDialog}
-        {search || filters.status || filters.goods_receipt_id || extraCount > 0 || sort_by ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setParams({
-                search: null,
-                sort_by: null,
-                sort_order: null,
-                filters: {
-                  status: null,
-                  goods_receipt_id: null,
-                  inspection_date_from: null,
-                  inspection_date_to: null,
-                },
-              })
-            }
-          >
-            Clear
-          </Button>
-        ) : null}
-      </DataTableToolbar>
+      </ListFilterToolbar>
       <DataTable footer={meta ? <DataTablePagination meta={meta} onPageChange={setPage} /> : null}>
         <TableHeader>
           <TableRow>

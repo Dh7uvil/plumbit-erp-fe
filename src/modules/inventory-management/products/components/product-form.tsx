@@ -694,7 +694,7 @@ export function ProductForm({
               control={form.control}
               name="track_inventory"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                <FormItem variant="checkbox">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -711,7 +711,7 @@ export function ProductForm({
                 control={form.control}
                 name="requires_qc"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                  <FormItem variant="checkbox">
                     <FormControl>
                       <Checkbox
                         checked={field.value}
@@ -728,7 +728,7 @@ export function ProductForm({
               control={form.control}
               name="stock_input_disabled"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                <FormItem variant="checkbox">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -745,7 +745,7 @@ export function ProductForm({
                 control={form.control}
                 name="is_active"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                  <FormItem variant="checkbox">
                     <FormControl>
                       <Checkbox
                         checked={field.value}
