@@ -1,12 +1,15 @@
 import { ChequeEditScreen } from "@/modules/erp/accounting/cheques/components/cheque-edit-screen";
 import { chequePermissions } from "@/modules/erp/accounting/cheques/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-export default async function EditChequePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default function EditChequePage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={chequePermissions.update}>
-      <ChequeEditScreen id={id} />
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={chequePermissions.update}
+      notFoundMessage="Cheque not found."
+    >
+      {(id) => <ChequeEditScreen id={id} />}
+    </DetailPageRoute>
   );
 }

@@ -274,23 +274,19 @@ export function formatPacking(
   return `${qty} ( pieces ) / ${unit}`;
 }
 
-/** Packing label: "100 PCS / CTN" from factor and unit codes. */
+/** Packing label: "{factor} PCS / {unit 2}" (pieces per unit 2, not stock unit). */
 export function formatSecondaryPackingLabel(
   factor: string | null | undefined,
-  unitCode: string | null | undefined,
+  _unitCode: string | null | undefined,
   unit2Code: string | null | undefined,
 ): string | null {
-  const qtyRaw = factor?.trim();
-  const u1 = unitCode?.trim();
-  const u2 = unit2Code?.trim();
-  if (!qtyRaw || !u1 || !u2) {
-    return null;
-  }
+  const qtyRaw = factor?.trim() || "1";
+  const u2 = unit2Code?.trim() || "PCS";
   const n = Number(qtyRaw);
   if (!Number.isFinite(n) || n <= 0) {
     return null;
   }
-  return `${formatQuantity(qtyRaw)} ${u1} / ${u2}`;
+  return `${formatQuantity(qtyRaw)} PCS / ${u2}`;
 }
 
 export type ProductListParams = {

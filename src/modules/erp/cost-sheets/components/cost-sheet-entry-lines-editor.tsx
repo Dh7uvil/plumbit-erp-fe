@@ -74,20 +74,20 @@ export function CostSheetEntryLinesEditor({
   return (
     <div className="flex flex-col gap-2">
       <DocumentViewTableContainer viewMode={Boolean(disabled)} rowCount={fields.length}>
-        <table className="w-full caption-bottom text-sm">
+        <table className="w-full table-fixed caption-bottom text-sm">
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-[20ch]">Account</TableHead>
+              <TableHead>Account</TableHead>
               <TableHead className="w-32">Dr amount</TableHead>
               <TableHead className="w-32">Cr amount</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead />
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {fields.map((field, index) => (
               <TableRow key={field.id}>
-                <TableCell className="min-w-[20ch] align-top">
+                <TableCell className="overflow-hidden align-top">
                   <FormField
                     control={form.control}
                     name={`journal_lines.${index}.account_id`}
@@ -156,7 +156,7 @@ export function CostSheetEntryLinesEditor({
                     )}
                   />
                 </TableCell>
-                <TableCell className="min-w-[16rem] align-top">
+                <TableCell className="overflow-hidden align-top">
                   <FormField
                     control={form.control}
                     name={`journal_lines.${index}.description`}
@@ -175,16 +175,15 @@ export function CostSheetEntryLinesEditor({
                     )}
                   />
                 </TableCell>
-                <TableCell className="align-top">
+                <TableCell className="w-12 align-top">
                   {disabled ? null : (
                     <TableActionTooltip label={`Remove line ${index + 1}`}>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-7"
+                        className="text-destructive size-7"
                         aria-label={`Remove line ${index + 1}`}
-                        disabled={fields.length <= 1}
                         onClick={() => remove(index)}
                       >
                         <Trash2 className="size-3.5" />

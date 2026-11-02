@@ -1,16 +1,15 @@
 import { CostSheetDetailScreen } from "@/modules/erp/cost-sheets/components/cost-sheet-detail-screen";
 import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-type Props = {
-  params: Promise<{ id: string }>;
-};
-
-export default async function CostSheetDetailPage({ params }: Props) {
-  const { id } = await params;
+export default function CostSheetDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={costSheetPermissions.read}>
-      <CostSheetDetailScreen id={id} />
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={costSheetPermissions.read}
+      notFoundMessage="Cost sheet not found."
+    >
+      {(id) => <CostSheetDetailScreen id={id} />}
+    </DetailPageRoute>
   );
 }

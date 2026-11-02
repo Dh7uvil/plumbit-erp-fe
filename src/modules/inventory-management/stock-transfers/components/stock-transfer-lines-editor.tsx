@@ -17,6 +17,8 @@ import type {
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
+import { defaultDocumentLineUnitId } from "@/shared/components/document/line-autofill";
+import { convertQuantityUnit2ToPieces } from "@/shared/components/document/line-units";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
@@ -76,8 +78,32 @@ export function StockTransferLinesEditor({
   const showLive = Boolean(sourceQtyByProductId || destQtyByProductId);
   const { baseCurrencyId } = useBaseCurrency();
 
+  function applyLineUnitChange(index: number, selectedUnitId: string) {
+    form.setValue(`lines.${index}.unit_id`, selectedUnitId);
+    const productId = form.getValues(`lines.${index}.product_id`);
+    const product = products.find((item) => item.id === productId);
+    if (!product) {
+      return;
+    }
+    const quantity = String(form.getValues(`lines.${index}.qty`) ?? "");
+    const converted = convertQuantityUnit2ToPieces(
+      product,
+      selectedUnitId,
+      quantity,
+      (id) => units.find((unit) => unit.id === id)?.code,
+    );
+    if (!converted) {
+      return;
+    }
+    form.setValue(`lines.${index}.unit_id`, converted.unit_id);
+    form.setValue(`lines.${index}.qty`, converted.quantity);
+  }
+
   function applyProduct(index: number, product: Product) {
-    form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
+    form.setValue(
+      `lines.${index}.unit_id`,
+      defaultDocumentLineUnitId(product, (id) => units.find((unit) => unit.id === id)?.code),
+    );
     void applyProductWithServerDefaults(product, {
       purchaseSide: true,
       warehouseId: sourceWarehouseId,
@@ -176,7 +202,7 @@ export function StockTransferLinesEditor({
                             <MasterSelect
                               compact
                               value={unitField.value}
-                              onValueChange={unitField.onChange}
+                              onValueChange={(value) => applyLineUnitChange(index, value)}
                               disabled={disabled || unitsQuery.isLoading}
                               placeholder="None"
                               searchPlaceholder="Search unit…"

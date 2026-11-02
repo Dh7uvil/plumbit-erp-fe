@@ -19,6 +19,7 @@ import {
 } from "@/modules/inventory-management/products/mutations";
 import { useAllProducts } from "@/modules/inventory-management/products/queries";
 import {
+  applyDefaultSecondaryUnit,
   toCreateRequest,
   toDirtyUpdateRequest,
   toFormValues,
@@ -106,9 +107,9 @@ export function ProductForm({
     : undefined;
   const packingLabel = formatPacking(piecesPerUnit, selectedUnitName);
   const secondaryPerLabel = formatSecondaryPackingLabel(
-    secondaryUnitFactor,
+    hasSecondaryUnit ? secondaryUnitFactor : secondaryUnitFactor || "1",
     selectedUnit?.code,
-    selectedSecondaryUnit?.code,
+    hasSecondaryUnit ? selectedSecondaryUnit?.code : undefined,
   );
   const unit2SelectOptions = (unitsQuery.data ?? []).filter(
     (unit) => !hasUnit || unit.id !== unitId,
@@ -157,20 +158,42 @@ export function ProductForm({
   }, [form, isEdit, unitsQuery.data, unitsQuery.isLoading]);
 
   useEffect(() => {
-    if (hasSecondaryUnit) {
+    if (isEdit || unitsQuery.isLoading) {
       return;
     }
-    if (form.getValues("secondary_unit_factor") !== "") {
-      form.setValue("secondary_unit_factor", "");
+    if (form.formState.dirtyFields.secondary_unit_id) {
+      return;
     }
-  }, [form, hasSecondaryUnit]);
+    if (form.getValues("secondary_unit_id") !== OPTIONAL_SELECT_NONE) {
+      return;
+    }
+    const stockUnitId = form.getValues("unit_id");
+    const pcs = (unitsQuery.data ?? []).find((unit) => unit.code === "PCS");
+    if (!pcs || stockUnitId === pcs.id) {
+      return;
+    }
+    form.setValue("secondary_unit_id", pcs.id);
+    if (!form.formState.dirtyFields.secondary_unit_factor) {
+      form.setValue("secondary_unit_factor", "1");
+    }
+  }, [form, isEdit, unitId, unitsQuery.data, unitsQuery.isLoading]);
 
   async function onSubmit(values: ProductFormValues) {
     setFormError(null);
+    const units = unitsQuery.data ?? [];
+    const normalized = applyDefaultSecondaryUnit(values, units);
     try {
       if (product) {
         const dirty = form.formState.dirtyFields;
-        const patch = toDirtyUpdateRequest(values, dirty);
+        const patch = toDirtyUpdateRequest(normalized, dirty);
+        if (
+          !product.secondary_unit_id &&
+          normalized.secondary_unit_id !== OPTIONAL_SELECT_NONE
+        ) {
+          patch.secondary_unit_id = normalized.secondary_unit_id;
+          patch.secondary_unit_factor =
+            normalized.secondary_unit_factor.trim() || "1";
+        }
         if (Object.keys(patch).length === 0) {
           toast.message("No changes to save");
           onSuccess?.(product);
@@ -180,7 +203,7 @@ export function ProductForm({
         toast.success("Product updated");
         onSuccess?.(product);
       } else {
-        const created = await createProduct.mutateAsync(toCreateRequest(values));
+        const created = await createProduct.mutateAsync(toCreateRequest(normalized));
         toast.success("Product created");
         onSuccess?.(created);
       }
@@ -390,12 +413,7 @@ export function ProductForm({
                 <FormLabel>Unit 2</FormLabel>
                 <MasterSelect
                   value={field.value}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    if (value === OPTIONAL_SELECT_NONE) {
-                      form.setValue("secondary_unit_factor", "");
-                    }
-                  }}
+                  onValueChange={field.onChange}
                   disabled={disabled || unitsQuery.isLoading}
                   placeholder="None"
                   searchPlaceholder="Search unit…"

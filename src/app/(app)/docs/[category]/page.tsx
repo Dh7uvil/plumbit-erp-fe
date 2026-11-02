@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { docsCatalog, findDocCategory } from "@/config/docs-catalog";
@@ -8,6 +9,7 @@ import { DocsPageList } from "@/modules/documentation/components/docs-page-list"
 import { DocsCategoryIcon } from "@/modules/documentation/components/docs-category-icon";
 import { docsCategoryAccent } from "@/modules/documentation/lib/docs-theme";
 import { cn } from "@/shared/lib/cn";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 export function generateStaticParams() {
   return docsCatalog.map((category) => ({ category: category.slug }));
@@ -26,11 +28,15 @@ export async function generateMetadata({
   return { title: `${category.label} — Documentation` };
 }
 
-export default async function DocsCategoryPage({
-  params,
-}: {
-  params: Promise<{ category: string }>;
-}) {
+export default function DocsCategoryPage({ params }: { params: Promise<{ category: string }> }) {
+  return (
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <DocsCategoryContent params={params} />
+    </Suspense>
+  );
+}
+
+async function DocsCategoryContent({ params }: { params: Promise<{ category: string }> }) {
   const { category: categorySlug } = await params;
   const category = findDocCategory(categorySlug);
   if (!category) {
@@ -48,7 +54,12 @@ export default async function DocsCategoryPage({
         All pages
       </Link>
       <header className="flex items-start gap-4">
-        <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl", accent.icon)}>
+        <span
+          className={cn(
+            "flex size-12 shrink-0 items-center justify-center rounded-2xl",
+            accent.icon,
+          )}
+        >
           <DocsCategoryIcon slug={category.slug} className="size-5" />
         </span>
         <div>

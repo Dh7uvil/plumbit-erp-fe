@@ -37,8 +37,7 @@ export function ProductQuantityRowsTable({
     return null;
   }
   const u1 = unitCode?.trim() || "Unit";
-  const u2 = unit2Code?.trim();
-  const showUnit2 = Boolean(u2);
+  const u2 = unit2Code?.trim() || "PCS";
 
   return (
     <InquirySection
@@ -46,7 +45,6 @@ export function ProductQuantityRowsTable({
       headerAside={
         packingLabel?.trim() ? `Per ${formatPackingLabel(packingLabel)}` : undefined
       }
-      description={!packingLabel?.trim() && !showUnit2 ? "Base unit quantities" : undefined}
     >
       <InquiryTableShell>
         <Table>
@@ -59,22 +57,18 @@ export function ProductQuantityRowsTable({
                 </span>
                 <span>{u1}</span>
               </TableHead>
-              {showUnit2 ? (
-                <>
-                  <TableHead className="h-9 text-right">
-                    <span className="block text-[0.65rem] font-normal tracking-wide uppercase opacity-80">
-                      Unit 2
-                    </span>
-                    <span>{u2}</span>
-                  </TableHead>
-                  <TableHead className="h-9 text-right">
-                    <span className="block text-[0.65rem] font-normal tracking-wide uppercase opacity-80">
-                      Loose unit
-                    </span>
-                    <span>{u1}</span>
-                  </TableHead>
-                </>
-              ) : null}
+              <TableHead className="h-9 text-right">
+                <span className="block text-[0.65rem] font-normal tracking-wide uppercase opacity-80">
+                  Unit 2
+                </span>
+                <span>{u2}</span>
+              </TableHead>
+              <TableHead className="h-9 text-right">
+                <span className="block text-[0.65rem] font-normal tracking-wide uppercase opacity-80">
+                  Loose pieces
+                </span>
+                <span>{u1}</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -89,16 +83,12 @@ export function ProductQuantityRowsTable({
                   <TableCell className="text-right tabular-nums">
                     {formatQuantity(row.unit_qty)}
                   </TableCell>
-                  {showUnit2 ? (
-                    <>
-                      <TableCell className="text-right tabular-nums">
-                        {formatQuantity(row.unit2_qty)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatQuantity(row.remainder_qty)}
-                      </TableCell>
-                    </>
-                  ) : null}
+                  <TableCell className="text-right tabular-nums">
+                    {formatQuantity(row.unit2_qty)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatQuantity(row.remainder_qty)}
+                  </TableCell>
                 </TableRow>
               );
             })}

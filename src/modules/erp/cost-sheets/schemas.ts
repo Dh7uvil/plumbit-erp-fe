@@ -265,8 +265,8 @@ export function emptyCostSheetEntryLine(): CostSheetEntryFormLine {
   return { ...DEFAULT_COST_SHEET_ENTRY_LINE };
 }
 
-export const CostSheetCreateRequestSchema = costSheetWriteBaseSchema.superRefine(
-  (values, ctx) => refineCostSheetModeLines(values, ctx),
+export const CostSheetCreateRequestSchema = costSheetWriteBaseSchema.superRefine((values, ctx) =>
+  refineCostSheetModeLines(values, ctx),
 );
 
 export type CostSheetCreateRequest = z.infer<typeof CostSheetCreateRequestSchema>;
@@ -277,12 +277,18 @@ export const CostSheetUpdateRequestSchema = costSheetWriteBaseSchema
     version: z.number().optional(),
   })
   .superRefine((values, ctx) => {
-    if (values.sheet_mode === undefined && values.lines === undefined && values.journal_lines === undefined) {
+    if (
+      values.sheet_mode === undefined &&
+      values.lines === undefined &&
+      values.journal_lines === undefined
+    ) {
       return;
     }
     refineCostSheetModeLines(
       {
         sheet_mode: values.sheet_mode,
+        source_document_type: values.source_document_type,
+        source_document_id: values.source_document_id,
         lines: values.lines,
         journal_lines: values.journal_lines,
       },

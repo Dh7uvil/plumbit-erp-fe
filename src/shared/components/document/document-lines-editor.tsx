@@ -64,6 +64,7 @@ import {
   mergeProductLineDefaults,
   productLineAutofillValues,
 } from "@/shared/components/document/line-autofill";
+import { convertLineUnit2SelectionToPieces } from "@/shared/components/document/line-units";
 import { partyComposeApi } from "@/shared/api/party-compose-api";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { InventoryHelpDialog } from "@/shared/components/document/inventory-help-dialog";
@@ -622,6 +623,35 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
     );
   }
 
+  function applyLineUnitChange(index: number, selectedUnitId: string) {
+    setLineValue(index, "unit_id", selectedUnitId);
+    const productId = String(
+      form.getValues(linePath<TFieldValues>(index, "product_id")) ?? "",
+    ).trim();
+    if (!productId || productId === OPTIONAL_SELECT_NONE) {
+      return;
+    }
+    const product = products.find((item) => item.id === productId);
+    if (!product) {
+      return;
+    }
+    const quantity = String(form.getValues(linePath<TFieldValues>(index, "quantity")) ?? "");
+    const rate = String(form.getValues(linePath<TFieldValues>(index, "rate")) ?? "");
+    const converted = convertLineUnit2SelectionToPieces(
+      product,
+      selectedUnitId,
+      quantity,
+      rate,
+      (id) => units.find((unit) => unit.id === id)?.code,
+    );
+    if (!converted) {
+      return;
+    }
+    setLineValue(index, "unit_id", converted.unit_id);
+    setLineValue(index, "quantity", converted.quantity);
+    setLineValue(index, "rate", converted.rate);
+  }
+
   function applyProductValues(
     index: number,
     product: Pick<
@@ -635,7 +665,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
       | "tax_id"
     >,
   ) {
-    const values = productLineAutofillValues(product, productSide === "purchase" ? "purchase" : "sales");
+    const values = productLineAutofillValues(
+      product,
+      productSide === "purchase" ? "purchase" : "sales",
+      { codeForUnitId: (id) => units.find((unit) => unit.id === id)?.code },
+    );
     setLineValue(index, "description", values.description);
     setLineValue(index, "rate", values.rate);
     setLineValue(index, "unit_id", values.unit_id);
@@ -679,10 +713,11 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
           const base = productLineAutofillValues(
             product,
             productSide === "purchase" ? "purchase" : "sales",
+            { codeForUnitId: (id) => units.find((unit) => unit.id === id)?.code },
           );
           const merged = mergeProductLineDefaults(base, defaults);
           setLineValue(index, "rate", merged.rate);
-          setLineValue(index, "unit_id", merged.unit_id);
+          setLineValue(index, "unit_id", merged.unit_id ?? base.unit_id);
           setLineValue(index, "tax_id", merged.tax_id);
         })
         .catch(() => undefined);
@@ -783,6 +818,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                     }
                     onApplyProduct={applyProduct}
                     onApplyCatalogRow={applyCatalogRow}
+                    onLineUnitChange={applyLineUnitChange}
                     onRemove={remove}
                     onCreateProduct={
                       can(productPermissions.create)
@@ -1127,7 +1163,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
                               <MasterSelect
                                 compact
                                 value={String(unitField.value ?? OPTIONAL_SELECT_NONE)}
-                                onValueChange={unitField.onChange}
+                                onValueChange={(value) => applyLineUnitChange(index, value)}
                                 disabled={disabled || unitsQuery.isLoading}
                                 placeholder="None"
                                 searchPlaceholder="Search unit…"

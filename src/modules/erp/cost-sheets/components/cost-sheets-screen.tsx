@@ -2,8 +2,10 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import { useDeleteCostSheet } from "@/modules/erp/cost-sheets/mutations";
 import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
 import { useCostSheets } from "@/modules/erp/cost-sheets/queries";
 import {
@@ -16,13 +18,14 @@ import { documentTypeDisplayLabel } from "@/shared/components/document/document-
 import { getErrorMessage } from "@/shared/api/errors";
 import { useCrudPermissions } from "@/shared/auth/use-crud-permissions";
 import { DataTableColumnHeads, DataTableCells } from "@/shared/components/data-table/column-cells";
-import { type DataTableColumn } from "@/shared/components/data-table/columns";
+import { actionsColumn, type DataTableColumn } from "@/shared/components/data-table/columns";
 import { DataTable } from "@/shared/components/data-table/data-table";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
 import { ListSearch } from "@/shared/components/data-table/list-search";
 import { DataTablePagination } from "@/shared/components/data-table/pagination";
 import { RecordLink } from "@/shared/components/data-table/record-link";
+import { DataTableRowActions, hasRowActions } from "@/shared/components/data-table/row-actions";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import {
   enumFilterOptions,
@@ -31,6 +34,7 @@ import {
 import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { useTableColumns } from "@/shared/components/data-table/use-table-columns";
 import { ListPage } from "@/shared/components/layout/list-page";
+import { ConfirmActionDialog } from "@/shared/components/feedback/confirm-action-dialog";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -48,7 +52,9 @@ function parseStatus(value: string | undefined): CostSheetStatus | undefined {
 }
 
 export function CostSheetsScreen() {
-  const { canCreate, canRead } = useCrudPermissions(costSheetPermissions);
+  const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(costSheetPermissions);
+  const deleteSheet = useDeleteCostSheet();
+  const [deleting, setDeleting] = useState<CostSheet | null>(null);
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
   const listQuery = useCostSheets({
@@ -65,6 +71,21 @@ export function CostSheetsScreen() {
   const rows = listQuery.data?.data ?? [];
   const meta = listQuery.data?.meta;
 
+  const showActions = hasRowActions(canRead, canUpdate, canDelete);
+
+  async function confirmDelete() {
+    if (!deleting) {
+      return;
+    }
+    try {
+      await deleteSheet.mutateAsync({ id: deleting.id, options: { version: deleting.version } });
+      toast.success("Cost sheet deleted");
+      setDeleting(null);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  }
+
   const columnDefs = useMemo((): Array<DataTableColumn<CostSheet>> => {
     return [
       {
@@ -79,9 +100,7 @@ export function CostSheetsScreen() {
         id: "source_document_type",
         header: "Document type",
         cell: (row) =>
-          row.source_document_type
-            ? documentTypeDisplayLabel(row.source_document_type)
-            : "—",
+          row.source_document_type ? documentTypeDisplayLabel(row.source_document_type) : "—",
       },
       {
         id: "source_document_number",
@@ -105,8 +124,16 @@ export function CostSheetsScreen() {
         sortableField: "status",
         cell: (row) => <Badge variant="outline">{COST_SHEET_STATUS_LABELS[row.status]}</Badge>,
       },
+      ...actionsColumn<CostSheet>(showActions, (row) => (
+        <DataTableRowActions
+          entityName={row.document_number}
+          viewHref={canRead ? `/cost-sheets/${row.id}` : undefined}
+          editHref={canUpdate && row.status === "DRAFT" ? `/cost-sheets/${row.id}/edit` : undefined}
+          onDelete={canDelete && row.status === "DRAFT" ? () => setDeleting(row) : undefined}
+        />
+      )),
     ];
-  }, []);
+  }, [canDelete, canRead, canUpdate, showActions]);
 
   const { columns, colSpan } = useTableColumns("erp.cost_sheets", columnDefs);
 
@@ -240,6 +267,19 @@ export function CostSheetsScreen() {
           )}
         </TableBody>
       </DataTable>
+      <ConfirmActionDialog
+        open={Boolean(deleting)}
+        title="Delete cost sheet"
+        description={`${deleting?.document_number ?? "This cost sheet"} will be deleted. Draft sheets only.`}
+        confirmLabel="Delete"
+        pending={deleteSheet.isPending}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleting(null);
+          }
+        }}
+        onConfirm={() => void confirmDelete()}
+      />
     </ListPage>
   );
 }

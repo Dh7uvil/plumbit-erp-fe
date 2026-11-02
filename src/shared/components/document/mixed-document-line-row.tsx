@@ -168,6 +168,7 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
   exchangeRate = "",
   onApplyProduct,
   onApplyCatalogRow,
+  onLineUnitChange,
   onRemove,
   onCreateProduct,
   onCreateUnit,
@@ -189,6 +190,7 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
   exchangeRate?: string;
   onApplyProduct: (index: number, productId: string) => void;
   onApplyCatalogRow: (index: number, row: SupplierProduct) => void;
+  onLineUnitChange?: (index: number, unitId: string) => void;
   onRemove: (index: number) => void;
   onCreateProduct?: (index: number) => void;
   onCreateUnit?: (index: number) => void;
@@ -423,7 +425,9 @@ export function MixedDocumentLineRow<TFieldValues extends FieldValues>({
                   <MasterSelect
                     compact
                     value={String(unitField.value ?? OPTIONAL_SELECT_NONE)}
-                    onValueChange={unitField.onChange}
+                    onValueChange={(value) =>
+                      onLineUnitChange ? onLineUnitChange(index, value) : unitField.onChange(value)
+                    }
                     disabled={disabled}
                     placeholder="None"
                     searchPlaceholder="Search unit…"

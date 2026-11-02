@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { docsCatalog, findDoc } from "@/config/docs-catalog";
 import { loadDocComponent } from "@/content/docs-loaders";
 import { DocsArticle } from "@/modules/documentation/components/docs-article";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 export function generateStaticParams() {
   return docsCatalog.flatMap((category) =>
@@ -27,7 +29,19 @@ export async function generateMetadata({
   return { title: `${doc.title} — Documentation` };
 }
 
-export default async function DocsArticlePage({
+export default function DocsArticlePage({
+  params,
+}: {
+  params: Promise<{ category: string; slug: string }>;
+}) {
+  return (
+    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+      <DocsArticleContent params={params} />
+    </Suspense>
+  );
+}
+
+async function DocsArticleContent({
   params,
 }: {
   params: Promise<{ category: string; slug: string }>;

@@ -1,16 +1,19 @@
 import { GrnChargeAdjustmentDetailScreen } from "@/modules/inventory-management/goods-receipt-charge-adjustments/components/grn-charge-adjustment-detail-screen";
 import { grnChargeAdjustmentPermissions } from "@/modules/inventory-management/goods-receipt-charge-adjustments/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-type Props = {
+export default function GrnChargeAdjustmentDetailPage({
+  params,
+}: {
   params: Promise<{ id: string }>;
-};
-
-export default async function GrnChargeAdjustmentDetailPage({ params }: Props) {
-  const { id } = await params;
+}) {
   return (
-    <PermissionGate permission={grnChargeAdjustmentPermissions.read}>
-      <GrnChargeAdjustmentDetailScreen id={id} />
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={grnChargeAdjustmentPermissions.read}
+      notFoundMessage="Charge adjustment not found."
+    >
+      {(id) => <GrnChargeAdjustmentDetailScreen id={id} />}
+    </DetailPageRoute>
   );
 }

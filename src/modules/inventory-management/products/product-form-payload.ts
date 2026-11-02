@@ -7,6 +7,7 @@ import type {
   ProductUpdateRequest,
 } from "@/modules/inventory-management/products/schemas";
 import { PRODUCT_FORM_UPDATE_KEYS } from "@/modules/inventory-management/products/schemas";
+import type { Unit } from "@/modules/inventory-management/units/schemas";
 
 function optionalUuid(value: string): string | null {
   return !value || value === OPTIONAL_SELECT_NONE ? null : value;
@@ -18,6 +19,27 @@ function piecesPerUnitPayload(unitId: string, piecesPerUnit: string): string | n
 
 function optionalDecimal(value: string): string | null {
   return emptyToNull(value);
+}
+
+/** When unit 2 is unset, default to Pieces at 1 unless the stock unit is already Pieces. */
+export function applyDefaultSecondaryUnit(
+  values: ProductFormValues,
+  units: Unit[],
+): ProductFormValues {
+  if (optionalUuid(values.secondary_unit_id)) {
+    return values;
+  }
+  const stockUnitId = optionalUuid(values.unit_id);
+  const pcs = units.find((unit) => unit.code === "PCS");
+  if (!pcs || stockUnitId === pcs.id) {
+    return values;
+  }
+  const factor = values.secondary_unit_factor.trim() || "1";
+  return {
+    ...values,
+    secondary_unit_id: pcs.id,
+    secondary_unit_factor: factor,
+  };
 }
 
 export function toFormValues(product: Product | null): ProductFormValues {

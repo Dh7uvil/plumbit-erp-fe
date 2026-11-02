@@ -38,7 +38,7 @@ export function ProductFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent nested={nested} className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent nested={nested} className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{formDialogTitle("Product", mode)}</DialogTitle>
         </DialogHeader>

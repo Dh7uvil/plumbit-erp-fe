@@ -1,12 +1,15 @@
 import { VoucherDetailScreen } from "@/modules/erp/accounting/vouchers/components/voucher-detail-screen";
 import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-export default async function EditVoucherPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default function EditVoucherPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={voucherPermissions.update}>
-      <VoucherDetailScreen voucherId={id} mode="edit" />
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={voucherPermissions.update}
+      notFoundMessage="Voucher not found."
+    >
+      {(id) => <VoucherDetailScreen voucherId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }

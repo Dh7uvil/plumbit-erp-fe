@@ -41,6 +41,18 @@ describe("formatUnit2PackageText", () => {
 });
 
 describe("buildQuantityRows", () => {
+  it("treats factor 1 as one piece per unit 2", () => {
+    const rows = buildQuantityRows({
+      qty_on_hand: "5000",
+      qty_opened: "0",
+      qty_committed: "0",
+      net_available: "5000",
+      secondary_unit_factor: "1",
+    });
+    expect(rows.on_hand?.unit2_qty).toBe("5000");
+    expect(rows.on_hand?.remainder_qty).toBe("0");
+  });
+
   it("builds all four rows", () => {
     const rows = buildQuantityRows({
       qty_on_hand: "10",

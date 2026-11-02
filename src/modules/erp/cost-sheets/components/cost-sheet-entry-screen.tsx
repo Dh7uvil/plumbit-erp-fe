@@ -13,6 +13,7 @@ import {
   CostSheetEntryLinesEditor,
   filledCostSheetEntryLines,
 } from "@/modules/erp/cost-sheets/components/cost-sheet-entry-lines-editor";
+import { useCostSheetWorkflow } from "@/modules/erp/cost-sheets/hooks/use-cost-sheet-workflow";
 import { useCreateCostSheet, useUpdateCostSheet } from "@/modules/erp/cost-sheets/mutations";
 import {
   CostSheetEntryFormSchema,
@@ -22,9 +23,14 @@ import {
   type CostSheetEntryFormValues,
   type CostSheetUpdateRequest,
 } from "@/modules/erp/cost-sheets/schemas";
+import {
+  COST_SHEET_ACTION_REGISTRY,
+  type CostSheetWorkflowAction,
+} from "@/modules/erp/cost-sheets/workflow";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
+import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { SourceDocumentPicker } from "@/shared/components/document/source-document-picker";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -114,6 +120,19 @@ function toCreatePayload(values: CostSheetEntryFormValues): CostSheetCreateReque
   };
 }
 
+function CostSheetEntryActions({ sheet }: { sheet: CostSheet }) {
+  const onAction = useCostSheetWorkflow(sheet);
+  return (
+    <DocumentWorkflowButtons
+      availableActions={sheet.available_actions}
+      registry={COST_SHEET_ACTION_REGISTRY}
+      documentKind="cost sheet"
+      documentLabel={sheet.document_number}
+      onAction={(action, extras) => onAction(action as CostSheetWorkflowAction, extras)}
+    />
+  );
+}
+
 function toUpdatePayload(values: CostSheetEntryFormValues): CostSheetUpdateRequest {
   const created = toCreatePayload(values);
   return {
@@ -196,9 +215,12 @@ export function CostSheetEntryScreen({ sheet }: { sheet?: CostSheet | null }) {
             : "Journal cost sheet"
         }
         actions={
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link href="/cost-sheets">Back</Link>
-          </Button>
+          <>
+            {sheet ? <CostSheetEntryActions sheet={sheet} /> : null}
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link href="/cost-sheets">Back</Link>
+            </Button>
+          </>
         }
       />
       <Card>
@@ -243,11 +265,7 @@ export function CostSheetEntryScreen({ sheet }: { sheet?: CostSheet | null }) {
                 <FormItem>
                   <FormLabel>Voucher no.</FormLabel>
                   <FormControl>
-                    <Input
-                      value={sheet?.document_number ?? "Assigned on save"}
-                      disabled
-                      readOnly
-                    />
+                    <Input value={sheet?.document_number ?? "Assigned on save"} disabled readOnly />
                   </FormControl>
                 </FormItem>
                 <FormField

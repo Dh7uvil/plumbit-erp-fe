@@ -1,12 +1,15 @@
 import { TaskDetailScreen } from "@/modules/task-management/tasks/components/task-detail-screen";
 import { taskPermissions } from "@/modules/task-management/tasks/permissions";
-import { PermissionGate } from "@/shared/auth/guards";
+import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
-export default async function TaskEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default function TaskEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <PermissionGate permission={taskPermissions.update}>
-      <TaskDetailScreen taskId={id} mode="edit" />
-    </PermissionGate>
+    <DetailPageRoute
+      params={params}
+      permission={taskPermissions.update}
+      notFoundMessage="Task not found."
+    >
+      {(id) => <TaskDetailScreen taskId={id} mode="edit" />}
+    </DetailPageRoute>
   );
 }
