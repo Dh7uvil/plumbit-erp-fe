@@ -1,4 +1,4 @@
-import { VoucherDetailScreen } from "@/modules/erp/accounting/vouchers/components/voucher-detail-screen";
+import { VoucherEntryPageClient } from "@/modules/erp/accounting/vouchers/components/voucher-entry-page-client";
 import { voucherPermissions } from "@/modules/erp/accounting/vouchers/permissions";
 import { DetailPageRoute } from "@/shared/components/layout/detail-page-route";
 
@@ -9,7 +9,7 @@ export default function EditVoucherPage({ params }: { params: Promise<{ id: stri
       permission={voucherPermissions.update}
       notFoundMessage="Voucher not found."
     >
-      {(id) => <VoucherDetailScreen voucherId={id} mode="edit" />}
+      {(id) => <VoucherEntryPageClient voucherId={id} readOnly={false} />}
     </DetailPageRoute>
   );
 }

@@ -85,12 +85,23 @@ function roundHalfUp(
   };
 }
 
+function coerceScientificDecimalString(value: string): string {
+  const trimmed = value.trim();
+  if (/e/i.test(trimmed)) {
+    const n = Number(trimmed);
+    if (Number.isFinite(n)) {
+      return n.toFixed(QUANTITY_SCALE);
+    }
+  }
+  return trimmed;
+}
+
 export function formatFixedDecimal(value: string | null | undefined, fractionDigits = 2): string {
   if (value == null || value === "") {
     return "—";
   }
   try {
-    const { negative, whole, fraction } = parseDecimalParts(value);
+    const { negative, whole, fraction } = parseDecimalParts(coerceScientificDecimalString(value));
     const rounded = roundHalfUp(whole, fraction, fractionDigits);
     return signedGrouped(negative, rounded.whole, rounded.fraction);
   } catch {
@@ -171,7 +182,7 @@ export function formatPercent(value: string | null | undefined): string {
 }
 
 export function normalizeDecimalInput(value: string, fractionDigits = 2): string {
-  const trimmed = value.trim();
+  const trimmed = coerceScientificDecimalString(value);
   if (trimmed === "") {
     return "";
   }

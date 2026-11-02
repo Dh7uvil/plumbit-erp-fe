@@ -4,6 +4,15 @@ import type {
 } from "@/modules/inventory-management/products/schemas";
 import { formatQuantity } from "@/shared/lib/format";
 
+export function isInvertedProductPackaging(
+  unitCode: string | null | undefined,
+  unit2Code: string | null | undefined,
+): boolean {
+  const base = unitCode?.trim().toUpperCase();
+  const u2 = unit2Code?.trim().toUpperCase();
+  return Boolean(base && u2 === "PCS" && base !== "PCS");
+}
+
 export function formatUnit2PackageText(
   unit2Qty: string,
   remainderQty: string,

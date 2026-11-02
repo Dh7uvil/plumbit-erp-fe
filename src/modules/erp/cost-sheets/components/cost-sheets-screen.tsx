@@ -10,6 +10,7 @@ import { costSheetPermissions } from "@/modules/erp/cost-sheets/permissions";
 import { useCostSheets } from "@/modules/erp/cost-sheets/queries";
 import {
   COST_SHEET_STATUS_LABELS,
+  costSheetStatusLabel,
   COST_SHEET_STATUSES,
   type CostSheet,
   type CostSheetStatus,
@@ -122,14 +123,29 @@ export function CostSheetsScreen() {
         id: "status",
         header: "Status",
         sortableField: "status",
-        cell: (row) => <Badge variant="outline">{COST_SHEET_STATUS_LABELS[row.status]}</Badge>,
+        cell: (row) => (
+          <Badge variant="outline">{costSheetStatusLabel(row.status, row.sheet_mode)}</Badge>
+        ),
       },
       ...actionsColumn<CostSheet>(showActions, (row) => (
         <DataTableRowActions
           entityName={row.document_number}
           viewHref={canRead ? `/cost-sheets/${row.id}` : undefined}
-          editHref={canUpdate && row.status === "DRAFT" ? `/cost-sheets/${row.id}/edit` : undefined}
-          onDelete={canDelete && row.status === "DRAFT" ? () => setDeleting(row) : undefined}
+          editHref={
+            canUpdate &&
+            row.sheet_mode === "JOURNAL" &&
+            row.status !== "CLOSED"
+              ? `/cost-sheets/${row.id}`
+              : row.sheet_mode === "PLANNING" && row.status === "DRAFT"
+                ? `/cost-sheets/${row.id}`
+                : undefined
+          }
+          onDelete={
+            canDelete &&
+            row.available_actions.includes("delete")
+              ? () => setDeleting(row)
+              : undefined
+          }
         />
       )),
     ];
@@ -270,7 +286,7 @@ export function CostSheetsScreen() {
       <ConfirmActionDialog
         open={Boolean(deleting)}
         title="Delete cost sheet"
-        description={`${deleting?.document_number ?? "This cost sheet"} will be deleted. Draft sheets only.`}
+        description={`${deleting?.document_number ?? "This cost sheet"} will be deleted. Posted journal entries will be reversed first.`}
         confirmLabel="Delete"
         pending={deleteSheet.isPending}
         onOpenChange={(open) => {

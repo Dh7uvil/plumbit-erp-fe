@@ -9,6 +9,7 @@ import {
   InquiryTableShell,
 } from "@/modules/inventory-management/products/components/product-inquiry-layout";
 import { ProductQuantityRowsTable } from "@/modules/inventory-management/products/components/product-quantity-rows-table";
+import { isInvertedProductPackaging } from "@/modules/inventory-management/products/inquiry-quantities";
 import { useProductInquiry } from "@/modules/inventory-management/products/queries";
 import type { Product } from "@/modules/inventory-management/products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -79,6 +80,10 @@ export function ProductInquiryPanel({
           unitCode={inquiry.unit_code}
           unit2Code={inquiry.unit2_code}
           packingLabel={inquiry.packing_label}
+          invertedPackaging={isInvertedProductPackaging(
+            inquiry.unit_code,
+            inquiry.unit2_code,
+          )}
         />
 
         <InquirySection title="Stock levels">

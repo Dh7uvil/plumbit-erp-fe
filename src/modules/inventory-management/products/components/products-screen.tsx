@@ -2,10 +2,10 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import { ProductFormDialog } from "@/modules/inventory-management/products/components/product-form-dialog";
 import { ProductInventoryWorkbench } from "@/modules/inventory-management/products/components/product-inventory-workbench";
 import { useDeleteProduct } from "@/modules/inventory-management/products/mutations";
 import { productPermissions } from "@/modules/inventory-management/products/permissions";
@@ -26,11 +26,8 @@ export function ProductsScreen() {
   const { canCreate, canUpdate, canDelete, canRead } = useCrudPermissions(productPermissions);
   const queryClient = useQueryClient();
   const { search, filters } = useTableParams();
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteProduct = useDeleteProduct();
-  const editingQuery = useProduct(editingId);
   const deletingQuery = useProduct(deletingId);
 
   const showRowActions = hasRowActions(canRead, canUpdate, canDelete);
@@ -46,7 +43,7 @@ export function ProductsScreen() {
         <DataTableRowActions
           entityName={row.sku}
           viewHref={canRead ? `/products/${row.product_id}` : undefined}
-          onEdit={canUpdate ? () => setEditingId(row.product_id) : undefined}
+          editHref={canUpdate ? `/products/${row.product_id}/edit` : undefined}
           onDelete={canDelete ? () => setDeletingId(row.product_id) : undefined}
         />
       </div>
@@ -92,9 +89,11 @@ export function ProductsScreen() {
               }}
             />
             {canCreate ? (
-              <Button type="button" size="sm" onClick={() => setFormOpen(true)}>
-                <Plus className="size-3.5" />
-                New product
+              <Button type="button" size="sm" asChild>
+                <Link href="/products/new">
+                  <Plus className="size-3.5" />
+                  New product
+                </Link>
               </Button>
             ) : null}
           </div>
@@ -102,9 +101,11 @@ export function ProductsScreen() {
         detailActions={(productId) => (
           <>
             {canUpdate ? (
-              <Button type="button" size="sm" variant="outline" onClick={() => setEditingId(productId)}>
-                <Pencil className="size-3.5" />
-                Edit
+              <Button type="button" size="sm" variant="outline" asChild>
+                <Link href={`/products/${productId}/edit`}>
+                  <Pencil className="size-3.5" />
+                  Edit
+                </Link>
               </Button>
             ) : null}
             {canDelete ? (
@@ -124,16 +125,6 @@ export function ProductsScreen() {
         rowActions={showRowActions ? renderRowActions : undefined}
       />
 
-      <ProductFormDialog open={formOpen} product={null} onOpenChange={setFormOpen} />
-      <ProductFormDialog
-        open={Boolean(editingId)}
-        product={editingQuery.data ?? null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditingId(null);
-          }
-        }}
-      />
       <ConfirmActionDialog
         open={Boolean(deletingId)}
         title="Delete product"

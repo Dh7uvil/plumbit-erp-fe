@@ -942,32 +942,6 @@ export function PurchaseInvoiceForm({
           />
           <FormField
             control={form.control}
-            name="shipping_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Shipping amount</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="adjustment_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Adjustment amount</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="round_off_amount"
             render={({ field }) => (
               <FormItem>

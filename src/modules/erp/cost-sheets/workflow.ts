@@ -60,6 +60,7 @@ export const COST_SHEET_ACTION_REGISTRY: DocumentActionSpec<CostSheetWorkflowAct
     label: "Delete",
     permission: costSheetPermissions.delete,
     variant: "destructive",
-    confirmCopy: (documentNumber) => `${documentNumber} will be deleted. Draft sheets only.`,
+    confirmCopy: (documentNumber) =>
+      `${documentNumber} will be deleted. Any posted journal will be reversed first.`,
   },
 ];

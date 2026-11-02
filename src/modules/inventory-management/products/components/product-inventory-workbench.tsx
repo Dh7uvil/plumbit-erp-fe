@@ -22,6 +22,7 @@ import {
 import type {
   ProductInquiry,
   ProductInventoryListRow,
+  ProductPurchaseDetailLine,
 } from "@/modules/inventory-management/products/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { AppliedFilterPills } from "@/shared/components/data-table/applied-filter-pills";
@@ -51,28 +52,83 @@ const COMPACT_LOOKUP_GRID_CLASS = "max-h-[14rem] min-h-0";
 const DEFAULT_LOOKUP_GRID_CLASS = "max-h-[22rem]";
 
 type SummaryField =
-  | { id: string; label: string; kind: "money"; emphasize?: boolean; value: string | null | undefined }
+  | {
+      id: string;
+      label: string;
+      kind: "money";
+      emphasize?: boolean;
+      value: string | null | undefined;
+      fractionDigits?: number;
+      currencyCode?: string;
+    }
   | { id: string; label: string; kind: "qty"; value: string | undefined }
   | { id: string; label: string; kind: "text"; value: string | null | undefined };
 
-function formatSummaryMoney(value: string | null | undefined, code: string) {
+function formatSummaryMoney(
+  value: string | null | undefined,
+  code: string,
+  fractionDigits?: number,
+) {
   if (value == null || value === "") {
     return "—";
   }
-  return formatMoney(value, code);
+  return formatMoney(value, code, fractionDigits);
+}
+
+function resolveFcPrice(
+  inquiry: ProductInquiry | null | undefined,
+  baseCurrencyCode: string | null | undefined,
+  importLines: ProductPurchaseDetailLine[] | undefined,
+): { price: string | null; currency: string | null } {
+  const base = baseCurrencyCode?.trim().toUpperCase() ?? "";
+  const inquiryPrice = inquiry?.fc_price?.trim() || null;
+  const inquiryCurrency = inquiry?.fc_currency_code?.trim() || null;
+  if (inquiryPrice && inquiryCurrency) {
+    return { price: inquiryPrice, currency: inquiryCurrency };
+  }
+  for (const line of importLines ?? []) {
+    const code = line.currency_code?.trim().toUpperCase();
+    if (!code || (base && code === base)) {
+      continue;
+    }
+    const rate = (line.fc_rate ?? line.rate)?.trim();
+    if (rate) {
+      return { price: rate, currency: line.currency_code?.trim() ?? code };
+    }
+  }
+  return { price: null, currency: null };
 }
 
 function buildSummaryFields(
   row: ProductInventoryListRow,
   inquiry: ProductInquiry | null | undefined,
+  options?: {
+    baseCurrencyCode?: string | null;
+    importPurchaseLines?: ProductPurchaseDetailLine[];
+  },
 ): SummaryField[] {
   const avgCost =
     inquiry?.avg_cost ?? row.avg_cost ?? row.purchase_rate ?? null;
+  const fc = resolveFcPrice(
+    inquiry,
+    options?.baseCurrencyCode,
+    options?.importPurchaseLines,
+  );
   const lastPurchase =
     inquiry?.last_purchase_price ?? row.last_purchase_price ?? null;
 
-  return [
+  const fields: SummaryField[] = [
     { id: "avg_cost", label: "Avg. cost", kind: "money", emphasize: true, value: avgCost },
+    {
+      id: "fc_price",
+      label: "FC price",
+      kind: "money",
+      value: fc.price,
+      currencyCode: fc.currency ?? undefined,
+      fractionDigits: 4,
+    },
+  ];
+  fields.push(
     { id: "last_purchase", label: "Last purchase", kind: "money", value: lastPurchase },
     { id: "selling_rate", label: "Def. sale", kind: "money", value: row.selling_rate },
     { id: "price_1", label: "Price 1", kind: "money", value: row.price_1 },
@@ -80,23 +136,34 @@ function buildSummaryFields(
     { id: "ordered_qty", label: "Ordered", kind: "qty", value: row.ordered_qty },
     { id: "brand", label: "Brand", kind: "text", value: row.brand },
     { id: "engine", label: "Engine", kind: "text", value: row.engine },
-  ];
+  );
+  return fields;
 }
 
 function SelectedItemSummary({
   row,
   inquiry,
+  baseCurrencyCode,
+  importPurchaseLines,
 }: {
   row: ProductInventoryListRow;
   inquiry?: ProductInquiry | null;
+  baseCurrencyCode?: string | null;
+  importPurchaseLines?: ProductPurchaseDetailLine[];
 }) {
-  const { baseCurrencyCode } = useBaseCurrency();
   const code = baseCurrencyCode ?? "";
-  const fields = buildSummaryFields(row, inquiry);
+  const fields = buildSummaryFields(row, inquiry, {
+    baseCurrencyCode,
+    importPurchaseLines,
+  });
 
   function formatValue(field: SummaryField) {
     if (field.kind === "money") {
-      return formatSummaryMoney(field.value, code);
+      return formatSummaryMoney(
+        field.value,
+        field.currencyCode ?? code,
+        field.fractionDigits,
+      );
     }
     if (field.kind === "qty") {
       return formatQuantity(String(field.value ?? "0"));
@@ -250,6 +317,11 @@ export function ProductInventoryWorkbench({
 
   const productQuery = useProduct(selectedId);
   const inquiryQuery = useProductInquiry(selectedId);
+  const importFcQuery = useProductPurchaseDetails(
+    selectedId,
+    { kind: "IMPORT", posting_status: "ALL", page: 1, page_size: 20 },
+    Boolean(selectedId) && enabled,
+  );
   const localPurchases = useProductPurchaseDetails(
     selectedId,
     {
@@ -403,7 +475,14 @@ export function ProductInventoryWorkbench({
         </div>
 
         {selectedRow ? (
-          <SelectedItemSummary row={selectedRow} inquiry={inquiryQuery.data} />
+          <SelectedItemSummary
+            row={selectedRow}
+            inquiry={inquiryQuery.data}
+            baseCurrencyCode={baseCurrencyCode}
+            importPurchaseLines={
+              importFcQuery.data?.data ?? importPurchases.data?.data
+            }
+          />
         ) : null}
 
         <Tabs defaultValue="reg" className="flex flex-col gap-3">

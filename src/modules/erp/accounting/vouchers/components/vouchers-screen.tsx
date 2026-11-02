@@ -168,7 +168,9 @@ export function VouchersScreen({
                   entityName={number}
                   viewHref={canRead ? `/vouchers/${row.id}` : undefined}
                   editHref={
-                    canUpdate && row.status === "DRAFT" ? `/vouchers/${row.id}/edit` : undefined
+                    canUpdate && row.status !== "CANCELLED"
+                      ? `/vouchers/${row.id}`
+                      : undefined
                   }
                   onDelete={
                     row.available_actions.includes("delete") && canDelete

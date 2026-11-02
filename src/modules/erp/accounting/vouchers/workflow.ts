@@ -27,6 +27,6 @@ export const VOUCHER_ACTION_REGISTRY: DocumentActionSpec<VoucherWorkflowAction>[
     permission: voucherPermissions.delete,
     variant: "destructive",
     confirmCopy: (documentNumber) =>
-      `${documentNumber} will be removed. Only draft vouchers can be deleted.`,
+      `${documentNumber} will be removed. Posted vouchers will be reversed from the ledger first.`,
   },
 ];

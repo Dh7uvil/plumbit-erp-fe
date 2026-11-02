@@ -11,8 +11,9 @@ export function useCreateCostSheet() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: CostSheetCreateRequest) => costSheetsApi.create(values),
-    onSuccess: () => {
+    onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: costSheetKeys.all });
+      queryClient.setQueryData(costSheetKeys.detail(data.id), data);
     },
   });
 }

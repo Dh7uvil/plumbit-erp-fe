@@ -343,6 +343,8 @@ export const ProductInquirySchema = z.object({
   quantity_rows: ProductInquiryQuantityRowsSchema.nullable().optional().default(null),
   warehouses: z.array(ProductWarehouseQtySchema),
   avg_cost: z.string().nullable(),
+  fc_price: z.string().nullable().optional().default(null),
+  fc_currency_code: z.string().nullable().optional().default(null),
   lc_price: z.string().nullable(),
   lc_currency_code: z.string().nullable(),
   last_sale_date: z.string().nullable(),

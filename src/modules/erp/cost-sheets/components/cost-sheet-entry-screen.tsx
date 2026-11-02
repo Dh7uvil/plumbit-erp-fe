@@ -13,7 +13,6 @@ import {
   CostSheetEntryLinesEditor,
   filledCostSheetEntryLines,
 } from "@/modules/erp/cost-sheets/components/cost-sheet-entry-lines-editor";
-import { useCostSheetWorkflow } from "@/modules/erp/cost-sheets/hooks/use-cost-sheet-workflow";
 import { useCreateCostSheet, useUpdateCostSheet } from "@/modules/erp/cost-sheets/mutations";
 import {
   CostSheetEntryFormSchema,
@@ -23,14 +22,9 @@ import {
   type CostSheetEntryFormValues,
   type CostSheetUpdateRequest,
 } from "@/modules/erp/cost-sheets/schemas";
-import {
-  COST_SHEET_ACTION_REGISTRY,
-  type CostSheetWorkflowAction,
-} from "@/modules/erp/cost-sheets/workflow";
 import { emptyToNull } from "@/modules/users-management/tenants/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import { documentTypeDisplayLabel } from "@/shared/components/document/document-links";
-import { DocumentWorkflowButtons } from "@/shared/components/document/document-workflow-buttons";
 import { SourceDocumentPicker } from "@/shared/components/document/source-document-picker";
 import { PageHeader } from "@/shared/components/layout/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -80,7 +74,9 @@ function toFormValues(sheet: CostSheet | null): CostSheetEntryFormValues {
   const journalLines =
     sheet.journal_lines.length > 0
       ? sheet.journal_lines.map((line) => ({
+          line_kind: line.line_kind,
           account_id: line.account_id ?? OPTIONAL_SELECT_NONE,
+          party_id: line.party_id ?? OPTIONAL_SELECT_NONE,
           debit: line.debit === "0" || line.debit === "0.0000" ? "" : line.debit,
           credit: line.credit === "0" || line.credit === "0.0000" ? "" : line.credit,
           description: line.description ?? "",
@@ -110,27 +106,21 @@ function toCreatePayload(values: CostSheetEntryFormValues): CostSheetCreateReque
     imp_reference: emptyToNull(values.imp_reference) ?? undefined,
     notes: emptyToNull(values.notes) ?? undefined,
     journal_lines: lines.map((line) => ({
-      line_kind: "G",
-      account_id: line.account_id,
+      line_kind: line.line_kind,
+      account_id:
+        line.line_kind === "G" && line.account_id !== OPTIONAL_SELECT_NONE
+          ? line.account_id
+          : undefined,
+      party_id:
+        line.line_kind !== "G" && line.party_id !== OPTIONAL_SELECT_NONE
+          ? line.party_id
+          : undefined,
       debit: line.debit.trim() || "0",
       credit: line.credit.trim() || "0",
       description: emptyToNull(line.description) ?? undefined,
       capitalize: false,
     })),
   };
-}
-
-function CostSheetEntryActions({ sheet }: { sheet: CostSheet }) {
-  const onAction = useCostSheetWorkflow(sheet);
-  return (
-    <DocumentWorkflowButtons
-      availableActions={sheet.available_actions}
-      registry={COST_SHEET_ACTION_REGISTRY}
-      documentKind="cost sheet"
-      documentLabel={sheet.document_number}
-      onAction={(action, extras) => onAction(action as CostSheetWorkflowAction, extras)}
-    />
-  );
 }
 
 function toUpdatePayload(values: CostSheetEntryFormValues): CostSheetUpdateRequest {
@@ -147,10 +137,18 @@ function toUpdatePayload(values: CostSheetEntryFormValues): CostSheetUpdateReque
   };
 }
 
-export function CostSheetEntryScreen({ sheet }: { sheet?: CostSheet | null }) {
+export function CostSheetEntryScreen({
+  sheet,
+  readOnly: readOnlyProp = false,
+}: {
+  sheet?: CostSheet | null;
+  readOnly?: boolean;
+}) {
   const router = useRouter();
   const isEdit = Boolean(sheet);
-  const readOnly = Boolean(sheet && sheet.status !== "DRAFT");
+  const readOnly = Boolean(
+    readOnlyProp || (sheet && sheet.status === "CLOSED"),
+  );
   const createSheet = useCreateCostSheet();
   const updateSheet = useUpdateCostSheet(sheet?.id ?? "");
   const [formError, setFormError] = useState<string | null>(null);
@@ -215,12 +213,9 @@ export function CostSheetEntryScreen({ sheet }: { sheet?: CostSheet | null }) {
             : "Journal cost sheet"
         }
         actions={
-          <>
-            {sheet ? <CostSheetEntryActions sheet={sheet} /> : null}
-            <Button type="button" variant="outline" size="sm" asChild>
-              <Link href="/cost-sheets">Back</Link>
-            </Button>
-          </>
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href="/cost-sheets">Back</Link>
+          </Button>
         }
       />
       <Card>

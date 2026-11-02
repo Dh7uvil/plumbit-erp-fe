@@ -241,6 +241,7 @@ function toCreateRequest(
 function toUpdateRequest(
   values: VoucherEntryFormValues,
   accountsById: Map<string, { account_subtype: string }>,
+  existing: Voucher,
 ): VoucherUpdateRequest {
   const created = toCreateRequest(values, accountsById);
   return {
@@ -252,8 +253,8 @@ function toUpdateRequest(
     counter_account_id: created.counter_account_id,
     total_amount: created.total_amount,
     currency_id: created.currency_id,
-    party_type: created.party_type,
-    party_id: created.party_id,
+    party_type: existing.party_type ?? created.party_type,
+    party_id: existing.party_id ?? created.party_id,
     payment_method: created.payment_method,
     cheque_number: created.cheque_number,
     cheque_date: created.cheque_date,
@@ -262,11 +263,16 @@ function toUpdateRequest(
     branch_id: created.branch_id,
     narration: created.narration,
     lines: created.lines,
-    allocations: created.allocations ?? [],
   };
 }
 
-export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
+export function VoucherEntryScreen({
+  voucher,
+  readOnly = false,
+}: {
+  voucher?: Voucher | null;
+  readOnly?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const entryBook = parseVoucherEntryBook(
@@ -311,8 +317,12 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
   const backHref = vouchersListHref(selectedType);
   const subtitle = VOUCHER_ENTRY_BOOK_LABELS[selectedType];
   const pending = createVoucher.isPending || updateVoucher.isPending;
+  const formDisabled = readOnly;
 
   async function onSubmit(values: VoucherEntryFormValues) {
+    if (formDisabled) {
+      return;
+    }
     setFormError(null);
     if (!isDrCrEntryBook(values.voucher_type)) {
       const book = entryBookFor(values.voucher_type);
@@ -325,7 +335,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
     try {
       if (voucher) {
         await updateVoucher.mutateAsync({
-          ...toUpdateRequest(values, accountsById),
+          ...toUpdateRequest(values, accountsById, voucher),
           version: voucher.version,
         });
         toast.success("Voucher saved");
@@ -386,7 +396,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                               router.replace(`/vouchers/entry?voucher_type=${nextType}`);
                             }
                           }}
-                          disabled={isEdit}
+                          disabled={isEdit || formDisabled}
                         />
                       </FormControl>
                       <FormMessage />
@@ -403,6 +413,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                         <Select
                           value={String(field.value)}
                           onValueChange={(value) => field.onChange(Number(value))}
+                          disabled={formDisabled}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Period" />
@@ -437,7 +448,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     <FormItem>
                       <FormLabel>Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" disabled={formDisabled} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -463,7 +474,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                         documentType={form.watch("source_document_type")}
                         documentId={idField.value}
                         documentNumber={voucher?.source_document_number}
-                        disabled={false}
+                        disabled={formDisabled}
                         onDocumentTypeChange={(value) =>
                           form.setValue("source_document_type", value, { shouldDirty: true })
                         }
@@ -480,7 +491,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     <FormItem>
                       <FormLabel>Cheque no.</FormLabel>
                       <FormControl>
-                        <Input disabled={!chequeFieldsEnabled} {...field} />
+                        <Input disabled={formDisabled || !chequeFieldsEnabled} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -493,7 +504,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     <FormItem>
                       <FormLabel>Cheque date</FormLabel>
                       <FormControl>
-                        <Input type="date" disabled={!chequeFieldsEnabled} {...field} />
+                        <Input type="date" disabled={formDisabled || !chequeFieldsEnabled} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -506,7 +517,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     <FormItem className="sm:col-span-2">
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="Voucher description" {...field} />
+                        <Input placeholder="Voucher description" disabled={formDisabled} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -519,7 +530,11 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Method</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={formDisabled}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -546,6 +561,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                       <FormControl>
                         <Checkbox
                           checked={field.value}
+                          disabled={formDisabled}
                           onCheckedChange={(checked) => field.onChange(checked === true)}
                         />
                       </FormControl>
@@ -557,7 +573,7 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
 
               <EntryBookLinesEditor
                 form={form}
-                disabled={false}
+                disabled={formDisabled}
                 currencyCode={currencyCode}
                 showVatDetails={enableVatDetails}
                 applyAccountDefaultTax={selectedType === "GENERAL_PURCHASE"}
@@ -572,12 +588,14 @@ export function VoucherEntryScreen({ voucher }: { voucher?: Voucher | null }) {
                 ) : null}
               </div>
 
+              {formDisabled ? null : (
               <div className="flex justify-end">
                 <Button type="submit" disabled={pending}>
                   {pending ? <Loader2 className="size-4 animate-spin" /> : null}
                   {isEdit ? "Save voucher" : "Create voucher"}
                 </Button>
               </div>
+              )}
             </form>
           </Form>
         </CardContent>

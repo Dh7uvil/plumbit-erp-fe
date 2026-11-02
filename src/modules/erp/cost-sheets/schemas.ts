@@ -28,6 +28,17 @@ export const COST_SHEET_MODE_LABELS: Record<CostSheetMode, string> = {
   JOURNAL: "Journal voucher",
 };
 
+/** Journal vouchers use CONFIRMED in the API once the GL entry is posted. */
+export function costSheetStatusLabel(
+  status: CostSheetStatus,
+  sheetMode: CostSheetMode,
+): string {
+  if (sheetMode === "JOURNAL" && status === "CONFIRMED") {
+    return "Posted";
+  }
+  return COST_SHEET_STATUS_LABELS[status];
+}
+
 export const COST_SHEET_JOURNAL_LINE_KINDS = ["G", "S", "C"] as const;
 export type CostSheetJournalLineKind = (typeof COST_SHEET_JOURNAL_LINE_KINDS)[number];
 
@@ -230,32 +241,55 @@ function refineCostSheetModeLines(
 }
 
 export const CostSheetEntryFormLineSchema = z.object({
+  line_kind: z.enum(COST_SHEET_JOURNAL_LINE_KINDS).default("G"),
   account_id: z.string(),
+  party_id: z.string().default(OPTIONAL_SELECT_NONE),
   debit: z.string(),
   credit: z.string(),
   description: z.string(),
 });
 export type CostSheetEntryFormLine = z.infer<typeof CostSheetEntryFormLineSchema>;
 
-export const CostSheetEntryFormSchema = z.object({
-  source_document_type: z
-    .string()
-    .min(1, "Document type is required")
-    .refine((value) => value !== OPTIONAL_SELECT_NONE, "Document type is required"),
-  source_document_id: z
-    .string()
-    .min(1, "Document is required")
-    .refine((value) => value !== OPTIONAL_SELECT_NONE, "Select a source document"),
-  document_date: z.string().min(1, "Date is required"),
-  period: z.number().int().min(1).max(12),
-  imp_reference: z.string(),
-  notes: z.string(),
-  journal_lines: z.array(CostSheetEntryFormLineSchema).min(1, "Add at least one line"),
-});
+export const CostSheetEntryFormSchema = z
+  .object({
+    source_document_type: z
+      .string()
+      .min(1, "Document type is required")
+      .refine((value) => value !== OPTIONAL_SELECT_NONE, "Document type is required"),
+    source_document_id: z
+      .string()
+      .min(1, "Document is required")
+      .refine((value) => value !== OPTIONAL_SELECT_NONE, "Select a source document"),
+    document_date: z.string().min(1, "Date is required"),
+    period: z.number().int().min(1).max(12),
+    imp_reference: z.string(),
+    notes: z.string(),
+    journal_lines: z.array(CostSheetEntryFormLineSchema).min(1, "Add at least one line"),
+  })
+  .superRefine((values, ctx) => {
+    values.journal_lines.forEach((line, index) => {
+      if (line.line_kind === "G" && line.account_id === OPTIONAL_SELECT_NONE) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["journal_lines", index, "account_id"],
+          message: "Select an account",
+        });
+      }
+      if (line.line_kind !== "G" && line.party_id === OPTIONAL_SELECT_NONE) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["journal_lines", index, "party_id"],
+          message: "Select a party",
+        });
+      }
+    });
+  });
 export type CostSheetEntryFormValues = z.infer<typeof CostSheetEntryFormSchema>;
 
 export const DEFAULT_COST_SHEET_ENTRY_LINE: CostSheetEntryFormLine = {
+  line_kind: "G",
   account_id: OPTIONAL_SELECT_NONE,
+  party_id: OPTIONAL_SELECT_NONE,
   debit: "",
   credit: "",
   description: "",

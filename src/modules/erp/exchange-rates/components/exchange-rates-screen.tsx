@@ -44,12 +44,19 @@ const SORT_FIELDS = [
   { value: "rate", label: "Rate to base" },
 ] as const;
 
+function todayIsoDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate(),
+  ).padStart(2, "0")}`;
+}
+
 export function ExchangeRatesScreen() {
   const { canCreate, canRead, canUpdate, canDelete } = useCrudPermissions(exchangeRatePermissions);
   const canEditRate = canCreate || canUpdate;
   const { page, page_size, search, sort_by, sort_order, filters, setParams, setPage } =
     useTableParams();
-  const effectiveDate = filters.effective_date;
+  const effectiveDate = filters.effective_date || todayIsoDate();
   const exchangeRatesQuery = useExchangeRates({
     page,
     page_size,
@@ -286,6 +293,9 @@ export function ExchangeRatesScreen() {
         open={formOpen}
         rate={selected}
         forceReadOnly={forceReadOnly}
+        onSaved={(saved) => {
+          setParams({ filters: { effective_date: saved.effective_date } });
+        }}
         onOpenChange={(open) => {
           setFormOpen(open);
           if (!open) {

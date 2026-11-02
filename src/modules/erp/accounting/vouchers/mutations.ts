@@ -8,15 +8,17 @@ import type {
   VoucherCreateRequest,
   VoucherUpdateRequest,
 } from "@/modules/erp/accounting/vouchers/schemas";
-import { useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
+import { useTenantId, useTenantQueryKey } from "@/shared/hooks/use-tenant-query-key";
 
 export function useCreateVoucher() {
   const queryClient = useQueryClient();
   const baseKey = useTenantQueryKey(voucherKeys.all);
+  const tenantId = useTenantId();
   return useMutation({
     mutationFn: (payload: VoucherCreateRequest) => vouchersApi.create(payload),
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: baseKey });
+      queryClient.setQueryData([...voucherKeys.detail(data.id), tenantId], data);
     },
   });
 }
@@ -24,11 +26,13 @@ export function useCreateVoucher() {
 export function useUpdateVoucher(id: string) {
   const queryClient = useQueryClient();
   const baseKey = useTenantQueryKey(voucherKeys.all);
+  const detailKey = useTenantQueryKey(voucherKeys.detail(id));
   return useMutation({
     mutationFn: (payload: VoucherUpdateRequest & { version: number }) =>
       vouchersApi.update(id, payload, { version: payload.version }),
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: baseKey });
+      queryClient.setQueryData(detailKey, data);
     },
   });
 }

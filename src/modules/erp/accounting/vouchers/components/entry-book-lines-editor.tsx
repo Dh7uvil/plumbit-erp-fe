@@ -46,6 +46,16 @@ function partyTypeFor(account: Account | undefined): "CUSTOMER" | "SUPPLIER" | n
   return account.account_subtype === "ACCOUNTS_RECEIVABLE" ? "CUSTOMER" : "SUPPLIER";
 }
 
+function voucherLineKind(partyType: "CUSTOMER" | "SUPPLIER" | null): "G" | "S" | "C" {
+  if (partyType === "CUSTOMER") {
+    return "C";
+  }
+  if (partyType === "SUPPLIER") {
+    return "S";
+  }
+  return "G";
+}
+
 export function EntryBookLinesEditor({
   form,
   disabled,
@@ -101,9 +111,21 @@ export function EntryBookLinesEditor({
     <div className="flex flex-col gap-2">
       <DocumentViewTableContainer viewMode={disabled} rowCount={fields.length}>
         <table className="w-full caption-bottom text-sm">
+          <colgroup>
+            <col className="w-14" />
+            <col />
+            <col className="w-32" />
+            <col className="w-32" />
+            {showPartyColumns ? <col className="min-w-[12rem]" /> : null}
+            {showPartyColumns ? <col className="w-36" /> : null}
+            {showVatDetails ? <col className="w-36" /> : null}
+            <col />
+            <col className="w-12" />
+          </colgroup>
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-[20ch]">Account</TableHead>
+              <TableHead className="w-14 pr-2">Kind</TableHead>
+              <TableHead className="min-w-0">Account</TableHead>
               <TableHead className="w-32">Dr amount</TableHead>
               <TableHead className="w-32">Cr amount</TableHead>
               {showPartyColumns ? <TableHead>Party</TableHead> : null}
@@ -124,9 +146,15 @@ export function EntryBookLinesEditor({
                   : partyType === "SUPPLIER"
                     ? suppliers.map((row) => ({ value: row.id, label: row.name }))
                     : [];
+              const lineKind = voucherLineKind(partyType);
               return (
                 <TableRow key={field.id}>
-                  <TableCell className="min-w-[20ch] align-top">
+                  <TableCell className="w-14 max-w-14 align-top pr-2">
+                    <span className="text-muted-foreground flex h-9 w-14 items-center justify-center text-sm font-medium tabular-nums">
+                      {lineKind}
+                    </span>
+                  </TableCell>
+                  <TableCell className="min-w-0 align-top pl-0">
                     <FormField
                       control={form.control}
                       name={`lines.${index}.account_id`}
@@ -366,7 +394,9 @@ export function EntryBookLinesEditor({
               );
             })}
             <TableRow>
-              <TableCell className="font-medium">Total amount</TableCell>
+              <TableCell colSpan={2} className="font-medium">
+                Total amount
+              </TableCell>
               <TableCell className="font-medium">
                 {formatReportMoney(totals.totalDebit, currencyCode)}
               </TableCell>
@@ -375,13 +405,13 @@ export function EntryBookLinesEditor({
               </TableCell>
               <TableCell
                 colSpan={
-                  2 + (showPartyColumns ? 2 : 0) + (showVatDetails ? 1 : 0)
+                  1 + (showPartyColumns ? 2 : 0) + (showVatDetails ? 1 : 0) + 1
                 }
                 className="text-muted-foreground text-xs"
               >
                 {totals.isBalanced
                   ? "Balanced"
-                  : `Difference ${formatReportMoney(totals.difference, currencyCode)} (post requires a match)`}
+                  : `Difference ${formatReportMoney(totals.difference, currencyCode)}`}
               </TableCell>
             </TableRow>
           </TableBody>

@@ -27,17 +27,21 @@ export function ProductQuantityRowsTable({
   unitCode,
   unit2Code,
   packingLabel,
+  invertedPackaging = false,
 }: {
   rows: ProductInquiryQuantityRows | null | undefined;
   unitCode?: string | null;
   unit2Code?: string | null;
   packingLabel?: string | null;
+  /** Stock unit is a package and unit 2 is pieces (loose column is in unit 2). */
+  invertedPackaging?: boolean;
 }) {
   if (!rows) {
     return null;
   }
   const u1 = unitCode?.trim() || "Unit";
   const u2 = unit2Code?.trim() || "PCS";
+  const looseUnit = invertedPackaging ? u2 : u1;
 
   return (
     <InquirySection
@@ -67,7 +71,7 @@ export function ProductQuantityRowsTable({
                 <span className="block text-[0.65rem] font-normal tracking-wide uppercase opacity-80">
                   Loose pieces
                 </span>
-                <span>{u1}</span>
+                <span>{looseUnit}</span>
               </TableHead>
             </TableRow>
           </TableHeader>

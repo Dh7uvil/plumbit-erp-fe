@@ -39,11 +39,18 @@ import { applyFieldErrors } from "@/shared/lib/form-errors";
 import { useDirtyFormGuard } from "@/shared/hooks/use-dirty-form-guard";
 import { useCan } from "@/shared/providers/session-provider";
 
+function todayIsoDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate(),
+  ).padStart(2, "0")}`;
+}
+
 function toFormValues(rate: ExchangeRate | null): ExchangeRateFormValues {
   return {
     currency_id: rate?.from_currency_id ?? "",
     rate_to_base: rate?.rate ?? "",
-    effective_date: rate?.effective_date ?? "",
+    effective_date: rate?.effective_date ?? todayIsoDate(),
   };
 }
 
@@ -60,11 +67,13 @@ export function ExchangeRateFormDialog({
   open,
   rate,
   onOpenChange,
+  onSaved,
   forceReadOnly = false,
 }: {
   open: boolean;
   rate: ExchangeRate | null;
   onOpenChange: (open: boolean) => void;
+  onSaved?: (saved: ExchangeRate) => void;
   forceReadOnly?: boolean;
 }) {
   const can = useCan();
@@ -107,6 +116,7 @@ export function ExchangeRateFormDialog({
       } else {
         toast.success(hasRecord ? "Exchange rate updated" : "Exchange rate saved");
       }
+      onSaved?.(saved);
       handleOpenChange(false);
     } catch (error) {
       if (applyFieldErrors(error, form.setError)) {
