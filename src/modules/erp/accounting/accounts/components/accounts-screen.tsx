@@ -73,6 +73,7 @@ export function AccountsScreen() {
     sort_order,
     is_active: parseBoolFilter(filters.is_active),
     is_blocked: parseBoolFilter(filters.is_blocked),
+    is_system: false,
   });
   const deleteAccount = useDeleteAccount();
   const [formOpen, setFormOpen] = useState(false);

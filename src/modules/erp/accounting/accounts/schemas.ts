@@ -340,6 +340,7 @@ export type AccountListParams = {
   account_subtype?: AccountSubtype;
   is_group?: boolean;
   is_active?: boolean;
+  is_system?: boolean;
   is_blocked?: boolean;
   is_standalone_ledger?: boolean;
 };

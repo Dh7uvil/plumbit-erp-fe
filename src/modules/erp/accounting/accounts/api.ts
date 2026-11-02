@@ -118,6 +118,7 @@ export const accountsApi = {
         account_subtype: params.account_subtype,
         is_group: params.is_group,
         is_active: params.is_active,
+        is_system: params.is_system,
         is_blocked: params.is_blocked,
         is_standalone_ledger: params.is_standalone_ledger,
       },
