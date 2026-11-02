@@ -145,8 +145,6 @@ export const SupplierFormSchema = z
     payment_terms_id: z.string(),
     credit_limit: z.string(),
     salesperson_id: z.string(),
-    receivable_account_id: z.string(),
-    payable_account_id: z.string(),
     billing_address: AddressFormSchema,
     shipping_address: AddressFormSchema,
     same_as_billing: z.boolean(),

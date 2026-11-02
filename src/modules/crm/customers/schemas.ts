@@ -192,8 +192,6 @@ export const CustomerFormSchema = z
     credit_limit: z.string(),
     credit_hold: z.boolean(),
     salesperson_id: z.string(),
-    receivable_account_id: z.string(),
-    payable_account_id: z.string(),
     billing_address: AddressFormSchema,
     shipping_address: AddressFormSchema,
     same_as_billing: z.boolean(),

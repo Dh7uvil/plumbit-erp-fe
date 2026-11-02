@@ -25,8 +25,6 @@ import {
   type CustomerCompanyType,
   type CustomerFormValues,
 } from "@/modules/crm/customers/schemas";
-import { AccountPicker } from "@/modules/erp/accounting/accounts/components/account-picker";
-import { accountPermissions } from "@/modules/erp/accounting/accounts/permissions";
 import { PaymentTermFormDialog } from "@/modules/erp/accounting/payment-terms/components/payment-term-form-dialog";
 import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
 import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
@@ -94,8 +92,6 @@ function toFormValues(customer: Customer | null, defaultCurrencyId: string): Cus
     credit_limit: customer?.credit_limit ?? "",
     credit_hold: customer?.credit_hold ?? false,
     salesperson_id: customer?.salesperson_id ?? OPTIONAL_SELECT_NONE,
-    receivable_account_id: customer?.receivable_account_id ?? OPTIONAL_SELECT_NONE,
-    payable_account_id: customer?.payable_account_id ?? OPTIONAL_SELECT_NONE,
     billing_address,
     shipping_address,
     same_as_billing: Boolean(customer) && addressesMatch(billing_address, shipping_address),
@@ -128,7 +124,6 @@ export function CustomerForm({
   const canCreateCurrency = can(currencyPermissions.create);
   const canCreatePriceList = can(priceListPermissions.create);
   const canCreatePaymentTerm = can(paymentTermPermissions.create);
-  const canReadAccounts = can(accountPermissions.read);
   const canCreateContact = can(contactPermissions.create);
   const canReadContacts = can(contactPermissions.read);
   const canUpdateContact = can(contactPermissions.update);
@@ -509,44 +504,6 @@ export function CustomerForm({
                 />
               )}
             />
-            {canReadAccounts ? (
-              <>
-                <FormField
-                  control={form.control}
-                  name="receivable_account_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Receivable account</FormLabel>
-                      <AccountPicker
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={disabled}
-                        accountSubtype="ACCOUNTS_RECEIVABLE"
-                        aria-label="Receivable account"
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="payable_account_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payable account</FormLabel>
-                      <AccountPicker
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={disabled}
-                        accountSubtype="ACCOUNTS_PAYABLE"
-                        aria-label="Payable account"
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            ) : null}
           </div>
         </section>
         <section className="flex flex-col gap-3">
