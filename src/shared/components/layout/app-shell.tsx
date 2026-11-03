@@ -39,12 +39,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <BreadcrumbRecordProvider>
       <div className="flex h-svh max-h-svh min-h-0 overflow-hidden">
-        <a
-          href="#main-content"
-          className="bg-primary text-primary-foreground sr-only z-50 focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded-md focus:px-3 focus:py-2"
-        >
-          Skip to main content
-        </a>
         <AppSidebar
           collapsed={collapsed}
           onToggle={toggleCollapsed}

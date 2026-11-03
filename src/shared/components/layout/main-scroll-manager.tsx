@@ -34,11 +34,6 @@ export function MainScrollManager() {
         return;
       }
 
-      // Skip the skip-link target — scrolling main to itself breaks keyboard nav.
-      if (anchor.getAttribute("href") === `#${MAIN_CONTENT_ID}`) {
-        return;
-      }
-
       const hash = anchor.getAttribute("href");
       if (!hash) {
         return;

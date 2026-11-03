@@ -1,7 +1,15 @@
 "use client";
 
 import { CheckIcon, ChevronDownIcon, Plus, Search } from "lucide-react";
-import { forwardRef, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type KeyboardEvent,
+} from "react";
 
 import { useFormField } from "@/shared/components/ui/form";
 import {
@@ -13,6 +21,9 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { Input } from "@/shared/components/ui/input";
 import { cn } from "@/shared/lib/cn";
+import { focusAdjacentTabbable } from "@/shared/lib/focus-tabbable";
+
+type CloseFocusMode = "next" | "prev" | "trigger";
 
 export type SearchableSelectOption = {
   value: string;
@@ -125,8 +136,41 @@ export function SearchableSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const closeFocusModeRef = useRef<CloseFocusMode>("trigger");
   const onQueryChangeRef = useRef(onQueryChange);
   const skipQueryChange = useRef(true);
+
+  function tabOutOfMenu(event: KeyboardEvent, shiftKey: boolean) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeFocusModeRef.current = shiftKey ? "prev" : "next";
+    setOpen(false);
+    setQuery("");
+  }
+
+  function handleCloseAutoFocus(event: Event) {
+    event.preventDefault();
+    const mode = closeFocusModeRef.current;
+    closeFocusModeRef.current = "trigger";
+    const trigger = triggerRef.current;
+    const content = contentRef.current;
+    if (!trigger) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      if (mode === "next") {
+        focusAdjacentTabbable(trigger, "next", content);
+        return;
+      }
+      if (mode === "prev") {
+        focusAdjacentTabbable(trigger, "prev", content);
+        return;
+      }
+      trigger.focus({ preventScroll: true });
+    });
+  }
   const selected = options.find((option) => option.value === value);
   const showSearch = shouldSearchOptions({
     searchable,
@@ -190,22 +234,31 @@ export function SearchableSelect({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (!next) {
+        if (next) {
+          closeFocusModeRef.current = "trigger";
+        } else {
           setQuery("");
         }
       }}
     >
       <DropdownMenuTrigger asChild>
         {asFormControl ? (
-          <FormBoundSelectTrigger id={id} {...triggerProps} />
+          <FormBoundSelectTrigger id={id} ref={triggerRef} {...triggerProps} />
         ) : (
-          <SelectTriggerButton id={id} {...triggerProps} />
+          <SelectTriggerButton id={id} ref={triggerRef} {...triggerProps} />
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
+        ref={contentRef}
         align="start"
         className="flex max-h-60 min-w-(--radix-dropdown-menu-trigger-width) w-max max-w-[min(36rem,calc(100vw-2rem))] flex-col overflow-hidden p-0"
-        onCloseAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={handleCloseAutoFocus}
+        onKeyDown={(event) => {
+          if (event.key !== "Tab") {
+            return;
+          }
+          tabOutOfMenu(event, event.shiftKey);
+        }}
       >
         {showSearch ? (
           <div className="shrink-0 p-1.5">
@@ -222,14 +275,17 @@ export function SearchableSelect({
                 className="h-8 pl-8"
                 onPointerDown={(event) => event.stopPropagation()}
                 onKeyDown={(event) => {
+                  if (event.key === "Tab") {
+                    tabOutOfMenu(event, event.shiftKey);
+                    return;
+                  }
                   if (
                     event.key === "ArrowDown" ||
                     event.key === "ArrowUp" ||
                     event.key === "Enter" ||
                     event.key === "Escape" ||
                     event.key === "Home" ||
-                    event.key === "End" ||
-                    event.key === "Tab"
+                    event.key === "End"
                   ) {
                     return;
                   }
