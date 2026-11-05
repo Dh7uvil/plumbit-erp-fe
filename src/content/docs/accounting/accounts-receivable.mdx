@@ -43,7 +43,11 @@ Items dated after the **as-of** date are excluded. Items without a resolvable ba
 
 ## Customer statement
 
-<AppLink href="/reports/customer-statement">Customer statement</AppLink> lists opening balance, invoices, payments, credits, and running balance for one customer over a date range — sourced from open items and posted journals with party tags.
+<AppLink href="/reports/customer-statement">Customer statement</AppLink> lists opening balance, invoices, payments, credits, and running balance for one customer over a date range.
+
+**Customer statement** and **account statement (with a customer selected)** use legacy document lines: confirmed/closed **sales orders** as debit (**SO**), posted invoices **without** an order as **SI**, plus opening AR, receipts, credits, write-offs, refunds, cost sheets, and vouchers. SO-linked invoices are omitted.
+
+AR aging and GL AR follow posted invoices — compare document statements to aging before using them as the sole collections source.
 
 ## GL linkage
 

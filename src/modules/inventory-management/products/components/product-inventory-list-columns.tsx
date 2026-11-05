@@ -47,7 +47,7 @@ export function buildProductInventoryListColumnDefs(
       header: "Net qty",
       headerClassName: qtyHead,
       className: qtyCell,
-      cell: (row) => formatQty(row.net_available),
+      cell: (row) => formatQty(row.net_available_unit2 ?? row.net_available),
     },
     {
       id: "volume",

@@ -22,6 +22,7 @@ import type { Product } from "@/modules/inventory-management/products/schemas";
 import { UnitFormDialog } from "@/modules/inventory-management/units/components/unit-form-dialog";
 import { unitPermissions } from "@/modules/inventory-management/units/permissions";
 import { useAllUnits } from "@/modules/inventory-management/units/queries";
+import { defaultDocumentLineUnitId } from "@/shared/components/document/line-autofill";
 import { DocumentViewTableContainer } from "@/shared/components/document/document-view-table-container";
 import { MasterSelect } from "@/shared/components/form/master-select";
 import { TableActionTooltip } from "@/shared/components/data-table/row-actions";
@@ -107,8 +108,11 @@ export function CostSheetLinesEditor({
 
   const colSpan = 5 + (showTargetSellingPrice ? 1 : 0) + (showGrnLink ? 1 : 0);
 
-  function applyProduct(index: number, product: Pick<Product, "unit_id">) {
-    form.setValue(`lines.${index}.unit_id`, product.unit_id ?? OPTIONAL_SELECT_NONE);
+  function applyProduct(index: number, product: Pick<Product, "unit_id" | "secondary_unit_id">) {
+    form.setValue(
+      `lines.${index}.unit_id`,
+      defaultDocumentLineUnitId(product, (id) => units.find((unit) => unit.id === id)?.code),
+    );
   }
 
   function applyGrnLine(index: number, lineId: string) {

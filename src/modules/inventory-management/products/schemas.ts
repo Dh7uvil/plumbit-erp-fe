@@ -388,6 +388,7 @@ export const ProductInventoryListRowSchema = z.object({
   name: z.string(),
   net_quantity: z.string(),
   net_available: z.string(),
+  net_available_unit2: z.string().optional().default("0"),
   volume: z.string().nullable().optional().default(null),
   alias_2: z.string().nullable().optional().default(null),
   alias_3: z.string().nullable().optional().default(null),

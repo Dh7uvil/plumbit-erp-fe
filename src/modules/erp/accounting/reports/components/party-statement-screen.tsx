@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 
-import { Download } from "lucide-react";
 import { useAllCustomers } from "@/modules/crm/customers/queries";
 import {
   useCustomerStatement,
@@ -10,17 +9,21 @@ import {
 } from "@/modules/erp/accounting/reports/queries";
 import { useReportCsv } from "@/modules/erp/accounting/reports/hooks/use-report-csv";
 import { useReportPeriod } from "@/modules/erp/accounting/reports/hooks/use-report-period";
+import {
+  StatementOfAccountTable,
+  type StatementOfAccountRow,
+} from "@/modules/erp/accounting/reports/components/statement-of-account-view";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
 import {
+  reportExcludeOpeningFlag,
   reportIncludePdcFlag,
   reportPeriodDateRangeSpec,
 } from "@/modules/erp/accounting/reports/components/report-filter-specs";
+import type { PartyStatement } from "@/modules/erp/accounting/reports/schemas";
 import { getErrorMessage } from "@/shared/api/errors";
 import type { FilterSpec } from "@/shared/components/data-table/applied-filter-spec";
 import { DateRangeFilter } from "@/shared/components/data-table/date-range-filter";
 import { FilterSelect } from "@/shared/components/data-table/filter-select";
-import { DataTable } from "@/shared/components/data-table/data-table";
-import { RecordLink } from "@/shared/components/data-table/record-link";
 import { DataTableEmpty, DataTableError } from "@/shared/components/data-table/states";
 import { ListFilterToolbar } from "@/shared/components/data-table/list-filter-toolbar";
 import { documentDetailHref } from "@/shared/components/document/document-links";
@@ -30,18 +33,33 @@ import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { useTableParams } from "@/shared/hooks/use-table-params";
-import { formatBalanceWithSide, formatDate, formatReportMoney, isZeroDecimal } from "@/shared/lib/format";
+import { isZeroDecimal } from "@/shared/lib/format";
+import { Download } from "lucide-react";
 
 const ALL = "all";
-const COLUMN_COUNT = 10;
+const COLUMN_COUNT = 8;
+
+function mapPartyStatementRows(report: PartyStatement): StatementOfAccountRow[] {
+  return report.lines.map((line) => {
+    const href = documentDetailHref(line.document_type, line.document_id);
+    return {
+      key: `${line.document_type}-${line.document_id}-${line.document_date}`,
+      date: line.document_date,
+      refNo: line.document_number,
+      refHref: href,
+      dateHref: href,
+      typeCode: line.type_code ?? "—",
+      debit: line.debit,
+      credit: line.credit,
+      runningBalance: line.running_balance,
+      balanceSide: line.balance_side,
+      chequeNumber: line.cheque_number,
+      chequeDate: line.cheque_date,
+    };
+  });
+}
 
 export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }) {
   const { filters, setParams } = useTableParams();
@@ -50,17 +68,30 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
   const to = filters.to ?? period.to;
   const partyId = kind === "customer" ? (filters.customer_id ?? "") : (filters.supplier_id ?? "");
   const includePdc = filters.include_pdc === "true";
+  const includeOpening = filters.include_opening !== "false";
   const customersQuery = useAllCustomers(kind === "customer");
   const suppliersQuery = useAllSuppliers(kind === "supplier");
   const parties = kind === "customer" ? (customersQuery.data ?? []) : (suppliersQuery.data ?? []);
   const customerQuery = useCustomerStatement(
     kind === "customer" && partyId
-      ? { customer_id: partyId, from, to, include_pdc: includePdc }
+      ? {
+          customer_id: partyId,
+          from,
+          to,
+          include_opening: includeOpening,
+          include_pdc: includePdc,
+        }
       : null,
   );
   const supplierQuery = useSupplierStatement(
     kind === "supplier" && partyId
-      ? { supplier_id: partyId, from, to, include_pdc: includePdc }
+      ? {
+          supplier_id: partyId,
+          from,
+          to,
+          include_opening: includeOpening,
+          include_pdc: includePdc,
+        }
       : null,
   );
   const reportQuery = kind === "customer" ? customerQuery : supplierQuery;
@@ -79,6 +110,7 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
       },
       reportPeriodDateRangeSpec(),
       reportIncludePdcFlag(),
+      reportExcludeOpeningFlag(),
     ];
   }, [kind, parties, partyKey]);
 
@@ -91,11 +123,75 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
     });
   }
 
+  const openingRow: StatementOfAccountRow | null =
+    report && includeOpening && !isZeroDecimal(report.opening_balance)
+      ? {
+          key: "__opening__",
+          date: report.from_date,
+          refNo: "—",
+          typeCode: "OP",
+          debit: "0",
+          credit: "0",
+          runningBalance: report.opening_balance,
+          balanceSide: report.opening_balance_side,
+          description: "Previous balance",
+        }
+      : null;
+
+  const emptyBody = !partyId ? (
+    <TableRow>
+      <TableCell colSpan={COLUMN_COUNT}>
+        <DataTableEmpty
+          title={kind === "customer" ? "Select a customer" : "Select a supplier"}
+          message="Choose a party to load the statement."
+        />
+      </TableCell>
+    </TableRow>
+  ) : reportQuery.isLoading ? (
+    Array.from({ length: 5 }).map((_, index) => (
+      <TableRow key={index}>
+        <TableCell colSpan={COLUMN_COUNT}>
+          <Skeleton className="h-6 w-full" />
+        </TableCell>
+      </TableRow>
+    ))
+  ) : reportQuery.isError ? (
+    <TableRow>
+      <TableCell colSpan={COLUMN_COUNT}>
+        <DataTableError
+          message={getErrorMessage(reportQuery.error)}
+          onRetry={() => reportQuery.refetch()}
+        />
+      </TableCell>
+    </TableRow>
+  ) : !report ? (
+    <TableRow>
+      <TableCell colSpan={COLUMN_COUNT}>
+        <DataTableEmpty title="No data" message="No statement data returned." />
+      </TableCell>
+    </TableRow>
+  ) : report.lines.length === 0 && !openingRow ? (
+    <TableRow>
+      <TableCell colSpan={COLUMN_COUNT}>
+        <DataTableEmpty title="No lines" message="No documents in this date range." />
+      </TableCell>
+    </TableRow>
+  ) : null;
+
+  const title =
+    kind === "customer"
+      ? report
+        ? `Statement of account of ${report.party_name}`
+        : "Customer statement"
+      : report
+        ? `Statement of account of ${report.party_name}`
+        : "Supplier statement";
+
   return (
     <ListPage>
       <PageHeader
-        title={kind === "customer" ? "Customer statement" : "Supplier statement"}
-        subtitle="Document-level running balance in org currency. Line metadata shows original document currency where applicable."
+        title={title}
+        subtitle="Document-level statement in org currency."
         actions={
           partyId ? (
             <Button
@@ -147,136 +243,63 @@ export function PartyStatementScreen({ kind }: { kind: "customer" | "supplier" }
             }
           />
           <Label htmlFor="party-stmt-pdc" className="text-sm whitespace-nowrap">
-            Include pending cheques (PDC)
+            P.D.C Statement
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="party-stmt-opening"
+            checked={includeOpening}
+            onCheckedChange={(checked) =>
+              setParams({
+                filters: { include_opening: checked === true ? null : "false" },
+              })
+            }
+          />
+          <Label htmlFor="party-stmt-opening" className="text-sm whitespace-nowrap">
+            Previous balance
           </Label>
         </div>
       </ListFilterToolbar>
-      {report ? (
-        <p className="text-muted-foreground text-sm">
-          {report.party_name}. Opening{" "}
-          {formatBalanceWithSide(
-            report.opening_balance,
-            report.opening_balance_side,
-            report.currency_code,
-          )}
-          . Closing{" "}
-          {formatBalanceWithSide(
-            report.closing_balance,
-            report.closing_balance_side ?? report.lines.at(-1)?.balance_side,
-            report.currency_code,
-          )}
-          .
-        </p>
-      ) : null}
-      <DataTable>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Document</TableHead>
-            <TableHead>Due</TableHead>
-            <TableHead>Chq no</TableHead>
-            <TableHead>Chq date</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead className="text-right">Debit</TableHead>
-            <TableHead className="text-right">Credit</TableHead>
-            <TableHead className="text-right">Running</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!partyId ? (
-            <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
-                <DataTableEmpty
-                  title={kind === "customer" ? "Select a customer" : "Select a supplier"}
-                  message="Choose a party to load the statement."
-                />
-              </TableCell>
-            </TableRow>
-          ) : reportQuery.isLoading ? (
-            Array.from({ length: 5 }).map((_, index) => (
-              <TableRow key={index}>
-                <TableCell colSpan={COLUMN_COUNT}>
-                  <Skeleton className="h-6 w-full" />
-                </TableCell>
-              </TableRow>
-            ))
-          ) : reportQuery.isError ? (
-            <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
-                <DataTableError
-                  message={getErrorMessage(reportQuery.error)}
-                  onRetry={() => reportQuery.refetch()}
-                />
-              </TableCell>
-            </TableRow>
-          ) : !report || report.lines.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
-                <DataTableEmpty title="No lines" message="No documents in this date range." />
-              </TableCell>
-            </TableRow>
-          ) : (
-            <>
-              {report && !isZeroDecimal(report.opening_balance) ? (
-                <TableRow className="bg-muted/40">
-                  <TableCell>{formatDate(report.from_date)}</TableCell>
-                  <TableCell className="font-mono text-xs">OP</TableCell>
-                  <TableCell>—</TableCell>
-                  <TableCell>—</TableCell>
-                  <TableCell>—</TableCell>
-                  <TableCell>—</TableCell>
-                  <TableCell>Previous balance</TableCell>
-                  <TableCell className="text-right tabular-nums">—</TableCell>
-                  <TableCell className="text-right tabular-nums">—</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatBalanceWithSide(
-                      report.opening_balance,
-                      report.opening_balance_side,
-                      report.currency_code,
-                    )}
-                  </TableCell>
-                </TableRow>
-              ) : null}
-              {report.lines.map((line) => {
-              const href = documentDetailHref(line.document_type, line.document_id);
-              return (
-                <TableRow key={`${line.document_type}-${line.document_id}-${line.document_date}`}>
-                  <TableCell>{formatDate(line.document_date)}</TableCell>
-                  <TableCell className="font-mono text-xs">{line.type_code ?? "—"}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {href ? (
-                      <RecordLink href={href}>{line.document_number}</RecordLink>
-                    ) : (
-                      line.document_number
-                    )}
-                  </TableCell>
-                  <TableCell>{line.due_date ? formatDate(line.due_date) : "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">{line.cheque_number ?? "—"}</TableCell>
-                  <TableCell>
-                    {line.cheque_date ? formatDate(line.cheque_date) : "—"}
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">{line.description ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatReportMoney(line.debit, report.currency_code)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatReportMoney(line.credit, report.currency_code)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatBalanceWithSide(
-                      line.running_balance,
-                      line.balance_side,
-                      report.currency_code,
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            </>
-          )}
-        </TableBody>
-      </DataTable>
+
+      {report && partyId && !reportQuery.isLoading && !reportQuery.isError ? (
+        <StatementOfAccountTable
+          header={{
+            accountCode: report.account_code ?? null,
+            accountName: report.account_name ?? report.party_name,
+            from: report.from_date,
+            to: report.to_date,
+            pdcIncluded: includePdc,
+            previousBalanceIncluded: includeOpening,
+            currencyCode: report.currency_code,
+          }}
+          openingRow={openingRow}
+          rows={mapPartyStatementRows(report)}
+          totals={{
+            totalDebit: report.total_debit,
+            totalCredit: report.total_credit,
+            closingBalance: report.closing_balance,
+            closingBalanceSide:
+              report.closing_balance_side ?? report.lines.at(-1)?.balance_side,
+          }}
+          emptyBody={emptyBody}
+        />
+      ) : (
+        <StatementOfAccountTable
+          header={{
+            accountCode: null,
+            accountName: null,
+            from,
+            to,
+            pdcIncluded: includePdc,
+            previousBalanceIncluded: includeOpening,
+            currencyCode: null,
+          }}
+          rows={[]}
+          totals={null}
+          emptyBody={emptyBody}
+        />
+      )}
     </ListPage>
   );
 }

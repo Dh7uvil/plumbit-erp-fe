@@ -50,6 +50,19 @@ export function SourceDocumentPicker({
     enabled: Boolean(normalizedType) && normalizedType !== OPTIONAL_SELECT_NONE,
   });
 
+  const typeOptions = useMemo(() => {
+    const types = [...SOURCE_DOCUMENT_PICKER_TYPES];
+    if (
+      normalizedType &&
+      normalizedType !== OPTIONAL_SELECT_NONE &&
+      !types.includes(normalizedType as DocumentType) &&
+      normalizedType in DOCUMENT_TYPE_LABELS
+    ) {
+      types.push(normalizedType as DocumentType);
+    }
+    return types;
+  }, [normalizedType]);
+
   const options = useMemo(() => {
     const rows = listQuery.data ?? [];
     if (
@@ -81,7 +94,7 @@ export function SourceDocumentPicker({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={OPTIONAL_SELECT_NONE}>Select type</SelectItem>
-            {SOURCE_DOCUMENT_PICKER_TYPES.map((type) => (
+            {typeOptions.map((type) => (
               <SelectItem key={type} value={type}>
                 {DOCUMENT_TYPE_LABELS[type]}
               </SelectItem>

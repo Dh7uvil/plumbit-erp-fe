@@ -92,6 +92,11 @@ const DOCUMENT_HREF: Record<string, (id: string) => string> = {
   OPENING_AR: (_id) => `/opening-balances`,
   OPENING_AP: (_id) => `/opening-balances`,
   CHEQUE_PDC: (id) => `/cheques/${id}`,
+  COST_SHEET: (id) => `/cost-sheets/${id}`,
+  SALES_INVOICE_WRITE_OFF: (id) => `/sales-invoices/${id}`,
+  PURCHASE_INVOICE_WRITE_OFF: (id) => `/purchase-invoices/${id}`,
+  CUSTOMER_PAYMENT_REFUND: (id) => `/customer-payments/${id}`,
+  SUPPLIER_PAYMENT_REFUND: (id) => `/supplier-payments/${id}`,
 };
 
 export function documentDetailHref(documentType: string, documentId: string): string | null {

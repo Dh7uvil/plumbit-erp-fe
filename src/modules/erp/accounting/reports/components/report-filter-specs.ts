@@ -35,7 +35,7 @@ export function reportIncludeYtdFlag(): FilterSpec {
 }
 
 export function reportIncludePdcFlag(): FilterSpec {
-  return { type: "flag", key: "include_pdc", label: "P.D.C included", matchValue: "true" };
+  return { type: "flag", key: "include_pdc", label: "P.D.C Statement", matchValue: "true" };
 }
 
 export function reportExcludeOpeningFlag(): FilterSpec {

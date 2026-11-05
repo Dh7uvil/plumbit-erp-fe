@@ -662,6 +662,7 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
       | "selling_rate"
       | "purchase_rate"
       | "unit_id"
+      | "secondary_unit_id"
       | "tax_id"
     >,
   ) {
@@ -680,7 +681,9 @@ export function DocumentLinesEditor<TFieldValues extends FieldValues>({
     const product = row.product_id
       ? (products.find((item) => item.id === row.product_id) ?? null)
       : null;
-    const autofill = catalogLineAutofill(row, product, documentCurrencyId);
+    const autofill = catalogLineAutofill(row, product, documentCurrencyId, {
+      codeForUnitId: (id) => units.find((unit) => unit.id === id)?.code,
+    });
     setLineValue(index, "supplier_product_id", row.id);
     setLineValue(index, "supplier_sku", row.supplier_sku);
     setLineValue(index, "product_id", row.product_id ?? OPTIONAL_SELECT_NONE);

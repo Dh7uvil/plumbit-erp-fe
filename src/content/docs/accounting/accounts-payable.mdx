@@ -41,6 +41,10 @@ Party-specific AP accounts on suppliers override the system **ACCOUNTS_PAYABLE**
 
 <AppLink href="/reports/supplier-statement">Supplier statement</AppLink> shows bills, payments, debits, and running balance for one supplier over a date range.
 
+**Supplier statement** and **account statement (with a supplier selected)** use legacy document lines: issued/closed **purchase orders** as credit (**PO**), posted bills **without** a PO as **PI**, plus opening AP, payments, debits, write-offs, refunds, cost sheets, and vouchers. PO-linked posted bills are omitted so the PO is not double-counted.
+
+These document statements can differ from <AppLink href="/reports/ap-aging">AP aging</AppLink> and the AP GL control account. Reconcile with the GL **account statement** (journal lines on the AP account, no party filter) or trial balance when you need subledger tie-out.
+
 ## GL linkage
 
 Posting patterns (Dr GRNI/purchases, Cr AP) are in <DocLink href="/docs/accounting/accounting-overview">Accounting overview</DocLink>.

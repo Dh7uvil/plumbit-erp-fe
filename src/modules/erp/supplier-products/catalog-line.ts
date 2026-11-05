@@ -1,3 +1,5 @@
+import { defaultDocumentLineUnitId } from "@/shared/components/document/line-autofill";
+
 export type CatalogLineSource = {
   supplier_item_name: string;
   price: string | null;
@@ -10,6 +12,7 @@ export type CatalogLineProduct = {
   purchase_description: string | null;
   purchase_rate: string;
   unit_id: string | null;
+  secondary_unit_id?: string | null;
   tax_id: string | null;
 };
 
@@ -38,6 +41,7 @@ export function catalogLineAutofill(
   catalog: CatalogLineSource,
   product: CatalogLineProduct | null,
   documentCurrencyId: string | null | undefined,
+  options?: { codeForUnitId?: (unitId: string) => string | undefined },
 ): CatalogLineAutofill {
   const description =
     catalog.supplier_item_name.trim() ||
@@ -54,10 +58,15 @@ export function catalogLineAutofill(
       ? { price: catalogPrice, currencyCode: catalog.currency_code }
       : null;
 
+  const unit_id =
+    product && options?.codeForUnitId
+      ? defaultDocumentLineUnitId(product, options.codeForUnitId)
+      : (product?.unit_id ?? null);
+
   return {
     description,
     rate,
-    unit_id: product?.unit_id ?? null,
+    unit_id,
     tax_id: product?.tax_id ?? null,
     rateFromCatalog,
     catalogPriceHint,

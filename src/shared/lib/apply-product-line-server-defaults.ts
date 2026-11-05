@@ -17,9 +17,17 @@ export async function applyProductWithServerDefaults(
     currencyId?: string | null;
     priceListId?: string | null;
     baseCurrencyId?: string | null;
+    codeForUnitId?: (unitId: string) => string | undefined;
   },
 ): Promise<ProductLineApplyResult> {
-  const base = productLineAutofillValues(product, options.purchaseSide ? "purchase" : "sales");
+  const autofillOptions = options.codeForUnitId
+    ? { codeForUnitId: options.codeForUnitId }
+    : undefined;
+  const base = productLineAutofillValues(
+    product,
+    options.purchaseSide ? "purchase" : "sales",
+    autofillOptions,
+  );
   const needsServer =
     Boolean(options.priceListId) ||
     Boolean(options.warehouseId) ||

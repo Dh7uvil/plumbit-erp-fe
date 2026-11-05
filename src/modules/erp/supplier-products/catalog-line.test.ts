@@ -12,11 +12,14 @@ const catalog = {
   currency_code: "AED",
 };
 
+const baseUnitId = "88888888-8888-4888-8888-888888888888";
+const pcsUnit2Id = "99999999-9999-4999-8999-999999999999";
+
 const product = {
   name: "Copper pipe",
   purchase_description: "Copper pipe (purchase)",
   purchase_rate: "8.00",
-  unit_id: "88888888-8888-4888-8888-888888888888",
+  unit_id: baseUnitId,
   tax_id: null,
 };
 
@@ -28,6 +31,23 @@ describe("catalogLineAutofill", () => {
     expect(result.rateFromCatalog).toBe(true);
     expect(result.catalogPriceHint).toBeNull();
     expect(result.unit_id).toBe(product.unit_id);
+  });
+
+  it("defaults unit to PCS unit 2 when configured", () => {
+    const result = catalogLineAutofill(
+      catalog,
+      {
+        ...product,
+        unit_id: baseUnitId,
+        secondary_unit_id: pcsUnit2Id,
+      },
+      AED,
+      {
+        codeForUnitId: (id) => (id === pcsUnit2Id ? "PCS" : "CTN"),
+      },
+    );
+    expect(result.unit_id).toBe(pcsUnit2Id);
+    expect(result.rate).toBe("12.50");
   });
 
   it("falls back to purchase_rate and shows a hint when currencies differ", () => {

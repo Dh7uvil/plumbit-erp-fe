@@ -64,6 +64,8 @@ export const GeneralLedgerSchema = z.object({
   to_date: z.string(),
   opening_balance: DecimalStringSchema,
   closing_balance: DecimalStringSchema,
+  total_debit: DecimalStringSchema.optional().default("0"),
+  total_credit: DecimalStringSchema.optional().default("0"),
   page: z.number().int().optional().default(1),
   page_size: z.number().int().nullable().optional().default(null),
   total_lines: z.number().int().optional().default(0),
@@ -137,6 +139,7 @@ export type AccountStatementOpening = z.infer<typeof AccountStatementOpeningSche
 
 export const AccountStatementLineSchema = z.object({
   journal_entry_id: z.string().uuid().nullable().optional(),
+  journal_line_number: z.number().int().nullable().optional(),
   document_number: z.string(),
   entry_date: z.string(),
   due_date: z.string().nullable(),
@@ -149,6 +152,7 @@ export const AccountStatementLineSchema = z.object({
   source_type: z.string().nullable().optional(),
   source_id: z.string().uuid().nullable().optional(),
   cheque_number: z.string().nullable().optional(),
+  cheque_date: z.string().nullable().optional(),
   cheque_clearing_date: z.string().nullable().optional(),
   balance_side: z.string().nullable().optional(),
   narration: z.string().nullable().optional(),
@@ -317,12 +321,16 @@ export const PartyStatementSchema = z.object({
   party_type: z.string(),
   party_id: z.string().uuid(),
   party_name: z.string(),
+  account_code: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
   from_date: z.string(),
   to_date: z.string(),
   opening_balance: DecimalStringSchema,
   opening_balance_side: z.string().nullable().optional(),
   closing_balance: DecimalStringSchema,
   closing_balance_side: z.string().nullable().optional(),
+  total_debit: DecimalStringSchema.optional().default("0"),
+  total_credit: DecimalStringSchema.optional().default("0"),
   lines: z.array(PartyStatementLineSchema).default([]),
 });
 export type PartyStatement = z.infer<typeof PartyStatementSchema>;
@@ -331,6 +339,7 @@ export type CustomerStatementParams = {
   customer_id: string;
   from: string;
   to: string;
+  include_opening?: boolean;
   include_pdc?: boolean;
 };
 
@@ -338,6 +347,7 @@ export type SupplierStatementParams = {
   supplier_id: string;
   from: string;
   to: string;
+  include_opening?: boolean;
   include_pdc?: boolean;
 };
 
@@ -371,6 +381,8 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   bank_receipt_voucher: (id) => `/vouchers/${id}`,
   bank_payment_voucher: (id) => `/vouchers/${id}`,
   journal_voucher: (id) => `/vouchers/${id}`,
+  general_purchase_voucher: (id) => `/vouchers/${id}`,
+  payment_voucher: (id) => `/vouchers/${id}`,
   contra_voucher: (id) => `/vouchers/${id}`,
   voucher_allocation: (id) => `/vouchers/${id}`,
   fx_revaluation: (id) => `/fx-revaluation/${id}`,
@@ -381,7 +393,40 @@ const SOURCE_HREFS: Record<string, (id: string) => string> = {
   year_end_closing: () => `/year-end`,
   grn_charge_adjustment: (id) => `/goods-receipt-charge-adjustments/${id}`,
   goods_receipt_charge_adjustment: (id) => `/goods-receipt-charge-adjustments/${id}`,
+  cost_sheet: (id) => `/cost-sheets/${id}`,
 };
+
+const SOURCE_VOUCHER_CODES: Record<string, string> = {
+  journal_entry: "JV",
+  cost_sheet: "CS",
+  cash_receipt_voucher: "CR",
+  cash_payment_voucher: "CP",
+  bank_receipt_voucher: "BR",
+  bank_payment_voucher: "BP",
+  contra_voucher: "CV",
+  journal_voucher: "JV",
+  general_purchase_voucher: "GP",
+  payment_voucher: "PV",
+  sales_invoice: "SI",
+  purchase_invoice: "PI",
+  credit_note: "CN",
+  debit_note: "DN",
+  customer_payment: "RC",
+  supplier_payment: "SP",
+  customer_payment_allocation: "RC",
+  supplier_payment_allocation: "SP",
+};
+
+export function sourceTypeVoucherCode(sourceType: string | null | undefined): string {
+  if (!sourceType) {
+    return "JV";
+  }
+  const mapped = SOURCE_VOUCHER_CODES[sourceType];
+  if (mapped) {
+    return mapped;
+  }
+  return sourceType.replace(/_/g, "").slice(0, 4).toUpperCase();
+}
 
 export function sourceDocumentHref(
   sourceType: string | null | undefined,

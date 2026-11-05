@@ -15,6 +15,26 @@ Receivables and payables reports show **open balances** and **aging** from poste
 
 Permission: `reports.report.ar_ap`.
 
+### Legacy document statements
+
+Customer statement, supplier statement, and account statement **with a party but no GL account** all use the same legacy document model. **Cost sheets and vouchers** on party statements follow posted journals: one row per **party journal line** (net per line), with document-level voucher fallback when no party line exists. Account statement **with both a party and an account** stays on posted journal lines (GL drill-down with party filter): **PO** / **SO** for issued orders, **PI** / **SI** only when not linked to an order, plus **OB**, **WO**, **SR** / **RR**, payments, notes, cost sheets, and vouchers.
+
+Filters: **include opening** (previous balance), **include PDC** (pending cheques).
+
+**Reconciliation:** Document statement closing vs AR/AP aging vs GL control account — order lines replace linked posted invoices on the statement. Use account statement with the AR/AP **account** selected (optionally with a party filter) for journal-level GL tie-out, including manual journals and allocations.
+
+### Account statement (GL account selected)
+
+When you pick a **ledger account** (with or without a party filter), the report uses **legacy statement-of-account** rules on posted journals. Lines are **cost sheets** (CSI/CSE/CSO ref and type), **vouchers** from the vouchers module (CP/CR/BP/BR/CV/GP/JV type codes with **CPV/CRV/…** refs — not the GL **JV** series), payments, and related documents — not manual journal entries or storno reversal rows. Cost sheet and voucher posting reuse the **document number** on the GL entry (CSI…, CPV…, etc.). Use <AppLink href="/reports/general-ledger">General ledger</AppLink> for manual journals.
+
+- **Cost sheets and vouchers** (journal, cash/bank receipt/payment, contra, payment voucher): one row per **ledger line** on the selected account, with the same **debit/credit columns** as on the document; only the **current** cost sheet journal counts (stale repost orphans are ignored). Repost/reversal cycles net **per line slot**. Linked **reversal/storno journals** are for netting only — not separate rows. **Cheque No** shows cheque metadata only (not cost sheet or voucher numbers).
+- **Other documents** (payments, bills, notes): one net row per document when reposted/reversed.
+- **Supplier-style columns** for cost sheets (**credit**), supplier payments (**debit**), and supplier journal vouchers — same as the supplier statement, including when the selected account is an expense/freight ledger touched by the cost sheet.
+- **Previous balance** shows the brought-forward **balance** only (not repeated period debits/credits).
+- **P.D.C** lines are omitted when the cheque issue journal is already on the statement.
+
+For **every journal line** on an account (audit / GL detail), use <AppLink href="/reports/general-ledger">General ledger</AppLink> or cash/bank/day books — those reports intentionally stay at line level.
+
 ## What is included
 
 | Component | Source |

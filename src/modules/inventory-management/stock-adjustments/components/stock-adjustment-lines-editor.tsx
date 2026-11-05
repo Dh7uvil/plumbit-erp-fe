@@ -131,6 +131,7 @@ export function StockAdjustmentLinesEditor({
       purchaseSide: true,
       warehouseId,
       baseCurrencyId,
+      codeForUnitId: (id) => units.find((unit) => unit.id === id)?.code,
     }).then((values) => {
       form.setValue(`lines.${index}.unit_id`, values.unit_id);
       const cost = form.getValues(`lines.${index}.unit_cost`);

@@ -22,7 +22,10 @@ import {
 
 export const SOURCE_DOCUMENT_PICKER_TYPES = DOCUMENT_TYPES.filter(
   (type): type is DocumentType =>
-    type !== "JOURNAL" && type !== "OPENING_AR" && type !== "OPENING_AP",
+    type !== "JOURNAL" &&
+    type !== "OPENING_AR" &&
+    type !== "OPENING_AP" &&
+    type !== "PURCHASE_INVOICE",
 );
 
 export type SourceDocumentOption = {

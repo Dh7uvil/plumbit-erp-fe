@@ -3,23 +3,14 @@
 import { zodResolver } from "@/shared/lib/zod-resolver";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { OPTIONAL_SELECT_NONE } from "@/config/constants";
-import { ContactFormDialog } from "@/modules/crm/contacts/components/contact-form-dialog";
-import { contactPermissions } from "@/modules/crm/contacts/permissions";
-import { useAllContacts } from "@/modules/crm/contacts/queries";
 import { SupplierFormDialog } from "@/modules/erp/suppliers/components/supplier-form-dialog";
 import { supplierPermissions } from "@/modules/erp/suppliers/permissions";
 import { useAllSuppliers } from "@/modules/erp/suppliers/queries";
-import { PaymentTermFormDialog } from "@/modules/erp/accounting/payment-terms/components/payment-term-form-dialog";
-import { paymentTermPermissions } from "@/modules/erp/accounting/payment-terms/permissions";
-import { useAllPaymentTerms } from "@/modules/erp/accounting/payment-terms/queries";
-import { TermsTemplateFormDialog } from "@/modules/erp/accounting/terms-templates/components/terms-template-form-dialog";
-import { termsTemplatePermissions } from "@/modules/erp/accounting/terms-templates/permissions";
-import { useAllTermsTemplates } from "@/modules/erp/accounting/terms-templates/queries";
 import { CurrencyFormDialog } from "@/modules/erp/currencies/components/currency-form-dialog";
 import { currencyPermissions } from "@/modules/erp/currencies/permissions";
 import { useAllCurrencies } from "@/modules/erp/currencies/queries";
@@ -41,7 +32,6 @@ import {
   PURCHASE_ORDER_TYPE_LABELS,
   PURCHASE_ORDER_TYPES,
   PurchaseOrderFormSchema,
-  TAX_TREATMENT_LABELS,
   type DiscountType,
   type PlaceOfSupply,
   type PurchaseOrderType,
@@ -101,6 +91,23 @@ function todayIsoDate(): string {
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function documentCreatedDateIso(purchaseOrder: PurchaseOrder | null): string {
+  if (!purchaseOrder?.created_at) {
+    return todayIsoDate();
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(purchaseOrder.created_at);
+  if (match) {
+    return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+  const date = new Date(purchaseOrder.created_at);
+  if (Number.isNaN(date.getTime())) {
+    return todayIsoDate();
+  }
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function optionalUuid(value: string): string | null {
@@ -283,22 +290,12 @@ export function PurchaseOrderForm({
   const createPurchaseOrder = useCreatePurchaseOrder();
   const updatePurchaseOrder = useUpdatePurchaseOrder();
   const suppliersQuery = useAllSuppliers();
-  const contactsQuery = useAllContacts();
   const currenciesQuery = useAllCurrencies();
-  const paymentTermsQuery = useAllPaymentTerms();
   const branchesQuery = useAllBranches();
   const warehousesQuery = useAllWarehouses();
-  const termsTemplatesQuery = useAllTermsTemplates(!purchaseOrder);
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState<
-    | "supplier"
-    | "contact"
-    | "branch"
-    | "currency"
-    | "paymentTerms"
-    | "termsTemplate"
-    | "warehouse"
-    | null
+    "supplier" | "branch" | "currency" | "warehouse" | null
   >(null);
   const dirtyCompose = useRef(new Set<ComposeField>());
   const isEdit = Boolean(purchaseOrder);
@@ -325,20 +322,14 @@ export function PurchaseOrderForm({
   const selectedSupplierId = optionalUuid(supplierId);
   const previousCatalogSupplierId = useRef(selectedSupplierId);
   const composeQuery = usePurchaseOrderComposeDefaults(isEdit ? null : selectedSupplierId);
-  const termsTemplateId = useWatch({ control: form.control, name: "terms_template_id" });
-  const taxTreatment = useWatch({ control: form.control, name: "tax_treatment" });
   const supplierTrn = useWatch({ control: form.control, name: "supplier_trn" });
   const orderDate = useWatch({ control: form.control, name: "order_date" });
+  const documentCreatedDate = documentCreatedDateIso(purchaseOrder);
 
   const suppliers = suppliersQuery.data ?? [];
-  const contacts = (contactsQuery.data ?? []).filter(
-    (contact) => contact.customer_id === selectedSupplierId,
-  );
   const currencies = currenciesQuery.data ?? [];
-  const paymentTerms = paymentTermsQuery.data ?? [];
   const branches = branchesQuery.data ?? [];
   const warehouses = warehousesQuery.data ?? [];
-  const templates = useMemo(() => termsTemplatesQuery.data ?? [], [termsTemplatesQuery.data]);
 
   useEffect(() => {
     if (previousCatalogSupplierId.current === selectedSupplierId) {
@@ -381,22 +372,6 @@ export function PurchaseOrderForm({
     form.setValue("supplier_address_snapshot", defaults.supplier_address_snapshot ?? "");
     form.setValue("deliver_to_snapshot", defaults.deliver_to_snapshot ?? "");
   }, [composeQuery.data, form, isEdit]);
-
-  useEffect(() => {
-    if (isEdit) {
-      return;
-    }
-    if (!termsTemplateId || termsTemplateId === OPTIONAL_SELECT_NONE) {
-      return;
-    }
-    if (dirtyCompose.current.has("terms_and_conditions")) {
-      return;
-    }
-    const template = templates.find((item) => item.id === termsTemplateId);
-    if (template) {
-      form.setValue("terms_and_conditions", template.body);
-    }
-  }, [form, isEdit, templates, termsTemplateId]);
 
   function markComposeDirty(field: ComposeField) {
     dirtyCompose.current.add(field);
@@ -467,39 +442,10 @@ export function PurchaseOrderForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="contact_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={(value) => {
-                    markComposeDirty("contact_id");
-                    field.onChange(value);
-                  }}
-                  disabled={disabled || contactsQuery.isLoading || !selectedSupplierId}
-                  placeholder="None"
-                  searchPlaceholder="Search contact…"
-                  createLabel="Create contact"
-                  onCreate={
-                    can(contactPermissions.create) && selectedSupplierId
-                      ? () => setCreating("contact")
-                      : undefined
-                  }
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "None" },
-                    ...contacts.map((contact) => ({
-                      value: contact.id,
-                      label: contact.name,
-                    })),
-                  ]}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormItem>
+            <FormLabel>Supplier TRN</FormLabel>
+            <Input value={supplierTrn || "—"} disabled />
+          </FormItem>
           <FormField
             control={form.control}
             name="branch_id"
@@ -531,7 +477,7 @@ export function PurchaseOrderForm({
             name="order_date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Order date</FormLabel>
+                <FormLabel>Doc. Date</FormLabel>
                 <FormControl>
                   <Input type="date" disabled={disabled} {...field} />
                 </FormControl>
@@ -539,6 +485,12 @@ export function PurchaseOrderForm({
               </FormItem>
             )}
           />
+          <FormItem>
+            <FormLabel>Created date</FormLabel>
+            <FormControl>
+              <Input type="date" value={documentCreatedDate} disabled readOnly />
+            </FormControl>
+          </FormItem>
           <FormField
             control={form.control}
             name="expected_delivery_date"
@@ -598,7 +550,7 @@ export function PurchaseOrderForm({
             name="reference_number"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Reference number</FormLabel>
+                <FormLabel>Imp Doc Number</FormLabel>
                 <FormControl>
                   <Input maxLength={60} disabled={disabled} {...field} />
                 </FormControl>
@@ -670,43 +622,10 @@ export function PurchaseOrderForm({
           />
           <FormField
             control={form.control}
-            name="payment_terms_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment terms</FormLabel>
-                <MasterSelect
-                  value={field.value}
-                  onValueChange={(value) => {
-                    markComposeDirty("payment_terms_id");
-                    field.onChange(value);
-                  }}
-                  disabled={disabled || paymentTermsQuery.isLoading}
-                  placeholder="None"
-                  searchPlaceholder="Search payment terms…"
-                  createLabel="Create payment terms"
-                  onCreate={
-                    can(paymentTermPermissions.create)
-                      ? () => setCreating("paymentTerms")
-                      : undefined
-                  }
-                  options={[
-                    { value: OPTIONAL_SELECT_NONE, label: "None" },
-                    ...paymentTerms.map((term) => ({
-                      value: term.id,
-                      label: term.name,
-                    })),
-                  ]}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="place_of_supply"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Place of supply</FormLabel>
+                <FormLabel>Source of supply</FormLabel>
                 <Select
                   value={field.value}
                   onValueChange={(value) => {
@@ -771,84 +690,6 @@ export function PurchaseOrderForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="shipping_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Shipping amount</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="adjustment_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Adjustment amount</FormLabel>
-                <FormControl>
-                  <DecimalInput kind="money" disabled={disabled} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormItem>
-            <FormLabel>Supplier TRN</FormLabel>
-            <Input value={supplierTrn || "—"} disabled />
-          </FormItem>
-          <div
-            data-slot="form-grid"
-            className={"col-span-full grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2"}
-          >
-            <FormItem>
-              <FormLabel>Tax treatment</FormLabel>
-              <Input
-                value={
-                  taxTreatment && taxTreatment in TAX_TREATMENT_LABELS
-                    ? TAX_TREATMENT_LABELS[taxTreatment as keyof typeof TAX_TREATMENT_LABELS]
-                    : taxTreatment || "—"
-                }
-                disabled
-              />
-            </FormItem>
-            {!isEdit ? (
-              <FormField
-                control={form.control}
-                name="terms_template_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Terms template</FormLabel>
-                    <MasterSelect
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={disabled || termsTemplatesQuery.isLoading}
-                      placeholder="None"
-                      searchPlaceholder="Search template…"
-                      createLabel="Create terms template"
-                      onCreate={
-                        can(termsTemplatePermissions.create)
-                          ? () => setCreating("termsTemplate")
-                          : undefined
-                      }
-                      options={[
-                        { value: OPTIONAL_SELECT_NONE, label: "None" },
-                        ...templates.map((template) => ({
-                          value: template.id,
-                          label: template.name,
-                        })),
-                      ]}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
-          </div>
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Lines</p>
@@ -980,18 +821,6 @@ export function PurchaseOrderForm({
         }}
         onOpenChange={(open) => setCreating(open ? "supplier" : null)}
       />
-      <ContactFormDialog
-        open={creating === "contact"}
-        contact={null}
-        defaultCustomerId={selectedSupplierId ?? undefined}
-        lockCustomer
-        nested
-        onCreated={(entity) => {
-          markComposeDirty("contact_id");
-          form.setValue("contact_id", entity.id);
-        }}
-        onOpenChange={(open) => setCreating(open ? "contact" : null)}
-      />
       <BranchFormDialog
         open={creating === "branch"}
         branch={null}
@@ -1017,23 +846,6 @@ export function PurchaseOrderForm({
           form.setValue("currency_id", entity.id);
         }}
         onOpenChange={(open) => setCreating(open ? "currency" : null)}
-      />
-      <PaymentTermFormDialog
-        open={creating === "paymentTerms"}
-        term={null}
-        nested
-        onCreated={(entity) => {
-          markComposeDirty("payment_terms_id");
-          form.setValue("payment_terms_id", entity.id);
-        }}
-        onOpenChange={(open) => setCreating(open ? "paymentTerms" : null)}
-      />
-      <TermsTemplateFormDialog
-        open={creating === "termsTemplate"}
-        template={null}
-        nested
-        onCreated={(entity) => form.setValue("terms_template_id", entity.id)}
-        onOpenChange={(open) => setCreating(open ? "termsTemplate" : null)}
       />
     </Form>
   );
